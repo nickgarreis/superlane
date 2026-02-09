@@ -14,6 +14,7 @@ import {
   toUtcNoonEpochMsFromDateOnly,
 } from "../lib/dates";
 import { ProjectLogo } from "./ProjectLogo";
+import { DeniedAction } from "./permissions/DeniedAction";
 
 type TaskProjectOption = {
   id: string;
@@ -92,6 +93,10 @@ export function ProjectTasks({
           }),
     [disableInternalSort, initialTasks, sortBy],
   );
+  const shouldOptimizeTaskRows = sortedTasks.length > 40;
+  const taskRowStyle = shouldOptimizeTaskRows
+    ? ({ contentVisibility: "auto", containIntrinsicSize: "56px" } as const)
+    : undefined;
 
   const handleToggle = (id: string) => {
     const newTasks = initialTasks.map(t => 
@@ -272,7 +277,7 @@ export function ProjectTasks({
              </div>
              
              <div className="flex items-center gap-3">
-                 <div className={cn("relative", !canAddTasks && "group/task-add-lock")}>
+                 <DeniedAction denied={!canAddTasks} reason={addTaskDisabledMessage} tooltipAlign="right">
                     <button
                        type="button"
                        onClick={() => {
@@ -291,15 +296,7 @@ export function ProjectTasks({
                     >
                        <Plus size={14} /> Add Task
                     </button>
-                    {!canAddTasks && (
-                      <div
-                        role="tooltip"
-                        className="pointer-events-none absolute right-0 top-[calc(100%+6px)] z-60 w-[min(280px,calc(100vw-24px))] rounded-[10px] border border-[rgba(232,232,232,0.12)] bg-[rgba(30,31,32,0.98)] px-2.5 py-1.5 text-[11px] leading-[1.35] font-medium text-left text-[rgba(232,232,232,0.72)] shadow-[0px_14px_30px_-22px_rgba(0,0,0,0.9)] backdrop-blur-[6px] opacity-0 translate-y-0.5 transition-all duration-200 ease-out group-hover/task-add-lock:opacity-100 group-hover/task-add-lock:translate-y-0"
-                      >
-                        {addTaskDisabledMessage}
-                      </div>
-                    )}
-                 </div>
+                 </DeniedAction>
 
                  {/* Sort Dropdown */}
                  <div className="relative">
@@ -433,6 +430,7 @@ export function ProjectTasks({
                             "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
                             hasOpenDropdown && "z-50"
                         )}
+                        style={taskRowStyle}
                     >
                         <div 
                             className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"

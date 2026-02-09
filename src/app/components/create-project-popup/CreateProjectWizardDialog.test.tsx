@@ -4,7 +4,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { CreateProjectPopup } from "./CreateProjectWizardDialog";
-import type { ProjectDraftData } from "../../types";
+import type { ProjectData, ProjectDraftData } from "../../types";
 
 vi.mock("../../../imports/Loading03", () => ({
   default: ({ className }: { className?: string }) => (
@@ -20,6 +20,26 @@ const STEP_THREE_DRAFT: ProjectDraftData = {
   isAIEnabled: true,
   deadlineEpochMs: null,
   lastStep: 3,
+};
+
+const REVIEW_PROJECT: ProjectData = {
+  id: "project-review-1",
+  name: "Review Website Scope",
+  description: "Project under review",
+  creator: {
+    name: "Owner User",
+    avatar: "",
+  },
+  status: {
+    label: "Review",
+    color: "#f97316",
+    bgColor: "rgba(249, 115, 22, 0.16)",
+    dotColor: "#f97316",
+  },
+  category: "Web Design",
+  archived: false,
+  tasks: [],
+  comments: [],
 };
 
 describe("CreateProjectPopup", () => {
@@ -80,5 +100,46 @@ describe("CreateProjectPopup", () => {
 
     const [projectId] = onUpdateComments.mock.calls[0] as [string];
     expect(projectId).toBe("project-123");
+  });
+
+  test("shows locked review approval action for non-owner users", async () => {
+    const onApproveReviewProject = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={() => {}}
+        reviewProject={REVIEW_PROJECT}
+        onApproveReviewProject={onApproveReviewProject}
+        user={{ userId: "admin-1", name: "Admin", avatar: "", role: "admin" }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Your Project is in Review" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => {
+      expect(onApproveReviewProject).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  test("allows owners to approve review projects", async () => {
+    const onApproveReviewProject = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={() => {}}
+        reviewProject={REVIEW_PROJECT}
+        onApproveReviewProject={onApproveReviewProject}
+        user={{ userId: "owner-1", name: "Owner", avatar: "", role: "owner" }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => {
+      expect(onApproveReviewProject).toHaveBeenCalledWith(REVIEW_PROJECT.id);
+    });
   });
 });

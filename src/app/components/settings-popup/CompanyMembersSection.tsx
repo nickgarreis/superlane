@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { ChevronDown, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
+import type { WorkspaceRole } from "../../types";
+import { cn } from "../../../lib/utils";
 import type { CompanyMember, CompanyPendingInvitation } from "./types";
+import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  getMemberManagementDeniedReason,
+  getOwnerAccountDeniedReason,
+} from "../../lib/permissionRules";
 
 type CompanyMembersSectionProps = {
   members: CompanyMember[];
   pendingInvitations: CompanyPendingInvitation[];
+  viewerRole?: WorkspaceRole;
   hasOrganizationLink: boolean;
   canManageMembers: boolean;
   onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
@@ -18,6 +26,7 @@ type CompanyMembersSectionProps = {
 export function CompanyMembersSection({
   members,
   pendingInvitations,
+  viewerRole,
   hasOrganizationLink,
   canManageMembers,
   onInviteMember,
@@ -30,6 +39,14 @@ export function CompanyMembersSection({
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [isInviteRoleOpen, setIsInviteRoleOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const memberManagementDeniedReason =
+    getMemberManagementDeniedReason({
+      role: viewerRole,
+      hasOrganizationLink,
+    }) ?? "Only admins and owners can manage members";
+  const ownerAccountDeniedReason =
+    getOwnerAccountDeniedReason(viewerRole) ?? "Only owners can manage owner accounts";
+  const isMemberManagementDenied = !canManageMembers || !hasOrganizationLink;
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
@@ -66,26 +83,35 @@ export function CompanyMembersSection({
         <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider">Invite Team Members</h4>
         <div className="flex items-center gap-3">
           <div className="flex-1 relative">
-            <input
-              type="email"
-              placeholder="Email address"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2.5 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
-              disabled={!canManageMembers || !hasOrganizationLink || inviting}
-            />
+            <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="left">
+              <input
+                type="email"
+                placeholder="Email address"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2.5 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+                disabled={isMemberManagementDenied || inviting}
+              />
+            </DeniedAction>
           </div>
 
           <div className="relative">
             {isInviteRoleOpen && <div className="fixed inset-0 z-10" onClick={() => setIsInviteRoleOpen(false)} />}
-            <button
-              onClick={() => setIsInviteRoleOpen((current) => !current)}
-              disabled={!canManageMembers || !hasOrganizationLink || inviting}
-              className="h-[42px] px-3 bg-transparent border-b border-white/10 rounded-none text-[13px] font-medium text-[#E8E8E8] flex items-center gap-2 hover:border-white/40 transition-colors min-w-[100px] justify-between relative z-20 cursor-pointer disabled:opacity-50"
-            >
-              {inviteRole}
-              <ChevronDown size={14} className="text-white/40" />
-            </button>
+            <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="left">
+              <button
+                onClick={() => {
+                  if (isMemberManagementDenied) {
+                    return;
+                  }
+                  setIsInviteRoleOpen((current) => !current);
+                }}
+                disabled={isMemberManagementDenied || inviting}
+                className="h-[42px] px-3 bg-transparent border-b border-white/10 rounded-none text-[13px] font-medium text-[#E8E8E8] flex items-center gap-2 hover:border-white/40 transition-colors min-w-[100px] justify-between relative z-20 cursor-pointer disabled:opacity-50"
+              >
+                {inviteRole}
+                <ChevronDown size={14} className="text-white/40" />
+              </button>
+            </DeniedAction>
 
             {isInviteRoleOpen && (
               <div className="absolute right-0 top-full mt-1 w-[120px] bg-[#1A1A1C] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
@@ -105,13 +131,15 @@ export function CompanyMembersSection({
             )}
           </div>
 
-          <button
-            onClick={handleInvite}
-            disabled={!inviteEmail || !canManageMembers || !hasOrganizationLink || inviting}
-            className="h-[42px] px-5 bg-[#E8E8E8] text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-[13px] font-medium transition-colors cursor-pointer"
-          >
-            {inviting ? "Inviting..." : "Invite"}
-          </button>
+          <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
+            <button
+              onClick={handleInvite}
+              disabled={!inviteEmail || isMemberManagementDenied || inviting}
+              className="h-[42px] px-5 bg-[#E8E8E8] text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-[13px] font-medium transition-colors cursor-pointer"
+            >
+              {inviting ? "Inviting..." : "Invite"}
+            </button>
+          </DeniedAction>
         </div>
       </div>
 
@@ -142,42 +170,65 @@ export function CompanyMembersSection({
 
                 <div className="flex items-center gap-3">
                   {member.role === "owner" ? (
-                    <span className="px-3 py-1 text-[12px] text-[#E8E8E8]/70">owner</span>
-                  ) : (
-                    <select
-                      value={member.role}
-                      onChange={(event) => {
-                        const role = event.target.value as "admin" | "member";
-                        void onChangeMemberRole({ userId: member.userId, role })
-                          .then(() => toast.success("Member role updated"))
-                          .catch((error) => {
-                            console.error(error);
-                            toast.error("Failed to update member role");
-                          });
-                      }}
-                      disabled={!canManageMembers || !hasOrganizationLink}
-                      className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-[12px] text-[#E8E8E8] outline-none disabled:opacity-50"
+                    <DeniedAction
+                      denied={viewerRole !== "owner"}
+                      reason={viewerRole === "owner" ? null : ownerAccountDeniedReason}
+                      tooltipAlign="right"
                     >
-                      <option value="member">member</option>
-                      <option value="admin">admin</option>
-                    </select>
+                      <span
+                        className={cn(
+                          "px-3 py-1 text-[12px]",
+                          viewerRole === "owner" ? "text-[#E8E8E8]/70" : "text-[#E8E8E8]/40 cursor-not-allowed",
+                        )}
+                      >
+                        owner
+                      </span>
+                    </DeniedAction>
+                  ) : (
+                    <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
+                      <select
+                        value={member.role}
+                        onChange={(event) => {
+                          if (isMemberManagementDenied) {
+                            return;
+                          }
+                          const role = event.target.value as "admin" | "member";
+                          void onChangeMemberRole({ userId: member.userId, role })
+                            .then(() => toast.success("Member role updated"))
+                            .catch((error) => {
+                              console.error(error);
+                              toast.error("Failed to update member role");
+                            });
+                        }}
+                        disabled={isMemberManagementDenied}
+                        className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-[12px] text-[#E8E8E8] outline-none disabled:opacity-50"
+                      >
+                        <option value="member">member</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    </DeniedAction>
                   )}
 
                   {member.role !== "owner" && (
-                    <button
-                      className="text-[12px] text-red-400/80 hover:text-red-400 transition-colors font-medium cursor-pointer disabled:opacity-50"
-                      disabled={!canManageMembers || !hasOrganizationLink}
-                      onClick={() => {
-                        void onRemoveMember({ userId: member.userId })
-                          .then(() => toast.success("Member removed"))
-                          .catch((error) => {
-                            console.error(error);
-                            toast.error("Failed to remove member");
-                          });
-                      }}
-                    >
-                      Remove
-                    </button>
+                    <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
+                      <button
+                        className="text-[12px] text-red-400/80 hover:text-red-400 transition-colors font-medium cursor-pointer disabled:opacity-50"
+                        disabled={isMemberManagementDenied}
+                        onClick={() => {
+                          if (isMemberManagementDenied) {
+                            return;
+                          }
+                          void onRemoveMember({ userId: member.userId })
+                            .then(() => toast.success("Member removed"))
+                            .catch((error) => {
+                              console.error(error);
+                              toast.error("Failed to remove member");
+                            });
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </DeniedAction>
                   )}
                 </div>
               </div>
@@ -205,36 +256,46 @@ export function CompanyMembersSection({
               </div>
 
               <div className="flex items-center gap-1">
-                <button
-                  title="Resend invitation"
-                  className="p-1.5 hover:bg-white/10 text-[#E8E8E8]/30 hover:text-[#58AFFF] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                  disabled={!canManageMembers || !hasOrganizationLink}
-                  onClick={() => {
-                    void onResendInvitation({ invitationId: invitation.invitationId })
-                      .then(() => toast.success("Invitation resent"))
-                      .catch((error) => {
-                        console.error(error);
-                        toast.error("Failed to resend invitation");
-                      });
-                  }}
-                >
-                  <RotateCcw size={14} />
-                </button>
-                <button
-                  title="Revoke invitation"
-                  className="p-1.5 hover:bg-red-500/10 text-[#E8E8E8]/30 hover:text-red-400 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                  disabled={!canManageMembers || !hasOrganizationLink}
-                  onClick={() => {
-                    void onRevokeInvitation({ invitationId: invitation.invitationId })
-                      .then(() => toast.success("Invitation revoked"))
-                      .catch((error) => {
-                        console.error(error);
-                        toast.error("Failed to revoke invitation");
-                      });
-                  }}
-                >
-                  <X size={14} />
-                </button>
+                <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
+                  <button
+                    title="Resend invitation"
+                    className="p-1.5 hover:bg-white/10 text-[#E8E8E8]/30 hover:text-[#58AFFF] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    disabled={isMemberManagementDenied}
+                    onClick={() => {
+                      if (isMemberManagementDenied) {
+                        return;
+                      }
+                      void onResendInvitation({ invitationId: invitation.invitationId })
+                        .then(() => toast.success("Invitation resent"))
+                        .catch((error) => {
+                          console.error(error);
+                          toast.error("Failed to resend invitation");
+                        });
+                    }}
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </DeniedAction>
+                <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
+                  <button
+                    title="Revoke invitation"
+                    className="p-1.5 hover:bg-red-500/10 text-[#E8E8E8]/30 hover:text-red-400 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    disabled={isMemberManagementDenied}
+                    onClick={() => {
+                      if (isMemberManagementDenied) {
+                        return;
+                      }
+                      void onRevokeInvitation({ invitationId: invitation.invitationId })
+                        .then(() => toast.success("Invitation revoked"))
+                        .catch((error) => {
+                          console.error(error);
+                          toast.error("Failed to revoke invitation");
+                        });
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </DeniedAction>
               </div>
             </div>
           ))}

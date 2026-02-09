@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { AppView } from "../lib/routing";
-import type { ProjectData, ProjectDraftData, ProjectFileTab } from "../types";
+import type { ProjectData, ProjectDraftData, ProjectFileTab, ReviewComment, Task } from "../types";
 
 export type PendingHighlight = {
   projectId: string;
@@ -100,6 +100,38 @@ export interface DashboardCommands {
     switchWorkspace: (workspaceSlug: string) => void;
     createWorkspace: () => void;
   };
+}
+
+export interface DashboardProjectActions {
+  handleCreateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
+  handleEditProject: (project: ProjectData) => void;
+  handleViewReviewProject: (project: ProjectData) => void;
+  handleUpdateComments: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  handleArchiveProject: (projectId: string) => void;
+  handleUnarchiveProject: (projectId: string) => void;
+  handleDeleteProject: (projectId: string) => void;
+  handleUpdateProjectStatus: (projectId: string, newStatus: string) => void;
+  handleApproveReviewProject: (projectId: string) => Promise<void>;
+  handleUpdateProject: (projectId: string, data: Partial<ProjectData>) => void;
+  handleReplaceWorkspaceTasks: (tasks: Task[]) => void;
+}
+
+export interface DashboardFileActions {
+  handleCreateProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
+  handleUploadDraftAttachment: (
+    file: File,
+    draftSessionId: string,
+  ) => Promise<{
+    pendingUploadId: string;
+    name: string;
+    type: string;
+    mimeType: string | null;
+    sizeBytes: number;
+  }>;
+  handleRemoveDraftAttachment: (pendingUploadId: string) => Promise<void>;
+  handleDiscardDraftSessionUploads: (draftSessionId: string) => Promise<void>;
+  handleRemoveProjectFile: (fileId: string) => void;
+  handleDownloadProjectFile: (fileId: string) => void;
 }
 
 export type NavigationDestination = "archive";

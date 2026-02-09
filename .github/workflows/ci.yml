@@ -131,7 +131,7 @@ jobs:
         run: npm ci
 
       - name: Frontend coverage
-        run: npm run test:frontend:coverage
+        run: npm run quality:frontend
 
       - name: Upload frontend coverage summary
         if: always()

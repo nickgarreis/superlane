@@ -1,11 +1,15 @@
 import type React from "react";
 import { Download, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import type { WorkspaceRole } from "../../types";
 import { bytesToHumanReadable, getAssetPreviewSrc, type CompanyBrandAsset } from "./types";
+import { DeniedAction } from "../permissions/DeniedAction";
+import { getBrandAssetDeniedReason } from "../../lib/permissionRules";
 
 type CompanyBrandAssetsSectionProps = {
   brandAssets: CompanyBrandAsset[];
   canManageBrandAssets: boolean;
+  viewerRole?: WorkspaceRole;
   onUploadBrandAsset: (file: File) => Promise<void>;
   onRemoveBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
 };
@@ -13,9 +17,11 @@ type CompanyBrandAssetsSectionProps = {
 export function CompanyBrandAssetsSection({
   brandAssets,
   canManageBrandAssets,
+  viewerRole,
   onUploadBrandAsset,
   onRemoveBrandAsset,
 }: CompanyBrandAssetsSectionProps) {
+  const brandAssetsDeniedReason = getBrandAssetDeniedReason(viewerRole);
   const handleUploadBrandAsset = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const file = input.files?.[0];
@@ -40,21 +46,23 @@ export function CompanyBrandAssetsSection({
           <h3 className="text-[16px] font-medium text-[#E8E8E8]">Brand Assets</h3>
           <p className="text-[13px] text-[#E8E8E8]/40">Workspace-level brand files.</p>
         </div>
-        <label
-          className={`inline-flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-full text-bg-base text-[13px] font-medium ${
-            canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"
-          }`}
-          aria-disabled={!canManageBrandAssets}
-          tabIndex={canManageBrandAssets ? 0 : -1}
-        >
-          <Upload size={14} /> Upload
-          <input
-            type="file"
-            className="hidden"
-            disabled={!canManageBrandAssets}
-            onChange={handleUploadBrandAsset}
-          />
-        </label>
+        <DeniedAction denied={!canManageBrandAssets} reason={brandAssetsDeniedReason} tooltipAlign="right">
+          <label
+            className={`inline-flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-full text-bg-base text-[13px] font-medium ${
+              canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"
+            }`}
+            aria-disabled={!canManageBrandAssets}
+            tabIndex={canManageBrandAssets ? 0 : -1}
+          >
+            <Upload size={14} /> Upload
+            <input
+              type="file"
+              className="hidden"
+              disabled={!canManageBrandAssets}
+              onChange={handleUploadBrandAsset}
+            />
+          </label>
+        </DeniedAction>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -87,20 +95,25 @@ export function CompanyBrandAssetsSection({
               >
                 <Download size={14} />
               </button>
-              <button
-                className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                disabled={!canManageBrandAssets}
-                onClick={() => {
-                  void onRemoveBrandAsset({ brandAssetId: asset.id })
-                    .then(() => toast.success("Brand asset removed"))
-                    .catch((error) => {
-                      console.error(error);
-                      toast.error("Failed to remove brand asset");
-                    });
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
+              <DeniedAction denied={!canManageBrandAssets} reason={brandAssetsDeniedReason} tooltipAlign="right">
+                <button
+                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={!canManageBrandAssets}
+                  onClick={() => {
+                    if (!canManageBrandAssets) {
+                      return;
+                    }
+                    void onRemoveBrandAsset({ brandAssetId: asset.id })
+                      .then(() => toast.success("Brand asset removed"))
+                      .catch((error) => {
+                        console.error(error);
+                        toast.error("Failed to remove brand asset");
+                      });
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </DeniedAction>
             </div>
           </div>
         ))}

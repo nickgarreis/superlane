@@ -339,6 +339,7 @@ export const getCompanySettings = query({
       },
       capability: {
         hasOrganizationLink: Boolean(workspace.workosOrganizationId),
+        canManageWorkspaceGeneral: hasRequiredWorkspaceRole(access.membership.role, "admin"),
         canManageMembers: hasRequiredWorkspaceRole(access.membership.role, "admin"),
         canManageBrandAssets: hasRequiredWorkspaceRole(access.membership.role, "admin"),
         canDeleteWorkspace: access.membership.role === "owner",

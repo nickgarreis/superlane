@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Archive, ArchiveRestore, Trash2, Search } from "lucide-react";
 import HorizontalBorder from "../../imports/HorizontalBorder";
-import { ProjectData } from "../types";
+import { cn } from "../../lib/utils";
+import { ProjectData, WorkspaceRole } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
+import { DeniedAction } from "./permissions/DeniedAction";
+import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
 
 export function ArchivePage({ 
     onToggleSidebar, 
     isSidebarOpen,
     projects,
+    viewerRole,
     onNavigateToProject,
     onUnarchiveProject,
     onDeleteProject,
@@ -18,6 +22,7 @@ export function ArchivePage({
     onToggleSidebar: () => void;
     isSidebarOpen: boolean;
     projects: Record<string, ProjectData>;
+    viewerRole?: WorkspaceRole | null;
     onNavigateToProject: (id: string) => void;
     onUnarchiveProject: (id: string) => void;
     onDeleteProject: (id: string) => void;
@@ -26,6 +31,8 @@ export function ArchivePage({
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const projectLifecycleDeniedReason = getProjectLifecycleDeniedReason(viewerRole);
+    const canManageProjectLifecycle = projectLifecycleDeniedReason == null;
 
     // Highlight flash + scroll-into-view for newly archived project
     useEffect(() => {
@@ -152,28 +159,62 @@ export function ArchivePage({
                                             {formatDate(project.archivedAt)}
                                         </div>
                                         <div className="w-[120px] shrink-0 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                                                title="Unarchive"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onUnarchiveProject(project.id);
-                                                }}
-                                            >
-                                                <ArchiveRestore size={15} className="text-white/50 hover:text-white" />
-                                            </button>
-                                            <button
-                                                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
-                                                title="Delete permanently"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (window.confirm("Are you sure you want to permanently delete this project?")) {
-                                                        onDeleteProject(project.id);
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 size={15} className="text-white/50 hover:text-red-400" />
-                                            </button>
+                                            <DeniedAction denied={!canManageProjectLifecycle} reason={projectLifecycleDeniedReason} tooltipAlign="right">
+                                                <button
+                                                    className={cn(
+                                                        "p-1.5 rounded-lg transition-colors",
+                                                        canManageProjectLifecycle
+                                                            ? "hover:bg-white/10 cursor-pointer"
+                                                            : "cursor-not-allowed opacity-55",
+                                                    )}
+                                                    title="Unarchive"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!canManageProjectLifecycle) {
+                                                            return;
+                                                        }
+                                                        onUnarchiveProject(project.id);
+                                                    }}
+                                                >
+                                                    <ArchiveRestore
+                                                        size={15}
+                                                        className={cn(
+                                                            canManageProjectLifecycle
+                                                                ? "text-white/50 hover:text-white"
+                                                                : "text-white/30",
+                                                        )}
+                                                    />
+                                                </button>
+                                            </DeniedAction>
+                                            <DeniedAction denied={!canManageProjectLifecycle} reason={projectLifecycleDeniedReason} tooltipAlign="right">
+                                                <button
+                                                    className={cn(
+                                                        "p-1.5 rounded-lg transition-colors",
+                                                        canManageProjectLifecycle
+                                                            ? "hover:bg-red-500/10 cursor-pointer"
+                                                            : "cursor-not-allowed opacity-55",
+                                                    )}
+                                                    title="Delete permanently"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!canManageProjectLifecycle) {
+                                                            return;
+                                                        }
+                                                        if (window.confirm("Are you sure you want to permanently delete this project?")) {
+                                                            onDeleteProject(project.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2
+                                                        size={15}
+                                                        className={cn(
+                                                            canManageProjectLifecycle
+                                                                ? "text-white/50 hover:text-red-400"
+                                                                : "text-white/30",
+                                                        )}
+                                                    />
+                                                </button>
+                                            </DeniedAction>
                                         </div>
                                     </motion.div>
                                 ))}

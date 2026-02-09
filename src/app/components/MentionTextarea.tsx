@@ -216,6 +216,27 @@ function setCursorAtOffset(root: HTMLElement, target: number) {
   }
 }
 
+function insertPlainTextAtSelection(root: HTMLElement, text: string): boolean {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    return false;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+    return false;
+  }
+
+  range.deleteContents();
+  const textNode = document.createTextNode(text);
+  range.insertNode(textNode);
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return true;
+}
+
 // ── Dropdown position hook ────────────────────────────────────────
 function useDropdownPosition(
   editorRef: React.RefObject<HTMLElement | null>,
@@ -297,6 +318,8 @@ export const MentionTextarea = forwardRef<
   useImperativeHandle(ref, () => editorRef.current!);
 
   const lastEmittedValue = useRef(value);
+  const initialValueRef = useRef(value);
+  const initialAutoFocusRef = useRef(autoFocus);
   const isComposing = useRef(false);
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -347,17 +370,21 @@ export const MentionTextarea = forwardRef<
     []
   );
 
-  // Initial mount
+  // Initial mount sync (one-time)
   useEffect(() => {
-    syncDOM(value);
-    if (autoFocus) {
-      const el = editorRef.current;
-      if (el) {
-        el.focus();
-        setCursorAtOffset(el, value.length);
-      }
+    syncDOM(initialValueRef.current);
+    lastEmittedValue.current = initialValueRef.current;
+
+    if (!initialAutoFocusRef.current) {
+      return;
     }
-  }, [autoFocus, syncDOM, value]);
+
+    const el = editorRef.current;
+    if (el) {
+      el.focus();
+      setCursorAtOffset(el, initialValueRef.current.length);
+    }
+  }, [syncDOM]);
 
   // Sync when value changes externally
   useEffect(() => {
@@ -497,10 +524,25 @@ export const MentionTextarea = forwardRef<
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLDivElement>) => {
       e.preventDefault();
+      const el = editorRef.current;
+      if (!el) {
+        return;
+      }
+
       const text = e.clipboardData.getData("text/plain");
-      document.execCommand("insertText", false, text);
+      const inserted = insertPlainTextAtSelection(el, text);
+      if (!inserted) {
+        const cursorPos = getCursorOffset(el);
+        const existing = extractValue(el);
+        const nextValue = `${existing.slice(0, cursorPos)}${text}${existing.slice(cursorPos)}`;
+        lastEmittedValue.current = nextValue;
+        onChange(nextValue);
+        syncDOM(nextValue, cursorPos + text.length);
+        return;
+      }
+      handleInput();
     },
-    []
+    [handleInput, onChange, syncDOM]
   );
 
   // ── Close dropdown on outside click ────────────────────────────

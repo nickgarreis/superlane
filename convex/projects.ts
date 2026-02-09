@@ -314,6 +314,9 @@ export const update = mutation({
       if (!hasRequiredWorkspaceRole(membership.role, "admin")) {
         throw new ConvexError("Forbidden");
       }
+      if (project.status === "Review" && args.status === "Active" && membership.role !== "owner") {
+        throw new ConvexError("Forbidden");
+      }
       patch.status = args.status;
       patch.archived = false;
       patch.previousStatus = null;
@@ -342,7 +345,11 @@ export const setStatus = mutation({
     status: projectStatusValidator,
   },
   handler: async (ctx, args) => {
-    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
+    const { project, appUser, membership } = await requireProjectRole(ctx, args.publicId, "admin");
+
+    if (project.status === "Review" && args.status === "Active" && membership.role !== "owner") {
+      throw new ConvexError("Forbidden");
+    }
 
     const now = Date.now();
 

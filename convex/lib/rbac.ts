@@ -56,7 +56,11 @@ export const RBAC_MATRIX = {
   "projects.create": { access: "minimumRole", minimumRole: "member" },
   "projects.update": { access: "minimumRole", minimumRole: "member" },
   "projects.updateReviewComments": { access: "minimumRole", minimumRole: "member" },
-  "projects.setStatus": { access: "minimumRole", minimumRole: "admin" },
+  "projects.setStatus": {
+    access: "minimumRole",
+    minimumRole: "admin",
+    notes: "Review-to-Active approval is owner-only; enforced in mutation handler.",
+  },
   "projects.archive": { access: "minimumRole", minimumRole: "admin" },
   "projects.unarchive": { access: "minimumRole", minimumRole: "admin" },
   "projects.remove": { access: "minimumRole", minimumRole: "admin" },

@@ -67,6 +67,7 @@ export type CompanySettingsData = {
   };
   capability: {
     hasOrganizationLink: boolean;
+    canManageWorkspaceGeneral: boolean;
     canManageMembers: boolean;
     canManageBrandAssets: boolean;
     canDeleteWorkspace: boolean;

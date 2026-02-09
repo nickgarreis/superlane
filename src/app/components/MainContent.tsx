@@ -6,7 +6,7 @@ import svgPaths from "../../imports/svg-0erue6fqwq";
 import svgPathsStatus from "../../imports/svg-95p4xxlon7";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
-import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
+import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember, WorkspaceRole } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import type {
   MainContentFileActions,
@@ -16,6 +16,8 @@ import type {
 } from "../dashboard/types";
 import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
 import { scheduleIdlePrefetch } from "../lib/prefetch";
+import { DeniedAction } from "./permissions/DeniedAction";
+import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -46,8 +48,28 @@ const LazyChatSidebar = React.lazy(async () => {
   return { default: module.ChatSidebar };
 });
 
-function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, onComplete, onUncomplete }: { isArchived?: boolean, isCompleted?: boolean, onArchive?: () => void, onUnarchive?: () => void, onDelete?: () => void, onComplete?: () => void, onUncomplete?: () => void }) {
+function MenuIcon({
+  isArchived,
+  isCompleted,
+  viewerRole,
+  onArchive,
+  onUnarchive,
+  onDelete,
+  onComplete,
+  onUncomplete,
+}: {
+  isArchived?: boolean;
+  isCompleted?: boolean;
+  viewerRole?: WorkspaceRole | null;
+  onArchive?: () => void;
+  onUnarchive?: () => void;
+  onDelete?: () => void;
+  onComplete?: () => void;
+  onUncomplete?: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const lifecycleDeniedReason = getProjectLifecycleDeniedReason(viewerRole);
+  const canManageProjectLifecycle = lifecycleDeniedReason == null;
   
   return (
     <div className="relative">
@@ -60,62 +82,123 @@ function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, o
           </svg>
       </div>
       
-      {isOpen && (
-        <>
-            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
-            <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
-                {/* Complete button - for active (non-completed, non-archived) projects only */}
-                {!isCompleted && !isArchived && onComplete && (
-                    <div 
-                       className="px-2 py-1.5 hover:bg-[#22c55e]/10 cursor-pointer flex items-center gap-3 rounded-lg mx-1 text-[#22c55e] transition-colors group"
-                       onClick={() => {
-                         onComplete();
-                         setIsOpen(false);
-                       }}
-                    >
-                       <CheckCircle2 className="w-4 h-4 text-[#22c55e]/80 group-hover:text-[#22c55e] transition-colors" />
-                       <span className="text-[13px] font-medium">Complete</span>
-                    </div>
-                )}
+	      {isOpen && (
+	        <>
+	            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
+	            <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
+	                {/* Complete button - for active (non-completed, non-archived) projects only */}
+	                {!isCompleted && !isArchived && onComplete && (
+                    <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+                      <button
+                        type="button"
+                        className={cn(
+                          "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                          canManageProjectLifecycle
+                            ? "hover:bg-[#22c55e]/10 cursor-pointer text-[#22c55e] group"
+                            : "cursor-not-allowed text-[#22c55e]/45 opacity-60",
+                        )}
+                        onClick={() => {
+                          if (!canManageProjectLifecycle) {
+                            return;
+                          }
+                          onComplete();
+                          setIsOpen(false);
+                        }}
+                      >
+                        <CheckCircle2
+                          className={cn(
+                            "w-4 h-4 transition-colors",
+                            canManageProjectLifecycle
+                              ? "text-[#22c55e]/80 group-hover:text-[#22c55e]"
+                              : "text-[#22c55e]/45",
+                          )}
+                        />
+                        <span className="text-[13px] font-medium">Complete</span>
+                      </button>
+                    </DeniedAction>
+	                )}
 
-                {/* Revert to Active - only for completed projects */}
-                {!isArchived && isCompleted && onUncomplete && (
-                    <div 
-                       className="px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 text-[#E8E8E8] transition-colors group"
-                       onClick={() => {
-                         onUncomplete();
-                         setIsOpen(false);
-                       }}
-                    >
-                       <Undo2 className="w-4 h-4 text-[#E8E8E8]/60 group-hover:text-white transition-colors" />
-                       <span className="text-[13px] font-medium">Revert to Active</span>
-                    </div>
-                )}
+	                {/* Revert to Active - only for completed projects */}
+	                {!isArchived && isCompleted && onUncomplete && (
+                    <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+                      <button
+                        type="button"
+                        className={cn(
+                          "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                          canManageProjectLifecycle
+                            ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
+                            : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
+                        )}
+                        onClick={() => {
+                          if (!canManageProjectLifecycle) {
+                            return;
+                          }
+                          onUncomplete();
+                          setIsOpen(false);
+                        }}
+                      >
+                        <Undo2
+                          className={cn(
+                            "w-4 h-4 transition-colors",
+                            canManageProjectLifecycle
+                              ? "text-[#E8E8E8]/60 group-hover:text-white"
+                              : "text-[#E8E8E8]/35",
+                          )}
+                        />
+                        <span className="text-[13px] font-medium">Revert to Active</span>
+                      </button>
+                    </DeniedAction>
+	                )}
 
-                {/* Archive/Unarchive - hide for completed projects */}
-                {!isCompleted && (
-                <div 
-                   className="px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 text-[#E8E8E8] transition-colors group"
-                   onClick={() => {
-                     if (isArchived) {
-                        if (onUnarchive) onUnarchive();
-                     } else {
-                        if (onArchive) onArchive();
-                     }
-                     setIsOpen(false);
-                   }}
-                >
-                   {isArchived ? (
-                       <ArchiveRestore className="w-4 h-4 text-[#E8E8E8]/60 group-hover:text-white transition-colors" />
-                   ) : (
-                       <Archive className="w-4 h-4 text-[#E8E8E8]/60 group-hover:text-white transition-colors" />
-                   )}
-                   <span className="text-[13px] font-medium">{isArchived ? "Unarchive" : "Archive"}</span>
-                </div>
-                )}
-            </div>
-        </>
-      )}
+	                {/* Archive/Unarchive - hide for completed projects */}
+	                {!isCompleted && (
+                  <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                        canManageProjectLifecycle
+                          ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
+                          : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
+                      )}
+                      onClick={() => {
+                        if (!canManageProjectLifecycle) {
+                          return;
+                        }
+                        if (isArchived) {
+                          if (onUnarchive) onUnarchive();
+                        } else {
+                          if (onArchive) onArchive();
+                        }
+                        setIsOpen(false);
+                      }}
+                    >
+                      {isArchived ? (
+                        <ArchiveRestore
+                          className={cn(
+                            "w-4 h-4 transition-colors",
+                            canManageProjectLifecycle
+                              ? "text-[#E8E8E8]/60 group-hover:text-white"
+                              : "text-[#E8E8E8]/35",
+                          )}
+                        />
+                      ) : (
+                        <Archive
+                          className={cn(
+                            "w-4 h-4 transition-colors",
+                            canManageProjectLifecycle
+                              ? "text-[#E8E8E8]/60 group-hover:text-white"
+                              : "text-[#E8E8E8]/35",
+                          )}
+                        />
+                      )}
+                      <span className="text-[13px] font-medium">{isArchived ? "Unarchive" : "Archive"}</span>
+                    </button>
+                  </DeniedAction>
+	                )}
+	            </div>
+	        </>
+	      )}
     </div>
   );
 }
@@ -302,6 +385,10 @@ export function MainContent({
         }),
     [currentFiles, searchQuery, sortBy],
   );
+  const shouldOptimizeFileRows = filteredFiles.length > 40;
+  const fileRowStyle = shouldOptimizeFileRows
+    ? ({ contentVisibility: "auto", containIntrinsicSize: "72px" } as const)
+    : undefined;
 
   const renderedFileRows = useMemo(
     () =>
@@ -312,6 +399,7 @@ export function MainContent({
           layout
           exit={{ opacity: 0 }}
           className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+          style={fileRowStyle}
         >
           <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
             <img
@@ -388,6 +476,7 @@ export function MainContent({
                 <MenuIcon 
                     isArchived={project.archived}
                     isCompleted={project.status.label === "Completed"}
+                    viewerRole={viewerIdentity.role}
                     onArchive={() => projectActions.archive?.(project.id)} 
                     onUnarchive={() => projectActions.unarchive?.(project.id)}
                     onDelete={() => projectActions.remove?.(project.id)}
@@ -602,7 +691,12 @@ export function MainContent({
             </div>
 
             {/* File List */}
-            <div className="flex flex-col gap-2">
+            <div
+              className="flex flex-col gap-2"
+              style={shouldOptimizeFileRows
+                ? ({ contentVisibility: "auto", containIntrinsicSize: "640px" } as const)
+                : undefined}
+            >
                 <AnimatePresence initial={false} key={project.id + '-' + activeTab}>
                 {renderedFileRows}
                 </AnimatePresence>

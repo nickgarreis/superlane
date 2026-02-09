@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useReducer, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import Loading03 from "../../../imports/Loading03";
 import svgPaths from "../../../imports/svg-v61uoamt04";
@@ -24,32 +24,30 @@ import {
   toUtcNoonEpochMsFromDateOnly,
 } from "../../lib/dates";
 import { useDraftAttachments } from "./useDraftAttachments";
+import { CreateProjectWizardConfirmDialogs } from "./CreateProjectWizardConfirmDialogs";
+import { WizardCloseButton } from "./WizardCloseButton";
+import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  getProjectLifecycleDeniedReason,
+  getReviewApprovalDeniedReason,
+  getReviewCommentAuthorDeniedReason,
+  isAdminOrOwner,
+} from "../../lib/permissionRules";
+import {
+  type CreateProjectWizardState,
+  createInitialCreateProjectWizardState,
+  reduceCreateProjectWizardState,
+} from "./wizardState";
 
-// SVG Paths for Step 3 (from svg-7lu5669hrh.ts)
 const step3Paths = {
   p7659d00: "M5.25317 6.2182C5.46077 6.0106 5.7822 6.01729 5.96969 6.21152L8.56792 8.96373L11.1527 6.21152C11.3402 6.0106 11.675 6.01729 11.8692 6.22489C12.05 6.41237 12.0433 6.72043 11.8491 6.92803L9.21746 9.71373C8.86923 10.0954 8.25317 10.0954 7.90494 9.71373L5.27323 6.92803C5.09917 6.74049 5.08574 6.39232 5.25317 6.2182Z",
 };
 
-const SERVICES = [
-  "Web Design",
-  // Future services will be added here
-];
+const SERVICES = ["Web Design"];
 
-const JOB_OPTIONS = [
-  "I would like to discuss some possibilities",
-  "Create something new",
-  "Refine something existing"
-];
+const JOB_OPTIONS = ["I would like to discuss some possibilities", "Create something new", "Refine something existing"];
 
-const WEB_DESIGN_SCOPE = [
-  "UI/UX Audit",
-  "Landing page(s)",
-  "Website",
-  "Web content or elements",
-  "Design system",
-  "Product design",
-  "Interactive animations"
-];
+const WEB_DESIGN_SCOPE = ["UI/UX Audit", "Landing page(s)", "Website", "Web content or elements", "Design system", "Product design", "Interactive animations"];
 
 const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
   "UI/UX Audit": "\u{1F4E5}",
@@ -101,7 +99,18 @@ export function CreateProjectPopup({
   onRemovePendingAttachment?: (pendingUploadId: string) => Promise<void>;
   onDiscardDraftUploads?: (draftSessionId: string) => Promise<void>;
 }) {
-  const [step, setStep] = useState(1);
+  const [wizardState, dispatchWizard] = useReducer(
+    reduceCreateProjectWizardState,
+    undefined,
+    createInitialCreateProjectWizardState,
+  );
+  const { step, showCloseConfirm, showDeleteConfirm, showDeleteProjectConfirm, createdProjectId, isApprovingReview } = wizardState;
+  const patchWizardState = useCallback((patch: Partial<CreateProjectWizardState>) => {
+    dispatchWizard({ type: "patch", patch });
+  }, []);
+  const setStep = useCallback((value: number) => {
+    patchWizardState({ step: value });
+  }, [patchWizardState]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
@@ -110,13 +119,8 @@ export function CreateProjectPopup({
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [draftSessionId, setDraftSessionId] = useState(() => createDraftSessionId());
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeleteProjectConfirm, setShowDeleteProjectConfirm] = useState(false);
   const [reviewComments, setReviewComments] = useState<ReviewComment[]>([]);
   const [commentInput, setCommentInput] = useState("");
-  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
-  const [isApprovingReview, setIsApprovingReview] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const {
@@ -135,7 +139,6 @@ export function CreateProjectPopup({
     onRemovePendingAttachment,
   });
 
-  // Initialize from draft data when opening in edit mode
   useEffect(() => {
     if (isOpen && initialDraftData) {
       setSelectedService(initialDraftData.selectedService);
@@ -148,7 +151,6 @@ export function CreateProjectPopup({
     }
   }, [isOpen, initialDraftData]);
 
-  // Initialize from review project — jump directly to step 4 (success page)
   useEffect(() => {
     if (isOpen && reviewProject) {
       const categoryMap: Record<string, string> = {
@@ -176,7 +178,6 @@ export function CreateProjectPopup({
     resetAttachments();
   }, [isOpen, resetAttachments]);
 
-  // ── Service-specific configuration ──────────────────────────────
   type ServiceKey = typeof SERVICES[number];
 
   const getStep2Config = (service: ServiceKey) => ({
@@ -225,12 +226,14 @@ export function CreateProjectPopup({
     setDeadline(undefined);
     setIsCalendarOpen(false);
     resetAttachments();
-    setShowCloseConfirm(false);
-    setShowDeleteConfirm(false);
-    setShowDeleteProjectConfirm(false);
+    patchWizardState({
+      showCloseConfirm: false,
+      showDeleteConfirm: false,
+      showDeleteProjectConfirm: false,
+    });
     setReviewComments([]);
     setCommentInput("");
-    setCreatedProjectId(null);
+    patchWizardState({ createdProjectId: null });
     setDraftSessionId(createDraftSessionId());
   }, [isOpen, resetAttachments]);
 
@@ -244,11 +247,9 @@ export function CreateProjectPopup({
   const isNextDisabled = !isStepValid() || (step === 3 && isUploading);
 
   const hasUnsavedWork = () => {
-    // For new projects: any selection means there's something to save
     if (!editProjectId) {
       return !!selectedService || !!projectName.trim();
     }
-    // For existing drafts: compare current state against initial draft data
     if (initialDraftData) {
       if ((selectedService || "") !== (initialDraftData.selectedService || "")) return true;
       if (projectName !== (initialDraftData.projectName || "")) return true;
@@ -261,7 +262,6 @@ export function CreateProjectPopup({
       if (attachments.length > 0) return true;
       return false;
     }
-    // Editing but no initial draft data (e.g. review project) — check if anything is filled
     return !!selectedService || !!projectName.trim();
   };
 
@@ -295,14 +295,12 @@ export function CreateProjectPopup({
       status,
     };
 
-    // Include draft data for draft saves so progress can be restored
     if (status === "Draft") {
       projectData.draftData = buildDraftData();
     } else {
-      projectData.draftData = null; // Clear draft data on final submit
+      projectData.draftData = null;
     }
 
-    // Include editProjectId so App.tsx knows to update rather than create
     if (editProjectId) {
       projectData._editProjectId = editProjectId;
     }
@@ -312,7 +310,7 @@ export function CreateProjectPopup({
     }
     return Promise.resolve(onCreate(projectData)).then((result) => {
       if (result && typeof result === "object" && "publicId" in result && typeof result.publicId === "string") {
-        setCreatedProjectId(result.publicId);
+        patchWizardState({ createdProjectId: result.publicId });
         return result;
       }
       return null;
@@ -336,14 +334,14 @@ export function CreateProjectPopup({
   };
 
   const handleDeleteDraft = () => {
-    setShowDeleteConfirm(true);
+    patchWizardState({ showDeleteConfirm: true });
   };
 
   const handleConfirmDelete = () => {
     if (editProjectId && onDeleteDraft) {
       onDeleteDraft(editProjectId);
     }
-    setShowDeleteConfirm(false);
+    patchWizardState({ showDeleteConfirm: false });
     handleCancel();
   };
 
@@ -352,7 +350,7 @@ export function CreateProjectPopup({
     if (projectId && onDeleteDraft) {
       onDeleteDraft(projectId);
     }
-    setShowDeleteProjectConfirm(false);
+    patchWizardState({ showDeleteProjectConfirm: false });
     handleCancel();
   };
 
@@ -374,22 +372,19 @@ export function CreateProjectPopup({
       attachments.length > 0
     ) {
       void onDiscardDraftUploads(draftSessionId).catch(() => {
-        // Best effort cleanup; stale-upload cron covers missed cases.
       });
     }
 
     onClose();
   };
 
-  // Close button handler: show confirmation if there's unsaved work
   const handleCloseClick = () => {
-    // Review projects should close directly — no "Save as draft?" prompt
     if (reviewProject) {
       handleCancel();
       return;
     }
     if (hasUnsavedWork()) {
-      setShowCloseConfirm(true);
+      patchWizardState({ showCloseConfirm: true });
     } else {
       handleCancel();
     }
@@ -407,7 +402,6 @@ export function CreateProjectPopup({
     const updated = [...previous, newComment];
     setReviewComments(updated);
     setCommentInput("");
-    // Persist to project data
     const projectId = reviewProject?.id || editProjectId || createdProjectId;
     if (projectId && onUpdateComments) {
       void onUpdateComments(projectId, updated).catch((error) => {
@@ -447,18 +441,21 @@ export function CreateProjectPopup({
     }
   };
 
-  const canApproveReviewProject =
+  const canRenderReviewApprovalAction =
     !!reviewProject?.id &&
     reviewProject.status.label === "Review" &&
-    user?.role === "owner" &&
     !!onApproveReviewProject;
+  const canApproveReviewProject = canRenderReviewApprovalAction && user?.role === "owner";
+  const canDeleteReviewProject = isAdminOrOwner(user?.role);
+  const reviewApprovalDeniedReason = getReviewApprovalDeniedReason(user?.role);
+  const reviewDeleteDeniedReason = getProjectLifecycleDeniedReason(user?.role);
 
   const handleApproveReview = () => {
-    if (!reviewProject?.id || !onApproveReviewProject || isApprovingReview) {
+    if (!canApproveReviewProject || !reviewProject?.id || !onApproveReviewProject || isApprovingReview) {
       return;
     }
 
-    setIsApprovingReview(true);
+    patchWizardState({ isApprovingReview: true });
     void onApproveReviewProject(reviewProject.id)
       .then(() => {
         handleCancel();
@@ -468,15 +465,14 @@ export function CreateProjectPopup({
         toast.error("Failed to approve project");
       })
       .finally(() => {
-        setIsApprovingReview(false);
+        patchWizardState({ isApprovingReview: false });
       });
   };
 
-  // Save draft / Save progress from confirmation dialog
   const handleConfirmSave = async () => {
     try {
       await createProject("Draft");
-      setShowCloseConfirm(false);
+      patchWizardState({ showCloseConfirm: false });
       handleCancel({ discardUploads: false });
     } catch (error) {
       console.error(error);
@@ -484,10 +480,8 @@ export function CreateProjectPopup({
     }
   };
 
-  // Cancel from confirmation dialog
   const handleConfirmCancel = () => {
     if (editProjectId && initialDraftData) {
-      // Revert: re-save the project with its ORIGINAL draft data (no changes)
       const revertData: CreateProjectPayload = {
         name: initialDraftData.projectName,
         description: initialDraftData.description,
@@ -505,23 +499,9 @@ export function CreateProjectPopup({
         });
       }
     }
-    setShowCloseConfirm(false);
+    patchWizardState({ showCloseConfirm: false });
     handleCancel();
   };
-
-  // Close button SVG component for reuse
-  const CloseButton = ({ className = "" }: { className?: string }) => (
-    <button 
-      onClick={handleCloseClick}
-      className={`backdrop-blur-[6px] bg-[rgba(232,232,232,0.06)] content-stretch flex items-center justify-center p-px relative rounded-full shrink-0 size-[36px] hover:bg-[rgba(232,232,232,0.1)] transition-colors cursor-pointer ${className}`}
-    >
-      <div className="relative shrink-0 size-[20px]">
-        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-          <path d={svgPaths.p369d2cf0} fill="var(--fill-0, #E8E8E8)" />
-        </svg>
-      </div>
-    </button>
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={handleCloseClick}>
@@ -549,7 +529,7 @@ export function CreateProjectPopup({
                   </div>
                   
                   {/* Close Button */}
-                  <CloseButton className="z-30" />
+                  <WizardCloseButton className="z-30" onClick={handleCloseClick} />
                 </div>
               </div>
             </div>
@@ -558,7 +538,7 @@ export function CreateProjectPopup({
           {/* Close Button (Steps 2 & 3) */}
           {(step === 2 || step === 3) && (
              <div className="absolute right-[25px] top-[25px] z-30">
-                <CloseButton />
+                <WizardCloseButton onClick={handleCloseClick} />
              </div>
           )}
 
@@ -887,16 +867,7 @@ export function CreateProjectPopup({
                 <div className="px-[33px] pt-[29px] pb-[20px] shrink-0 relative">
                   {/* Close button */}
                   <div className="absolute right-[25px] top-[25px] z-30">
-                    <button 
-                      onClick={() => handleCancel()}
-                      className="backdrop-blur-[6px] bg-[rgba(232,232,232,0.06)] content-stretch flex items-center justify-center p-px relative rounded-full shrink-0 size-[36px] hover:bg-[rgba(232,232,232,0.1)] transition-colors cursor-pointer"
-                    >
-                      <div className="relative shrink-0 size-[20px]">
-                        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                          <path d={svgPaths.p369d2cf0} fill="var(--fill-0, #E8E8E8)" />
-                        </svg>
-                      </div>
-                    </button>
+                    <WizardCloseButton onClick={() => handleCancel()} />
                   </div>
 
                   {/* Success header */}
@@ -1012,15 +983,30 @@ export function CreateProjectPopup({
                               </div>
                               <p className="text-[13.5px] text-[#E8E8E8]/75 leading-[1.55] whitespace-pre-wrap break-words">{comment.content}</p>
                             </div>
-                            {user?.userId && comment.author.userId === user.userId && (
+                            <DeniedAction
+                              denied={!(user?.userId && comment.author.userId === user.userId)}
+                              reason={getReviewCommentAuthorDeniedReason(
+                                Boolean(user?.userId && comment.author.userId === user.userId),
+                              )}
+                              tooltipAlign="right"
+                            >
                               <button
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="shrink-0 mt-[2px] opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 p-[5px] rounded-md hover:bg-white/[0.06] cursor-pointer"
+                                onClick={() => {
+                                  if (!user?.userId || comment.author.userId !== user.userId) {
+                                    return;
+                                  }
+                                  handleDeleteComment(comment.id);
+                                }}
+                                className={`shrink-0 mt-[2px] opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 p-[5px] rounded-md ${
+                                  user?.userId && comment.author.userId === user.userId
+                                    ? "hover:bg-white/[0.06] cursor-pointer"
+                                    : "cursor-not-allowed"
+                                }`}
                                 title="Delete comment"
                               >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,232,232,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={user?.userId && comment.author.userId === user.userId ? "rgba(232,232,232,0.35)" : "rgba(232,232,232,0.2)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                               </button>
-                            )}
+                            </DeniedAction>
                           </div>
                         ))}
                       </div>
@@ -1092,28 +1078,45 @@ export function CreateProjectPopup({
                   transition={{ delay: 0.85, duration: 0.3 }}
                   className="shrink-0 px-[33px] py-[20px] border-t border-[rgba(232,232,232,0.06)] flex justify-between items-center"
                 >
-                  <button 
-                    onClick={() => setShowDeleteProjectConfirm(true)}
-                    className="content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-[rgba(255,59,48,0.06)] opacity-80 hover:opacity-100 transition-all cursor-pointer"
-                  >
-                    <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#ff3b30] text-[14px] text-center whitespace-nowrap">
-                      <p className="leading-[20px]">Delete project</p>
-                    </div>
-                  </button>
+                  <DeniedAction denied={!canDeleteReviewProject} reason={reviewDeleteDeniedReason} tooltipAlign="left">
+                    <button 
+                      onClick={() => {
+                        if (!canDeleteReviewProject) {
+                          return;
+                        }
+                        patchWizardState({ showDeleteProjectConfirm: true });
+                      }}
+                      className={`content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-[rgba(255,59,48,0.06)] transition-all ${
+                        canDeleteReviewProject
+                          ? "opacity-80 hover:opacity-100 cursor-pointer"
+                          : "opacity-45 cursor-not-allowed"
+                      }`}
+                    >
+                      <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#ff3b30] text-[14px] text-center whitespace-nowrap">
+                        <p className="leading-[20px]">Delete project</p>
+                      </div>
+                    </button>
+                  </DeniedAction>
                   <div className="flex items-center gap-[10px]">
-                    {canApproveReviewProject && (
-                      <button
-                        onClick={handleApproveReview}
-                        disabled={isApprovingReview}
-                        className="h-[36px] px-[20px] bg-[#e8e8e8] hover:bg-white disabled:bg-[#e8e8e8]/50 disabled:text-[#131314]/50 disabled:cursor-not-allowed text-[#131314] rounded-full text-[14px] font-medium transition-all cursor-pointer"
-                      >
-                        {isApprovingReview ? "Approving..." : "Approve"}
-                      </button>
+                    {canRenderReviewApprovalAction && (
+                      <DeniedAction denied={!canApproveReviewProject} reason={reviewApprovalDeniedReason} tooltipAlign="right">
+                        <button
+                          onClick={handleApproveReview}
+                          disabled={isApprovingReview}
+                          className={`h-[36px] px-[20px] text-[#131314] rounded-full text-[14px] font-medium transition-all ${
+                            canApproveReviewProject
+                              ? "bg-[#e8e8e8] hover:bg-white disabled:bg-[#e8e8e8]/50 disabled:text-[#131314]/50 disabled:cursor-not-allowed cursor-pointer"
+                              : "bg-[#e8e8e8]/45 text-[#131314]/45 cursor-not-allowed"
+                          }`}
+                        >
+                          {isApprovingReview ? "Approving..." : "Approve"}
+                        </button>
+                      </DeniedAction>
                     )}
                     <button
                       onClick={() => handleCancel()}
                       className={`h-[36px] px-[20px] rounded-full text-[14px] font-medium transition-all cursor-pointer ${
-                        canApproveReviewProject
+                        canRenderReviewApprovalAction
                           ? "border border-[rgba(232,232,232,0.2)] text-[#e8e8e8] hover:bg-white/5"
                           : "bg-[#e8e8e8] hover:bg-white text-[#131314]"
                       }`}
@@ -1176,139 +1179,19 @@ export function CreateProjectPopup({
         </div>
       </div>
 
-      {/* Close Confirmation Dialog */}
-      <AnimatePresence>
-        {showCloseConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-            onClick={() => setShowCloseConfirm(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[15px] text-[#e8e8e8] font-medium mb-[6px]">
-                {editProjectId ? "Save your progress?" : "Save as draft?"}
-              </p>
-              <p className="text-[13.5px] text-[rgba(232,232,232,0.5)] mb-[24px] leading-[19px]">
-                {editProjectId 
-                  ? "Would you like to save your changes before closing?" 
-                  : "You can continue where you left off later."}
-              </p>
-              <div className="flex gap-[10px] justify-end">
-                <button
-                  onClick={handleConfirmCancel}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] text-[14px] font-medium text-[#e8e8e8] hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmSave}
-                  className="h-[36px] px-[17px] rounded-full bg-[#e8e8e8] hover:bg-white text-[#131314] text-[14px] font-medium transition-all cursor-pointer"
-                >
-                  {editProjectId ? "Save progress" : "Save draft"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Draft Confirmation Dialog */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[15px] text-[#e8e8e8] font-medium mb-[6px]">
-                Delete this draft?
-              </p>
-              <p className="text-[13.5px] text-[rgba(232,232,232,0.5)] mb-[24px] leading-[19px]">
-                This action cannot be undone. The draft and all its progress will be permanently removed.
-              </p>
-              <div className="flex gap-[10px] justify-end">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] text-[14px] font-medium text-[#e8e8e8] hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="h-[36px] px-[17px] rounded-full bg-[rgba(255,59,48,0.12)] hover:bg-[rgba(255,59,48,0.2)] text-[#ff3b30] text-[14px] font-medium transition-all cursor-pointer"
-                >
-                  Delete draft
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Project Confirmation Dialog */}
-      <AnimatePresence>
-        {showDeleteProjectConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
-            onClick={() => setShowDeleteProjectConfirm(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[15px] text-[#e8e8e8] font-medium mb-[6px]">
-                Delete this project?
-              </p>
-              <p className="text-[13.5px] text-[rgba(232,232,232,0.5)] mb-[24px] leading-[19px]">
-                This action cannot be undone. The project and all its data will be permanently removed.
-              </p>
-              <div className="flex gap-[10px] justify-end">
-                <button
-                  onClick={() => setShowDeleteProjectConfirm(false)}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] text-[14px] font-medium text-[#e8e8e8] hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDeleteProject}
-                  className="h-[36px] px-[17px] rounded-full bg-[rgba(255,59,48,0.12)] hover:bg-[rgba(255,59,48,0.2)] text-[#ff3b30] text-[14px] font-medium transition-all cursor-pointer"
-                >
-                  Delete project
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CreateProjectWizardConfirmDialogs
+        showCloseConfirm={showCloseConfirm}
+        editProjectId={editProjectId}
+        setShowCloseConfirm={(show) => patchWizardState({ showCloseConfirm: show })}
+        handleConfirmCancel={handleConfirmCancel}
+        handleConfirmSave={handleConfirmSave}
+        showDeleteConfirm={showDeleteConfirm}
+        setShowDeleteConfirm={(show) => patchWizardState({ showDeleteConfirm: show })}
+        handleConfirmDelete={handleConfirmDelete}
+        showDeleteProjectConfirm={showDeleteProjectConfirm}
+        setShowDeleteProjectConfirm={(show) => patchWizardState({ showDeleteProjectConfirm: show })}
+        handleConfirmDeleteProject={handleConfirmDeleteProject}
+      />
     </div>
   );
 }

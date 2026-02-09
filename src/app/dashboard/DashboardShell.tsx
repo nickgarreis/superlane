@@ -9,30 +9,22 @@ import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png"
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Sidebar } from "../components/Sidebar";
-import { buildProjectPublicId } from "../lib/id";
 import { pathToView, viewToPath } from "../lib/routing";
 import { scheduleIdlePrefetch } from "../lib/prefetch";
-import { parseProjectStatus } from "../lib/status";
 import { DashboardContent } from "./components/DashboardContent";
 import { useDashboardData } from "./useDashboardData";
 import { useDashboardCommands } from "./useDashboardCommands";
 import { useDashboardNavigation } from "./useDashboardNavigation";
 import { useDashboardWorkspaceActions } from "./useDashboardWorkspaceActions";
-import type {
-  ProjectData,
-  ProjectDraftData,
-  ProjectFileTab,
-  ReviewComment,
-  Task,
-} from "../types";
 import {
-  CreateProjectPayload,
-  CreateProjectResult,
   parseSettingsTab,
   MainContentFileActions,
   MainContentNavigationActions,
   MainContentProjectActions,
 } from "./types";
+import { useDashboardProjectActions } from "./hooks/useDashboardProjectActions";
+import { useDashboardFileActions } from "./hooks/useDashboardFileActions";
+import { useDashboardSettingsData } from "./hooks/useDashboardSettingsData";
 
 const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes)
@@ -438,445 +430,67 @@ export default function DashboardShell() {
     runWorkspaceSettingsReconciliation,
   ]);
 
-  const handleCreateProject = useCallback(async (
-    projectData: CreateProjectPayload,
-  ): Promise<CreateProjectResult> => {
-    const normalizedStatus = parseProjectStatus(projectData.status);
-    const existingId = projectData._editProjectId;
-
-    if (existingId && projects[existingId]) {
-      const existing = projects[existingId];
-      try {
-        const updateResult = await updateProjectMutation(omitUndefined({
-          publicId: existingId,
-          name: projectData.name ?? existing.name,
-          description: projectData.description ?? existing.description,
-          category: projectData.category ?? existing.category,
-          scope: projectData.scope ?? existing.scope,
-          deadlineEpochMs: projectData.deadlineEpochMs ?? existing.deadlineEpochMs ?? null,
-          status: normalizedStatus,
-          draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
-          attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
-        }));
-        const updatedPublicId = String(updateResult?.publicId ?? existingId);
-        if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
-          navigateView(`project:${updatedPublicId}`);
-        }
-        setEditProjectId(null);
-        setEditDraftData(null);
-        toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project updated");
-        return { publicId: updatedPublicId, mode: "update" };
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to update project");
-        throw error;
-      }
-    }
-
-    if (!activeWorkspace?.id) {
-      const error = new Error("Select a workspace before creating a project");
-      toast.error(error.message);
-      throw error;
-    }
-
-    const finalName = projectData.name || "Untitled Project";
-    const requestedPublicId = buildProjectPublicId(finalName);
-
-    try {
-      const createResult = await createProjectMutation(omitUndefined({
-        workspaceSlug: activeWorkspace.id,
-        publicId: requestedPublicId,
-        name: finalName,
-        description: projectData.description || "",
-        category: projectData.category || "General",
-        scope: projectData.scope || undefined,
-        deadlineEpochMs: projectData.deadlineEpochMs ?? null,
-        status: normalizedStatus,
-        attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
-        draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
-      }));
-      const createdPublicId = String(createResult?.publicId ?? requestedPublicId);
-      if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
-        navigateView(`project:${createdPublicId}`);
-      }
-      toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project created");
-      return { publicId: createdPublicId, mode: "create" };
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to create project");
-      throw error;
-    }
-  }, [
-    activeWorkspace?.id,
-    createProjectMutation,
-    navigateView,
+  const {
+    handleCreateProject,
+    handleEditProject,
+    handleViewReviewProject,
+    handleUpdateComments,
+    handleArchiveProject,
+    handleUnarchiveProject,
+    handleDeleteProject,
+    handleUpdateProjectStatus,
+    handleApproveReviewProject,
+    handleUpdateProject,
+    handleReplaceWorkspaceTasks,
+  } = useDashboardProjectActions({
+    activeWorkspaceId: activeWorkspace?.id,
     projects,
-    setEditDraftData,
+    visibleProjects,
+    currentView,
+    viewerIdentity,
     setEditProjectId,
+    setEditDraftData,
+    setReviewProject,
+    setHighlightedArchiveProjectId,
+    openCreateProject,
+    navigateView,
+    navigateToPath: (path) => navigate(path),
+    createProjectMutation,
     updateProjectMutation,
-  ]);
+    archiveProjectMutation,
+    unarchiveProjectMutation,
+    removeProjectMutation,
+    setProjectStatusMutation,
+    updateReviewCommentsMutation,
+    replaceProjectTasksMutation,
+    replaceWorkspaceTasksMutation,
+    asPendingUploadId,
+    omitUndefined,
+  });
 
-  const categoryToService = useCallback((category: string): string => {
-    const map: Record<string, string> = {
-      webdesign: "Web Design",
-      "web design": "Web Design",
-      automation: "AI Automation",
-      "ai automation": "AI Automation",
-      marketing: "Marketing Campaigns",
-      "marketing campaigns": "Marketing Campaigns",
-      presentation: "Presentation",
-      "ai consulting": "AI Consulting",
-      "creative strategy & concept": "Creative Strategy & Concept",
-    };
-    return map[category.toLowerCase()] || category;
-  }, []);
-
-  const handleEditProject = useCallback((project: ProjectData) => {
-    const draftData: ProjectDraftData = project.draftData || {
-      selectedService: categoryToService(project.category),
-      projectName: project.name,
-      selectedJob: project.scope || "",
-      description: project.description,
-      isAIEnabled: true,
-      deadlineEpochMs: null,
-      lastStep: 1,
-    };
-
-    setEditProjectId(project.id);
-    setEditDraftData(draftData);
-    openCreateProject();
-  }, [categoryToService, openCreateProject, setEditDraftData, setEditProjectId]);
-
-  const handleViewReviewProject = useCallback((project: ProjectData) => {
-    setReviewProject(project);
-    openCreateProject();
-  }, [openCreateProject, setReviewProject]);
-
-  const handleUpdateComments = useCallback((
-    projectId: string,
-    comments: ReviewComment[],
-  ) => updateReviewCommentsMutation({
-      publicId: projectId,
-      comments,
-    }), [updateReviewCommentsMutation]);
-
-  const handleArchiveProject = useCallback((id: string) => {
-    void archiveProjectMutation({ publicId: id })
-      .then(() => {
-        setHighlightedArchiveProjectId(id);
-        navigateView("archive");
-        toast.success("Project archived");
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to archive project");
-      });
-  }, [archiveProjectMutation, navigateView, setHighlightedArchiveProjectId]);
-
-  const handleUnarchiveProject = useCallback((id: string) => {
-    void unarchiveProjectMutation({ publicId: id })
-      .then(() => {
-        if (currentView === `archive-project:${id}`) {
-          navigateView("archive");
-        }
-        toast.success("Project unarchived");
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to unarchive project");
-      });
-  }, [currentView, navigateView, unarchiveProjectMutation]);
-
-  const handleDeleteProject = useCallback((id: string) => {
-    const project = projects[id];
-    const isDraft = project?.status?.label === "Draft";
-
-    void removeProjectMutation({ publicId: id })
-      .then(() => {
-        if (currentView === `project:${id}` || currentView === `archive-project:${id}`) {
-          if (currentView.startsWith("archive-project:")) {
-            navigateView("archive");
-          } else {
-            const otherProject = Object.values(visibleProjects).find((p) => p.id !== id && !p.archived);
-            if (otherProject) {
-              navigateView(`project:${otherProject.id}`);
-            } else {
-              navigate("/tasks");
-            }
-          }
-        }
-        toast.success(isDraft ? "Draft deleted" : "Project deleted");
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to delete project");
-      });
-  }, [currentView, navigate, navigateView, projects, removeProjectMutation, visibleProjects]);
-
-  const handleUpdateProjectStatus = useCallback((id: string, newStatus: string) => {
-    const parsedStatus = parseProjectStatus(newStatus);
-
-    void setProjectStatusMutation({
-      publicId: id,
-      status: parsedStatus,
-    })
-      .then(() => {
-        if (parsedStatus === "Completed") {
-          toast.success("Project marked as completed");
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to update project status");
-      });
-  }, [setProjectStatusMutation]);
-
-  const handleApproveReviewProject = useCallback(
-    async (projectId: string) => {
-      await setProjectStatusMutation({
-        publicId: projectId,
-        status: "Active",
-      });
-      toast.success("Project approved");
-      navigateView(`project:${projectId}`);
-    },
-    [setProjectStatusMutation, navigateView],
-  );
-
-  const handleUpdateProject = useCallback(
-    (id: string, data: Partial<ProjectData>) => {
-      const tasks = data.tasks;
-
-      if (tasks) {
-        const cleanTasks: Task[] = tasks.map((task) => ({
-          id: String(task.id),
-          title: task.title,
-          assignee: {
-            name: task.assignee?.name || viewerIdentity.name,
-            avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
-          },
-          dueDateEpochMs: task.dueDateEpochMs ?? null,
-          completed: task.completed,
-        }));
-
-        void replaceProjectTasksMutation({
-          projectPublicId: id,
-          tasks: cleanTasks,
-        }).catch((error) => {
-          console.error(error);
-          toast.error("Failed to update tasks");
-        });
-      }
-
-      const patch: {
-        publicId: string;
-        name?: string;
-        description?: string;
-        category?: string;
-        scope?: string;
-        deadlineEpochMs?: number | null;
-        reviewComments?: ProjectData["comments"];
-      } = {
-        publicId: id,
-      };
-
-      if (data.name !== undefined) patch.name = data.name;
-      if (data.description !== undefined) patch.description = data.description;
-      if (data.category !== undefined) patch.category = data.category;
-      if (data.scope !== undefined) patch.scope = data.scope;
-      if (data.deadlineEpochMs !== undefined) patch.deadlineEpochMs = data.deadlineEpochMs;
-      if (data.comments !== undefined) patch.reviewComments = data.comments;
-
-      if (Object.keys(patch).length > 1) {
-        void updateProjectMutation(patch).catch((error) => {
-          console.error(error);
-          toast.error("Failed to update project");
-        });
-      }
-    },
-    [
-      replaceProjectTasksMutation,
-      updateProjectMutation,
-      viewerIdentity.avatarUrl,
-      viewerIdentity.name,
-    ],
-  );
-
-  const handleReplaceWorkspaceTasks = useCallback(
-    (tasks: Task[]) => {
-      if (!activeWorkspace?.id) {
-        toast.error("Select a workspace before updating tasks");
-        return;
-      }
-
-      const cleanTasks = tasks.map((task) => ({
-        id: String(task.id),
-        title: task.title,
-        assignee: {
-          name: task.assignee?.name || viewerIdentity.name,
-          avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
-        },
-        dueDateEpochMs: task.dueDateEpochMs ?? null,
-        completed: task.completed,
-        projectPublicId: task.projectId ?? null,
-      }));
-
-      void replaceWorkspaceTasksMutation({
-        workspaceSlug: activeWorkspace.id,
-        tasks: cleanTasks,
-      }).catch((error) => {
-        console.error(error);
-        toast.error("Failed to update tasks");
-      });
-    },
-    [activeWorkspace?.id, replaceWorkspaceTasksMutation, viewerIdentity.avatarUrl, viewerIdentity.name],
-  );
-
-  const resolveUploadWorkspaceSlug = useCallback(
-    () => activeWorkspace?.id ?? resolvedWorkspaceSlug ?? null,
-    [activeWorkspace?.id, resolvedWorkspaceSlug],
-  );
-
-  const handleCreateProjectFile = useCallback((projectPublicId: string, tab: ProjectFileTab, file: File) => {
-    void (async () => {
-      const workspaceSlug = resolveUploadWorkspaceSlug();
-      if (!workspaceSlug) {
-        throw new Error("No active workspace selected");
-      }
-
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
-      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
-      await finalizeProjectUploadAction({
-        projectPublicId,
-        tab,
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-        checksumSha256,
-        storageId: asStorageId(storageId),
-      });
-
-      toast.success(`Successfully uploaded ${file.name}`);
-    })().catch((error) => {
-      console.error(error);
-      toast.error("Failed to upload file");
-    });
-  }, [finalizeProjectUploadAction, generateUploadUrlMutation, resolveUploadWorkspaceSlug]);
-
-  const handleUploadDraftAttachment = useCallback(
-    async (file: File, draftSessionId: string): Promise<{
-      pendingUploadId: string;
-      name: string;
-      type: string;
-      mimeType: string | null;
-      sizeBytes: number;
-    }> => {
-      const workspaceSlug = resolveUploadWorkspaceSlug();
-      if (!workspaceSlug) {
-        throw new Error("No active workspace selected");
-      }
-
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
-      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
-      const result = await finalizePendingDraftAttachmentUploadAction({
-        workspaceSlug,
-        draftSessionId,
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-        checksumSha256,
-        storageId: asStorageId(storageId),
-      });
-
-      return {
-        pendingUploadId: String(result.pendingUploadId),
-        name: result.name,
-        type: result.type,
-        mimeType: result.mimeType ?? null,
-        sizeBytes: result.sizeBytes,
-      };
-    },
-    [
-      resolveUploadWorkspaceSlug,
-      generateUploadUrlMutation,
-      finalizePendingDraftAttachmentUploadAction,
-    ],
-  );
-
-  const handleRemoveDraftAttachment = useCallback(
-    async (pendingUploadId: string) => {
-      await discardPendingUploadMutation({
-        pendingUploadId: asPendingUploadId(pendingUploadId),
-      });
-    },
-    [discardPendingUploadMutation],
-  );
-
-  const handleDiscardDraftSessionUploads = useCallback(
-    async (draftSessionId: string) => {
-      const workspaceSlug = resolveUploadWorkspaceSlug();
-      if (!workspaceSlug) {
-        return;
-      }
-      try {
-        await discardPendingUploadsForSessionMutation({
-          workspaceSlug,
-          draftSessionId,
-        });
-      } catch (error) {
-        console.error("Failed to discard draft session uploads", {
-          error,
-          draftSessionId,
-          workspaceSlug,
-        });
-        toast.error("Failed to discard draft uploads");
-      }
-    },
-    [resolveUploadWorkspaceSlug, discardPendingUploadsForSessionMutation],
-  );
-
-  const handleRemoveProjectFile = useCallback((fileId: string) => {
-    void removeProjectFileMutation({ fileId: asProjectFileId(fileId) })
-      .then((result) => {
-        if (result.removed) {
-          toast.success("File removed");
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to remove file");
-      });
-  }, [removeProjectFileMutation]);
-
-  const handleDownloadProjectFile = useCallback(
-    (fileId: string) => {
-      void convex
-        .query(api.files.getDownloadUrl, {
-          fileId: asProjectFileId(fileId),
-        })
-        .then((result) => {
-          const downloadUrl = typeof result?.url === "string" ? result.url.trim() : "";
-          if (!downloadUrl || !/^https?:\/\//i.test(downloadUrl)) {
-            console.error("Invalid download URL returned by api.files.getDownloadUrl", {
-              fileId,
-              result,
-            });
-            toast.error("Failed to download file");
-            return;
-          }
-          window.open(downloadUrl, "_blank", "noopener,noreferrer");
-        })
-        .catch((error) => {
-          console.error(error);
-          toast.error("Failed to download file");
-        });
-    },
-    [convex],
-  );
+  const {
+    handleCreateProjectFile,
+    handleUploadDraftAttachment,
+    handleRemoveDraftAttachment,
+    handleDiscardDraftSessionUploads,
+    handleRemoveProjectFile,
+    handleDownloadProjectFile,
+  } = useDashboardFileActions({
+    activeWorkspaceId: activeWorkspace?.id,
+    resolvedWorkspaceSlug,
+    convexQuery: (query, args) => convex.query(query, args),
+    generateUploadUrlMutation,
+    finalizeProjectUploadAction,
+    finalizePendingDraftAttachmentUploadAction,
+    discardPendingUploadMutation,
+    discardPendingUploadsForSessionMutation,
+    removeProjectFileMutation,
+    computeFileChecksumSha256,
+    uploadFileToConvexStorage,
+    asStorageId,
+    asPendingUploadId,
+    asProjectFileId,
+  });
 
   const handleNavigateToArchiveProject = useCallback(
     (projectId: string) => navigateView(`archive-project:${projectId}`),
@@ -956,64 +570,16 @@ export default function DashboardShell() {
     [viewerAvatar, viewerIdentity.role, viewerIdentity.userId, viewerName],
   );
 
-  const settingsAccountData = useMemo(
-    () =>
-      accountSettings ?? {
-        firstName: user?.firstName ?? "",
-        lastName: user?.lastName ?? "",
-        email: user?.email ?? "",
-        avatarUrl: user?.profilePictureUrl ?? null,
-      },
-    [accountSettings, user?.email, user?.firstName, user?.lastName, user?.profilePictureUrl],
-  );
-
-  const settingsNotificationsData = useMemo(
-    () =>
-      notificationSettings
-        ? {
-            channels: notificationSettings.channels,
-            events: notificationSettings.events,
-          }
-        : {
-            channels: {
-              email: true,
-              desktop: true,
-            },
-            events: {
-              productUpdates: true,
-              teamActivity: true,
-            },
-          },
-    [notificationSettings],
-  );
-
-  const settingsCompanyData = useMemo(
-    () =>
-      companySettings
-        ? {
-            ...companySettings,
-            members: companySettings.members.filter(
-              (
-                member,
-              ): member is NonNullable<(typeof companySettings.members)[number]> =>
-                member !== null,
-            ),
-            pendingInvitations: companySettings.pendingInvitations.filter(
-              (
-                invitation,
-              ): invitation is NonNullable<(typeof companySettings.pendingInvitations)[number]> =>
-                invitation !== null,
-            ),
-            brandAssets: companySettings.brandAssets.filter(
-              (
-                asset,
-              ): asset is NonNullable<(typeof companySettings.brandAssets)[number]> =>
-                asset !== null,
-            ),
-          }
-        : null,
-    [companySettings],
-  );
+  const {
+    settingsAccountData,
+    settingsNotificationsData,
+    settingsCompanyData,
+  } = useDashboardSettingsData({
+    accountSettings,
+    notificationSettings,
+    companySettings,
+    user,
+  });
 
   const handleSearchIntent = useCallback(() => {
     void loadSearchPopupModule();

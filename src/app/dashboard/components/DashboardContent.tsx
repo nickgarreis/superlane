@@ -108,6 +108,7 @@ export function DashboardContent({
           onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
+          viewerRole={viewerIdentity.role}
           onNavigateToProject={handleNavigateToArchiveProject}
           onUnarchiveProject={handleUnarchiveProject}
           onDeleteProject={handleDeleteProject}

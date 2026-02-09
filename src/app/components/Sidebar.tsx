@@ -9,6 +9,8 @@ import { FeedbackPopup } from "./FeedbackPopup";
 import { CompletedProjectsPopup } from "./CompletedProjectsPopup";
 import type { AppView } from "../lib/routing";
 import { partitionSidebarProjects } from "./sidebar/partitionProjects";
+import { DeniedAction } from "./permissions/DeniedAction";
+import { getCreateWorkspaceDeniedReason } from "../lib/permissionRules";
 
 function CollapsibleContent({ isExpanded, children, className }: { isExpanded: boolean; children: React.ReactNode; className?: string }) {
   return (
@@ -65,6 +67,9 @@ const SidebarContext = createContext<{
 function WorkspaceSwitcher() {
   const { activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace, canCreateWorkspace } = useContext(SidebarContext);
   const [isOpen, setIsOpen] = useState(false);
+  const createWorkspaceDeniedReason = canCreateWorkspace
+    ? null
+    : getCreateWorkspaceDeniedReason(undefined);
 
   const bgStyle = activeWorkspace?.logoColor && !activeWorkspace.logoColor.includes('-') 
       ? { backgroundColor: activeWorkspace.logoColor } 
@@ -147,32 +152,33 @@ function WorkspaceSwitcher() {
             
             <div className="h-px bg-white/5 my-1 mx-2"></div>
             
-            <div 
-                onClick={() => {
-                    if (!canCreateWorkspace) {
-                        return;
-                    }
-                    onCreateWorkspace();
-                    setIsOpen(false);
-                }}
-                className={cn(
-                    "px-2 py-1.5 flex items-center gap-3 rounded-lg mx-1 transition-colors",
-                    canCreateWorkspace
-                        ? "hover:bg-white/5 cursor-pointer text-white/60 hover:text-white"
-                        : "text-white/25 cursor-not-allowed"
-                )}
-                title={canCreateWorkspace ? undefined : "Only owners can create workspaces"}
-            >
-                <div
+            <DeniedAction denied={!canCreateWorkspace} reason={createWorkspaceDeniedReason} tooltipAlign="left">
+                <div 
+                    onClick={() => {
+                        if (!canCreateWorkspace) {
+                            return;
+                        }
+                        onCreateWorkspace();
+                        setIsOpen(false);
+                    }}
                     className={cn(
-                        "size-6 rounded border border-dashed flex items-center justify-center shrink-0",
-                        canCreateWorkspace ? "border-white/20" : "border-white/10"
+                        "px-2 py-1.5 flex items-center gap-3 rounded-lg mx-1 transition-colors",
+                        canCreateWorkspace
+                            ? "hover:bg-white/5 cursor-pointer text-white/60 hover:text-white"
+                            : "text-white/25 cursor-not-allowed"
                     )}
                 >
-                    <Plus size={12} />
+                    <div
+                        className={cn(
+                            "size-6 rounded border border-dashed flex items-center justify-center shrink-0",
+                            canCreateWorkspace ? "border-white/20" : "border-white/10"
+                        )}
+                    >
+                        <Plus size={12} />
+                    </div>
+                    <span className="text-[12px] font-medium">Create Workspace</span>
                 </div>
-                <span className="text-[12px] font-medium">Create Workspace</span>
-            </div>
+            </DeniedAction>
             </div>
         </>
       )}
@@ -787,6 +793,7 @@ export function Sidebar({
                 isOpen={isCompletedPopupOpen}
                 onClose={() => setIsCompletedPopupOpen(false)}
                 projects={projects}
+                viewerRole={viewerIdentity.role}
                 onNavigateToProject={(id) => {
                     onNavigate(`project:${id}`);
                     setIsCompletedPopupOpen(false);

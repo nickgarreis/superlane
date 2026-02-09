@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "activePhase": "phase1",
+  "phases": {
+    "phase1": {
+      "description": "Initial frontend quality baseline",
+      "thresholds": {
+        "linesPct": 12,
+        "functionsPct": 30
+      }
+    },
+    "phase2": {
+      "description": "Stricter coverage target after render-path hardening",
+      "thresholds": {
+        "linesPct": 20,
+        "functionsPct": 40
+      }
+    }
+  }
+}

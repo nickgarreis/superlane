@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { X, Search, Undo2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { ProjectData } from "../types";
+import { ProjectData, WorkspaceRole } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
+import { DeniedAction } from "./permissions/DeniedAction";
+import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
 
 type SortField = "name" | "category" | "completedAt";
 type SortDir = "asc" | "desc";
@@ -12,18 +14,22 @@ export function CompletedProjectsPopup({
     isOpen,
     onClose,
     projects,
+    viewerRole,
     onNavigateToProject,
     onUncompleteProject,
 }: {
     isOpen: boolean;
     onClose: () => void;
     projects: Record<string, ProjectData>;
+    viewerRole?: WorkspaceRole | null;
     onNavigateToProject: (id: string) => void;
     onUncompleteProject: (id: string) => void;
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortField, setSortField] = useState<SortField>("completedAt");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
+    const projectLifecycleDeniedReason = getProjectLifecycleDeniedReason(viewerRole);
+    const canManageProjectLifecycle = projectLifecycleDeniedReason == null;
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -181,16 +187,33 @@ export function CompletedProjectsPopup({
                                             {formatDate(project.completedAt)}
                                         </div>
                                         <div className="w-[90px] shrink-0 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                                                title="Revert to Active"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onUncompleteProject(project.id);
-                                                }}
-                                            >
-                                                <Undo2 size={15} className="text-white/50 hover:text-white" />
-                                            </button>
+                                            <DeniedAction denied={!canManageProjectLifecycle} reason={projectLifecycleDeniedReason} tooltipAlign="right">
+                                                <button
+                                                    className={cn(
+                                                        "p-1.5 rounded-lg transition-colors",
+                                                        canManageProjectLifecycle
+                                                            ? "hover:bg-white/10 cursor-pointer"
+                                                            : "cursor-not-allowed opacity-55",
+                                                    )}
+                                                    title="Revert to Active"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!canManageProjectLifecycle) {
+                                                            return;
+                                                        }
+                                                        onUncompleteProject(project.id);
+                                                    }}
+                                                >
+                                                    <Undo2
+                                                        size={15}
+                                                        className={cn(
+                                                            canManageProjectLifecycle
+                                                                ? "text-white/50 hover:text-white"
+                                                                : "text-white/30",
+                                                        )}
+                                                    />
+                                                </button>
+                                            </DeniedAction>
                                         </div>
                                     </motion.div>
                                 ))}

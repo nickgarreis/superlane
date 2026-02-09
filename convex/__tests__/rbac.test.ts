@@ -261,7 +261,14 @@ describe("P0.1 RBAC and soft-delete", () => {
       }),
     ).rejects.toThrow("Forbidden");
 
-    await asAdmin().mutation(api.projects.setStatus, {
+    await expect(
+      asAdmin().mutation(api.projects.setStatus, {
+        publicId: project.projectPublicId,
+        status: "Active",
+      }),
+    ).rejects.toThrow("Forbidden");
+
+    await asOwner().mutation(api.projects.setStatus, {
       publicId: project.projectPublicId,
       status: "Active",
     });
@@ -270,9 +277,14 @@ describe("P0.1 RBAC and soft-delete", () => {
 
     await asOwner().mutation(api.projects.unarchive, { publicId: project.projectPublicId });
 
+    await asAdmin().mutation(api.projects.setStatus, {
+      publicId: project.projectPublicId,
+      status: "Completed",
+    });
+
     await t.run(async (ctx) => {
       const row = await ctx.db.get(project.projectId);
-      expect(row?.status).toBe("Active");
+      expect(row?.status).toBe("Completed");
       expect(row?.statusUpdatedByUserId).toBe(workspace.adminUserId);
       expect(row?.archivedByUserId).toBe(workspace.adminUserId);
       expect(row?.unarchivedByUserId).toBe(workspace.ownerUserId);

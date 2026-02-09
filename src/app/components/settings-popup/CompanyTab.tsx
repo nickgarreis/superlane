@@ -7,6 +7,11 @@ import type {
 } from "./types";
 import { CompanyBrandAssetsSection } from "./CompanyBrandAssetsSection";
 import { CompanyMembersSection } from "./CompanyMembersSection";
+import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  getWorkspaceDeleteDeniedReason,
+  getWorkspaceGeneralDeniedReason,
+} from "../../lib/permissionRules";
 
 type CompanyTabProps = {
   activeWorkspace?: Workspace;
@@ -59,11 +64,15 @@ export function CompanyTab({
   const members = company?.members ?? [];
   const pendingInvitations = company?.pendingInvitations ?? [];
   const brandAssets = company?.brandAssets ?? [];
+  const viewerRole = company?.viewerRole;
 
   const hasOrganizationLink = company?.capability.hasOrganizationLink ?? false;
+  const canManageWorkspaceGeneral = company?.capability.canManageWorkspaceGeneral ?? false;
   const canManageMembers = company?.capability.canManageMembers ?? false;
   const canManageBrandAssets = company?.capability.canManageBrandAssets ?? false;
   const canDeleteWorkspace = company?.capability.canDeleteWorkspace ?? false;
+  const workspaceGeneralDeniedReason = getWorkspaceGeneralDeniedReason(viewerRole);
+  const workspaceDeleteDeniedReason = getWorkspaceDeleteDeniedReason(viewerRole);
 
   const initials = useMemo(() => {
     if (company?.workspace.logoText) {
@@ -106,7 +115,7 @@ export function CompanyTab({
       return;
     }
 
-    if (!canManageMembers || !hasEditedRef.current) {
+    if (!canManageWorkspaceGeneral || !hasEditedRef.current) {
       return;
     }
 
@@ -123,7 +132,7 @@ export function CompanyTab({
         clearTimeout(nameDebounceRef.current);
       }
     };
-  }, [canManageMembers, nameDraft]);
+  }, [canManageWorkspaceGeneral, nameDraft]);
 
   useEffect(() => {
     if (nameDebounceRef.current) {
@@ -204,22 +213,24 @@ export function CompanyTab({
             onChange={handleLogoFile}
           />
 
-          <div
-            className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-white/10 bg-blue-600 overflow-hidden group relative cursor-pointer"
-            style={company?.workspace.logoColor ? { backgroundColor: company.workspace.logoColor } : undefined}
-            onClick={() => !logoBusy && canManageMembers && logoFileInputRef.current?.click()}
-          >
-            {company?.workspace.logo ? (
-              <img src={company.workspace.logo} alt={company.workspace.name} className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-            {canManageMembers && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
-                <Camera size={20} className="text-white" />
-              </div>
-            )}
-          </div>
+          <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
+            <div
+              className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-white/10 bg-blue-600 overflow-hidden group relative cursor-pointer"
+              style={company?.workspace.logoColor ? { backgroundColor: company.workspace.logoColor } : undefined}
+              onClick={() => !logoBusy && canManageWorkspaceGeneral && logoFileInputRef.current?.click()}
+            >
+              {company?.workspace.logo ? (
+                <img src={company.workspace.logo} alt={company.workspace.name} className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+              {canManageWorkspaceGeneral && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                  <Camera size={20} className="text-white" />
+                </div>
+              )}
+            </div>
+          </DeniedAction>
 
           <div className="flex flex-col gap-2 flex-1 max-w-[460px]">
             <div className="flex items-center justify-between">
@@ -236,38 +247,49 @@ export function CompanyTab({
                 </span>
               )}
             </div>
-            <input
-              type="text"
-              value={nameDraft}
-              maxLength={100}
-              disabled={!canManageMembers}
-              onChange={(event) => {
-                if (!canManageMembers) {
-                  return;
-                }
-                hasEditedRef.current = true;
-                setNameDraft(event.target.value);
-              }}
-              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
-            />
+            <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
+              <input
+                type="text"
+                value={nameDraft}
+                maxLength={100}
+                disabled={!canManageWorkspaceGeneral}
+                onChange={(event) => {
+                  if (!canManageWorkspaceGeneral) {
+                    return;
+                  }
+                  hasEditedRef.current = true;
+                  setNameDraft(event.target.value);
+                }}
+                className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+              />
+            </DeniedAction>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => logoFileInputRef.current?.click()}
-            disabled={!canManageMembers || logoBusy}
-            className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-bg-base rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-50"
-          >
-            Upload logo
-          </button>
-          <button
-            onClick={handleRemoveLogo}
-            disabled={!company?.workspace.logo || !canManageMembers || logoBusy}
-            className="cursor-pointer px-4 py-2 bg-white/5 text-[#E8E8E8] border border-white/10 rounded-full text-[13px] font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
-          >
-            Remove logo
-          </button>
+          <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
+            <button
+              onClick={() => {
+                if (!canManageWorkspaceGeneral) {
+                  return;
+                }
+                logoFileInputRef.current?.click();
+              }}
+              disabled={!canManageWorkspaceGeneral || logoBusy}
+              className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-bg-base rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-50"
+            >
+              Upload logo
+            </button>
+          </DeniedAction>
+          <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
+            <button
+              onClick={handleRemoveLogo}
+              disabled={!company?.workspace.logo || !canManageWorkspaceGeneral || logoBusy}
+              className="cursor-pointer px-4 py-2 bg-white/5 text-[#E8E8E8] border border-white/10 rounded-full text-[13px] font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              Remove logo
+            </button>
+          </DeniedAction>
         </div>
       </div>
 
@@ -277,6 +299,7 @@ export function CompanyTab({
         members={members}
         pendingInvitations={pendingInvitations}
         hasOrganizationLink={hasOrganizationLink}
+        viewerRole={viewerRole}
         canManageMembers={canManageMembers}
         onInviteMember={onInviteMember}
         onChangeMemberRole={onChangeMemberRole}
@@ -290,6 +313,7 @@ export function CompanyTab({
       <CompanyBrandAssetsSection
         brandAssets={brandAssets}
         canManageBrandAssets={canManageBrandAssets}
+        viewerRole={viewerRole}
         onUploadBrandAsset={onUploadBrandAsset}
         onRemoveBrandAsset={onRemoveBrandAsset}
       />
@@ -305,13 +329,20 @@ export function CompanyTab({
               Permanently disables this workspace in the app and removes member access.
             </span>
           </div>
-          <button
-            onClick={handleSoftDeleteWorkspace}
-            disabled={!canDeleteWorkspace || deletingWorkspace}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {deletingWorkspace ? "Deleting..." : "Delete Workspace"}
-          </button>
+          <DeniedAction denied={!canDeleteWorkspace} reason={workspaceDeleteDeniedReason} tooltipAlign="right">
+            <button
+              onClick={() => {
+                if (!canDeleteWorkspace) {
+                  return;
+                }
+                void handleSoftDeleteWorkspace();
+              }}
+              disabled={!canDeleteWorkspace || deletingWorkspace}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {deletingWorkspace ? "Deleting..." : "Delete Workspace"}
+            </button>
+          </DeniedAction>
         </div>
       </div>
     </div>

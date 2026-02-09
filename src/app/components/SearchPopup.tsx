@@ -141,11 +141,8 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
   }), [onClose, onNavigate, onOpenCreateProject, onOpenSettings]);
 
   const projectsList = useMemo(() => Object.values(projects), [projects]);
-  const normalizedDeferredQuery = useMemo(
-    () => deferredQuery.toLowerCase().trim(),
-    [deferredQuery],
-  );
-  const trimmedQuery = useMemo(() => query.trim(), [query]);
+  const normalizedDeferredQuery = deferredQuery.toLowerCase().trim();
+  const trimmedQuery = query.trim();
 
   const firstActiveProjectId = useMemo(() => {
     const active = projectsList.find((project) => !project.archived && project.status.label !== "Draft");
@@ -488,11 +485,17 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     return items;
   }, [defaultContent, onClose, onHighlightNavigate, onNavigate, projectsList, recentResults]);
 
-  const flatDefault = useMemo(() => [...defaultContent], [defaultContent]);
   // Combined default list for keyboard navigation: recent/projects + suggestions
-  const combinedDefaultList = useMemo(() => [...flatDefault, ...suggestions], [flatDefault, suggestions]);
+  const combinedDefaultList = useMemo(() => [...defaultContent, ...suggestions], [defaultContent, suggestions]);
   const hasSearchQuery = trimmedQuery.length > 0;
   const currentList = hasSearchQuery ? flatResults : combinedDefaultList;
+  const shouldOptimizeLongList = currentList.length > 40 || flatResults.length > 40;
+  const longListStyle = shouldOptimizeLongList
+    ? ({ contentVisibility: "auto", containIntrinsicSize: "520px" } as const)
+    : undefined;
+  const itemPerformanceStyle = shouldOptimizeLongList
+    ? ({ contentVisibility: "auto", containIntrinsicSize: "44px" } as const)
+    : undefined;
 
   // Clamp active index
   useEffect(() => {
@@ -588,6 +591,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-100 group mx-1 ${
           isActive ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"
         }`}
+        style={itemPerformanceStyle}
         onClick={() => handleItemClick(item)}
         onMouseEnter={() => setActiveIndex(index)}
       >
@@ -665,6 +669,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-100 mx-1 ${
           isActive ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"
         }`}
+        style={itemPerformanceStyle}
         onClick={() => actionHandlers[act.id]()}
         onMouseEnter={() => setActiveIndex(globalIndex)}
       >
@@ -722,7 +727,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
             </div>
 
             {/* Results */}
-            <div ref={resultsRef} className="flex-1 overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide">
+            <div ref={resultsRef} className="flex-1 overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide" style={longListStyle}>
               {hasSearchQuery ? (
                 hasResults ? (
                   <>
@@ -787,14 +792,14 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
                   {/* Default project list */}
                   <div className="mb-1">
                     <SectionLabel label={recentResults.length > 0 ? "Recent" : "Projects"} />
-                    {flatDefault.map((item, i) => renderResultItem(item, i))}
+                    {defaultContent.map((item, i) => renderResultItem(item, i))}
                   </div>
 
                   {/* Suggestions */}
                   {suggestions.length > 0 && (
                     <div className="mb-1">
                       <SectionLabel label="Suggestions" />
-                      {suggestions.map((item, i) => renderResultItem(item, flatDefault.length + i))}
+                      {suggestions.map((item, i) => renderResultItem(item, defaultContent.length + i))}
                     </div>
                   )}
 
