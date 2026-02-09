@@ -1,19 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Plus, Archive, ArchiveRestore, Trash2, CheckCircle2, Undo2, ArrowLeft } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, Undo2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import svgPathsStatus from "../../imports/svg-95p4xxlon7";
-import { imgGroup } from "../../imports/svg-p2kdi";
-import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png";
-import imgCalendar from "figma:asset/b24d4dcfb8874cd86a47db18a5e7dfe0a74d9496.png";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ChatSidebar } from "./ChatSidebar";
 import { ProjectTasks } from "./ProjectTasks";
-import { ProjectData, Task } from "../types";
+import { ProjectData, ProjectFileData, ProjectFileTab } from "../types";
 import DeleteButton from "../../imports/DeleteButton";
 import { ProjectLogo } from "./ProjectLogo";
+import type { AppView } from "../lib/routing";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -22,29 +19,16 @@ import imgFile3 from "figma:asset/a6d8d90aa9a345c6a0a0841855776fa6f038f822.png";
 import imgFile4 from "figma:asset/6ec5d42097faff5a5e15a92d842d637a67eb0f04.png";
 import imgFile5 from "figma:asset/13b4fb46cd2c4b965c5823ea01fe2f6c7842b7bd.png";
 
-export const ASSET_FILES: any[] = [
-  { id: 101, name: "Brand_Logo_Primary.svg", type: "SVG", date: "12 Jan 2026, 09:30", img: imgFile1 },
-  { id: 102, name: "Hero_Banner_Desktop.png", type: "PNG", date: "10 Jan 2026, 14:15", img: imgFile2 },
-  { id: 103, name: "Product_Mockup_v2.png", type: "PNG", date: "8 Jan 2026, 11:00", img: imgFile3 },
-  { id: 104, name: "Icon_Set_Export.zip", type: "ZIP", date: "5 Jan 2026, 16:45", img: imgFile4 },
-  { id: 105, name: "UI_Kit_Components.fig", type: "FIG", date: "3 Jan 2026, 10:20", img: imgFile5 },
-  { id: 106, name: "Color_Palette_Guide.pdf", type: "PDF", date: "1 Jan 2026, 08:00", img: imgFile1 },
-];
-
-export const CONTRACT_FILES: any[] = [
-  { id: 201, name: "Master_Service_Agreement.pdf", type: "PDF", date: "15 Jan 2026, 10:00", img: imgFile4 },
-  { id: 202, name: "NDA_Signed_2026.pdf", type: "PDF", date: "12 Jan 2026, 14:30", img: imgFile4 },
-  { id: 203, name: "Statement_of_Work_v3.docx", type: "DOCX", date: "8 Jan 2026, 09:15", img: imgFile5 },
-  { id: 204, name: "Invoice_Jan_2026.pdf", type: "PDF", date: "5 Jan 2026, 11:45", img: imgFile4 },
-];
-
-export const ATTACHMENT_FILES: any[] = [
-  { id: 301, name: "Meeting_Notes_Kickoff.docx", type: "DOCX", date: "14 Jan 2026, 15:00", img: imgFile5 },
-  { id: 302, name: "Wireframes_v1.pdf", type: "PDF", date: "11 Jan 2026, 13:20", img: imgFile2 },
-  { id: 303, name: "Competitor_Screenshots.zip", type: "ZIP", date: "9 Jan 2026, 10:45", img: imgFile3 },
-  { id: 304, name: "Feedback_Round1.xlsx", type: "XLSX", date: "6 Jan 2026, 16:30", img: imgFile4 },
-  { id: 305, name: "Moodboard_References.png", type: "PNG", date: "4 Jan 2026, 12:10", img: imgFile1 },
-];
+const FILE_THUMBNAIL_BY_TYPE: Record<string, string> = {
+  SVG: imgFile1,
+  PNG: imgFile2,
+  ZIP: imgFile3,
+  PDF: imgFile4,
+  DOCX: imgFile5,
+  FIG: imgFile5,
+  XLSX: imgFile4,
+  FILE: imgFile4,
+};
 
 function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, onComplete, onUncomplete }: { isArchived?: boolean, isCompleted?: boolean, onArchive?: () => void, onUnarchive?: () => void, onDelete?: () => void, onComplete?: () => void, onUncomplete?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -124,6 +108,9 @@ export function MainContent({
     onToggleSidebar, 
     isSidebarOpen,
     project, 
+    projectFiles,
+    onCreateFile,
+    onRemoveFile,
     onArchiveProject, 
     onUnarchiveProject, 
     onDeleteProject,
@@ -139,11 +126,14 @@ export function MainContent({
     onToggleSidebar: () => void, 
     isSidebarOpen: boolean,
     project: ProjectData, 
+    projectFiles: ProjectFileData[],
+    onCreateFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void,
+    onRemoveFile: (fileId: string) => void,
     onArchiveProject?: (id: string) => void, 
     onUnarchiveProject?: (id: string) => void, 
     onDeleteProject?: (id: string) => void,
     allProjects?: Record<string, ProjectData>,
-    onNavigate?: (view: string) => void,
+    onNavigate?: (view: AppView) => void,
     onUpdateStatus?: (id: string, status: string) => void,
     onUpdateProject?: (data: Partial<ProjectData>) => void,
     backTo?: string,
@@ -151,33 +141,43 @@ export function MainContent({
     pendingHighlight?: { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string } | null,
     onClearPendingHighlight?: () => void
 }) {
-  const [activeTab, setActiveTab] = useState("Assets");
+  const [activeTab, setActiveTab] = useState<ProjectFileTab>("Assets");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"relevance" | "name">("relevance");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
-  const [assets, setAssets] = useState<any[]>([]);
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [attachments, setAttachments] = useState<any[]>([]);
+
+  const filesByTab = useMemo(() => {
+    const grouped: Record<ProjectFileTab, ProjectFileData[]> = {
+      Assets: [],
+      Contract: [],
+      Attachments: [],
+    };
+
+    projectFiles.forEach((file) => {
+      grouped[file.tab].push(file);
+    });
+
+    return grouped;
+  }, [projectFiles]);
 
   // Combine all files for mention dropdown in ChatSidebar
   const allFiles = useMemo(() => {
-    const seen = new Set<number | string>();
-    const combined: Array<{ id: number | string; name: string; type: string }> = [];
-    for (const f of [...assets, ...contracts, ...attachments]) {
+    const seen = new Set<string>();
+    const combined: Array<{ id: string; name: string; type: string }> = [];
+    for (const f of projectFiles) {
       if (!seen.has(f.id)) {
         seen.add(f.id);
         combined.push({ id: f.id, name: f.name, type: f.type });
       }
     }
     return combined;
-  }, [assets, contracts, attachments]);
+  }, [projectFiles]);
 
   // ── Mention-click → task / file highlight ──────────────────────
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
-  const [highlightedFileId, setHighlightedFileId] = useState<number | null>(null);
-  const fileRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [highlightedFileId, setHighlightedFileId] = useState<string | null>(null);
+  const fileRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleMentionClick = useCallback(
     (type: "task" | "file" | "user", label: string) => {
@@ -189,17 +189,16 @@ export function MainContent({
           setHighlightedTaskId(task.id);
         }
       } else if (type === "file") {
-        // Search across all three file tabs
-        const inAssets = assets.find((f) => f.name === label);
-        if (inAssets) { setActiveTab("Assets"); setHighlightedFileId(inAssets.id); return; }
-        const inContracts = contracts.find((f) => f.name === label);
-        if (inContracts) { setActiveTab("Contract"); setHighlightedFileId(inContracts.id); return; }
-        const inAttachments = attachments.find((f) => f.name === label);
-        if (inAttachments) { setActiveTab("Attachments"); setHighlightedFileId(inAttachments.id); return; }
+        const file = projectFiles.find((entry) => entry.name === label);
+        if (file) {
+          setActiveTab(file.tab);
+          setHighlightedFileId(file.id);
+          return;
+        }
       }
       // type === "user" → no navigation action, pulse animation on badge is sufficient
     },
-    [project.tasks, assets, contracts, attachments]
+    [project.tasks, projectFiles]
   );
 
   const handleHighlightDone = useCallback(() => {
@@ -236,24 +235,15 @@ export function MainContent({
     } else if (pendingHighlight.type === "file" && pendingHighlight.fileName) {
       // Switch to the correct tab first
       if (pendingHighlight.fileTab) {
-        setActiveTab(pendingHighlight.fileTab);
+        setActiveTab(pendingHighlight.fileTab as ProjectFileTab);
       }
-      // Find the file ID by name across all tabs
-      const allCombined = [...ASSET_FILES, ...CONTRACT_FILES, ...ATTACHMENT_FILES, ...(project.attachments || [])];
-      const file = allCombined.find(f => f.name === pendingHighlight.fileName);
+      const file = projectFiles.find((entry) => entry.name === pendingHighlight.fileName);
       if (file) {
         setHighlightedFileId(file.id);
       }
     }
     onClearPendingHighlight?.();
-  }, [pendingHighlight]);
-  
-  // Initialize state when project changes
-  useEffect(() => {
-    setAssets([...ASSET_FILES]);
-    setContracts([...CONTRACT_FILES]);
-    setAttachments([...ATTACHMENT_FILES, ...(project.attachments || [])]);
-  }, [project.id]); // Re-initialize when project ID changes
+  }, [pendingHighlight, projectFiles, onClearPendingHighlight]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -264,46 +254,21 @@ export function MainContent({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      
-      const newFile = {
-          id: Date.now(),
-          name: file.name,
-          type: file.name.split('.').pop()?.toUpperCase() || "FILE",
-          date: new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' }) + ", " + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-          img: imgFile4 // Generic icon
-      };
 
-      if (activeTab === "Assets") {
-          setAssets(prev => [newFile, ...prev]);
-      } else if (activeTab === "Contract") {
-          setContracts(prev => [newFile, ...prev]);
-      } else {
-          setAttachments(prev => [newFile, ...prev]);
-      }
-      
-      toast.success(`Successfully uploaded ${file.name}`);
-      
+      onCreateFile(project.id, activeTab, file);
+
       if (fileInputRef.current) fileInputRef.current.value = "";
   };
   
-  const handleRemoveFile = (id: number, e: React.MouseEvent) => {
+  const handleRemoveFile = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if (activeTab === "Assets") {
-          setAssets(prev => prev.filter(f => f.id !== id));
-      } else if (activeTab === "Contract") {
-          setContracts(prev => prev.filter(f => f.id !== id));
-      } else {
-          setAttachments(prev => prev.filter(f => f.id !== id));
-      }
-      toast.success("File removed");
+      onRemoveFile(id);
   };
 
-  const currentFiles = activeTab === "Assets" ? assets : (
-    activeTab === "Contract" ? contracts : attachments
-  );
+  const currentFiles = filesByTab[activeTab];
   
   const filteredFiles = currentFiles
-    .filter(file => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
         if (sortBy === "name") return a.name.localeCompare(b.name);
         return 0;
@@ -556,14 +521,18 @@ export function MainContent({
                         className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
                     >
                         <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
-                            <img src={file.img} alt="" className="w-full h-full object-cover" />
+                            <img
+                              src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
                             <div className="flex items-center gap-2 text-xs text-white/40">
                                 <span className="uppercase">{file.type}</span>
                                 <span>•</span>
-                                <span>{file.date}</span>
+                                <span>{file.displayDate}</span>
                             </div>
                         </div>
 

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useMutation, useQuery } from "convex/react";
+import { useAuth } from "@workos-inc/authkit-react";
 import {
   X,
   CornerDownRight,
@@ -17,7 +19,10 @@ import {
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import imgNickGarreis from "figma:asset/8ff76ab4f0991c684214e12b050fc8cc11b7f7f8.png";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { ProjectData } from "../types";
+import type { AppView } from "../lib/routing";
 import { ProjectLogo } from "./ProjectLogo";
 import {
   MentionTextarea,
@@ -46,7 +51,7 @@ interface Comment {
 
 const REACTION_OPTIONS = ["👍", "❤️", "👀", "🎉", "💡", "✅"];
 
-const CURRENT_USER = "Nick Garreis";
+const FALLBACK_USER_NAME = "You";
 
 // Mock workspace members for @ mentions
 const WORKSPACE_MEMBERS = [
@@ -57,66 +62,6 @@ const WORKSPACE_MEMBERS = [
   { id: "u5", name: "Alex Rivera", role: "Developer" },
   { id: "u6", name: "Jordan Lee", role: "QA" },
 ];
-
-const PROJECT_COMMENTS: Record<string, Comment[]> = {
-  "website-redesign": [
-    {
-      id: "1",
-      author: { name: "Sarah Chen", avatar: imgNickGarreis },
-      content:
-        "Can we double check the contrast ratios on the dark mode toggle? I think it might be a bit too low for accessibility standards.",
-      timestamp: "2 hours ago",
-      reactions: [{ emoji: "👍", users: ["Mike Ross"] }],
-      replies: [
-        {
-          id: "1-1",
-          author: { name: "Mike Ross", avatar: imgNickGarreis },
-          content:
-            "Good catch. I'll run a Lighthouse audit and adjust the colors if needed.",
-          timestamp: "1 hour ago",
-          replies: [],
-        },
-        {
-          id: "1-2",
-          author: { name: "Nick Garreis", avatar: imgNickGarreis },
-          content:
-            "Let's aim for WCAG AA at minimum. The current ratio is around 3.8:1 — needs to be 4.5:1.",
-          timestamp: "45 min ago",
-          replies: [],
-        },
-      ],
-    },
-    {
-      id: "2",
-      author: { name: "Mike Ross", avatar: imgNickGarreis },
-      content:
-        "The animation on the sidebar feels super smooth now. Great job!",
-      timestamp: "4 hours ago",
-      reactions: [
-        { emoji: "❤️", users: ["Sarah Chen", "Nick Garreis"] },
-        { emoji: "🎉", users: ["Sarah Chen"] },
-      ],
-      replies: [],
-    },
-    {
-      id: "3",
-      author: { name: "Sarah Chen", avatar: imgNickGarreis },
-      content:
-        "Updated the color tokens in the design system — please pull latest from Figma.",
-      timestamp: "Yesterday",
-      resolved: true,
-      replies: [
-        {
-          id: "3-1",
-          author: { name: "Nick Garreis", avatar: imgNickGarreis },
-          content: "Done, everything synced.",
-          timestamp: "Yesterday",
-          replies: [],
-        },
-      ],
-    },
-  ],
-};
 
 // ── Reaction Picker (stable top-level component) ──────────────────
 function ReactionPicker({
@@ -157,6 +102,7 @@ function ReactionPicker({
 // ── Comment Item (stable top-level component) ─────────────────────
 interface CommentItemProps {
   comment: Comment;
+  currentUserName: string;
   isReply?: boolean;
   isTopLevel?: boolean;
   mentionItems: MentionItemType[];
@@ -186,6 +132,7 @@ interface CommentItemProps {
 
 function CommentItem({
   comment,
+  currentUserName,
   isReply = false,
   isTopLevel = false,
   mentionItems,
@@ -210,7 +157,7 @@ function CommentItem({
   onToggleReaction,
   onToggleThread,
 }: CommentItemProps) {
-  const isOwn = comment.author.name === CURRENT_USER;
+  const isOwn = comment.author.name === currentUserName;
   const isEditing = editingComment === comment.id;
   const isCollapsed = collapsedThreads.has(comment.id);
   const replyCount = comment.replies.length;
@@ -223,6 +170,7 @@ function CommentItem({
 
   // Shared props to pass recursively to nested CommentItems
   const sharedProps = {
+    currentUserName,
     mentionItems,
     onMentionClick,
     replyingTo,
@@ -258,7 +206,7 @@ function CommentItem({
         <div className="shrink-0 pt-0.5">
           <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
             <img
-              src={comment.author.avatar}
+              src={comment.author.avatar || imgNickGarreis}
               alt={comment.author.name}
               className="w-full h-full object-cover"
             />
@@ -337,7 +285,7 @@ function CommentItem({
               {comment.reactions &&
                 comment.reactions.length > 0 &&
                 comment.reactions.map((reaction) => {
-                  const isActive = reaction.users.includes(CURRENT_USER);
+                  const isActive = reaction.users.includes(currentUserName);
                   return (
                     <button
                       key={reaction.emoji}
@@ -502,8 +450,8 @@ function CommentItem({
                   <div className="shrink-0 pt-0.5">
                     <div className="w-5 h-5 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
                       <img
-                        src={imgNickGarreis}
-                        alt="You"
+                        src={currentUserAvatar}
+                        alt={currentUserName}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -627,7 +575,7 @@ interface ChatSidebarProps {
   onClose: () => void;
   activeProject: ProjectData;
   allProjects: Record<string, ProjectData>;
-  onSwitchProject?: (view: string) => void;
+  onSwitchProject?: (view: AppView) => void;
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   allFiles?: Array<{ id: number | string; name: string; type: string }>;
 }
@@ -641,8 +589,7 @@ export function ChatSidebar({
   onMentionClick,
   allFiles,
 }: ChatSidebarProps) {
-  const [projectComments, setProjectComments] =
-    useState<Record<string, Comment[]>>(PROJECT_COMMENTS);
+  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyValue, setReplyValue] = useState("");
@@ -661,8 +608,22 @@ export function ChatSidebar({
 
   const inputRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const currentUserName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+    user?.email ||
+    FALLBACK_USER_NAME;
+  const currentUserAvatar = user?.profilePictureUrl || imgNickGarreis;
 
-  const currentComments = projectComments[activeProject.id] || [];
+  const comments = useQuery(api.comments.listForProject, {
+    projectPublicId: activeProject.id,
+  });
+  const createCommentMutation = useMutation(api.comments.create);
+  const updateCommentMutation = useMutation(api.comments.update);
+  const removeCommentMutation = useMutation(api.comments.remove);
+  const toggleResolvedMutation = useMutation(api.comments.toggleResolved);
+  const toggleReactionMutation = useMutation(api.comments.toggleReaction);
+
+  const currentComments = comments ?? [];
   const unresolvedComments = currentComments.filter((c) => !c.resolved);
   const resolvedComments = currentComments.filter((c) => c.resolved);
 
@@ -699,7 +660,33 @@ export function ChatSidebar({
     }
 
     // Add workspace members for @ mentions
-    WORKSPACE_MEMBERS.forEach((member) => {
+    const members = new Map(
+      WORKSPACE_MEMBERS.map((member) => [member.name, member]),
+    );
+    members.set(currentUserName, {
+      id: `current-user-${currentUserName.toLowerCase().replace(/\s+/g, "-")}`,
+      name: currentUserName,
+      role: "You",
+    });
+
+    const collectAuthors = (list: Comment[]) => {
+      list.forEach((comment) => {
+        const name = comment.author.name;
+        if (!members.has(name)) {
+          members.set(name, {
+            id: `author-${name.toLowerCase().replace(/\s+/g, "-")}`,
+            name,
+            role: "Teammate",
+          });
+        }
+        if (comment.replies.length > 0) {
+          collectAuthors(comment.replies);
+        }
+      });
+    };
+    collectAuthors(currentComments);
+
+    members.forEach((member) => {
       items.push({
         type: "user",
         id: member.id,
@@ -709,7 +696,7 @@ export function ChatSidebar({
     });
 
     return items;
-  }, [activeProject.tasks, allFiles]);
+  }, [activeProject.tasks, allFiles, currentComments, currentUserName]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -728,34 +715,38 @@ export function ChatSidebar({
     }
   }, [activeReactionPicker, activeMoreMenu]);
 
+  useEffect(() => {
+    setReplyingTo(null);
+    setReplyValue("");
+    setEditingComment(null);
+    setEditValue("");
+    setShowResolvedThreads(false);
+    setCollapsedThreads(new Set());
+    setActiveReactionPicker(null);
+    setActiveMoreMenu(null);
+  }, [activeProject.id]);
+
   const handleAddComment = useCallback(
     (e?: React.FormEvent) => {
       e?.preventDefault();
       if (!inputValue.trim()) return;
 
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        author: { name: CURRENT_USER, avatar: imgNickGarreis },
+      void createCommentMutation({
+        projectPublicId: activeProject.id,
         content: inputValue.trim(),
-        timestamp: "Just now",
-        replies: [],
-        reactions: [],
-      };
-
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: [
-          newComment,
-          ...(prev[activeProject.id] || []),
-        ],
-      }));
-      setInputValue("");
-      setTimeout(
-        () => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" }),
-        100
-      );
+      })
+        .then(() => {
+          setInputValue("");
+          setTimeout(
+            () => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" }),
+            100,
+          );
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     },
-    [inputValue, activeProject.id]
+    [inputValue, activeProject.id, createCommentMutation]
   );
 
   const handleReply = useCallback(
@@ -763,142 +754,78 @@ export function ChatSidebar({
       e?.preventDefault();
       if (!replyValue.trim()) return;
 
-      const newReply: Comment = {
-        id: Date.now().toString(),
-        author: { name: CURRENT_USER, avatar: imgNickGarreis },
+      void createCommentMutation({
+        projectPublicId: activeProject.id,
+        parentCommentId: parentId as Id<"projectComments">,
         content: replyValue.trim(),
-        timestamp: "Just now",
-        replies: [],
-      };
-
-      const addReplyToComment = (commentsList: Comment[]): Comment[] => {
-        return commentsList.map((comment) => {
-          if (comment.id === parentId) {
-            return { ...comment, replies: [...comment.replies, newReply] };
-          }
-          if (comment.replies.length > 0) {
-            return {
-              ...comment,
-              replies: addReplyToComment(comment.replies),
-            };
-          }
-          return comment;
+      })
+        .then(() => {
+          setCollapsedThreads((prev) => {
+            const next = new Set(prev);
+            next.delete(parentId);
+            return next;
+          });
+          setReplyingTo(null);
+          setReplyValue("");
+        })
+        .catch((error) => {
+          console.error(error);
         });
-      };
-
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: addReplyToComment(
-          prev[activeProject.id] || []
-        ),
-      }));
-
-      setCollapsedThreads((prev) => {
-        const next = new Set(prev);
-        next.delete(parentId);
-        return next;
-      });
-
-      setReplyingTo(null);
-      setReplyValue("");
     },
-    [replyValue, activeProject.id]
+    [replyValue, activeProject.id, createCommentMutation]
   );
 
   const handleResolve = useCallback(
     (commentId: string) => {
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: (prev[activeProject.id] || []).map((c) =>
-          c.id === commentId ? { ...c, resolved: !c.resolved } : c
-        ),
-      }));
+      void toggleResolvedMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
+        console.error(error);
+      });
     },
-    [activeProject.id]
+    [toggleResolvedMutation]
   );
 
   const handleEditComment = useCallback(
     (commentId: string) => {
       if (!editValue.trim()) return;
 
-      const editInList = (list: Comment[]): Comment[] =>
-        list.map((c) => {
-          if (c.id === commentId) {
-            return { ...c, content: editValue.trim(), edited: true };
-          }
-          return { ...c, replies: editInList(c.replies) };
+      void updateCommentMutation({
+        commentId: commentId as Id<"projectComments">,
+        content: editValue.trim(),
+      })
+        .then(() => {
+          setEditingComment(null);
+          setEditValue("");
+        })
+        .catch((error) => {
+          console.error(error);
         });
-
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: editInList(prev[activeProject.id] || []),
-      }));
-      setEditingComment(null);
-      setEditValue("");
     },
-    [editValue, activeProject.id]
+    [editValue, updateCommentMutation]
   );
 
   const handleDeleteComment = useCallback(
     (commentId: string) => {
-      const deleteFromList = (list: Comment[]): Comment[] =>
-        list
-          .filter((c) => c.id !== commentId)
-          .map((c) => ({ ...c, replies: deleteFromList(c.replies) }));
-
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: deleteFromList(prev[activeProject.id] || []),
-      }));
+      void removeCommentMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
+        console.error(error);
+      });
     },
-    [activeProject.id]
+    [removeCommentMutation]
   );
 
   const handleToggleReaction = useCallback(
     (commentId: string, emoji: string) => {
-      const toggleInList = (list: Comment[]): Comment[] =>
-        list.map((c) => {
-          if (c.id === commentId) {
-            const reactions = (c.reactions || []).map((r) => ({
-              ...r,
-              users: [...r.users],
-            }));
-            const existing = reactions.find((r) => r.emoji === emoji);
-            if (existing) {
-              if (existing.users.includes(CURRENT_USER)) {
-                existing.users = existing.users.filter(
-                  (u) => u !== CURRENT_USER
-                );
-                if (existing.users.length === 0) {
-                  return {
-                    ...c,
-                    reactions: reactions.filter((r) => r.emoji !== emoji),
-                  };
-                }
-              } else {
-                existing.users.push(CURRENT_USER);
-              }
-              return { ...c, reactions };
-            } else {
-              return {
-                ...c,
-                reactions: [
-                  ...reactions,
-                  { emoji, users: [CURRENT_USER] },
-                ],
-              };
-            }
-          }
-          return { ...c, replies: toggleInList(c.replies) };
+      void toggleReactionMutation({
+        commentId: commentId as Id<"projectComments">,
+        emoji,
+      })
+        .then(() => {
+          setActiveReactionPicker(null);
+        })
+        .catch((error) => {
+          console.error(error);
         });
-
-      setProjectComments((prev) => ({
-        ...prev,
-        [activeProject.id]: toggleInList(prev[activeProject.id] || []),
-      }));
-      setActiveReactionPicker(null);
     },
-    [activeProject.id]
+    [toggleReactionMutation]
   );
 
   const toggleThread = useCallback((id: string) => {
@@ -917,6 +844,7 @@ export function ChatSidebar({
 
   // Shared props object for CommentItem
   const sharedCommentProps = {
+    currentUserName,
     mentionItems,
     onMentionClick,
     replyingTo,
@@ -1072,8 +1000,8 @@ export function ChatSidebar({
                 <div className="shrink-0 pt-0.5">
                   <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
                     <img
-                      src={imgNickGarreis}
-                      alt="Nick"
+                      src={currentUserAvatar}
+                      alt={currentUserName}
                       className="w-full h-full object-cover"
                     />
                   </div>

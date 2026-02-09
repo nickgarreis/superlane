@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"convex/**/*.ts\" \"vite.config.ts\"",
+    "typecheck": "convex codegen && tsc --noEmit --project convex/tsconfig.json",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy"
   },
   "dependencies": {
+    "@convex-dev/workos": "^0.0.1",
+    "@convex-dev/workos-authkit": "^0.1.6",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -39,9 +45,11 @@
     "@radix-ui/react-toggle": "1.1.2",
     "@radix-ui/react-toggle-group": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.8",
+    "@workos-inc/authkit-react": "^0.16.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
+    "convex": "^1.31.7",
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
     "input-otp": "1.4.2",
@@ -56,6 +64,7 @@
     "react-popper": "2.3.0",
     "react-resizable-panels": "2.1.7",
     "react-responsive-masonry": "2.7.1",
+    "react-router-dom": "^7.13.0",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
@@ -65,8 +74,12 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
+    "@typescript-eslint/parser": "^8.44.1",
     "@vitejs/plugin-react": "4.7.0",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "tailwindcss": "4.1.12",
+    "typescript": "^5.9.3",
     "vite": "6.3.5"
   },
   "peerDependencies": {

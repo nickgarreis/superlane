@@ -356,7 +356,6 @@ export const MentionTextarea = forwardRef<
         setCursorAtOffset(el, value.length);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync when value changes externally

@@ -28,6 +28,9 @@ export interface ProjectDraftData {
   lastStep: number;
 }
 
+export type ProjectStatus = "Draft" | "Review" | "Active" | "Completed";
+export type ProjectFileTab = "Assets" | "Contract" | "Attachments";
+
 export interface ProjectData {
   id: string;
   name: string;
@@ -65,6 +68,71 @@ export interface ProjectData {
   }>;
   tasks?: Task[];
   comments?: Array<{
+    id: string;
+    author: { name: string; avatar: string };
+    content: string;
+    timestamp: string;
+  }>;
+}
+
+export interface DbWorkspaceRecord {
+  id: string;
+  slug: string;
+  name: string;
+  plan: string;
+  logo?: string;
+  logoColor?: string;
+  logoText?: string;
+  workosOrganizationId?: string;
+}
+
+export interface DbTaskRecord {
+  id: string;
+  projectPublicId: string;
+  taskId: string;
+  title: string;
+  assignee: {
+    name: string;
+    avatar: string;
+  };
+  dueDate: string;
+  completed: boolean;
+}
+
+export interface ProjectFileData {
+  id: string;
+  projectPublicId: string;
+  tab: ProjectFileTab;
+  name: string;
+  type: string;
+  displayDate: string;
+  thumbnailRef?: string | null;
+}
+
+export interface DbProjectRecord {
+  id: string;
+  publicId: string;
+  workspaceId: string;
+  creatorUserId: string;
+  name: string;
+  description: string;
+  category: string;
+  scope?: string;
+  deadline?: string;
+  status: ProjectStatus;
+  previousStatus?: ProjectStatus | null;
+  archived: boolean;
+  archivedAt?: number | null;
+  completedAt?: number | null;
+  draftData?: ProjectDraftData | null;
+  attachments?: Array<{
+    id: number | string;
+    name: string;
+    type: string;
+    date: string;
+    img: string;
+  }>;
+  reviewComments?: Array<{
     id: string;
     author: { name: string; avatar: string };
     content: string;

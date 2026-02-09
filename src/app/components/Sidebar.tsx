@@ -8,6 +8,7 @@ import { ProjectData, Workspace } from "../types";
 import { cn } from "../../lib/utils";
 import { FeedbackPopup } from "./FeedbackPopup";
 import { CompletedProjectsPopup } from "./CompletedProjectsPopup";
+import type { AppView } from "../lib/routing";
 
 function CollapsibleContent({ isExpanded, children, className }: { isExpanded: boolean; children: React.ReactNode; className?: string }) {
   return (
@@ -24,7 +25,7 @@ function CollapsibleContent({ isExpanded, children, className }: { isExpanded: b
 
 // Context
 const SidebarContext = createContext<{
-  onNavigate: (view: string) => void;
+  onNavigate: (view: AppView) => void;
   onSearch: () => void;
   onOpenCreateProject: () => void;
   currentView?: string;
@@ -415,7 +416,7 @@ function SvgIcon({ path }: { path: string }) {
     );
 }
 
-export function Sidebar({ 
+export function Sidebar({
     onNavigate, 
     onSearch, 
     onOpenCreateProject,
@@ -433,7 +434,7 @@ export function Sidebar({
     onViewReviewProject,
     onLogout
 }: {
-    onNavigate: (view: string) => void;
+    onNavigate: (view: AppView) => void;
     onSearch: () => void;
     onOpenCreateProject: () => void;
     currentView?: string;

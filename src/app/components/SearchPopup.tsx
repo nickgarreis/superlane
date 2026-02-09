@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Search, ArrowRight, ListChecks, Plus, Settings, Palette, Archive, CornerDownLeft, ChevronUp, ChevronDown, Clock, X, FileText, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { ProjectData } from "../types";
+import { ProjectData, ProjectFileData } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
-import { ASSET_FILES, CONTRACT_FILES, ATTACHMENT_FILES } from "./MainContent";
+import type { AppView } from "../lib/routing";
 
 interface SearchResult {
   id: string;
@@ -24,7 +24,8 @@ interface SearchPopupProps {
   isOpen: boolean;
   onClose: () => void;
   projects: Record<string, ProjectData>;
-  onNavigate: (view: string) => void;
+  files: ProjectFileData[];
+  onNavigate: (view: AppView) => void;
   onOpenCreateProject: () => void;
   onOpenSettings: (tab?: string) => void;
   onHighlightNavigate?: (projectId: string, highlight: { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string }) => void;
@@ -52,7 +53,7 @@ const FILE_TYPE_COLORS: Record<string, string> = {
 
 const MAX_RECENT = 5;
 
-export function SearchPopup({ isOpen, onClose, projects, onNavigate, onOpenCreateProject, onOpenSettings, onHighlightNavigate }: SearchPopupProps) {
+export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOpenCreateProject, onOpenSettings, onHighlightNavigate }: SearchPopupProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -95,40 +96,27 @@ export function SearchPopup({ isOpen, onClose, projects, onNavigate, onOpenCreat
     return active?.id || Object.values(projects)[0]?.id;
   }, [projects]);
 
-  // Build the combined file list (static files + per-project attachments)
+  // Build searchable file metadata from persisted Convex records
   const allFiles = useMemo(() => {
-    const files: Array<{ name: string; type: string; tab: string; projectId: string | null; date: string }> = [];
+    const entries: Array<{ name: string; type: string; tab: string; projectId: string | null; date: string }> = [];
     const seen = new Set<string>();
 
-    // Static files (shared across all projects)
-    for (const f of ASSET_FILES) {
-      const key = `asset-${f.name}`;
-      if (!seen.has(key)) { seen.add(key); files.push({ name: f.name, type: f.type, tab: "Assets", projectId: null, date: f.date }); }
-    }
-    for (const f of CONTRACT_FILES) {
-      const key = `contract-${f.name}`;
-      if (!seen.has(key)) { seen.add(key); files.push({ name: f.name, type: f.type, tab: "Contract", projectId: null, date: f.date }); }
-    }
-    for (const f of ATTACHMENT_FILES) {
-      const key = `attachment-${f.name}`;
-      if (!seen.has(key)) { seen.add(key); files.push({ name: f.name, type: f.type, tab: "Attachments", projectId: null, date: f.date }); }
-    }
-
-    // Per-project attachments
-    Object.values(projects).forEach(project => {
-      if (project.attachments) {
-        project.attachments.forEach(att => {
-          const key = `project-${project.id}-${att.name}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            files.push({ name: att.name, type: att.type, tab: "Attachments", projectId: project.id, date: att.date });
-          }
+    files.forEach((file) => {
+      const key = `${file.projectPublicId}-${file.tab}-${file.name}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        entries.push({
+          name: file.name,
+          type: file.type,
+          tab: file.tab,
+          projectId: file.projectPublicId,
+          date: file.displayDate,
         });
       }
     });
 
-    return files;
-  }, [projects]);
+    return entries;
+  }, [files]);
 
   // Search logic
   const results = useMemo(() => {
