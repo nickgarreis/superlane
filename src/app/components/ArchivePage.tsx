@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { cn } from "../../lib/utils";
 import { Archive, ArchiveRestore, Trash2, Search } from "lucide-react";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectData } from "../types";
@@ -72,10 +71,7 @@ export function ArchivePage({
 
     return (
         <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-            <div className={cn(
-                "relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out",
-                isSidebarOpen ? "max-w-[1200px]" : "max-w-none"
-            )}>
+            <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
                 {/* Top Border / Header */}
                 <div className="w-full h-[57px] shrink-0">
                     <HorizontalBorder onToggleSidebar={onToggleSidebar} />

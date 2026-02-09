@@ -12,14 +12,16 @@ export function Tasks({
     onToggleSidebar, 
     isSidebarOpen,
     projects,
-    onUpdateProject,
+    workspaceTasks,
+    onUpdateWorkspaceTasks,
     workspaceMembers,
     viewerIdentity,
 }: { 
     onToggleSidebar: () => void, 
     isSidebarOpen: boolean,
     projects: Record<string, ProjectData>,
-    onUpdateProject: (id: string, data: Partial<ProjectData>) => void;
+    workspaceTasks: Task[];
+    onUpdateWorkspaceTasks: (tasks: Task[]) => void;
     workspaceMembers: WorkspaceMember[];
     viewerIdentity: ViewerIdentity;
 }) {
@@ -44,15 +46,11 @@ export function Tasks({
     () => new Set(activeProjects.map((project) => project.id)),
     [activeProjects],
   );
-  const canAssignToActiveProjects = activeProjects.length > 0;
 
-  // Derived state from projects prop
+  // Derived state from workspace tasks prop
   const allTasks = useMemo(
-    () =>
-      activeProjects.flatMap((project) =>
-        (project.tasks || []).map((task) => ({ ...task, projectId: project.id })),
-      ),
-    [activeProjects],
+    () => workspaceTasks,
+    [workspaceTasks],
   );
 
   useEffect(() => {
@@ -63,11 +61,11 @@ export function Tasks({
     .filter(task => {
         const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
         
-        // If filters are active, match against selected IDs.
-        // If no filters are active, only show tasks from ACTIVE projects.
+        // If filters are active, match selected project IDs.
+        // If no filters are active, include all visible workspace tasks.
         const matchesProject = filterProject.length > 0
-            ? filterProject.includes(task.projectId)
-            : activeProjectIds.has(task.projectId);
+            ? Boolean(task.projectId && filterProject.includes(task.projectId))
+            : true;
 
         return matchesSearch && matchesProject;
     })
@@ -78,88 +76,42 @@ export function Tasks({
     });
 
   const handleUpdateTasks = (newTasks: Task[]) => {
-      const updatesByProject: Record<string, Task[]> = {};
-      activeProjects.forEach((project) => {
-          updatesByProject[project.id] = [...(project.tasks || [])];
-      });
+      const previousIdsInView = new Set(filteredTasks.map((task) => task.id));
+      const nextById = new Map(newTasks.map((task) => [task.id, task]));
+      const nextAll: Task[] = [];
 
-      const previousByTaskId = new Map(allTasks.map((task) => [task.id, task]));
-      const deletedIds = new Set(
-          filteredTasks
-              .map((task) => task.id)
-              .filter((id) => !newTasks.some((task) => task.id === id)),
-      );
-
-      const changedProjectIds = new Set<string>();
-
-      const removeTaskFromProject = (projectId: string, taskId: string) => {
-          const list = updatesByProject[projectId];
-          if (!list) {
-              return;
+      for (const task of allTasks) {
+          if (!previousIdsInView.has(task.id)) {
+              nextAll.push(task);
+              continue;
           }
-          const nextList = list.filter((task) => task.id !== taskId);
-          if (nextList.length !== list.length) {
-              updatesByProject[projectId] = nextList;
-              changedProjectIds.add(projectId);
+          const nextTask = nextById.get(task.id);
+          if (!nextTask) {
+              continue;
           }
-      };
+          nextAll.push(nextTask);
+      }
 
-      const upsertTaskOnProject = (projectId: string, task: Task) => {
-          const list = updatesByProject[projectId];
-          if (!list) {
-              return;
+      for (const task of newTasks) {
+          if (!previousIdsInView.has(task.id)) {
+              nextAll.push(task);
           }
-          const { projectId: _ignoredProjectId, ...cleanTask } = task;
-          const existingIndex = list.findIndex((entry) => entry.id === cleanTask.id);
-          if (existingIndex >= 0) {
-              const nextList = [...list];
-              nextList[existingIndex] = cleanTask;
-              updatesByProject[projectId] = nextList;
-          } else {
-              updatesByProject[projectId] = [...list, cleanTask];
-          }
-          changedProjectIds.add(projectId);
-      };
+      }
 
-      deletedIds.forEach((taskId) => {
-          Object.keys(updatesByProject).forEach((projectId) => {
-              removeTaskFromProject(projectId, taskId);
-          });
-      });
+      const normalized = nextAll.map((task) => ({
+          ...task,
+          projectId:
+              task.projectId && activeProjectIds.has(task.projectId)
+                ? task.projectId
+                : undefined,
+      }));
 
-      const defaultProjectId = filterProject.find((projectId) => activeProjectIds.has(projectId))
-          ?? null;
-
-      newTasks.forEach((task) => {
-          const previousProjectId = previousByTaskId.get(task.id)?.projectId;
-          const targetProjectId =
-              (task.projectId && activeProjectIds.has(task.projectId) ? task.projectId : null)
-              ?? (previousProjectId && activeProjectIds.has(previousProjectId) ? previousProjectId : null)
-              ?? defaultProjectId;
-
-          if (!targetProjectId) {
-              return;
-          }
-
-          Object.keys(updatesByProject).forEach((projectId) => {
-              if (projectId !== targetProjectId) {
-                  removeTaskFromProject(projectId, task.id);
-              }
-          });
-          upsertTaskOnProject(targetProjectId, { ...task, projectId: targetProjectId });
-      });
-
-      changedProjectIds.forEach((projectId) => {
-          onUpdateProject(projectId, { tasks: updatesByProject[projectId] ?? [] });
-      });
+      onUpdateWorkspaceTasks(normalized);
   };
 
   return (
     <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-      <div className={cn(
-        "relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out",
-        isSidebarOpen ? "max-w-[1200px]" : "max-w-none"
-      )}>
+      <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
@@ -198,13 +150,7 @@ export function Tasks({
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsAdding(true)}
-                        disabled={!canAssignToActiveProjects}
-                        className={cn(
-                          "text-[12px] font-medium transition-colors flex items-center gap-1 mr-2",
-                          canAssignToActiveProjects
-                            ? "text-[#58AFFF] hover:text-[#58AFFF]/80 cursor-pointer"
-                            : "text-[#58AFFF]/40 cursor-not-allowed",
-                        )}
+                        className="text-[12px] font-medium text-[#58AFFF] hover:text-[#58AFFF]/80 transition-colors flex items-center gap-1 cursor-pointer mr-2"
                     >
                         <Plus size={14} /> Add Task
                     </button>
@@ -350,10 +296,7 @@ export function Tasks({
                       name: project.name,
                       category: project.category,
                     }))}
-                    defaultProjectId={
-                      filterProject.find((projectId) => activeProjectIds.has(projectId))
-                      ?? null
-                    }
+                    defaultProjectId={null}
                 />
             </div>
         </div>

@@ -337,7 +337,7 @@ function CommentItem({
               </button>
 
               {/* Resolve (only top-level) */}
-              {isTopLevel && (
+              {isTopLevel && isOwn && (
                 <button
                   onClick={() => onResolve(comment.id)}
                   className={cn(

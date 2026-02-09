@@ -155,7 +155,7 @@ export function MainContent({
     onUpdateProject?: (data: Partial<ProjectData>) => void,
     backTo?: string,
     onBack?: () => void,
-    pendingHighlight?: { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string } | null,
+    pendingHighlight?: { projectId?: string; type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string } | null,
     onClearPendingHighlight?: () => void
 }) {
   const [activeTab, setActiveTab] = useState<ProjectFileTab>("Assets");
@@ -256,20 +256,28 @@ export function MainContent({
   // ── Consume pendingHighlight from search navigation ──────────
   useEffect(() => {
     if (!pendingHighlight) return;
+    if (pendingHighlight.projectId && pendingHighlight.projectId !== project.id) return;
+
     if (pendingHighlight.type === "task" && pendingHighlight.taskId) {
       setHighlightedTaskId(pendingHighlight.taskId);
+      onClearPendingHighlight?.();
     } else if (pendingHighlight.type === "file" && pendingHighlight.fileName) {
       // Switch to the correct tab first
       if (pendingHighlight.fileTab && isProjectFileTab(pendingHighlight.fileTab)) {
         setActiveTab(pendingHighlight.fileTab);
       }
-      const file = projectFiles.find((entry) => entry.name === pendingHighlight.fileName);
+      const file = projectFiles.find(
+        (entry) =>
+          entry.name === pendingHighlight.fileName
+          && (!pendingHighlight.fileTab || entry.tab === pendingHighlight.fileTab),
+      ) ?? projectFiles.find((entry) => entry.name === pendingHighlight.fileName);
+
       if (file) {
         setHighlightedFileId(file.id);
+        onClearPendingHighlight?.();
       }
     }
-    onClearPendingHighlight?.();
-  }, [pendingHighlight, projectFiles, onClearPendingHighlight]);
+  }, [pendingHighlight, project.id, projectFiles, onClearPendingHighlight]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -302,10 +310,7 @@ export function MainContent({
 
   return (
     <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-      <div className={cn(
-        "relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out",
-        isSidebarOpen ? "max-w-[1200px]" : "max-w-none"
-      )}>
+      <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">

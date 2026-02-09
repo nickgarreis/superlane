@@ -32,6 +32,7 @@ import type {
 } from "./types";
 
 type PendingHighlight = {
+  projectId: string;
   type: "task" | "file";
   taskId?: string;
   fileName?: string;
@@ -1187,7 +1188,8 @@ export default function DashboardApp() {
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
-          onUpdateProject={handleUpdateProject}
+          workspaceTasks={workspaceTasks}
+          onUpdateWorkspaceTasks={handleReplaceWorkspaceTasks}
           workspaceMembers={workspaceMembers}
           viewerIdentity={viewerIdentity}
         />
@@ -1339,8 +1341,8 @@ export default function DashboardApp() {
               onNavigate={navigateView}
               onOpenCreateProject={openCreateProject}
               onOpenSettings={(tab) => handleOpenSettings(parseSettingsTab(tab))}
-              onHighlightNavigate={(_projectId, highlight) => {
-                setPendingHighlight(highlight);
+              onHighlightNavigate={(projectId, highlight) => {
+                setPendingHighlight({ projectId, ...highlight });
               }}
             />
           </Suspense>

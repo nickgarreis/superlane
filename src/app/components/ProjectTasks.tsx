@@ -103,12 +103,7 @@ export function ProjectTasks({
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return;
-    const resolvedProjectId = showProjectColumn
-      ? newTaskProjectId || defaultProjectId || projectOptions[0]?.id
-      : undefined;
-    if (showProjectColumn && !resolvedProjectId) {
-      return;
-    }
+    const resolvedProjectId = showProjectColumn ? newTaskProjectId || undefined : undefined;
 
     const defaultAssignee = assignableMembers[0];
     const newTask: Task = {
@@ -157,7 +152,12 @@ export function ProjectTasks({
 
   const handleProjectSelect = (taskId: string, projectId: string) => {
     const newTasks = initialTasks.map((task) =>
-      task.id === taskId ? { ...task, projectId } : task,
+      task.id === taskId
+        ? {
+            ...task,
+            projectId: projectId.trim().length > 0 ? projectId : undefined,
+          }
+        : task,
     );
     onUpdateTasks(newTasks);
   };
@@ -493,6 +493,24 @@ export function ProjectTasks({
                                             >
                                                 <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
                                                     Move to project
+                                                </div>
+                                                <div
+                                                    onClick={() => {
+                                                        handleProjectSelect(task.id, "");
+                                                        setOpenProjectTaskId(null);
+                                                    }}
+                                                    className={cn(
+                                                      "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
+                                                      !task.projectId && "bg-white/5",
+                                                    )}
+                                                >
+                                                    <div className="w-3 h-3 rounded-full bg-white/20" />
+                                                    <span className={cn(
+                                                      "text-[13px] truncate",
+                                                      !task.projectId ? "text-white font-medium" : "text-[#E8E8E8]",
+                                                    )}>
+                                                        No project
+                                                    </span>
                                                 </div>
                                                 {projectOptions.map((project) => (
                                                     <div

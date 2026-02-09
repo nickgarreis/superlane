@@ -308,6 +308,10 @@ export const toggleResolved = mutation({
 
     const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
+    if (comment.authorUserId !== appUser._id) {
+      throw new ConvexError("Forbidden");
+    }
+
     await ctx.db.patch(comment._id, {
       resolved: !comment.resolved,
       resolvedByUserId: appUser._id,

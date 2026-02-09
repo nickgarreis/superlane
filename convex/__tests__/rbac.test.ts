@@ -445,7 +445,7 @@ describe("P0.1 RBAC and soft-delete", () => {
     });
   });
 
-  test("comments only allow author edits/removals and member resolve", async () => {
+  test("comments only allow author edits/removals/resolution", async () => {
     const workspace = await seedWorkspace();
     const project = await seedProject(workspace);
 
@@ -454,7 +454,15 @@ describe("P0.1 RBAC and soft-delete", () => {
       content: "Fresh comment",
     });
 
-    await asMemberTwo().mutation(api.comments.toggleResolved, { commentId });
+    await expect(asMemberTwo().mutation(api.comments.toggleResolved, { commentId })).rejects.toThrow(
+      "Forbidden",
+    );
+
+    await expect(asAdmin().mutation(api.comments.toggleResolved, { commentId })).rejects.toThrow(
+      "Forbidden",
+    );
+
+    await asMember().mutation(api.comments.toggleResolved, { commentId });
 
     await asMember().mutation(api.comments.update, {
       commentId,

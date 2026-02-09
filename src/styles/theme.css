@@ -182,11 +182,11 @@
 
 /* ── Task row flash animation (mention click highlight) ── */
 @keyframes taskRowFlash {
-  0%   { background-color: rgba(88, 175, 255, 0); }
-  15%  { background-color: rgba(88, 175, 255, 0.12); }
-  30%  { background-color: rgba(88, 175, 255, 0.08); }
-  60%  { background-color: rgba(88, 175, 255, 0.05); }
-  100% { background-color: rgba(88, 175, 255, 0); }
+  0%   { background-color: rgba(255, 255, 255, 0); }
+  15%  { background-color: rgba(255, 255, 255, 0.08); }
+  30%  { background-color: rgba(255, 255, 255, 0.05); }
+  60%  { background-color: rgba(255, 255, 255, 0.03); }
+  100% { background-color: rgba(255, 255, 255, 0); }
 }
 
 .task-row-flash {
@@ -206,11 +206,11 @@
 
 /* ── File row flash animation (file mention click highlight) ── */
 @keyframes fileRowFlash {
-  0%   { background-color: rgba(245, 158, 11, 0); }
-  15%  { background-color: rgba(245, 158, 11, 0.10); }
-  30%  { background-color: rgba(245, 158, 11, 0.07); }
-  60%  { background-color: rgba(245, 158, 11, 0.04); }
-  100% { background-color: rgba(245, 158, 11, 0); }
+  0%   { background-color: rgba(255, 255, 255, 0); }
+  15%  { background-color: rgba(255, 255, 255, 0.08); }
+  30%  { background-color: rgba(255, 255, 255, 0.05); }
+  60%  { background-color: rgba(255, 255, 255, 0.03); }
+  100% { background-color: rgba(255, 255, 255, 0); }
 }
 
 .file-row-flash {
