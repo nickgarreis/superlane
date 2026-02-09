@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { requireWorkspaceMember } from "./lib/auth";
+import { requireWorkspaceRole } from "./lib/auth";
 import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
@@ -28,10 +28,7 @@ export const getReconciliationContext = internalQuery({
       throw new ConvexError("Workspace not found");
     }
 
-    const { membership } = await requireWorkspaceMember(ctx, workspace._id, { workspace });
-    if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new ConvexError("Forbidden");
-    }
+    await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
 
     if (!workspace.workosOrganizationId) {
       throw new ConvexError("Workspace is not linked to a WorkOS organization");

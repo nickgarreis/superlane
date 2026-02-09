@@ -1,20 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuthUser, requireWorkspaceMember } from "./lib/auth";
-
-const getProjectForMember = async (ctx: any, projectPublicId: string) => {
-  const project = await ctx.db
-    .query("projects")
-    .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
-    .unique();
-
-  if (!project) {
-    throw new ConvexError("Project not found");
-  }
-
-  await requireWorkspaceMember(ctx, project.workspaceId);
-  return project;
-};
+import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
+import { hasRequiredWorkspaceRole } from "./lib/rbac";
 
 const formatRelativeTime = (timestamp: number, now: number) => {
   const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
@@ -43,7 +30,7 @@ export const listForProject = query({
     projectPublicId: v.string(),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.projectPublicId);
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
     const comments = await ctx.db
       .query("projectComments")
       .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
@@ -198,8 +185,7 @@ export const create = mutation({
       throw new ConvexError("Comment content is required");
     }
 
-    const { appUser } = await requireAuthUser(ctx);
-    const project = await getProjectForMember(ctx, args.projectPublicId);
+    const { appUser, project } = await requireProjectRole(ctx, args.projectPublicId, "member");
 
     if (args.parentCommentId) {
       const parent = await ctx.db.get(args.parentCommentId);
@@ -238,15 +224,14 @@ export const update = mutation({
       throw new ConvexError("Comment content is required");
     }
 
-    const { appUser } = await requireAuthUser(ctx);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
       throw new ConvexError("Comment not found");
     }
 
-    await requireWorkspaceMember(ctx, comment.workspaceId);
+    const { appUser, membership } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
-    if (comment.authorUserId !== appUser._id) {
+    if (comment.authorUserId !== appUser._id && !hasRequiredWorkspaceRole(membership.role, "admin")) {
       throw new ConvexError("Forbidden");
     }
 
@@ -284,15 +269,14 @@ export const remove = mutation({
     commentId: v.id("projectComments"),
   },
   handler: async (ctx, args) => {
-    const { appUser } = await requireAuthUser(ctx);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
       return { removed: false };
     }
 
-    await requireWorkspaceMember(ctx, comment.workspaceId);
+    const { appUser, membership } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
-    if (comment.authorUserId !== appUser._id) {
+    if (comment.authorUserId !== appUser._id && !hasRequiredWorkspaceRole(membership.role, "admin")) {
       throw new ConvexError("Forbidden");
     }
 
@@ -306,21 +290,20 @@ export const toggleResolved = mutation({
     commentId: v.id("projectComments"),
   },
   handler: async (ctx, args) => {
-    const { appUser: user } = await requireAuthUser(ctx);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
       throw new ConvexError("Comment not found");
     }
 
-    await requireWorkspaceMember(ctx, comment.workspaceId);
+    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
     await ctx.db.patch(comment._id, {
       resolved: !comment.resolved,
-      resolvedByUserId: user._id,
+      resolvedByUserId: appUser._id,
       updatedAt: Date.now(),
     });
 
-    return { commentId: comment._id, resolved: !comment.resolved, resolvedByUserId: user._id };
+    return { commentId: comment._id, resolved: !comment.resolved, resolvedByUserId: appUser._id };
   },
 });
 
@@ -330,13 +313,12 @@ export const toggleReaction = mutation({
     emoji: v.string(),
   },
   handler: async (ctx, args) => {
-    const { appUser } = await requireAuthUser(ctx);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
       throw new ConvexError("Comment not found");
     }
 
-    await requireWorkspaceMember(ctx, comment.workspaceId);
+    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
     const existing = await ctx.db
       .query("commentReactions")

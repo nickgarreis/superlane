@@ -6,7 +6,8 @@ import {
   projectStatusValidator,
   reviewCommentValidator,
 } from "./lib/validators";
-import { requireAuthUser, requireWorkspaceMember } from "./lib/auth";
+import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
+import { hasRequiredWorkspaceRole } from "./lib/rbac";
 
 const slugify = (value: string) =>
   value
@@ -30,21 +31,6 @@ const ensureUniqueProjectPublicId = async (ctx: any, base: string) => {
     candidate = `${base}-${i}`;
     i += 1;
   }
-};
-
-const getProjectForMember = async (ctx: any, projectPublicId: string) => {
-  const project = await ctx.db
-    .query("projects")
-    .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
-    .unique();
-
-  if (!project) {
-    throw new ConvexError("Project not found");
-  }
-
-  await requireWorkspaceMember(ctx, project.workspaceId);
-
-  return project;
 };
 
 const syncAttachmentFiles = async (
@@ -99,8 +85,6 @@ export const create = mutation({
     reviewComments: v.optional(v.array(reviewCommentValidator)),
   },
   handler: async (ctx, args) => {
-    const { appUser } = await requireAuthUser(ctx);
-
     const workspace = await ctx.db
       .query("workspaces")
       .withIndex("by_slug", (q) => q.eq("slug", args.workspaceSlug))
@@ -110,7 +94,7 @@ export const create = mutation({
       throw new ConvexError("Workspace not found");
     }
 
-    await requireWorkspaceMember(ctx, workspace._id);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
     const basePublicId = args.publicId && args.publicId.length > 0
       ? args.publicId
@@ -134,6 +118,7 @@ export const create = mutation({
       archived: false,
       archivedAt: null,
       completedAt: status === "Completed" ? now : null,
+      deletedAt: null,
       draftData: args.draftData ?? null,
       attachments: args.attachments,
       reviewComments: args.reviewComments,
@@ -165,10 +150,11 @@ export const update = mutation({
     reviewComments: v.optional(v.array(reviewCommentValidator)),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project, appUser, membership } = await requireProjectRole(ctx, args.publicId, "member");
 
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
+      updatedByUserId: appUser._id,
     };
 
     if (args.name !== undefined) patch.name = args.name;
@@ -181,11 +167,15 @@ export const update = mutation({
     if (args.reviewComments !== undefined) patch.reviewComments = args.reviewComments;
 
     if (args.status !== undefined) {
+      if (!hasRequiredWorkspaceRole(membership.role, "admin")) {
+        throw new ConvexError("Forbidden");
+      }
       patch.status = args.status;
       patch.archived = false;
       patch.previousStatus = null;
       patch.archivedAt = null;
       patch.completedAt = args.status === "Completed" ? Date.now() : null;
+      patch.statusUpdatedByUserId = appUser._id;
     }
 
     await ctx.db.patch(project._id, patch);
@@ -203,7 +193,7 @@ export const setStatus = mutation({
     status: projectStatusValidator,
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
 
     const now = Date.now();
 
@@ -214,6 +204,7 @@ export const setStatus = mutation({
       archivedAt: null,
       completedAt: args.status === "Completed" ? now : null,
       updatedAt: now,
+      statusUpdatedByUserId: appUser._id,
     });
 
     return { publicId: project.publicId };
@@ -225,7 +216,7 @@ export const archive = mutation({
     publicId: v.string(),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
@@ -233,6 +224,7 @@ export const archive = mutation({
       archivedAt: now,
       previousStatus: project.status,
       updatedAt: now,
+      archivedByUserId: appUser._id,
     });
 
     return { publicId: project.publicId };
@@ -244,7 +236,7 @@ export const unarchive = mutation({
     publicId: v.string(),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
@@ -253,6 +245,7 @@ export const unarchive = mutation({
       status: project.previousStatus ?? "Review",
       previousStatus: null,
       updatedAt: now,
+      unarchivedByUserId: appUser._id,
     });
 
     return { publicId: project.publicId };
@@ -264,41 +257,14 @@ export const remove = mutation({
     publicId: v.string(),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
+    const now = Date.now();
 
-    const [tasks, files, comments] = await Promise.all([
-      ctx.db
-      .query("tasks")
-      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
-      .collect(),
-      ctx.db
-        .query("projectFiles")
-        .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
-        .collect(),
-      ctx.db
-        .query("projectComments")
-        .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
-        .collect(),
-    ]);
-
-    const reactions = (
-      await Promise.all(
-        comments.map((comment: any) =>
-          ctx.db
-            .query("commentReactions")
-            .withIndex("by_commentId", (q: any) => q.eq("commentId", comment._id))
-            .collect(),
-        ),
-      )
-    ).flat();
-
-    await Promise.all([
-      ...tasks.map((task: any) => ctx.db.delete(task._id)),
-      ...files.map((file: any) => ctx.db.delete(file._id)),
-      ...reactions.map((reaction: any) => ctx.db.delete(reaction._id)),
-      ...comments.map((comment: any) => ctx.db.delete(comment._id)),
-    ]);
-    await ctx.db.delete(project._id);
+    await ctx.db.patch(project._id, {
+      deletedAt: now,
+      deletedByUserId: appUser._id,
+      updatedAt: now,
+    });
 
     return { publicId: args.publicId };
   },
@@ -310,7 +276,7 @@ export const updateReviewComments = mutation({
     comments: v.array(reviewCommentValidator),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.publicId);
+    const { project } = await requireProjectRole(ctx, args.publicId, "member");
 
     await ctx.db.patch(project._id, {
       reviewComments: args.comments,

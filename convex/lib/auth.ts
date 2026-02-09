@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { authKit } from "../auth";
+import { hasRequiredWorkspaceRole, type WorkspaceRole } from "./rbac";
 import { requireActiveOrganizationMembershipForWorkspace } from "./workosOrganization";
 
 type ResolvedAuthUser = {
@@ -152,4 +153,64 @@ export async function requireWorkspaceMember(
   );
 
   return { membership, appUser, workspace, organizationMembership };
+}
+
+export async function requireWorkspaceRole(
+  ctx: any,
+  workspaceId: Id<"workspaces">,
+  minimumRole: WorkspaceRole,
+  options?: { allowInvited?: boolean; workspace?: any },
+) {
+  const access = await requireWorkspaceMember(ctx, workspaceId, options);
+  if (!hasRequiredWorkspaceRole(access.membership.role, minimumRole)) {
+    throw new ConvexError("Forbidden");
+  }
+  return access;
+}
+
+const ensureActiveProject = (project: any) => {
+  if (!project || project.deletedAt != null) {
+    throw new ConvexError("Project not found");
+  }
+  return project;
+};
+
+const getActiveProjectByPublicId = async (ctx: any, publicId: string) => {
+  const project = await ctx.db
+    .query("projects")
+    .withIndex("by_publicId", (q: any) => q.eq("publicId", publicId))
+    .unique();
+
+  return ensureActiveProject(project);
+};
+
+const getActiveProjectById = async (ctx: any, projectId: Id<"projects">) => {
+  const project = await ctx.db.get(projectId);
+  return ensureActiveProject(project);
+};
+
+export async function requireProjectRole(
+  ctx: any,
+  publicId: string,
+  minimumRole: WorkspaceRole,
+) {
+  const project = await getActiveProjectByPublicId(ctx, publicId);
+  const access = await requireWorkspaceRole(ctx, project.workspaceId, minimumRole);
+  return {
+    project,
+    ...access,
+  };
+}
+
+export async function requireProjectRoleById(
+  ctx: any,
+  projectId: Id<"projects">,
+  minimumRole: WorkspaceRole,
+) {
+  const project = await getActiveProjectById(ctx, projectId);
+  const access = await requireWorkspaceRole(ctx, project.workspaceId, minimumRole);
+  return {
+    project,
+    ...access,
+  };
 }

@@ -1,21 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { taskInputValidator } from "./lib/validators";
-import { requireWorkspaceMember } from "./lib/auth";
-
-const getProjectForMember = async (ctx: any, projectPublicId: string) => {
-  const project = await ctx.db
-    .query("projects")
-    .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
-    .unique();
-
-  if (!project) {
-    throw new ConvexError("Project not found");
-  }
-
-  await requireWorkspaceMember(ctx, project.workspaceId);
-  return project;
-};
+import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
 
 const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) => {
   const existing = await ctx.db
@@ -51,7 +37,7 @@ export const replaceForProject = mutation({
     tasks: v.array(taskInputValidator),
   },
   handler: async (ctx, args) => {
-    const project = await getProjectForMember(ctx, args.projectPublicId);
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
     await replaceProjectTasks(ctx, project, args.tasks);
 
     return { projectPublicId: project.publicId };
@@ -78,7 +64,7 @@ export const bulkReplaceForWorkspace = mutation({
       throw new ConvexError("Workspace not found");
     }
 
-    await requireWorkspaceMember(ctx, workspace._id);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
     for (const update of args.updates) {
       const project = await ctx.db
@@ -86,7 +72,7 @@ export const bulkReplaceForWorkspace = mutation({
         .withIndex("by_publicId", (q: any) => q.eq("publicId", update.projectPublicId))
         .unique();
 
-      if (!project || project.workspaceId !== workspace._id) {
+      if (!project || project.workspaceId !== workspace._id || project.deletedAt != null) {
         throw new ConvexError(`Project not found in workspace: ${update.projectPublicId}`);
       }
 

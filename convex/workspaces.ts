@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuthUser, requireWorkspaceMember } from "./lib/auth";
+import { requireAuthUser, requireWorkspaceMember, requireWorkspaceRole } from "./lib/auth";
 import { hasActiveOrganizationMembershipForWorkspace } from "./lib/workosOrganization";
 
 const slugify = (value: string) =>
@@ -103,9 +103,15 @@ export const update = mutation({
       throw new ConvexError("Workspace not found");
     }
 
-    await requireWorkspaceMember(ctx, workspace._id, { workspace });
+    const { appUser, membership } = await requireWorkspaceRole(ctx, workspace._id, "admin", {
+      workspace,
+    });
 
-    if (args.workosOrganizationId && args.workosOrganizationId !== workspace.workosOrganizationId) {
+    if (args.workosOrganizationId !== undefined && args.workosOrganizationId !== workspace.workosOrganizationId) {
+      if (membership.role !== "owner") {
+        throw new ConvexError("Forbidden");
+      }
+
       const mappedWorkspace = await ctx.db
         .query("workspaces")
         .withIndex("by_workosOrganizationId", (q: any) =>
@@ -120,6 +126,7 @@ export const update = mutation({
 
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
+      updatedByUserId: appUser._id,
     };
 
     if (args.name !== undefined) patch.name = args.name;

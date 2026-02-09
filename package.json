@@ -8,6 +8,7 @@
     "dev": "vite",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"convex/**/*.ts\" \"vite.config.ts\"",
     "typecheck": "convex codegen && tsc --noEmit --project convex/tsconfig.json",
+    "test:rbac": "vitest run convex/__tests__",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },
@@ -76,11 +77,13 @@
     "@tailwindcss/vite": "4.1.12",
     "@typescript-eslint/parser": "^8.44.1",
     "@vitejs/plugin-react": "4.7.0",
+    "convex-test": "^0.0.41",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.3",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "vitest": "^2.1.9"
   },
   "peerDependencies": {
     "react": "18.3.1",

@@ -14,6 +14,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_rbac from "../lib/rbac.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lib_workosOrganization from "../lib/workosOrganization.js";
 import type * as organizationSync from "../organizationSync.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/rbac": typeof lib_rbac;
   "lib/validators": typeof lib_validators;
   "lib/workosOrganization": typeof lib_workosOrganization;
   organizationSync: typeof organizationSync;

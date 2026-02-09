@@ -92,6 +92,8 @@ export const getSnapshot = query({
           .withIndex("by_workspaceId", (q) => q.eq("workspaceId", activeWorkspace._id))
           .collect()
       : [];
+    const activeProjects = projects.filter((project) => project.deletedAt == null);
+    const activeProjectIds = new Set(activeProjects.map((project) => String(project._id)));
 
     const tasks = activeWorkspace
       ? await ctx.db
@@ -99,9 +101,18 @@ export const getSnapshot = query({
           .withIndex("by_workspaceId", (q) => q.eq("workspaceId", activeWorkspace._id))
           .collect()
       : [];
+    const visibleTasks = tasks.filter((task) => activeProjectIds.has(String(task.projectId)));
 
-    projects.sort((a, b) => b.updatedAt - a.updatedAt);
-    tasks.sort((a, b) => a.position - b.position);
+    activeProjects.sort((a, b) => {
+      const updatedAtA = typeof a.updatedAt === "number" ? a.updatedAt : 0;
+      const updatedAtB = typeof b.updatedAt === "number" ? b.updatedAt : 0;
+      return updatedAtB - updatedAtA;
+    });
+    visibleTasks.sort((a, b) => {
+      const positionA = typeof a.position === "number" ? a.position : Number.POSITIVE_INFINITY;
+      const positionB = typeof b.position === "number" ? b.position : Number.POSITIVE_INFINITY;
+      return positionA - positionB;
+    });
 
     return {
       viewer: {
@@ -114,8 +125,8 @@ export const getSnapshot = query({
       workspaces,
       activeWorkspace,
       activeWorkspaceSlug: activeWorkspace?.slug ?? null,
-      projects,
-      tasks,
+      projects: activeProjects,
+      tasks: visibleTasks,
     };
   },
 });
