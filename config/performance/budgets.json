@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "activePhase": "phase2",
+  "phases": {
+    "phase1": {
+      "description": "Initial baseline non-regression gate",
+      "metrics": {
+        "entryJsGzipKb": 250.0,
+        "entryCssGzipKb": 24.0,
+        "largestAssetKb": 20289.2
+      }
+    },
+    "phase2": {
+      "description": "Post-optimization strict gate",
+      "metrics": {
+        "entryJsGzipKb": 200.0,
+        "entryCssGzipKb": 19.1,
+        "largestAssetKb": 2048.0
+      }
+    }
+  }
+}

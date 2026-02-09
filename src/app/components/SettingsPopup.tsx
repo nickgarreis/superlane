@@ -537,7 +537,7 @@ function NotificationSettings({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col rounded-xl border border-white/5">
+      <div className="flex flex-col rounded-xl">
         <ToggleRow
           label="Email Channel"
           description="Allow email delivery for enabled events."

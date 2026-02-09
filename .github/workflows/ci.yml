@@ -58,6 +58,35 @@ jobs:
       - name: Build
         run: npm run build
 
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Performance budget check
+        run: npm run perf:check
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-budget-report
+          path: performance-reports/performance-budget-report.json
+          if-no-files-found: warn
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -118,6 +147,7 @@ jobs:
       - lint
       - typecheck
       - build
+      - performance
       - test
       - security
     steps:
@@ -126,12 +156,14 @@ jobs:
           echo "lint: ${{ needs.lint.result }}"
           echo "typecheck: ${{ needs.typecheck.result }}"
           echo "build: ${{ needs.build.result }}"
+          echo "performance: ${{ needs.performance.result }}"
           echo "test: ${{ needs.test.result }}"
           echo "security: ${{ needs.security.result }}"
 
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.typecheck.result }}" != "success" ] || \
              [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.performance.result }}" != "success" ] || \
              [ "${{ needs.test.result }}" != "success" ] || \
              [ "${{ needs.security.result }}" != "success" ]; then
             echo "At least one required job failed."

@@ -3,7 +3,8 @@ import { useDropzone } from "react-dropzone";
 import { Check } from "lucide-react";
 import Loading03 from "../../imports/Loading03";
 import svgPaths from "../../imports/svg-v61uoamt04";
-import imgMargin from "figma:asset/5d34dbbe9efe462031f89ce6f69320ea3cb706ad.png";
+import createProjectBgFallbackPng from "../../assets/optimized/create-project-bg-fallback.png";
+import createProjectBgWebp from "../../assets/optimized/create-project-bg.webp";
 import { imgGroup } from "../../imports/svg-4v64g";
 import { imgGroup as imgGroupOutlook } from "../../imports/svg-ifuqs";
 import { motion, AnimatePresence } from "motion/react";
@@ -756,7 +757,14 @@ export function CreateProjectPopup({
           {/* Header Image Area (Step 1 only) */}
           {step === 1 && (
             <div className="h-[187px] relative shrink-0 w-full">
-              <img alt="" className="absolute bg-clip-padding border-0 border-[transparent] border-solid inset-0 max-w-none object-cover pointer-events-none size-full" src={imgMargin} />
+              <picture className="absolute bg-clip-padding border-0 border-[transparent] border-solid inset-0 max-w-none pointer-events-none size-full">
+                <source srcSet={createProjectBgWebp} type="image/webp" />
+                <img
+                  alt=""
+                  className="size-full object-cover pointer-events-none"
+                  src={createProjectBgFallbackPng}
+                />
+              </picture>
               <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start px-[32px] py-[24px] relative size-full">
                 <div className="content-stretch flex items-center relative shrink-0 w-full justify-between">
                   <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#e8e8e8] text-[17.7px] whitespace-nowrap">

@@ -1,17 +1,17 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { Suspense, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Archive, ArchiveRestore, CheckCircle2, Download, Undo2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import svgPathsStatus from "../../imports/svg-95p4xxlon7";
 import HorizontalBorder from "../../imports/HorizontalBorder";
-import { ChatSidebar } from "./ChatSidebar";
 import { ProjectTasks } from "./ProjectTasks";
 import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
 import DeleteButton from "../../imports/DeleteButton";
 import { ProjectLogo } from "./ProjectLogo";
 import type { AppView } from "../lib/routing";
 import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
+import { scheduleIdlePrefetch } from "../lib/prefetch";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -35,6 +35,12 @@ const PROJECT_FILE_TABS: readonly ProjectFileTab[] = ["Assets", "Contract", "Att
 
 const isProjectFileTab = (value: string): value is ProjectFileTab =>
   (PROJECT_FILE_TABS as readonly string[]).includes(value);
+
+const loadChatSidebarModule = () => import("./ChatSidebar");
+const LazyChatSidebar = React.lazy(async () => {
+  const module = await loadChatSidebarModule();
+  return { default: module.ChatSidebar };
+});
 
 function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, onComplete, onUncomplete }: { isArchived?: boolean, isCompleted?: boolean, onArchive?: () => void, onUnarchive?: () => void, onDelete?: () => void, onComplete?: () => void, onUncomplete?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -158,6 +164,15 @@ export function MainContent({
   const [sortBy, setSortBy] = useState<"relevance" | "name">("relevance");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasLoadedChatSidebar, setHasLoadedChatSidebar] = useState(false);
+
+  const handleOpenChat = useCallback(() => {
+    setHasLoadedChatSidebar(true);
+    void loadChatSidebarModule();
+    setIsChatOpen(true);
+  }, []);
+
+  useEffect(() => scheduleIdlePrefetch(() => loadChatSidebarModule(), 2500), []);
 
   const filesByTab = useMemo(() => {
     const grouped: Record<ProjectFileTab, ProjectFileData[]> = {
@@ -295,7 +310,7 @@ export function MainContent({
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
-             <HorizontalBorder onToggleSidebar={onToggleSidebar} onToggleChat={() => setIsChatOpen(true)} />
+             <HorizontalBorder onToggleSidebar={onToggleSidebar} onToggleChat={handleOpenChat} />
         </div>
 
         {/* Scrollable Content Area */}
@@ -595,17 +610,21 @@ export function MainContent({
         </div>
 
         <div className="absolute inset-0 z-50 pointer-events-none rounded-[32px] overflow-hidden">
-            <ChatSidebar 
-                isOpen={isChatOpen} 
-                onClose={() => setIsChatOpen(false)} 
-                activeProject={project}
-                allProjects={allProjects || {}}
-                onSwitchProject={onNavigate}
-                onMentionClick={handleMentionClick}
-                allFiles={allFiles}
-                workspaceMembers={workspaceMembers}
-                viewerIdentity={viewerIdentity}
-            />
+            {(hasLoadedChatSidebar || isChatOpen) && (
+              <Suspense fallback={null}>
+                <LazyChatSidebar
+                  isOpen={isChatOpen}
+                  onClose={() => setIsChatOpen(false)}
+                  activeProject={project}
+                  allProjects={allProjects || {}}
+                  onSwitchProject={onNavigate}
+                  onMentionClick={handleMentionClick}
+                  allFiles={allFiles}
+                  workspaceMembers={workspaceMembers}
+                  viewerIdentity={viewerIdentity}
+                />
+              </Suspense>
+            )}
         </div>
       </div>
     </div>

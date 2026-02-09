@@ -6,5 +6,7 @@ dist/
 .env.*
 docs/private/**
 security-reports/**
+performance-reports/**
 
 .firecrawl/
+.vercel

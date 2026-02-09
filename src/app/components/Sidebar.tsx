@@ -186,6 +186,7 @@ function SidebarItem({
     icon, 
     label, 
     onClick, 
+    onIntent,
     isActive, 
     onUnarchive,
     onArchive,
@@ -202,6 +203,7 @@ function SidebarItem({
     icon: React.ReactNode, 
     label: string, 
     onClick: () => void, 
+    onIntent?: () => void,
     isActive?: boolean, 
     onUnarchive?: () => void,
     onArchive?: () => void,
@@ -243,6 +245,9 @@ function SidebarItem({
           : 'text-[#E8E8E8]/60 hover:text-[#E8E8E8] hover:bg-white/[0.04]'
       )}
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
+      tabIndex={onIntent ? 0 : undefined}
       title={label}
     >
         {/* Active indicator bar - removed */}
@@ -418,7 +423,9 @@ function SvgIcon({ path }: { path: string }) {
 export function Sidebar({
     onNavigate, 
     onSearch, 
+    onSearchIntent,
     onOpenCreateProject,
+    onOpenCreateProjectIntent,
     currentView,
     projects,
     viewerIdentity,
@@ -427,6 +434,7 @@ export function Sidebar({
     onSwitchWorkspace,
     onCreateWorkspace,
     onOpenSettings,
+    onOpenSettingsIntent,
     onArchiveProject,
     onUnarchiveProject,
     onUpdateProjectStatus,
@@ -436,7 +444,9 @@ export function Sidebar({
 }: {
     onNavigate: (view: AppView) => void;
     onSearch: () => void;
+    onSearchIntent?: () => void;
     onOpenCreateProject: () => void;
+    onOpenCreateProjectIntent?: () => void;
     currentView?: string;
     projects: Record<string, ProjectData>;
     viewerIdentity: ViewerIdentity;
@@ -445,6 +455,7 @@ export function Sidebar({
     onSwitchWorkspace: (id: string) => void;
     onCreateWorkspace: () => void;
     onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
+    onOpenSettingsIntent?: () => void;
     onArchiveProject: (id: string) => void;
     onUnarchiveProject: (id: string) => void;
     onUpdateProjectStatus: (id: string, newStatus: string) => void;
@@ -518,6 +529,7 @@ export function Sidebar({
                         icon={<Search size={16} />} 
                         label="Search" 
                         onClick={onSearch} 
+                        onIntent={onSearchIntent}
                         shortcut="⌘K"
                     />
                     <SidebarItem 
@@ -536,6 +548,7 @@ export function Sidebar({
                         icon={<Plus size={16} />} 
                         label="Create Project" 
                         onClick={onOpenCreateProject} 
+                        onIntent={onOpenCreateProjectIntent}
                         className="text-[#58AFFF]/80 hover:text-[#58AFFF] hover:bg-[#58AFFF]/10 mt-1"
                     />
                 </div>
@@ -634,6 +647,7 @@ export function Sidebar({
                         icon={<Settings size={16} />} 
                         label="Settings" 
                         onClick={() => onOpenSettings()} 
+                        onIntent={onOpenSettingsIntent}
                     />
                      <SidebarItem 
                         icon={<HelpCircle size={16} />} 
