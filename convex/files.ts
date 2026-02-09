@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
+import { makeFunctionReference } from "convex/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { requireProjectRole, requireProjectRoleById, requireWorkspaceRole } from "./lib/auth";
 import {
   assertAllowedFileSignature,
@@ -38,6 +38,13 @@ const FINALIZE_PENDING_DRAFT_UPLOAD_ARGS = {
   checksumSha256: v.string(),
   storageId: v.id("_storage"),
 } as const;
+
+const internalFinalizeProjectUploadRef = makeFunctionReference<"mutation">(
+  "files:internalFinalizeProjectUpload",
+);
+const internalFinalizePendingDraftAttachmentUploadRef = makeFunctionReference<"mutation">(
+  "files:internalFinalizePendingDraftAttachmentUpload",
+);
 
 const mapProjectFile = (file: any) => ({
   id: file._id,
@@ -301,10 +308,9 @@ export const generateUploadUrl = mutation({
 export const finalizeProjectUpload = action({
   args: FINALIZE_PROJECT_UPLOAD_ARGS,
   handler: async (ctx, args) => {
-    const internalFinalizeProjectUploadRef = (internal as any).files.internalFinalizeProjectUpload;
     try {
       await validateFileSignature(ctx, args.storageId, args.name.trim());
-      return await ctx.runMutation(internalFinalizeProjectUploadRef, args);
+      return await ctx.runMutation(internalFinalizeProjectUploadRef as any, args);
     } catch (error) {
       try {
         await ctx.storage.delete(args.storageId);
@@ -335,11 +341,9 @@ export const internalFinalizeProjectUpload = internalMutation({
 export const finalizePendingDraftAttachmentUpload = action({
   args: FINALIZE_PENDING_DRAFT_UPLOAD_ARGS,
   handler: async (ctx, args) => {
-    const internalFinalizePendingDraftRef =
-      (internal as any).files.internalFinalizePendingDraftAttachmentUpload;
     try {
       await validateFileSignature(ctx, args.storageId, args.name.trim());
-      return await ctx.runMutation(internalFinalizePendingDraftRef, args);
+      return await ctx.runMutation(internalFinalizePendingDraftAttachmentUploadRef as any, args);
     } catch (error) {
       try {
         await ctx.storage.delete(args.storageId);

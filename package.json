@@ -9,6 +9,12 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"convex/**/*.ts\" \"vite.config.ts\"",
     "typecheck": "convex codegen && tsc --noEmit --project convex/tsconfig.json",
     "test:rbac": "vitest run convex/__tests__",
+    "security:env": "node scripts/security/check-env.mjs",
+    "security:urls": "node scripts/security/check-workos-urls.mjs --all",
+    "security:urls:strict": "node scripts/security/check-workos-urls.mjs --all --strict-placeholders",
+    "security:secrets": "node scripts/security/check-secrets.mjs",
+    "security:deps": "node scripts/security/check-dependencies.mjs",
+    "security:check": "npm run security:env && npm run security:urls && npm run security:secrets && npm run security:deps",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
   },
@@ -82,7 +88,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.3",
-    "vite": "6.3.5",
+    "vite": "6.4.1",
     "vitest": "^2.1.9"
   },
   "peerDependencies": {
@@ -99,7 +105,7 @@
   },
   "pnpm": {
     "overrides": {
-      "vite": "6.3.5"
+      "vite": "6.4.1"
     }
   }
 }

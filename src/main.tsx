@@ -11,7 +11,7 @@ const requireEnv = (value: string | undefined, name: string) => {
   if (!value || value.trim().length === 0) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
-  return value;
+  return value.trim();
 };
 
 const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
@@ -33,16 +33,30 @@ const sanitizeReturnToPath = (value: unknown): string | null => {
   return trimmed;
 };
 
+const validateWorkosRedirectUri = (value: string, isDev: boolean): string => {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("VITE_WORKOS_REDIRECT_URI must be a valid absolute URL.");
+  }
+
+  if (parsed.pathname !== "/auth/callback") {
+    throw new Error("VITE_WORKOS_REDIRECT_URI must use the /auth/callback path.");
+  }
+
+  if (!isDev && parsed.protocol !== "https:") {
+    throw new Error("VITE_WORKOS_REDIRECT_URI must use https outside development.");
+  }
+
+  return parsed.toString();
+};
+
 const convexUrl = requireEnv(import.meta.env.VITE_CONVEX_URL, "VITE_CONVEX_URL");
 const workosClientId = requireEnv(import.meta.env.VITE_WORKOS_CLIENT_ID, "VITE_WORKOS_CLIENT_ID");
-const configuredWorkosRedirectUri = import.meta.env.VITE_WORKOS_REDIRECT_URI;
+const configuredWorkosRedirectUri = requireEnv(import.meta.env.VITE_WORKOS_REDIRECT_URI, "VITE_WORKOS_REDIRECT_URI");
 const configuredWorkosApiHostname = import.meta.env.VITE_WORKOS_API_HOSTNAME?.trim();
-const trimmedWorkosRedirectUri = configuredWorkosRedirectUri?.trim();
-const workosRedirectUri = trimmedWorkosRedirectUri && trimmedWorkosRedirectUri.length > 0
-  ? trimmedWorkosRedirectUri
-  : import.meta.env.DEV
-    ? window.location.origin
-    : requireEnv(configuredWorkosRedirectUri, "VITE_WORKOS_REDIRECT_URI");
+const workosRedirectUri = validateWorkosRedirectUri(configuredWorkosRedirectUri, import.meta.env.DEV);
 
 const convex = new ConvexReactClient(convexUrl);
 

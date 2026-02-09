@@ -9,6 +9,7 @@ export default defineConfig({
       WORKOS_CLIENT_ID: "test_client_id",
       WORKOS_API_KEY: "test_api_key",
       WORKOS_WEBHOOK_SECRET: "test_webhook_secret",
+      WORKOS_ACTION_SECRET: "test_action_secret",
     },
   },
 });

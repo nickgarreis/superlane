@@ -15,6 +15,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_env from "../lib/env.js";
 import type * as lib_filePolicy from "../lib/filePolicy.js";
 import type * as lib_projectAttachments from "../lib/projectAttachments.js";
 import type * as lib_rbac from "../lib/rbac.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/env": typeof lib_env;
   "lib/filePolicy": typeof lib_filePolicy;
   "lib/projectAttachments": typeof lib_projectAttachments;
   "lib/rbac": typeof lib_rbac;

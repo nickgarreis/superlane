@@ -7,11 +7,17 @@ import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
 } from "./lib/workosOrganization";
+import { getWorkosRuntimeEnv } from "./lib/env";
 
 const authFunctions: AuthFunctions = internal.auth;
+const workosEnv = getWorkosRuntimeEnv();
 
 export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   authFunctions,
+  clientId: workosEnv.workosClientId,
+  apiKey: workosEnv.workosApiKey,
+  webhookSecret: workosEnv.workosWebhookSecret,
+  actionSecret: workosEnv.workosActionSecret,
   additionalEventTypes: [
     "organization_membership.created",
     "organization_membership.updated",

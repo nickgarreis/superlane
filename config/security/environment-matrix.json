@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "environments": {
+    "dev": {
+      "appOrigin": "http://localhost:5173",
+      "workosRedirectUri": "http://localhost:5173/auth/callback",
+      "convexSiteUrl": "https://reminiscent-basilisk-934.convex.site",
+      "workosWebhookUrl": "https://reminiscent-basilisk-934.convex.site/workos/webhook",
+      "workosActionUrl": "https://reminiscent-basilisk-934.convex.site/workos/action",
+      "frontendRequiredVars": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_WORKOS_CLIENT_ID",
+        "VITE_WORKOS_REDIRECT_URI"
+      ],
+      "convexRequiredVars": [
+        "WORKOS_CLIENT_ID",
+        "WORKOS_API_KEY",
+        "WORKOS_WEBHOOK_SECRET",
+        "WORKOS_ACTION_SECRET"
+      ]
+    },
+    "staging": {
+      "appOrigin": "https://staging.example.com",
+      "workosRedirectUri": "https://staging.example.com/auth/callback",
+      "convexSiteUrl": "https://staging.example.convex.site",
+      "workosWebhookUrl": "https://staging.example.convex.site/workos/webhook",
+      "workosActionUrl": "https://staging.example.convex.site/workos/action",
+      "frontendRequiredVars": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_WORKOS_CLIENT_ID",
+        "VITE_WORKOS_REDIRECT_URI"
+      ],
+      "convexRequiredVars": [
+        "WORKOS_CLIENT_ID",
+        "WORKOS_API_KEY",
+        "WORKOS_WEBHOOK_SECRET",
+        "WORKOS_ACTION_SECRET"
+      ]
+    },
+    "prod": {
+      "appOrigin": "https://app.example.com",
+      "workosRedirectUri": "https://app.example.com/auth/callback",
+      "convexSiteUrl": "https://prod.example.convex.site",
+      "workosWebhookUrl": "https://prod.example.convex.site/workos/webhook",
+      "workosActionUrl": "https://prod.example.convex.site/workos/action",
+      "frontendRequiredVars": [
+        "VITE_CONVEX_URL",
+        "VITE_CONVEX_SITE_URL",
+        "VITE_WORKOS_CLIENT_ID",
+        "VITE_WORKOS_REDIRECT_URI"
+      ],
+      "convexRequiredVars": [
+        "WORKOS_CLIENT_ID",
+        "WORKOS_API_KEY",
+        "WORKOS_WEBHOOK_SECRET",
+        "WORKOS_ACTION_SECRET"
+      ]
+    }
+  }
+}
