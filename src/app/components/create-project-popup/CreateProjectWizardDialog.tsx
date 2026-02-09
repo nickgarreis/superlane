@@ -4,13 +4,13 @@ import Loading03 from "../../../imports/Loading03";
 import svgPaths from "../../../imports/svg-v61uoamt04";
 import createProjectBgFallbackPng from "../../../assets/optimized/create-project-bg-fallback.png";
 import createProjectBgWebp from "../../../assets/optimized/create-project-bg.webp";
-import { imgGroup } from "../../../imports/svg-4v64g";
-import { imgGroup as imgGroupOutlook } from "../../../imports/svg-ifuqs";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
 import { toast } from "sonner";
 import "react-day-picker/dist/style.css";
 import { ProjectLogo } from "../ProjectLogo";
+import { createClientId } from "../../lib/id";
+import type { CreateProjectPayload, CreateProjectResult } from "../../dashboard/types";
 import {
   ProjectDraftData,
   ProjectData,
@@ -24,20 +24,6 @@ import {
   toUtcNoonEpochMsFromDateOnly,
 } from "../../lib/dates";
 import { useDraftAttachments } from "./useDraftAttachments";
-
-// SVG Paths for Outlook Logo (from svg-x13b188avo.ts)
-const outlookPaths = {
-  p15ecf170: "M22.4476 84.1321C18.7576 84.1321 15.6826 82.9789 13.2226 80.5189C12.0307 79.2752 11.1029 77.8031 10.4952 76.1913C9.88742 74.5794 9.6123 72.8612 9.68639 71.1402C9.68639 66.9889 10.9164 63.6833 13.3764 61.1464C15.7595 58.6864 18.9883 57.3796 22.9089 57.3796C26.5989 57.3796 29.6739 58.6096 31.9801 60.9927C34.2864 63.4527 35.5164 66.6046 35.5164 70.6021C35.5164 74.6764 34.2864 77.982 31.8264 80.442C29.4433 82.902 26.2914 84.1321 22.4476 84.1321ZM22.6014 79.0583C23.5309 79.0949 24.4565 78.9203 25.3088 78.5474C26.161 78.1746 26.9175 77.6133 27.5214 76.9058C28.7514 75.4452 29.3664 73.4464 29.3664 70.9096C29.3664 68.2189 28.7514 66.2202 27.5214 64.7596C26.9605 64.0315 26.2378 63.4441 25.4105 63.0438C24.5832 62.6435 23.6741 62.4413 22.7551 62.4533C21.8004 62.4232 20.8517 62.616 19.9843 63.0163C19.117 63.4166 18.3548 64.0135 17.7583 64.7596C16.4514 66.2971 15.8364 68.2958 15.8364 70.8327C15.8364 73.3695 16.4514 75.3683 17.7583 76.8289C18.9883 78.3664 20.6026 79.0583 22.6014 79.0583Z",
-  p1cbcdf00: "M76.2576 9.40974L11.2213 50.6916L5.60947 41.851V34.1635C5.60947 31.4729 6.99322 28.8591 9.37635 27.3985L47.122 2.79849C49.9374 0.971986 53.2216 0 56.5776 0C59.9336 0 63.2178 0.971986 66.0332 2.79849L76.2576 9.40974Z",
-  p208c6f00: "M51.5852 77.2137L22.3727 68.2962L84.4877 28.9362C85.6778 28.1703 86.6567 27.1179 87.3345 25.8755C88.0124 24.6332 88.3676 23.2405 88.3676 21.8252C88.3676 20.41 88.0124 19.0173 87.3345 17.775C86.6567 16.5326 85.6778 15.4802 84.4877 14.7143L84.1802 14.5606L84.9489 15.0218L103.86 27.3218C106.166 28.8593 107.55 31.3962 107.55 34.1637V41.4668L51.5852 77.1368V77.2137Z",
-  p2f253f80: "M65.4996 2.4908L66.0377 2.87518L95.5577 22.0171L22.4496 68.2958L11.2258 50.6146L64.8846 16.4821C69.9583 13.2533 70.1889 5.95018 65.4996 2.41393V2.4908Z",
-  p33940100: "M48.2751 101.967H89.8645C94.5538 101.967 99.0511 100.104 102.367 96.7883C105.683 93.4725 107.546 88.9752 107.546 84.2858V34.3171C107.546 37.2383 106.008 39.9289 103.702 41.4664L41.7407 80.3652C38.3582 82.4408 36.3595 86.1308 36.3595 90.0514C36.3595 96.5858 41.7407 101.967 48.2751 101.967Z",
-  p369d2cf0: "M5.93687 14.765C5.84601 14.7649 5.75606 14.7468 5.67223 14.7118C5.5884 14.6767 5.51235 14.6254 5.44847 14.5608C5.3846 14.4961 5.33417 14.4195 5.30011 14.3353C5.26604 14.251 5.24901 14.1609 5.25 14.07C5.25 13.8856 5.3175 13.71 5.45125 13.5844L9.02 10.0075L5.45125 6.43875C5.38664 6.3756 5.3355 6.30001 5.30091 6.21654C5.26632 6.13308 5.249 6.04347 5.25 5.95312C5.25 5.55938 5.55187 5.26688 5.93687 5.26688C6.12937 5.26688 6.28 5.33375 6.41375 5.45938L9.99937 9.03688L13.6012 5.45125C13.7437 5.30875 13.8944 5.25 14.0781 5.25C14.4631 5.25 14.7731 5.55187 14.7731 5.93687C14.7731 6.12937 14.7144 6.28 14.5637 6.43062L10.9869 10.0075L14.5556 13.5763C14.6975 13.7013 14.765 13.8775 14.765 14.07C14.765 14.455 14.765 14.0619 14.765 14.765C13.9701 14.7675 13.8789 14.7509 13.7939 14.7162C13.7089 14.6816 13.632 14.6297 13.5681 14.5638L9.99937 10.9869L6.43875 14.5638C6.37304 14.6295 6.29469 14.6812 6.20843 14.7158C6.12217 14.7504 6.02979 14.7671 5.93687 14.765Z",
-  pa4fdc0: "M22.526 83.8246C20.8331 83.8996 19.1431 83.624 17.5617 83.0151C15.9804 82.4062 14.542 81.4772 13.3366 80.2863C12.1312 79.0953 11.1849 77.6682 10.557 76.0943C9.92913 74.5204 9.63322 72.8338 9.68784 71.1402C9.68784 67.1427 10.841 63.9139 13.301 61.4539C15.761 58.9939 18.9897 57.7639 22.9103 57.7639C26.6772 57.7639 29.6753 58.9171 32.0585 61.3002C34.3647 63.6064 35.5947 66.6814 35.5947 70.6021C35.5947 74.5996 34.3647 77.7514 31.9047 80.2114C29.4447 82.5946 26.3697 83.8246 22.526 83.8246ZM22.6028 78.8277C24.6785 78.8277 26.2928 78.1358 27.5228 76.7521C28.7528 75.3683 29.3678 73.3696 29.3678 70.9096C29.3678 68.2958 28.8297 66.2971 27.5997 64.8364C27.0114 64.1305 26.2686 63.5693 25.4289 63.196C24.5891 62.8228 23.6748 62.6476 22.7566 62.6839C20.681 62.6839 18.9897 63.4527 17.7597 64.9902C16.4528 66.4508 15.8378 68.3727 15.8378 70.8327C15.8378 73.2927 16.4528 75.2146 17.7597 76.6752C18.9897 78.1358 20.6041 78.8277 22.6028 78.8277Z",
-  paac6d80: "M9.225 48.1549H36.1312C41.1281 48.1549 45.2794 52.2292 45.2794 57.3799V84.2861C45.2794 89.283 41.1281 93.4342 36.0544 93.4342H9.225C6.77838 93.4342 4.43196 92.4623 2.70194 90.7323C0.971917 89.0023 0 86.6558 0 84.2092V57.303C0 52.2292 4.15125 48.078 9.225 48.078V48.1549Z",
-  pe3cde40: "M65.1876 101.967H23.2907C18.6014 101.967 14.1041 100.104 10.7882 96.7883C7.47231 93.4725 5.60947 88.9752 5.60947 84.2858V34.3171C5.60947 37.2383 7.14697 39.9289 9.5301 41.4664L71.4145 80.4421C73.5366 81.801 75.1625 83.8095 76.0497 86.1681C76.937 88.5266 77.038 91.1088 76.3377 93.5294C75.6375 95.9501 74.1734 98.0795 72.164 99.6001C70.1546 101.121 67.7075 101.951 65.1876 101.967Z",
-  pfbee380: "M66.1101 2.87519C63.2864 1.03273 59.9877 0.0516933 56.616 0.0516933C53.2444 0.0516933 49.9457 1.03273 47.122 2.87519L9.37635 27.3983C7.0701 28.9358 5.60947 31.4727 5.60947 34.2402V34.6246C5.68635 37.3921 7.14697 40.0058 9.5301 41.4664L56.5007 71.0633L103.625 41.4664C106.085 39.9289 107.546 37.2383 107.546 34.3939V41.5433V34.2402C107.546 31.4727 106.162 28.8589 103.856 27.3214L66.0332 2.95206L66.1101 2.87519Z",
-};
 
 // SVG Paths for Step 3 (from svg-7lu5669hrh.ts)
 const step3Paths = {
@@ -75,187 +61,7 @@ const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
   "Interactive animations": "\u{1F300}",
 };
 
-const createDraftSessionId = () =>
-  `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-type CreateProjectPayload = {
-  name?: string;
-  description?: string;
-  category?: string;
-  scope?: string;
-  deadlineEpochMs?: number | null;
-  status?: string;
-  draftData?: ProjectDraftData | null;
-  _editProjectId?: string;
-  _generatedId?: string;
-  attachmentPendingUploadIds?: string[];
-};
-
-function ServiceIcon() {
-  return (
-    <div className="col-1 h-[15.159px] mask-alpha mask-intersect mask-no-clip mask-no-repeat mask-position-[0px_0.005px] mask-size-[16px_15.143px] ml-0 mt-[-0.03%] relative row-1 w-[15.989px]" style={{ maskImage: `url('${imgGroup}')` }}>
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.9889 15.1589">
-        <g>
-          <path d={svgPaths.p1580a300} fill="url(#paint0_linear_10_337)" />
-          <path d={svgPaths.p251ad2c0} fill="url(#paint1_linear_10_337)" />
-          <path d={svgPaths.p251ad2c0} fill="url(#paint2_linear_10_337)" />
-          <path d={svgPaths.p3d7f4a80} fill="url(#paint3_linear_10_337)" />
-          <path d={svgPaths.p3d7f4a80} fill="url(#paint4_linear_10_337)" />
-          <path d={svgPaths.p36e1bf80} fill="url(#paint5_radial_10_337)" />
-          <path d={svgPaths.p128ee80} fill="url(#paint6_linear_10_337)" />
-          <path d={svgPaths.p128ee80} fill="url(#paint7_radial_10_337)" />
-          <path d={svgPaths.p128ee80} fill="url(#paint8_radial_10_337)" />
-          <path d={svgPaths.p3bc88f00} fill="url(#paint9_radial_10_337)" />
-          <path d={svgPaths.p3bc88f00} fill="url(#paint10_linear_10_337)" />
-          <path d={svgPaths.p9fbe800} fill="url(#paint11_radial_10_337)" />
-          <path d={svgPaths.p9fbe800} fill="url(#paint12_radial_10_337)" />
-          <path d={svgPaths.p22ddb670} fill="var(--fill-0, white)" />
-          <path d={svgPaths.p277dcf00} fill="var(--fill-0, white)" />
-        </g>
-        <defs>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_10_337" x1="2.51393" x2="11.3368" y1="6.88462" y2="1.42176">
-            <stop stopColor="#20A7FA" />
-            <stop offset="0.4" stopColor="#3BD5FF" />
-            <stop offset="1" stopColor="#C4B0FF" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint1_linear_10_337" x1="5.55459" x2="10.4574" y1="8.74745" y2="0.896022">
-            <stop stopColor="#165AD9" />
-            <stop offset="0.5" stopColor="#0091FF" />
-            <stop offset="1" stopColor="#8587FF" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint2_linear_10_337" x1="9.13174" x2="3.68031" y1="8.86174" y2="4.41602">
-            <stop offset="0.24" stopColor="#448AFF" stopOpacity="0" />
-            <stop offset="0.79" stopColor="#0032B1" stopOpacity="0.2" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint3_linear_10_337" x1="8.43459" x2="17.0517" y1="10.5647" y2="5.05608">
-            <stop stopColor="#1A43A6" />
-            <stop offset="0.49" stopColor="#2052CB" />
-            <stop offset="1" stopColor="#5F20CB" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint4_linear_10_337" x1="10.8689" x2="5.63459" y1="10.2447" y2="5.70751">
-            <stop stopColor="#0045B9" stopOpacity="0" />
-            <stop offset="0.67" stopColor="#0D1F69" stopOpacity="0.2" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(8.41107 0.336023) rotate(-90) scale(11.3692 12.3054)" gradientUnits="userSpaceOnUse" id="paint5_radial_10_337" r="1">
-            <stop offset="0.57" stopColor="#275FF0" stopOpacity="0" />
-            <stop offset="0.99" stopColor="#002177" />
-          </radialGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint6_linear_10_337" x1="15.9882" x2="8.35393" y1="10.0732" y2="10.0732">
-            <stop stopColor="#4DC4FF" />
-            <stop offset="0.2" stopColor="#0FAFFF" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(10.135 13.4335) rotate(-45) scale(4.87225)" gradientUnits="userSpaceOnUse" id="paint7_radial_10_337" r="1">
-            <stop offset="0.26" stopColor="#0060D1" stopOpacity="0.4" />
-            <stop offset="0.91" stopColor="#0383F1" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(2.78593 17.0279) rotate(-52.66) scale(16.539 14.9554)" gradientUnits="userSpaceOnUse" id="paint8_radial_10_337" r="1">
-            <stop offset="0.73" stopColor="#F4A7F7" stopOpacity="0" />
-            <stop offset="1" stopColor="#F4A7F7" stopOpacity="0.5" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(6.12536 9.06745) rotate(123.339) scale(8.72634 22.6459)" gradientUnits="userSpaceOnUse" id="paint9_radial_10_337" r="1">
-            <stop stopColor="#49DEFF" />
-            <stop offset="0.72" stopColor="#29C3FF" />
-          </radialGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint10_linear_10_337" x1="-0.240357" x2="7.11964" y1="13.4103" y2="13.4103">
-            <stop offset="0.21" stopColor="#6CE0FF" />
-            <stop offset="0.54" stopColor="#50D5FF" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(-0.0325506 7.41) rotate(46.92) scale(8.86782)" gradientUnits="userSpaceOnUse" id="paint11_radial_10_337" r="1">
-            <stop offset="0.04" stopColor="#0091FF" />
-            <stop offset="0.92" stopColor="#183DAD" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(3.36 11.2618) rotate(90) scale(4.71562 5.4393)" gradientUnits="userSpaceOnUse" id="paint12_radial_10_337" r="1">
-            <stop offset="0.56" stopColor="#0FA5F7" stopOpacity="0" />
-            <stop offset="1" stopColor="#74C6FF" stopOpacity="0.5" />
-          </radialGradient>
-        </defs>
-      </svg>
-    </div>
-  );
-}
-
-function OutlookLogo() {
-  return (
-    <div className="mask-alpha mask-intersect mask-no-clip mask-no-repeat mask-position-[0px_0.031px] mask-size-[107.625px_101.859px] w-[107.6px] h-[102px] mx-auto" style={{ maskImage: `url('${imgGroupOutlook}')` }}>
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 107.55 101.967">
-        <g id="Group">
-          <path d={outlookPaths.p1cbcdf00} fill="url(#paint0_linear_11_498)" id="Vector" />
-          <path d={outlookPaths.p2f253f80} fill="url(#paint1_linear_11_498)" id="Vector_2" />
-          <path d={outlookPaths.p2f253f80} fill="url(#paint2_linear_11_498)" id="Vector_3" />
-          <path d={outlookPaths.p208c6f00} fill="url(#paint3_linear_11_498)" id="Vector_4" />
-          <path d={outlookPaths.p208c6f00} fill="url(#paint4_linear_11_498)" id="Vector_5" />
-          <path d={outlookPaths.pfbee380} fill="url(#paint5_radial_11_498)" id="Vector_6" />
-          <path d={outlookPaths.p33940100} fill="url(#paint6_linear_11_498)" id="Vector_7" />
-          <path d={outlookPaths.p33940100} fill="url(#paint7_radial_11_498)" id="Vector_8" />
-          <path d={outlookPaths.p33940100} fill="url(#paint8_radial_11_498)" id="Vector_9" />
-          <path d={outlookPaths.pe3cde40} fill="url(#paint9_radial_11_498)" id="Vector_10" />
-          <path d={outlookPaths.pe3cde40} fill="url(#paint10_linear_11_498)" id="Vector_11" />
-          <path d={outlookPaths.paac6d80} fill="url(#paint11_radial_11_498)" id="Vector_12" />
-          <path d={outlookPaths.paac6d80} fill="url(#paint12_radial_11_498)" id="Vector_13" />
-          <path d={outlookPaths.pa4fdc0} fill="var(--fill-0, white)" id="Vector_14" />
-          <path d={outlookPaths.p15ecf170} fill="var(--fill-0, white)" id="Vector_15" />
-        </g>
-        <defs>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_11_498" x1="16.9101" x2="76.2576" y1="46.3097" y2="9.56349">
-            <stop stopColor="#20A7FA" />
-            <stop offset="0.4" stopColor="#3BD5FF" />
-            <stop offset="1" stopColor="#C4B0FF" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint1_linear_11_498" x1="37.3633" x2="70.3427" y1="58.8402" y2="6.02705">
-            <stop stopColor="#165AD9" />
-            <stop offset="0.5" stopColor="#0091FF" />
-            <stop offset="1" stopColor="#8587FF" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint2_linear_11_498" x1="61.4252" x2="24.7558" y1="59.6089" y2="29.7045">
-            <stop offset="0.24" stopColor="#448AFF" stopOpacity="0" />
-            <stop offset="0.79" stopColor="#0032B1" stopOpacity="0.2" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint3_linear_11_498" x1="56.7358" x2="114.7" y1="71.0637" y2="34.0099">
-            <stop stopColor="#1A43A6" />
-            <stop offset="0.49" stopColor="#2052CB" />
-            <stop offset="1" stopColor="#5F20CB" />
-          </linearGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint4_linear_11_498" x1="73.1102" x2="37.9014" y1="68.9112" y2="38.3918">
-            <stop stopColor="#0045B9" stopOpacity="0" />
-            <stop offset="0.67" stopColor="#0D1F69" stopOpacity="0.2" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(56.5776 2.26018) rotate(-90) scale(76.4753 82.7729)" gradientUnits="userSpaceOnUse" id="paint5_radial_11_498" r="1">
-            <stop offset="0.57" stopColor="#275FF0" stopOpacity="0" />
-            <stop offset="0.99" stopColor="#002177" />
-          </radialGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint6_linear_11_498" x1="107.546" x2="56.1932" y1="67.7577" y2="67.7577">
-            <stop stopColor="#4DC4FF" />
-            <stop offset="0.2" stopColor="#0FAFFF" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(68.1739 90.3609) rotate(-45) scale(32.7735)" gradientUnits="userSpaceOnUse" id="paint7_radial_11_498" r="1">
-            <stop offset="0.26" stopColor="#0060D1" stopOpacity="0.4" />
-            <stop offset="0.91" stopColor="#0383F1" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(18.7397 114.539) rotate(-52.66) scale(111.25 100.599)" gradientUnits="userSpaceOnUse" id="paint8_radial_11_498" r="1">
-            <stop offset="0.73" stopColor="#F4A7F7" stopOpacity="0" />
-            <stop offset="1" stopColor="#F4A7F7" stopOpacity="0.5" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(41.2026 60.9927) rotate(123.339) scale(58.6983 152.329)" gradientUnits="userSpaceOnUse" id="paint9_radial_11_498" r="1">
-            <stop stopColor="#49DEFF" />
-            <stop offset="0.72" stopColor="#29C3FF" />
-          </radialGradient>
-          <linearGradient gradientUnits="userSpaceOnUse" id="paint10_linear_11_498" x1="-1.61678" x2="47.8907" y1="90.2052" y2="90.2052">
-            <stop offset="0.21" stopColor="#6CE0FF" />
-            <stop offset="0.54" stopColor="#50D5FF" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(-0.218953 49.8437) rotate(46.92) scale(59.6499)" gradientUnits="userSpaceOnUse" id="paint11_radial_11_498" r="1">
-            <stop offset="0.04" stopColor="#0091FF" />
-            <stop offset="0.92" stopColor="#183DAD" />
-          </radialGradient>
-          <radialGradient cx="0" cy="0" gradientTransform="translate(22.6012 75.753) rotate(90) scale(31.7199 36.5878)" gradientUnits="userSpaceOnUse" id="paint12_radial_11_498" r="1">
-            <stop offset="0.56" stopColor="#0FA5F7" stopOpacity="0" />
-            <stop offset="1" stopColor="#74C6FF" stopOpacity="0.5" />
-          </radialGradient>
-        </defs>
-      </svg>
-    </div>
-  );
-}
+const createDraftSessionId = () => createClientId("draft");
 
 export function CreateProjectPopup({ 
   isOpen, 
@@ -274,7 +80,7 @@ export function CreateProjectPopup({
 }: { 
   isOpen: boolean; 
   onClose: () => void;
-  onCreate?: (data: CreateProjectPayload) => Promise<unknown> | void;
+  onCreate?: (data: CreateProjectPayload) => Promise<CreateProjectResult> | CreateProjectResult | void;
   user?: { userId?: string; name: string; avatar: string; role?: WorkspaceRole };
   editProjectId?: string | null;
   initialDraftData?: ProjectDraftData | null;
@@ -373,46 +179,22 @@ export function CreateProjectPopup({
   // ── Service-specific configuration ──────────────────────────────
   type ServiceKey = typeof SERVICES[number];
 
-  const getStep2Config = (service: ServiceKey) => {
-    switch (service) {
-      case "Web Design":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Scope", jobOptions: WEB_DESIGN_SCOPE, jobIcons: WEB_DESIGN_SCOPE_ICONS as Record<string, string> | null };
-      case "Presentation":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-      case "AI Consulting":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-      case "Marketing Campaigns":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-      case "AI Automation":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-      case "Creative Strategy & Concept":
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-      default:
-        return { title: "Define project details", logo: <ProjectLogo size={108} category={service} />, jobLabel: "Job", jobOptions: JOB_OPTIONS, jobIcons: null as Record<string, string> | null };
-    }
-  };
+  const getStep2Config = (service: ServiceKey) => ({
+    title: "Define project details",
+    logo: <ProjectLogo size={108} category={service} />,
+    jobLabel: service === "Web Design" ? "Scope" : "Job",
+    jobOptions: service === "Web Design" ? WEB_DESIGN_SCOPE : JOB_OPTIONS,
+    jobIcons: service === "Web Design" ? WEB_DESIGN_SCOPE_ICONS : null,
+  });
 
-  const getStep3Config = (service: ServiceKey) => {
-    switch (service) {
-      case "Web Design":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      case "Presentation":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      case "AI Consulting":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      case "Marketing Campaigns":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      case "AI Automation":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      case "Creative Strategy & Concept":
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-      default:
-        return { title: "Lets explore some possibilities", showAttachments: true, showAI: true, showDeadline: true };
-    }
+  const step3Config = {
+    title: "Let's explore some possibilities",
+    showAttachments: true,
+    showAI: true,
+    showDeadline: true,
   };
 
   const step2Config = selectedService ? getStep2Config(selectedService as ServiceKey) : null;
-  const step3Config = selectedService ? getStep3Config(selectedService as ServiceKey) : null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -470,7 +252,7 @@ export function CreateProjectPopup({
     lastStep: step,
   });
 
-  const createProject = (status: string): Promise<void> => {
+  const createProject = (status: string): Promise<CreateProjectResult | null> => {
     if (isUploading) {
       toast.error("Please wait for attachments to finish uploading");
       return Promise.reject(new Error("Attachments are still uploading"));
@@ -480,12 +262,7 @@ export function CreateProjectPopup({
       .filter((file) => file.status === "uploaded" && file.pendingUploadId)
       .map((file) => file.pendingUploadId as string);
 
-    // Generate project ID so we can reference it for comments on the success page
-    const generatedId = editProjectId || (projectName || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now();
-    setCreatedProjectId(generatedId);
-
     const projectData: CreateProjectPayload = {
-      _generatedId: generatedId,
       name: projectName,
       description,
       category: selectedService ?? undefined,
@@ -508,9 +285,15 @@ export function CreateProjectPopup({
     }
     
     if (!onCreate) {
-      return Promise.resolve();
+      return Promise.resolve(null);
     }
-    return Promise.resolve(onCreate(projectData)).then(() => undefined);
+    return Promise.resolve(onCreate(projectData)).then((result) => {
+      if (result && typeof result === "object" && "publicId" in result && typeof result.publicId === "string") {
+        setCreatedProjectId(result.publicId);
+        return result;
+      }
+      return null;
+    });
   };
 
   const handleNext = async () => {
@@ -609,7 +392,7 @@ export function CreateProjectPopup({
   const handleAddComment = () => {
     if (!commentInput.trim()) return;
     const newComment: ReviewComment = {
-      id: Date.now().toString(),
+      id: createClientId("review-comment"),
       author: { userId: user?.userId, name: user?.name || "You", avatar: user?.avatar || "" },
       content: commentInput.trim(),
       timestamp: "Just now",

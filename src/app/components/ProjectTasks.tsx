@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Check, Trash2, Calendar, ArrowUpDown } from "lucide-react";
+import { Plus, Check, Trash2, Calendar, ArrowUpDown, CornerDownLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { createClientId } from "../lib/id";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
@@ -65,12 +66,12 @@ export function ProjectTasks({
   const setIsAdding = onAddingModeChange || setInternalIsAdding;
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskProjectId, setNewTaskProjectId] = useState<string>(defaultProjectId ?? "");
   const [openCalendarTaskId, setOpenCalendarTaskId] = useState<string | null>(null);
   const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number } | null>(null);
   const [openAssigneeTaskId, setOpenAssigneeTaskId] = useState<string | null>(null);
   const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(null);
-  const [isNewTaskProjectOpen, setIsNewTaskProjectOpen] = useState(false);
+  const canCreateTask = newTaskTitle.trim().length > 0;
+  const addTaskRowRef = useRef<HTMLDivElement | null>(null);
 
   // Sorting
   const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
@@ -88,22 +89,6 @@ export function ProjectTasks({
     [disableInternalSort, initialTasks, sortBy],
   );
 
-  useEffect(() => {
-    if (!showProjectColumn) {
-      return;
-    }
-
-    const isCurrentValid = projectOptions.some((project) => project.id === newTaskProjectId);
-    if (isCurrentValid) {
-      return;
-    }
-
-    const preferredProjectId = defaultProjectId && projectOptions.some((project) => project.id === defaultProjectId)
-      ? defaultProjectId
-      : "";
-    setNewTaskProjectId(preferredProjectId);
-  }, [defaultProjectId, newTaskProjectId, projectOptions, showProjectColumn]);
-
   const handleToggle = (id: string) => {
     const newTasks = initialTasks.map(t => 
       t.id === id ? { ...t, completed: !t.completed } : t
@@ -116,13 +101,22 @@ export function ProjectTasks({
     onUpdateTasks(newTasks);
   };
 
+  const handleCancelAddTask = useCallback(() => {
+    setNewTaskTitle("");
+    setIsAdding(false);
+  }, [setIsAdding]);
+
   const handleAddTask = () => {
-    if (!newTaskTitle.trim()) return;
-    const resolvedProjectId = showProjectColumn ? newTaskProjectId || undefined : undefined;
+    if (!canCreateTask) return;
+    const resolvedProjectId = showProjectColumn
+      && defaultProjectId
+      && projectOptions.some((project) => project.id === defaultProjectId)
+      ? defaultProjectId
+      : undefined;
 
     const defaultAssignee = assignableMembers[0];
     const newTask: Task = {
-      id: Date.now().toString(),
+      id: createClientId("task"),
       title: newTaskTitle,
       projectId: resolvedProjectId,
       assignee: {
@@ -135,7 +129,6 @@ export function ProjectTasks({
 
     onUpdateTasks([...initialTasks, newTask]);
     setNewTaskTitle("");
-    setNewTaskProjectId(defaultProjectId ?? "");
     setIsAdding(false);
   };
 
@@ -179,10 +172,10 @@ export function ProjectTasks({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleAddTask();
     } else if (e.key === 'Escape') {
-      setIsAdding(false);
-      setNewTaskTitle("");
+      handleCancelAddTask();
     }
   };
 
@@ -195,8 +188,36 @@ export function ProjectTasks({
       setCalendarPosition(null);
       setOpenAssigneeTaskId(null);
       setOpenProjectTaskId(null);
-      setIsNewTaskProjectOpen(false);
   };
+
+  useEffect(() => {
+    if (!isAdding) {
+      return;
+    }
+
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      const rowElement = addTaskRowRef.current;
+      if (!rowElement) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (rowElement.contains(target)) {
+        return;
+      }
+
+      handleCancelAddTask();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDownOutside);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDownOutside);
+    };
+  }, [handleCancelAddTask, isAdding]);
 
   // ── Highlight / scroll-into-view for mention clicks ──────────
   const taskRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -221,7 +242,7 @@ export function ProjectTasks({
   return (
     <div className="flex flex-col gap-5 mb-8">
         {/* Backdrop for dropdowns */}
-        {(openCalendarTaskId || openAssigneeTaskId || openProjectTaskId || isNewTaskProjectOpen || isSortOpen) && (
+        {(openCalendarTaskId || openAssigneeTaskId || openProjectTaskId || isSortOpen) && (
             <div className="fixed inset-0 z-40 bg-transparent" onClick={() => {
                 closeAllDropdowns();
                 setIsSortOpen(false);
@@ -309,6 +330,7 @@ export function ProjectTasks({
             <AnimatePresence initial={false}>
                 {isAdding && (
                      <motion.div
+                        ref={addTaskRowRef}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -323,109 +345,35 @@ export function ProjectTasks({
                                     value={newTaskTitle}
                                     onChange={(e) => setNewTaskTitle(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    onBlur={() => !newTaskTitle && setIsAdding(false)}
                                     placeholder="What needs to be done?"
                                     className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#E8E8E8] placeholder:text-white/20"
                                 />
                             </div>
 
-                            {showProjectColumn && (
-                                <div className="flex items-center gap-3 shrink-0 pl-4">
-                                    <div className="w-[170px] relative">
-                                        <div
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                closeAllDropdowns();
-                                                if (projectOptions.length === 0) {
-                                                  return;
-                                                }
-                                                setIsNewTaskProjectOpen((open) => !open);
-                                            }}
-                                            className={cn(
-                                              "flex items-center gap-1.5 text-[12px] transition-colors py-1 px-2 rounded-md w-full",
-                                              projectOptions.length === 0
-                                                ? "text-[rgba(232,232,232,0.22)] cursor-not-allowed"
-                                                : "text-[rgba(232,232,232,0.44)] cursor-pointer hover:text-[#E8E8E8] hover:bg-[rgba(232,232,232,0.08)]",
-                                              isNewTaskProjectOpen && "bg-[rgba(232,232,232,0.08)] text-[#E8E8E8]",
-                                            )}
-                                        >
-                                            {newTaskProjectId ? (
-                                                <ProjectLogo
-                                                  size={12}
-                                                  category={
-                                                    projectOptions.find((project) => project.id === newTaskProjectId)?.category ?? "General"
-                                                  }
-                                                />
-                                            ) : (
-                                                <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
-                                            )}
-                                            <span className="truncate">
-                                                {projectOptions.length === 0
-                                                  ? "No active projects"
-                                                  : projectOptions.find((project) => project.id === newTaskProjectId)?.name ?? "No project"}
-                                            </span>
-                                        </div>
-
-                                        <AnimatePresence>
-                                            {isNewTaskProjectOpen && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
-                                                    onClick={(event) => event.stopPropagation()}
-                                                >
-                                                    <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
-                                                        Project
-                                                    </div>
-                                                    <div
-                                                        onClick={() => {
-                                                            setNewTaskProjectId("");
-                                                            setIsNewTaskProjectOpen(false);
-                                                        }}
-                                                        className={cn(
-                                                          "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                                                          newTaskProjectId === "" && "bg-[rgba(232,232,232,0.08)]",
-                                                        )}
-                                                    >
-                                                        <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
-                                                        <span className={cn(
-                                                          "text-[13px]",
-                                                          newTaskProjectId === "" ? "text-white font-medium" : "text-[#E8E8E8]",
-                                                        )}>
-                                                            No project
-                                                        </span>
-                                                    </div>
-                                                    {projectOptions.map((project) => (
-                                                        <div
-                                                            key={project.id}
-                                                            onClick={() => {
-                                                                setNewTaskProjectId(project.id);
-                                                                setIsNewTaskProjectOpen(false);
-                                                            }}
-                                                            className={cn(
-                                                              "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                                                              newTaskProjectId === project.id && "bg-[rgba(232,232,232,0.08)]",
-                                                            )}
-                                                        >
-                                                            <ProjectLogo size={12} category={project.category} />
-                                                            <span className={cn(
-                                                              "text-[13px] truncate",
-                                                              newTaskProjectId === project.id ? "text-white font-medium" : "text-[#E8E8E8]",
-                                                            )}>
-                                                                {project.name}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                    <div className="w-[120px] text-[11px] text-white/35">No due date</div>
-                                    <div className="w-6" />
-                                    <div className="w-7" />
-                                </div>
-                            )}
+                            <div className="shrink-0 pl-4">
+                                <button
+                                    type="button"
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={handleAddTask}
+                                    disabled={!canCreateTask}
+                                    className={cn(
+                                        "inline-flex items-center gap-2 h-8 px-2.5 rounded-full border transition-colors",
+                                        canCreateTask
+                                            ? "border-[#58AFFF]/30 bg-[#58AFFF]/10 text-[#58AFFF] hover:bg-[#58AFFF]/15 cursor-pointer"
+                                            : "border-white/10 bg-white/5 text-white/30 cursor-not-allowed",
+                                    )}
+                                >
+                                    <span className={cn(
+                                        "inline-flex items-center justify-center w-6 h-5 rounded-md border",
+                                        canCreateTask
+                                            ? "border-[#58AFFF]/35 bg-[#58AFFF]/15 text-[#9BD0FF]"
+                                            : "border-white/10 bg-white/5 text-white/30",
+                                    )}>
+                                        <CornerDownLeft size={11} strokeWidth={2.3} aria-hidden="true" />
+                                    </span>
+                                    <span className="text-[12px] font-medium">Create</span>
+                                </button>
+                            </div>
                         </div>
                      </motion.div>
                 )}

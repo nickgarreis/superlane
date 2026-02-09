@@ -35,19 +35,25 @@ export interface MainContentFileActions {
   download: (fileId: string) => void;
 }
 
+export type CreateProjectPayload = {
+  name?: string;
+  description?: string;
+  category?: string;
+  scope?: string;
+  deadlineEpochMs?: number | null;
+  status?: string;
+  draftData?: ProjectDraftData | null;
+  _editProjectId?: string;
+  attachmentPendingUploadIds?: string[];
+};
+
+export type CreateProjectResult = {
+  publicId: string;
+  mode: "create" | "update";
+};
+
 export interface ProjectCommands {
-  createOrUpdateProject: (payload: {
-    name?: string;
-    description?: string;
-    category?: string;
-    scope?: string;
-    deadlineEpochMs?: number | null;
-    status?: string;
-    draftData?: ProjectDraftData | null;
-    _editProjectId?: string;
-    _generatedId?: string;
-    attachmentPendingUploadIds?: string[];
-  }) => Promise<void>;
+  createOrUpdateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
   editProject: (project: ProjectData) => void;
   viewReviewProject: (project: ProjectData) => void;
   archiveProject: (projectId: string) => void;

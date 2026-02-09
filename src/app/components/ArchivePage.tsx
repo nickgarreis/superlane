@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Archive, ArchiveRestore, Trash2, Search } from "lucide-react";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectData } from "../types";
@@ -48,16 +48,26 @@ export function ArchivePage({
         };
     }, [highlightedProjectId, setHighlightedProjectId]);
 
-    const archivedProjects = Object.values(projects)
-        .filter(p => p.archived)
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    const filteredProjects = archivedProjects.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+    const archivedProjects = useMemo(
+        () =>
+            Object.values(projects)
+                .filter((project) => project.archived)
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        [projects],
     );
 
-    const formatDate = (dateValue?: number | null) => {
+    const filteredProjects = useMemo(
+        () =>
+            archivedProjects.filter((project) =>
+                project.name.toLowerCase().includes(normalizedQuery)
+                || project.category.toLowerCase().includes(normalizedQuery),
+            ),
+        [archivedProjects, normalizedQuery],
+    );
+
+    const formatDate = useCallback((dateValue?: number | null) => {
         if (typeof dateValue !== "number" || !Number.isFinite(dateValue)) return "—";
         const d = new Date(dateValue);
         if (isNaN(d.getTime())) return "—";
@@ -67,7 +77,7 @@ export function ArchivePage({
         if (diffDays === 0) return "Today";
         if (diffDays === 1) return "1 day ago";
         return `${diffDays} days ago`;
-    };
+    }, []);
 
     return (
         <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">

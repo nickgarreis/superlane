@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { createClientId } from "../../lib/id";
 import type { PendingDraftAttachmentUpload } from "../../types";
 
 type UploadedAttachment = {
@@ -20,7 +21,7 @@ const inferAttachmentType = (file: File) =>
   file.name.split(".").pop()?.toUpperCase() || "FILE";
 
 const createClientAttachmentId = (index: number) =>
-  `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+  `${createClientId("attachment", 18)}-${index}`;
 
 export function useDraftAttachments({
   draftSessionId,

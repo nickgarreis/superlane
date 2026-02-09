@@ -1,20 +1,14 @@
 import { useMemo } from "react";
-import type { DashboardCommands, SettingsTab } from "./types";
-import type { ProjectData, ProjectDraftData } from "../types";
+import type {
+  CreateProjectPayload,
+  CreateProjectResult,
+  DashboardCommands,
+  SettingsTab,
+} from "./types";
+import type { ProjectData } from "../types";
 
 type UseDashboardCommandsArgs = {
-  handleCreateProject: (payload: {
-    name?: string;
-    description?: string;
-    category?: string;
-    scope?: string;
-    deadlineEpochMs?: number | null;
-    status?: string;
-    draftData?: ProjectDraftData | null;
-    _editProjectId?: string;
-    _generatedId?: string;
-    attachmentPendingUploadIds?: string[];
-  }) => Promise<void>;
+  handleCreateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
   handleEditProject: (project: ProjectData) => void;
   handleViewReviewProject: (project: ProjectData) => void;
   handleArchiveProject: (projectId: string) => void;

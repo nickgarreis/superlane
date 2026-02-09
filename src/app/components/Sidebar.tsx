@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArchiveRestore, Archive, Undo2, Settings, HelpCircle, LogOut, ChevronDown, ChevronRight, Search, Plus, Lightbulb, Bug, ListChecks, Info, Maximize2 } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import svgPaths from "../../imports/svg-pclbthwul8";
@@ -8,6 +8,7 @@ import { cn } from "../../lib/utils";
 import { FeedbackPopup } from "./FeedbackPopup";
 import { CompletedProjectsPopup } from "./CompletedProjectsPopup";
 import type { AppView } from "../lib/routing";
+import { partitionSidebarProjects } from "./sidebar/partitionProjects";
 
 function CollapsibleContent({ isExpanded, children, className }: { isExpanded: boolean; children: React.ReactNode; className?: string }) {
   return (
@@ -489,21 +490,23 @@ export function Sidebar({
     const [isCompletedPopupOpen, setIsCompletedPopupOpen] = useState(false);
     const viewerName = viewerIdentity.name || "Unknown user";
     const viewerEmail = viewerIdentity.email || "No email";
-    const viewerInitials = viewerName
-        .split(" ")
-        .filter(Boolean)
-        .map((part) => part[0] ?? "")
-        .join("")
-        .slice(0, 2)
-        .toUpperCase() || "U";
-    
-    const activeProjects = Object.values(projects).filter(p => !p.archived && p.status.label !== "Completed");
-    const completedProjects = Object.values(projects).filter(p => !p.archived && p.status.label === "Completed");
+    const viewerInitials = useMemo(
+        () =>
+            viewerName
+                .split(" ")
+                .filter(Boolean)
+                .map((part) => part[0] ?? "")
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()
+            || "U",
+        [viewerName],
+    );
 
-    // Currently viewed completed project (shown temporarily in sidebar)
-    const activeCompletedProject = currentView?.startsWith('project:')
-        ? completedProjects.find(p => p.id === currentView.replace('project:', ''))
-        : undefined;
+    const { activeProjects, completedProjects, activeCompletedProject } = useMemo(
+        () => partitionSidebarProjects(projects, currentView),
+        [projects, currentView],
+    );
 
     // Auto-close logic for the main Projects section if it becomes empty (though rare as it's the main list)
     const prevProjectCount = useRef(activeProjects.length);
@@ -526,19 +529,58 @@ export function Sidebar({
         prevCompletedCount.current = completedProjects.length;
     }, [completedProjects.length]);
 
-    const handleDrop = (id: string, section: string) => {
+    const handleDrop = useCallback((id: string, section: string) => {
         // If dropped in "Projects" (general list), we essentially just want to ensure it's unarchived.
         // We might not change status if it's already active/review/draft, but if coming from archive, unarchive it.
         if (section === "Projects") {
              onUnarchiveProject(id);
              setIsProjectsExpanded(true);
         }
-    };
+    }, [onUnarchiveProject]);
+
+    const sidebarContextValue = useMemo(
+        () => ({
+            onNavigate,
+            onSearch,
+            onOpenCreateProject,
+            currentView,
+            projects,
+            activeWorkspace,
+            workspaces,
+            onSwitchWorkspace,
+            onCreateWorkspace,
+            canCreateWorkspace,
+            onOpenSettings,
+            onArchiveProject,
+            onUnarchiveProject,
+            onUpdateProjectStatus,
+            onEditProject,
+            onViewReviewProject,
+            onLogout,
+        }),
+        [
+            activeWorkspace,
+            canCreateWorkspace,
+            currentView,
+            onArchiveProject,
+            onCreateWorkspace,
+            onEditProject,
+            onLogout,
+            onNavigate,
+            onOpenCreateProject,
+            onOpenSettings,
+            onSearch,
+            onSwitchWorkspace,
+            onUnarchiveProject,
+            onUpdateProjectStatus,
+            onViewReviewProject,
+            projects,
+            workspaces,
+        ],
+    );
 
     return (
-        <SidebarContext.Provider value={{
-            onNavigate, onSearch, onOpenCreateProject, currentView, projects, activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace, canCreateWorkspace, onOpenSettings, onArchiveProject, onUnarchiveProject, onUpdateProjectStatus, onEditProject, onViewReviewProject, onLogout
-        }}>
+        <SidebarContext.Provider value={sidebarContextValue}>
             <div className="flex flex-col h-full w-full bg-transparent px-3 py-4 select-none">
                 <WorkspaceSwitcher />
                 

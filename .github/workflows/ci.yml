@@ -84,7 +84,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: performance-budget-report
-          path: performance-reports/performance-budget-report.json
+          path: |
+            performance-reports/performance-budget-report.json
+            performance-reports/bundle-budget-report.json
           if-no-files-found: warn
 
   test:

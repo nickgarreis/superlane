@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "metrics": {
+    "dashboardChunkGzipKb": 40.0,
+    "vendorMiscChunkGzipKb": 70.0
+  }
+}

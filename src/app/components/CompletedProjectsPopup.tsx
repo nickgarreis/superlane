@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { X, Search, Undo2, CheckCircle2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { ProjectData } from "../types";
@@ -25,29 +25,37 @@ export function CompletedProjectsPopup({
     const [sortField, setSortField] = useState<SortField>("completedAt");
     const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-    if (!isOpen) return null;
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    const completedProjects = Object.values(projects)
-        .filter(p => !p.archived && p.status.label === "Completed");
+    const completedProjects = useMemo(
+        () =>
+            Object.values(projects)
+                .filter((project) => !project.archived && project.status.label === "Completed"),
+        [projects],
+    );
 
-    const filteredProjects = completedProjects
-        .filter(p =>
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .sort((a, b) => {
-            let cmp = 0;
-            if (sortField === "name") {
-                cmp = a.name.localeCompare(b.name);
-            } else if (sortField === "category") {
-                cmp = a.category.localeCompare(b.category);
-            } else {
-                const dateA = typeof a.completedAt === "number" ? a.completedAt : 0;
-                const dateB = typeof b.completedAt === "number" ? b.completedAt : 0;
-                cmp = dateA - dateB;
-            }
-            return sortDir === "asc" ? cmp : -cmp;
-        });
+    const filteredProjects = useMemo(
+        () =>
+            completedProjects
+                .filter((project) =>
+                    project.name.toLowerCase().includes(normalizedQuery)
+                    || project.category.toLowerCase().includes(normalizedQuery),
+                )
+                .sort((a, b) => {
+                    let cmp = 0;
+                    if (sortField === "name") {
+                        cmp = a.name.localeCompare(b.name);
+                    } else if (sortField === "category") {
+                        cmp = a.category.localeCompare(b.category);
+                    } else {
+                        const dateA = typeof a.completedAt === "number" ? a.completedAt : 0;
+                        const dateB = typeof b.completedAt === "number" ? b.completedAt : 0;
+                        cmp = dateA - dateB;
+                    }
+                    return sortDir === "asc" ? cmp : -cmp;
+                }),
+        [completedProjects, normalizedQuery, sortDir, sortField],
+    );
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -71,6 +79,8 @@ export function CompletedProjectsPopup({
             ? <ArrowUp size={12} className="text-white/50" />
             : <ArrowDown size={12} className="text-white/50" />;
     };
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">

@@ -6,16 +6,14 @@ import { useAuth } from "@workos-inc/authkit-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster, toast } from "sonner";
 import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png";
-import imgLogo from "figma:asset/c3a996a7bf06b0777eaf43cb323cfde0872e163e.png";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { ArchivePage } from "../components/ArchivePage";
-import { MainContent } from "../components/MainContent";
 import { Sidebar } from "../components/Sidebar";
-import { Tasks } from "../components/Tasks";
-import { isProtectedPath, pathToView, viewToPath, type AppView } from "../lib/routing";
+import { buildProjectPublicId } from "../lib/id";
+import { pathToView, viewToPath } from "../lib/routing";
 import { scheduleIdlePrefetch } from "../lib/prefetch";
 import { parseProjectStatus } from "../lib/status";
+import { DashboardContent } from "./components/DashboardContent";
 import { useDashboardData } from "./useDashboardData";
 import { useDashboardCommands } from "./useDashboardCommands";
 import { useDashboardNavigation } from "./useDashboardNavigation";
@@ -27,6 +25,8 @@ import type {
   Task,
 } from "../types";
 import {
+  CreateProjectPayload,
+  CreateProjectResult,
   parseSettingsTab,
   MainContentFileActions,
   MainContentNavigationActions,
@@ -49,37 +49,10 @@ const asUserId = (value: string) => value as Id<"users">;
 const asBrandAssetId = (value: string) => value as Id<"workspaceBrandAssets">;
 const asPendingUploadId = (value: string) => value as Id<"pendingFileUploads">;
 const asProjectFileId = (value: string) => value as Id<"projectFiles">;
-
-const getProjectPublicIdSuffix = (): string => {
-  if (typeof crypto !== "undefined") {
-    if (typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-    }
-    if (typeof crypto.getRandomValues === "function") {
-      const randomBytes = new Uint8Array(8);
-      crypto.getRandomValues(randomBytes);
-      return Array.from(randomBytes, (byte) => byte.toString(36).padStart(2, "0")).join("").slice(0, 12);
-    }
-  }
-
-  return Math.random().toString(36).slice(2, 14);
-};
-
-const buildGeneratedProjectPublicId = (name?: string): string =>
-  `${(name || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${getProjectPublicIdSuffix()}`;
-
-type CreateProjectPayload = {
-  name?: string;
-  description?: string;
-  category?: string;
-  scope?: string;
-  deadlineEpochMs?: number | null;
-  status?: string;
-  draftData?: ProjectDraftData | null;
-  _editProjectId?: string;
-  _generatedId?: string;
-  attachmentPendingUploadIds?: string[];
-};
+const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
+  ) as T;
 
 type CreateWorkspacePayload = {
   name: string;
@@ -230,11 +203,6 @@ export default function DashboardShell() {
   );
   const ensureOrganizationLinkAction = useAction(api.workspaces.ensureOrganizationLink);
 
-  const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
-    Object.fromEntries(
-      Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
-    ) as T;
-
   const viewerFallback = useMemo(() => ({
     name:
       [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
@@ -375,10 +343,10 @@ export default function DashboardShell() {
     }
   }, [snapshot, location.pathname, projects, navigate]);
 
-  const handleSwitchWorkspace = (workspaceSlug: string) => {
+  const handleSwitchWorkspace = useCallback((workspaceSlug: string) => {
     setActiveWorkspaceSlug(workspaceSlug);
     navigateView("tasks");
-  };
+  }, [setActiveWorkspaceSlug, navigateView]);
 
   const handleCreateWorkspace = useCallback(() => {
     if (!canCreateWorkspace) {
@@ -690,16 +658,16 @@ export default function DashboardShell() {
     }
   }, [resolvedWorkspaceSlug, softDeleteWorkspaceMutation, setActiveWorkspaceSlug, navigate]);
 
-  const handleCreateProject = async (
+  const handleCreateProject = useCallback(async (
     projectData: CreateProjectPayload,
-  ): Promise<void> => {
+  ): Promise<CreateProjectResult> => {
     const normalizedStatus = parseProjectStatus(projectData.status);
     const existingId = projectData._editProjectId;
 
     if (existingId && projects[existingId]) {
       const existing = projects[existingId];
       try {
-        await updateProjectMutation(omitUndefined({
+        const updateResult = await updateProjectMutation(omitUndefined({
           publicId: existingId,
           name: projectData.name ?? existing.name,
           description: projectData.description ?? existing.description,
@@ -710,13 +678,14 @@ export default function DashboardShell() {
           draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
           attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
         }));
+        const updatedPublicId = String(updateResult?.publicId ?? existingId);
         if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
-          navigateView(`project:${existingId}`);
+          navigateView(`project:${updatedPublicId}`);
         }
         setEditProjectId(null);
         setEditDraftData(null);
         toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project updated");
-        return;
+        return { publicId: updatedPublicId, mode: "update" };
       } catch (error) {
         console.error(error);
         toast.error("Failed to update project");
@@ -730,13 +699,14 @@ export default function DashboardShell() {
       throw error;
     }
 
-    const publicId = projectData._generatedId || buildGeneratedProjectPublicId(projectData.name);
+    const finalName = projectData.name || "Untitled Project";
+    const requestedPublicId = buildProjectPublicId(finalName);
 
     try {
-      await createProjectMutation(omitUndefined({
+      const createResult = await createProjectMutation(omitUndefined({
         workspaceSlug: activeWorkspace.id,
-        publicId,
-        name: projectData.name || "Untitled Project",
+        publicId: requestedPublicId,
+        name: finalName,
         description: projectData.description || "",
         category: projectData.category || "General",
         scope: projectData.scope || undefined,
@@ -745,18 +715,28 @@ export default function DashboardShell() {
         attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
         draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
       }));
+      const createdPublicId = String(createResult?.publicId ?? requestedPublicId);
       if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
-        navigateView(`project:${publicId}`);
+        navigateView(`project:${createdPublicId}`);
       }
       toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project created");
+      return { publicId: createdPublicId, mode: "create" };
     } catch (error) {
       console.error(error);
       toast.error("Failed to create project");
       throw error;
     }
-  };
+  }, [
+    activeWorkspace?.id,
+    createProjectMutation,
+    navigateView,
+    projects,
+    setEditDraftData,
+    setEditProjectId,
+    updateProjectMutation,
+  ]);
 
-  const categoryToService = (category: string): string => {
+  const categoryToService = useCallback((category: string): string => {
     const map: Record<string, string> = {
       webdesign: "Web Design",
       "web design": "Web Design",
@@ -769,9 +749,9 @@ export default function DashboardShell() {
       "creative strategy & concept": "Creative Strategy & Concept",
     };
     return map[category.toLowerCase()] || category;
-  };
+  }, []);
 
-  const handleEditProject = (project: ProjectData) => {
+  const handleEditProject = useCallback((project: ProjectData) => {
     const draftData: ProjectDraftData = project.draftData || {
       selectedService: categoryToService(project.category),
       projectName: project.name,
@@ -785,24 +765,22 @@ export default function DashboardShell() {
     setEditProjectId(project.id);
     setEditDraftData(draftData);
     openCreateProject();
-  };
+  }, [categoryToService, openCreateProject, setEditDraftData, setEditProjectId]);
 
-  const handleViewReviewProject = (project: ProjectData) => {
+  const handleViewReviewProject = useCallback((project: ProjectData) => {
     setReviewProject(project);
     openCreateProject();
-  };
+  }, [openCreateProject, setReviewProject]);
 
-  const handleUpdateComments = (
+  const handleUpdateComments = useCallback((
     projectId: string,
     comments: ReviewComment[],
-  ) => {
-    return updateReviewCommentsMutation({
+  ) => updateReviewCommentsMutation({
       publicId: projectId,
       comments,
-    });
-  };
+    }), [updateReviewCommentsMutation]);
 
-  const handleArchiveProject = (id: string) => {
+  const handleArchiveProject = useCallback((id: string) => {
     void archiveProjectMutation({ publicId: id })
       .then(() => {
         setHighlightedArchiveProjectId(id);
@@ -813,9 +791,9 @@ export default function DashboardShell() {
         console.error(error);
         toast.error("Failed to archive project");
       });
-  };
+  }, [archiveProjectMutation, navigateView, setHighlightedArchiveProjectId]);
 
-  const handleUnarchiveProject = (id: string) => {
+  const handleUnarchiveProject = useCallback((id: string) => {
     void unarchiveProjectMutation({ publicId: id })
       .then(() => {
         if (currentView === `archive-project:${id}`) {
@@ -827,9 +805,9 @@ export default function DashboardShell() {
         console.error(error);
         toast.error("Failed to unarchive project");
       });
-  };
+  }, [currentView, navigateView, unarchiveProjectMutation]);
 
-  const handleDeleteProject = (id: string) => {
+  const handleDeleteProject = useCallback((id: string) => {
     const project = projects[id];
     const isDraft = project?.status?.label === "Draft";
 
@@ -853,9 +831,9 @@ export default function DashboardShell() {
         console.error(error);
         toast.error("Failed to delete project");
       });
-  };
+  }, [currentView, navigate, navigateView, projects, removeProjectMutation, visibleProjects]);
 
-  const handleUpdateProjectStatus = (id: string, newStatus: string) => {
+  const handleUpdateProjectStatus = useCallback((id: string, newStatus: string) => {
     const parsedStatus = parseProjectStatus(newStatus);
 
     void setProjectStatusMutation({
@@ -871,7 +849,7 @@ export default function DashboardShell() {
         console.error(error);
         toast.error("Failed to update project status");
       });
-  };
+  }, [setProjectStatusMutation]);
 
   const handleApproveReviewProject = useCallback(
     async (projectId: string) => {
@@ -1174,83 +1152,104 @@ export default function DashboardShell() {
     [navigateView],
   );
 
-  const renderContent = () => {
-    if (contentModel.kind === "tasks") {
-      return (
-        <Tasks
-          onToggleSidebar={handleToggleSidebar}
-          isSidebarOpen={isSidebarOpen}
-          projects={visibleProjects}
-          workspaceTasks={workspaceTasks}
-          onUpdateWorkspaceTasks={handleReplaceWorkspaceTasks}
-          workspaceMembers={workspaceMembers}
-          viewerIdentity={viewerIdentity}
-        />
-      );
-    }
+  const searchPopupOpenSettings = useCallback(
+    (tab?: string) => {
+      dashboardCommands.settings.openSettings(parseSettingsTab(tab));
+    },
+    [dashboardCommands.settings],
+  );
 
-    if (contentModel.kind === "archive") {
-      return (
-        <ArchivePage
-          onToggleSidebar={handleToggleSidebar}
-          isSidebarOpen={isSidebarOpen}
-          projects={visibleProjects}
-          onNavigateToProject={handleNavigateToArchiveProject}
-          onUnarchiveProject={handleUnarchiveProject}
-          onDeleteProject={handleDeleteProject}
-          highlightedProjectId={highlightedArchiveProjectId}
-          setHighlightedProjectId={setHighlightedArchiveProjectId}
-        />
-      );
-    }
+  const searchPopupHighlightNavigate = useCallback(
+    (projectId: string, highlight: { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string }) => {
+      setPendingHighlight({ projectId, ...highlight });
+    },
+    [setPendingHighlight],
+  );
 
-    if (contentModel.kind === "main") {
-      const project = contentModel.project;
-      const navigationActions: MainContentNavigationActions = contentModel.backTo
+  const createProjectViewer = useMemo(
+    () => ({
+      userId: viewerIdentity.userId ?? undefined,
+      name: viewerName,
+      avatar: viewerAvatar,
+      role: viewerIdentity.role ?? undefined,
+    }),
+    [viewerAvatar, viewerIdentity.role, viewerIdentity.userId, viewerName],
+  );
+
+  const settingsAccountData = useMemo(
+    () =>
+      accountSettings ?? {
+        firstName: user?.firstName ?? "",
+        lastName: user?.lastName ?? "",
+        email: user?.email ?? "",
+        avatarUrl: user?.profilePictureUrl ?? null,
+      },
+    [accountSettings, user?.email, user?.firstName, user?.lastName, user?.profilePictureUrl],
+  );
+
+  const settingsNotificationsData = useMemo(
+    () =>
+      notificationSettings
         ? {
-            ...baseMainContentNavigationActions,
-            backTo: contentModel.backTo,
-            back: contentModel.back,
+            channels: notificationSettings.channels,
+            events: notificationSettings.events,
           }
-        : baseMainContentNavigationActions;
+        : {
+            channels: {
+              email: true,
+              desktop: true,
+            },
+            events: {
+              productUpdates: true,
+              teamActivity: true,
+            },
+          },
+    [notificationSettings],
+  );
 
-      return (
-        <MainContent
-          onToggleSidebar={handleToggleSidebar}
-          isSidebarOpen={isSidebarOpen}
-          project={project}
-          projectFiles={projectFilesByProject[project.id] ?? []}
-          workspaceMembers={workspaceMembers}
-          viewerIdentity={viewerIdentity}
-          fileActions={mainContentFileActions}
-          projectActions={createMainContentProjectActions(project.id)}
-          navigationActions={navigationActions}
-          allProjects={visibleProjects}
-          pendingHighlight={pendingHighlight}
-          onClearPendingHighlight={clearPendingHighlight}
-        />
-      );
-    }
+  const settingsCompanyData = useMemo(
+    () =>
+      companySettings
+        ? {
+            ...companySettings,
+            members: companySettings.members.filter(
+              (
+                member,
+              ): member is NonNullable<(typeof companySettings.members)[number]> =>
+                member !== null,
+            ),
+            pendingInvitations: companySettings.pendingInvitations.filter(
+              (
+                invitation,
+              ): invitation is NonNullable<(typeof companySettings.pendingInvitations)[number]> =>
+                invitation !== null,
+            ),
+            brandAssets: companySettings.brandAssets.filter(
+              (
+                asset,
+              ): asset is NonNullable<(typeof companySettings.brandAssets)[number]> =>
+                asset !== null,
+            ),
+          }
+        : null,
+    [companySettings],
+  );
 
-    return (
-      <div className="flex-1 h-full bg-bg-base flex flex-col items-center justify-center text-white/20">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-            <img src={imgLogo} alt="" aria-hidden="true" className="w-8 h-8 opacity-40 grayscale" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium">No projects in this workspace</p>
-            <button
-              onClick={openCreateProject}
-              className="mt-3 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-white/60 hover:text-white transition-colors"
-            >
-              Create new project
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const handleSearchIntent = useCallback(() => {
+    void loadSearchPopupModule();
+  }, []);
+
+  const handleCreateProjectIntent = useCallback(() => {
+    void loadCreateProjectPopupModule();
+  }, []);
+
+  const handleSettingsIntent = useCallback(() => {
+    void loadSettingsPopupModule();
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    void signOut();
+  }, [signOut]);
 
   if (!snapshot) {
     return (
@@ -1272,10 +1271,8 @@ export default function DashboardShell() {
               files={allWorkspaceFiles}
               onNavigate={navigateView}
               onOpenCreateProject={openCreateProject}
-              onOpenSettings={(tab) => dashboardCommands.settings.openSettings(parseSettingsTab(tab))}
-              onHighlightNavigate={(projectId, highlight) => {
-                setPendingHighlight({ projectId, ...highlight });
-              }}
+              onOpenSettings={searchPopupOpenSettings}
+              onHighlightNavigate={searchPopupHighlightNavigate}
             />
           </Suspense>
         )}
@@ -1286,12 +1283,7 @@ export default function DashboardShell() {
               isOpen={isCreateProjectOpen}
               onClose={closeCreateProject}
               onCreate={dashboardCommands.project.createOrUpdateProject}
-              user={{
-                userId: viewerIdentity.userId ?? undefined,
-                name: viewerName,
-                avatar: viewerAvatar,
-                role: viewerIdentity.role ?? undefined,
-              }}
+              user={createProjectViewer}
               editProjectId={editProjectId}
               initialDraftData={editDraftData}
               onDeleteDraft={dashboardCommands.project.deleteProject}
@@ -1322,56 +1314,9 @@ export default function DashboardShell() {
               onClose={dashboardCommands.settings.closeSettings}
               initialTab={settingsTab}
               activeWorkspace={activeWorkspace}
-              account={
-                accountSettings ?? {
-                  firstName: user?.firstName ?? "",
-                  lastName: user?.lastName ?? "",
-                  email: user?.email ?? "",
-                  avatarUrl: user?.profilePictureUrl ?? null,
-                }
-              }
-              notifications={
-                notificationSettings
-                  ? {
-                      channels: notificationSettings.channels,
-                      events: notificationSettings.events,
-                    }
-                  : {
-                      channels: {
-                        email: true,
-                        desktop: true,
-                      },
-                      events: {
-                        productUpdates: true,
-                        teamActivity: true,
-                      },
-                    }
-              }
-              company={
-                companySettings
-                  ? {
-                      ...companySettings,
-                      members: companySettings.members.filter(
-                        (
-                          member,
-                        ): member is NonNullable<(typeof companySettings.members)[number]> =>
-                          member !== null,
-                      ),
-                      pendingInvitations: companySettings.pendingInvitations.filter(
-                        (
-                          invitation,
-                        ): invitation is NonNullable<(typeof companySettings.pendingInvitations)[number]> =>
-                          invitation !== null,
-                      ),
-                      brandAssets: companySettings.brandAssets.filter(
-                        (
-                          asset,
-                        ): asset is NonNullable<(typeof companySettings.brandAssets)[number]> =>
-                          asset !== null,
-                      ),
-                    }
-                  : null
-              }
+              account={settingsAccountData}
+              notifications={settingsNotificationsData}
+              company={settingsCompanyData}
               loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySettings === undefined}
               onSaveAccount={dashboardCommands.settings.saveAccount}
               onUploadAvatar={dashboardCommands.settings.uploadAccountAvatar}
@@ -1435,14 +1380,10 @@ export default function DashboardShell() {
                 <Sidebar
                   onNavigate={navigateView}
                   onSearch={openSearch}
-                  onSearchIntent={() => {
-                    void loadSearchPopupModule();
-                  }}
+                  onSearchIntent={handleSearchIntent}
                   currentView={currentView}
                   onOpenCreateProject={openCreateProject}
-                  onOpenCreateProjectIntent={() => {
-                    void loadCreateProjectPopupModule();
-                  }}
+                  onOpenCreateProjectIntent={handleCreateProjectIntent}
                   projects={visibleProjects}
                   viewerIdentity={viewerIdentity}
                   activeWorkspace={activeWorkspace}
@@ -1451,24 +1392,41 @@ export default function DashboardShell() {
                   onCreateWorkspace={dashboardCommands.workspace.createWorkspace}
                   canCreateWorkspace={canCreateWorkspace}
                   onOpenSettings={dashboardCommands.settings.openSettings}
-                  onOpenSettingsIntent={() => {
-                    void loadSettingsPopupModule();
-                  }}
+                  onOpenSettingsIntent={handleSettingsIntent}
                   onArchiveProject={dashboardCommands.project.archiveProject}
                   onUnarchiveProject={dashboardCommands.project.unarchiveProject}
                   onUpdateProjectStatus={dashboardCommands.project.updateProjectStatus}
                   onEditProject={dashboardCommands.project.editProject}
                   onViewReviewProject={dashboardCommands.project.viewReviewProject}
-                  onLogout={() => {
-                    void signOut();
-                  }}
+                  onLogout={handleSignOut}
                 />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {renderContent()}
+        <DashboardContent
+          contentModel={contentModel}
+          handleToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          visibleProjects={visibleProjects}
+          workspaceTasks={workspaceTasks}
+          handleReplaceWorkspaceTasks={handleReplaceWorkspaceTasks}
+          workspaceMembers={workspaceMembers}
+          viewerIdentity={viewerIdentity}
+          handleNavigateToArchiveProject={handleNavigateToArchiveProject}
+          handleUnarchiveProject={handleUnarchiveProject}
+          handleDeleteProject={handleDeleteProject}
+          highlightedArchiveProjectId={highlightedArchiveProjectId}
+          setHighlightedArchiveProjectId={setHighlightedArchiveProjectId}
+          projectFilesByProject={projectFilesByProject}
+          mainContentFileActions={mainContentFileActions}
+          createMainContentProjectActions={createMainContentProjectActions}
+          baseMainContentNavigationActions={baseMainContentNavigationActions}
+          pendingHighlight={pendingHighlight}
+          clearPendingHighlight={clearPendingHighlight}
+          openCreateProject={openCreateProject}
+        />
       </div>
     </DndProvider>
   );

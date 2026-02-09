@@ -158,62 +158,6 @@ const CommentItem = React.memo(function CommentItem({
     null
   );
 
-  // Shared props to pass recursively to nested CommentItems
-  const sharedProps = useMemo(
-    () => ({
-      currentUserId,
-      currentUserName,
-      currentUserAvatar,
-      mentionItems,
-      onMentionClick,
-      replyingTo,
-      editingComment,
-      editValue,
-      activeReactionPicker,
-      activeMoreMenu,
-      collapsedThreads,
-      onSetReplyingTo,
-      onSetReplyValue,
-      replyValue,
-      onSetEditingComment,
-      onSetEditValue,
-      onSetActiveReactionPicker,
-      onSetActiveMoreMenu,
-      onReply,
-      onEditComment,
-      onDeleteComment,
-      onResolve,
-      onToggleReaction,
-      onToggleThread,
-    }),
-    [
-      activeMoreMenu,
-      activeReactionPicker,
-      collapsedThreads,
-      currentUserAvatar,
-      currentUserId,
-      currentUserName,
-      editValue,
-      editingComment,
-      mentionItems,
-      onDeleteComment,
-      onEditComment,
-      onMentionClick,
-      onReply,
-      onResolve,
-      onSetActiveMoreMenu,
-      onSetActiveReactionPicker,
-      onSetEditValue,
-      onSetEditingComment,
-      onSetReplyValue,
-      onSetReplyingTo,
-      onToggleReaction,
-      onToggleThread,
-      replyValue,
-      replyingTo,
-    ],
-  );
-
   useEffect(() => {
     if (activeMoreMenu !== comment.id || !menuPos) {
       return;
@@ -594,7 +538,30 @@ const CommentItem = React.memo(function CommentItem({
                       key={reply.id}
                       comment={reply}
                       isReply
-                      {...sharedProps}
+                      currentUserId={currentUserId}
+                      currentUserName={currentUserName}
+                      currentUserAvatar={currentUserAvatar}
+                      mentionItems={mentionItems}
+                      onMentionClick={onMentionClick}
+                      replyingTo={replyingTo}
+                      editingComment={editingComment}
+                      editValue={editValue}
+                      activeReactionPicker={activeReactionPicker}
+                      activeMoreMenu={activeMoreMenu}
+                      collapsedThreads={collapsedThreads}
+                      onSetReplyingTo={onSetReplyingTo}
+                      onSetReplyValue={onSetReplyValue}
+                      replyValue={replyValue}
+                      onSetEditingComment={onSetEditingComment}
+                      onSetEditValue={onSetEditValue}
+                      onSetActiveReactionPicker={onSetActiveReactionPicker}
+                      onSetActiveMoreMenu={onSetActiveMoreMenu}
+                      onReply={onReply}
+                      onEditComment={onEditComment}
+                      onDeleteComment={onDeleteComment}
+                      onResolve={onResolve}
+                      onToggleReaction={onToggleReaction}
+                      onToggleThread={onToggleThread}
                     />
                   ))}
                 </div>
@@ -612,7 +579,30 @@ const CommentItem = React.memo(function CommentItem({
               key={reply.id}
               comment={reply}
               isReply
-              {...sharedProps}
+              currentUserId={currentUserId}
+              currentUserName={currentUserName}
+              currentUserAvatar={currentUserAvatar}
+              mentionItems={mentionItems}
+              onMentionClick={onMentionClick}
+              replyingTo={replyingTo}
+              editingComment={editingComment}
+              editValue={editValue}
+              activeReactionPicker={activeReactionPicker}
+              activeMoreMenu={activeMoreMenu}
+              collapsedThreads={collapsedThreads}
+              onSetReplyingTo={onSetReplyingTo}
+              onSetReplyValue={onSetReplyValue}
+              replyValue={replyValue}
+              onSetEditingComment={onSetEditingComment}
+              onSetEditValue={onSetEditValue}
+              onSetActiveReactionPicker={onSetActiveReactionPicker}
+              onSetActiveMoreMenu={onSetActiveMoreMenu}
+              onReply={onReply}
+              onEditComment={onEditComment}
+              onDeleteComment={onDeleteComment}
+              onResolve={onResolve}
+              onToggleReaction={onToggleReaction}
+              onToggleThread={onToggleThread}
             />
           ))}
         </div>
@@ -892,56 +882,6 @@ export function ChatSidebar({
     [allProjects],
   );
 
-  // Shared props object for CommentItem
-  const sharedCommentProps = useMemo(
-    () => ({
-      currentUserId,
-      currentUserName,
-      currentUserAvatar,
-      mentionItems,
-      onMentionClick,
-      replyingTo,
-      editingComment,
-      editValue,
-      activeReactionPicker,
-      activeMoreMenu,
-      collapsedThreads,
-      onSetReplyingTo: setReplyingTo,
-      onSetReplyValue: setReplyValue,
-      replyValue,
-      onSetEditingComment: setEditingComment,
-      onSetEditValue: setEditValue,
-      onSetActiveReactionPicker: setActiveReactionPicker,
-      onSetActiveMoreMenu: setActiveMoreMenu,
-      onReply: handleReply,
-      onEditComment: handleEditComment,
-      onDeleteComment: handleDeleteComment,
-      onResolve: handleResolve,
-      onToggleReaction: handleToggleReaction,
-      onToggleThread: toggleThread,
-    }),
-    [
-      activeMoreMenu,
-      activeReactionPicker,
-      collapsedThreads,
-      currentUserAvatar,
-      currentUserId,
-      currentUserName,
-      editValue,
-      editingComment,
-      handleDeleteComment,
-      handleEditComment,
-      handleReply,
-      handleResolve,
-      handleToggleReaction,
-      mentionItems,
-      onMentionClick,
-      replyValue,
-      replyingTo,
-      toggleThread,
-    ],
-  );
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -1169,7 +1109,30 @@ export function ChatSidebar({
                         key={comment.id}
                         comment={comment}
                         isTopLevel
-                        {...sharedCommentProps}
+                        currentUserId={currentUserId}
+                        currentUserName={currentUserName}
+                        currentUserAvatar={currentUserAvatar}
+                        mentionItems={mentionItems}
+                        onMentionClick={onMentionClick}
+                        replyingTo={replyingTo}
+                        editingComment={editingComment}
+                        editValue={editValue}
+                        activeReactionPicker={activeReactionPicker}
+                        activeMoreMenu={activeMoreMenu}
+                        collapsedThreads={collapsedThreads}
+                        onSetReplyingTo={setReplyingTo}
+                        onSetReplyValue={setReplyValue}
+                        replyValue={replyValue}
+                        onSetEditingComment={setEditingComment}
+                        onSetEditValue={setEditValue}
+                        onSetActiveReactionPicker={setActiveReactionPicker}
+                        onSetActiveMoreMenu={setActiveMoreMenu}
+                        onReply={handleReply}
+                        onEditComment={handleEditComment}
+                        onDeleteComment={handleDeleteComment}
+                        onResolve={handleResolve}
+                        onToggleReaction={handleToggleReaction}
+                        onToggleThread={toggleThread}
                       />
                     ))}
                   </div>
@@ -1216,7 +1179,30 @@ export function ChatSidebar({
                                 key={comment.id}
                                 comment={comment}
                                 isTopLevel
-                                {...sharedCommentProps}
+                                currentUserId={currentUserId}
+                                currentUserName={currentUserName}
+                                currentUserAvatar={currentUserAvatar}
+                                mentionItems={mentionItems}
+                                onMentionClick={onMentionClick}
+                                replyingTo={replyingTo}
+                                editingComment={editingComment}
+                                editValue={editValue}
+                                activeReactionPicker={activeReactionPicker}
+                                activeMoreMenu={activeMoreMenu}
+                                collapsedThreads={collapsedThreads}
+                                onSetReplyingTo={setReplyingTo}
+                                onSetReplyValue={setReplyValue}
+                                replyValue={replyValue}
+                                onSetEditingComment={setEditingComment}
+                                onSetEditValue={setEditValue}
+                                onSetActiveReactionPicker={setActiveReactionPicker}
+                                onSetActiveMoreMenu={setActiveMoreMenu}
+                                onReply={handleReply}
+                                onEditComment={handleEditComment}
+                                onDeleteComment={handleDeleteComment}
+                                onResolve={handleResolve}
+                                onToggleReaction={handleToggleReaction}
+                                onToggleThread={toggleThread}
                               />
                             ))}
                           </div>
