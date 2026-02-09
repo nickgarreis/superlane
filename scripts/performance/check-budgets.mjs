@@ -66,6 +66,21 @@ const statLargestAsset = () => {
   );
 };
 
+const findDashboardAsset = () => {
+  if (!fs.existsSync(ASSETS_DIR)) {
+    throw new Error(`Assets directory not found: ${ASSETS_DIR}`);
+  }
+  const match = fs
+    .readdirSync(ASSETS_DIR)
+    .find((entry) => /^DashboardApp-[A-Za-z0-9_-]+\.js$/.test(entry));
+
+  if (!match) {
+    throw new Error("Could not find DashboardApp chunk in dist/assets");
+  }
+
+  return match;
+};
+
 const html = readRequiredFile(INDEX_PATH, "dist/index.html not found. Run npm run build first.");
 const budgetConfig = readJson(BUDGET_PATH);
 const activePhase = String(budgetConfig.activePhase ?? "");
@@ -100,6 +115,8 @@ const entryCssAsset = parseAssetPath(html, /<link[^>]*href="([^"]+\.css)"[^>]*>/
 const entryJsPath = path.join(DIST_DIR, entryJsAsset);
 const entryCssPath = path.join(DIST_DIR, entryCssAsset);
 const largestAsset = statLargestAsset();
+const dashboardAsset = findDashboardAsset();
+const dashboardAssetPath = path.join(ASSETS_DIR, dashboardAsset);
 
 if (!fs.existsSync(entryJsPath)) {
   throw new Error(`Entry JS asset not found: ${entryJsPath}`);
@@ -111,12 +128,14 @@ if (!fs.existsSync(entryCssPath)) {
 const measured = {
   entryJsGzipKb: toKb(gzipSizeBytes(entryJsPath)),
   entryCssGzipKb: toKb(gzipSizeBytes(entryCssPath)),
+  dashboardJsGzipKb: toKb(gzipSizeBytes(dashboardAssetPath)),
   largestAssetKb: toKb(largestAsset.sizeBytes),
 };
 
 const budgets = {
   entryJsGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "entryJsGzipKb"),
   entryCssGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "entryCssGzipKb"),
+  dashboardJsGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "dashboardJsGzipKb"),
   largestAssetKb: parseFiniteMetric(activePhaseConfig.metrics, "largestAssetKb"),
 };
 
@@ -135,6 +154,12 @@ const checks = [
     label: "Entry CSS gzip",
     measured: measured.entryCssGzipKb,
     budget: budgets.entryCssGzipKb,
+  },
+  {
+    key: "dashboardJsGzipKb",
+    label: "Dashboard chunk gzip",
+    measured: measured.dashboardJsGzipKb,
+    budget: budgets.dashboardJsGzipKb,
   },
   {
     key: "largestAssetKb",
@@ -162,6 +187,7 @@ const report = {
   assets: {
     entryJs: entryJsAsset,
     entryCss: entryCssAsset,
+    dashboardJs: dashboardAsset,
     largest: {
       name: largestAsset.name,
       sizeKb: measured.largestAssetKb,

@@ -16,9 +16,19 @@ import { Sidebar } from "./components/Sidebar";
 import { Tasks } from "./components/Tasks";
 import { isProtectedPath, pathToView, viewToPath } from "./lib/routing";
 import type { AppView } from "./lib/routing";
-import { mapProjectsToUi, mapWorkspaceTasksToUi, mapWorkspacesToUi } from "./lib/mappers";
+import {
+  mapProjectsToUi,
+  mapWorkspaceFilesToUi,
+  mapWorkspaceTasksToUi,
+  mapWorkspacesToUi,
+  type SnapshotProject,
+  type SnapshotTask,
+  type SnapshotWorkspace,
+  type SnapshotWorkspaceFile,
+} from "./lib/mappers";
 import { scheduleIdlePrefetch } from "./lib/prefetch";
 import { parseProjectStatus } from "./lib/status";
+import { useDashboardController } from "./dashboard/useDashboardController";
 import type {
   ProjectData,
   ProjectDraftData,
@@ -30,25 +40,14 @@ import type {
   Workspace,
   WorkspaceMember,
 } from "./types";
-
-type PendingHighlight = {
-  projectId: string;
-  type: "task" | "file";
-  taskId?: string;
-  fileName?: string;
-  fileTab?: string;
-};
-
-type SettingsTab = "Account" | "Notifications" | "Company" | "Billing";
-
-const SETTINGS_TABS: readonly SettingsTab[] = ["Account", "Notifications", "Company", "Billing"];
-
-const parseSettingsTab = (value: string | null | undefined): SettingsTab => {
-  if (value && (SETTINGS_TABS as readonly string[]).includes(value)) {
-    return value as SettingsTab;
-  }
-  return "Account";
-};
+import type {
+  MainContentFileActions,
+  MainContentNavigationActions,
+  MainContentProjectActions,
+  PendingHighlight,
+  SettingsTab,
+} from "./dashboard/types";
+import { parseSettingsTab } from "./dashboard/types";
 
 const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes)
@@ -60,6 +59,12 @@ const computeFileChecksumSha256 = async (file: File) => {
   const digest = await crypto.subtle.digest("SHA-256", buffer);
   return bytesToHex(new Uint8Array(digest));
 };
+
+const asStorageId = (value: string) => value as Id<"_storage">;
+const asUserId = (value: string) => value as Id<"users">;
+const asBrandAssetId = (value: string) => value as Id<"workspaceBrandAssets">;
+const asPendingUploadId = (value: string) => value as Id<"pendingFileUploads">;
+const asProjectFileId = (value: string) => value as Id<"projectFiles">;
 
 const uploadFileToConvexStorage = async (
   uploadUrl: string,
@@ -302,13 +307,7 @@ export default function DashboardApp() {
   }, [snapshot, ensureDefaultWorkspace]);
 
   useEffect(() => {
-    const cancel = scheduleIdlePrefetch(() =>
-      Promise.all([
-        loadSearchPopupModule(),
-        loadCreateProjectPopupModule(),
-        loadSettingsPopupModule(),
-      ]),
-    );
+    const cancel = scheduleIdlePrefetch(() => loadSearchPopupModule());
     return cancel;
   }, []);
 
@@ -351,22 +350,22 @@ export default function DashboardApp() {
   const viewerAvatar = viewerIdentity.avatarUrl || imgAvatar;
 
   const workspaces = useMemo(
-    () => mapWorkspacesToUi(snapshot?.workspaces ?? []),
+    () => mapWorkspacesToUi((snapshot?.workspaces ?? []) as SnapshotWorkspace[]),
     [snapshot?.workspaces],
   );
 
   const projects = useMemo(
     () =>
       mapProjectsToUi({
-        projects: (snapshot?.projects ?? []) as any,
-        tasks: (snapshot?.tasks ?? []) as any,
+        projects: (snapshot?.projects ?? []) as SnapshotProject[],
+        tasks: (snapshot?.tasks ?? []) as SnapshotTask[],
         workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
       }),
     [snapshot?.projects, snapshot?.tasks, snapshot?.activeWorkspaceSlug],
   );
 
   const workspaceTasks = useMemo(
-    () => mapWorkspaceTasksToUi((snapshot?.tasks ?? []) as any),
+    () => mapWorkspaceTasksToUi((snapshot?.tasks ?? []) as SnapshotTask[]),
     [snapshot?.tasks],
   );
 
@@ -387,20 +386,21 @@ export default function DashboardApp() {
     }, {});
   }, [projects, activeWorkspace]);
 
+  const {
+    contentModel,
+    toggleSidebar: handleToggleSidebar,
+    clearPendingHighlight,
+  } = useDashboardController({
+    currentView,
+    projects,
+    visibleProjects,
+    setIsSidebarOpen,
+    setPendingHighlight,
+    navigateView,
+  });
+
   const allWorkspaceFiles = useMemo<ProjectFileData[]>(
-    () =>
-      (workspaceFiles ?? []).map((file: any) => ({
-        id: String(file.id),
-        projectPublicId: file.projectPublicId,
-        tab: file.tab as ProjectFileTab,
-        name: file.name,
-        type: file.type,
-        displayDateEpochMs: file.displayDateEpochMs,
-        thumbnailRef: file.thumbnailRef ?? null,
-        mimeType: file.mimeType ?? null,
-        sizeBytes: file.sizeBytes ?? null,
-        downloadable: file.downloadable ?? false,
-      })),
+    () => mapWorkspaceFilesToUi((workspaceFiles ?? []) as SnapshotWorkspaceFile[]),
     [workspaceFiles],
   );
 
@@ -552,7 +552,7 @@ export default function DashboardApp() {
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       await finalizeAvatarUploadMutation({
-        storageId: storageId as any,
+        storageId: asStorageId(storageId),
         mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
         checksumSha256,
@@ -607,7 +607,7 @@ export default function DashboardApp() {
 
       await finalizeWorkspaceLogoUploadMutation({
         workspaceSlug: resolvedWorkspaceSlug,
-        storageId: storageId as any,
+        storageId: asStorageId(storageId),
         mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
         checksumSha256,
@@ -647,7 +647,7 @@ export default function DashboardApp() {
       }
       await changeWorkspaceMemberRoleAction({
         workspaceSlug: resolvedWorkspaceSlug,
-        targetUserId: payload.userId as any,
+        targetUserId: asUserId(payload.userId),
         role: payload.role,
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
@@ -662,7 +662,7 @@ export default function DashboardApp() {
       }
       await removeWorkspaceMemberAction({
         workspaceSlug: resolvedWorkspaceSlug,
-        targetUserId: payload.userId as any,
+        targetUserId: asUserId(payload.userId),
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
     },
@@ -710,7 +710,7 @@ export default function DashboardApp() {
 
       await finalizeBrandAssetUploadMutation({
         workspaceSlug: resolvedWorkspaceSlug,
-        storageId: storageId as any,
+        storageId: asStorageId(storageId),
         name: file.name,
         mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
@@ -727,7 +727,7 @@ export default function DashboardApp() {
       }
       await removeBrandAssetMutation({
         workspaceSlug: resolvedWorkspaceSlug,
-        brandAssetId: payload.brandAssetId as any,
+        brandAssetId: asBrandAssetId(payload.brandAssetId),
       });
     },
     [resolvedWorkspaceSlug, removeBrandAssetMutation],
@@ -775,7 +775,7 @@ export default function DashboardApp() {
         deadlineEpochMs: projectData.deadlineEpochMs ?? existing.deadlineEpochMs ?? null,
         status: normalizedStatus,
         draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
-        attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
+        attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
       }))
         .then(() => {
           if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
@@ -810,7 +810,7 @@ export default function DashboardApp() {
       scope: projectData.scope || undefined,
       deadlineEpochMs: projectData.deadlineEpochMs ?? null,
       status: normalizedStatus,
-      attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
+      attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map(asPendingUploadId),
       draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
     }))
       .then(() => {
@@ -998,7 +998,7 @@ export default function DashboardApp() {
     if (data.comments !== undefined) patch.reviewComments = data.comments;
 
     if (Object.keys(patch).length > 1) {
-      void updateProjectMutation(patch as any).catch((error) => {
+      void updateProjectMutation(patch).catch((error) => {
         console.error(error);
         toast.error("Failed to update project");
       });
@@ -1040,7 +1040,7 @@ export default function DashboardApp() {
     [activeWorkspace?.id, resolvedWorkspaceSlug],
   );
 
-  const handleCreateProjectFile = (projectPublicId: string, tab: ProjectFileTab, file: File) => {
+  const handleCreateProjectFile = useCallback((projectPublicId: string, tab: ProjectFileTab, file: File) => {
     void (async () => {
       const workspaceSlug = resolveUploadWorkspaceSlug();
       if (!workspaceSlug) {
@@ -1058,7 +1058,7 @@ export default function DashboardApp() {
         mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
         checksumSha256,
-        storageId: storageId as any,
+        storageId: asStorageId(storageId),
       });
 
       toast.success(`Successfully uploaded ${file.name}`);
@@ -1066,7 +1066,7 @@ export default function DashboardApp() {
       console.error(error);
       toast.error("Failed to upload file");
     });
-  };
+  }, [finalizeProjectUploadAction, generateUploadUrlMutation, resolveUploadWorkspaceSlug]);
 
   const handleUploadDraftAttachment = useCallback(
     async (file: File, draftSessionId: string): Promise<{
@@ -1092,7 +1092,7 @@ export default function DashboardApp() {
         mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
         checksumSha256,
-        storageId: storageId as any,
+        storageId: asStorageId(storageId),
       });
 
       return {
@@ -1113,7 +1113,7 @@ export default function DashboardApp() {
   const handleRemoveDraftAttachment = useCallback(
     async (pendingUploadId: string) => {
       await discardPendingUploadMutation({
-        pendingUploadId: pendingUploadId as any,
+        pendingUploadId: asPendingUploadId(pendingUploadId),
       });
     },
     [discardPendingUploadMutation],
@@ -1142,8 +1142,8 @@ export default function DashboardApp() {
     [resolveUploadWorkspaceSlug, discardPendingUploadsForSessionMutation],
   );
 
-  const handleRemoveProjectFile = (fileId: string) => {
-    void removeProjectFileMutation({ fileId: fileId as Id<"projectFiles"> })
+  const handleRemoveProjectFile = useCallback((fileId: string) => {
+    void removeProjectFileMutation({ fileId: asProjectFileId(fileId) })
       .then((result) => {
         if (result.removed) {
           toast.success("File removed");
@@ -1153,13 +1153,13 @@ export default function DashboardApp() {
         console.error(error);
         toast.error("Failed to remove file");
       });
-  };
+  }, [removeProjectFileMutation]);
 
   const handleDownloadProjectFile = useCallback(
     (fileId: string) => {
       void convex
         .query(api.files.getDownloadUrl, {
-          fileId: fileId as Id<"projectFiles">,
+          fileId: asProjectFileId(fileId),
         })
         .then((result) => {
           const downloadUrl = typeof result?.url === "string" ? result.url.trim() : "";
@@ -1181,11 +1181,41 @@ export default function DashboardApp() {
     [convex],
   );
 
+  const handleNavigateToArchiveProject = useCallback(
+    (projectId: string) => navigateView(`archive-project:${projectId}`),
+    [navigateView],
+  );
+
+  const mainContentFileActions = useMemo<MainContentFileActions>(
+    () => ({
+      create: handleCreateProjectFile,
+      remove: handleRemoveProjectFile,
+      download: handleDownloadProjectFile,
+    }),
+    [handleCreateProjectFile, handleDownloadProjectFile, handleRemoveProjectFile],
+  );
+
+  const createMainContentProjectActions = useCallback(
+    (projectId: string): MainContentProjectActions => ({
+      archive: handleArchiveProject,
+      unarchive: handleUnarchiveProject,
+      remove: handleDeleteProject,
+      updateStatus: handleUpdateProjectStatus,
+      updateProject: (data) => handleUpdateProject(projectId, data),
+    }),
+    [handleArchiveProject, handleDeleteProject, handleUnarchiveProject, handleUpdateProject, handleUpdateProjectStatus],
+  );
+
+  const baseMainContentNavigationActions = useMemo<MainContentNavigationActions>(
+    () => ({ navigate: navigateView }),
+    [navigateView],
+  );
+
   const renderContent = () => {
-    if (currentView === "tasks") {
+    if (contentModel.kind === "tasks") {
       return (
         <Tasks
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
           workspaceTasks={workspaceTasks}
@@ -1196,13 +1226,13 @@ export default function DashboardApp() {
       );
     }
 
-    if (currentView === "archive") {
+    if (contentModel.kind === "archive") {
       return (
         <ArchivePage
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
-          onNavigateToProject={(id) => navigateView(`archive-project:${id}`)}
+          onNavigateToProject={handleNavigateToArchiveProject}
           onUnarchiveProject={handleUnarchiveProject}
           onDeleteProject={handleDeleteProject}
           highlightedProjectId={highlightedArchiveProjectId}
@@ -1211,97 +1241,36 @@ export default function DashboardApp() {
       );
     }
 
-    if (currentView.startsWith("archive-project:")) {
-      const projectId = currentView.split(":")[1];
-      const project = projects[projectId];
-      if (project && project.archived) {
-        return (
-          <MainContent
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-            project={project}
-            projectFiles={projectFilesByProject[project.id] ?? []}
-            workspaceMembers={workspaceMembers}
-            viewerIdentity={viewerIdentity}
-            onCreateFile={handleCreateProjectFile}
-            onRemoveFile={handleRemoveProjectFile}
-            onDownloadFile={handleDownloadProjectFile}
-            onArchiveProject={handleArchiveProject}
-            onUnarchiveProject={handleUnarchiveProject}
-            onDeleteProject={handleDeleteProject}
-            allProjects={visibleProjects}
-            onNavigate={navigateView}
-            onUpdateStatus={handleUpdateProjectStatus}
-            onUpdateProject={(data) => handleUpdateProject(project.id, data)}
-            backTo="archive"
-            onBack={() => navigateView("archive")}
-            pendingHighlight={pendingHighlight}
-            onClearPendingHighlight={() => setPendingHighlight(null)}
-          />
-        );
-      }
-    }
+    if (contentModel.kind === "main") {
+      const project = contentModel.project;
+      const navigationActions: MainContentNavigationActions = contentModel.backTo
+        ? {
+            ...baseMainContentNavigationActions,
+            backTo: contentModel.backTo,
+            back: contentModel.back,
+          }
+        : baseMainContentNavigationActions;
 
-    if (currentView.startsWith("project:")) {
-      const projectId = currentView.split(":")[1];
-      const project = projects[projectId];
-      if (project && !project.archived) {
-        return (
-          <MainContent
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-            project={project}
-            projectFiles={projectFilesByProject[project.id] ?? []}
-            workspaceMembers={workspaceMembers}
-            viewerIdentity={viewerIdentity}
-            onCreateFile={handleCreateProjectFile}
-            onRemoveFile={handleRemoveProjectFile}
-            onDownloadFile={handleDownloadProjectFile}
-            onArchiveProject={handleArchiveProject}
-            onUnarchiveProject={handleUnarchiveProject}
-            onDeleteProject={handleDeleteProject}
-            allProjects={visibleProjects}
-            onNavigate={navigateView}
-            onUpdateStatus={handleUpdateProjectStatus}
-            onUpdateProject={(data) => handleUpdateProject(project.id, data)}
-            pendingHighlight={pendingHighlight}
-            onClearPendingHighlight={() => setPendingHighlight(null)}
-          />
-        );
-      }
-    }
-
-    const firstProject = Object.values(visibleProjects).find(
-      (project) => !project.archived && project.status.label !== "Draft" && project.status.label !== "Review",
-    );
-
-    if (firstProject) {
       return (
         <MainContent
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
-          project={firstProject}
-          projectFiles={projectFilesByProject[firstProject.id] ?? []}
+          project={project}
+          projectFiles={projectFilesByProject[project.id] ?? []}
           workspaceMembers={workspaceMembers}
           viewerIdentity={viewerIdentity}
-          onCreateFile={handleCreateProjectFile}
-          onRemoveFile={handleRemoveProjectFile}
-          onDownloadFile={handleDownloadProjectFile}
-          onArchiveProject={handleArchiveProject}
-          onUnarchiveProject={handleUnarchiveProject}
-          onDeleteProject={handleDeleteProject}
+          fileActions={mainContentFileActions}
+          projectActions={createMainContentProjectActions(project.id)}
+          navigationActions={navigationActions}
           allProjects={visibleProjects}
-          onNavigate={navigateView}
-          onUpdateStatus={handleUpdateProjectStatus}
-          onUpdateProject={(data) => handleUpdateProject(firstProject.id, data)}
           pendingHighlight={pendingHighlight}
-          onClearPendingHighlight={() => setPendingHighlight(null)}
+          onClearPendingHighlight={clearPendingHighlight}
         />
       );
     }
 
     return (
-      <div className="flex-1 h-full bg-[#141515] flex flex-col items-center justify-center text-white/20">
+      <div className="flex-1 h-full bg-bg-base flex flex-col items-center justify-center text-white/20">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
             <img src={imgLogo} className="w-8 h-8 opacity-40 grayscale" />
@@ -1322,7 +1291,7 @@ export default function DashboardApp() {
 
   if (!snapshot) {
     return (
-      <div className="min-h-screen w-full bg-[#141515] flex items-center justify-center text-white/60 font-['Roboto',sans-serif]">
+      <div className="min-h-screen w-full bg-bg-base flex items-center justify-center text-white/60 font-['Roboto',sans-serif]">
         Loading workspace...
       </div>
     );
@@ -1330,7 +1299,7 @@ export default function DashboardApp() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="flex h-screen w-full bg-[#141515] overflow-hidden font-['Roboto',sans-serif] antialiased text-[#E8E8E8]">
+      <div className="flex h-screen w-full bg-bg-base overflow-hidden font-['Roboto',sans-serif] antialiased text-[#E8E8E8]">
         {isSearchOpen && (
           <Suspense fallback={PopupLoadingFallback}>
             <LazySearchPopup

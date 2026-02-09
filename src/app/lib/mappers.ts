@@ -1,7 +1,15 @@
-import type { ProjectData, ReviewComment, Task, Workspace } from "../types";
+import type {
+  ProjectData,
+  ProjectDraftData,
+  ProjectFileData,
+  ProjectFileTab,
+  ReviewComment,
+  Task,
+  Workspace,
+} from "../types";
 import { getStatusStyle } from "./status";
 
-type SnapshotProject = {
+export type SnapshotProject = {
   publicId: string;
   name: string;
   description: string;
@@ -13,20 +21,9 @@ type SnapshotProject = {
   archived: boolean;
   archivedAt?: number | null;
   completedAt?: number | null;
-  draftData?: any;
-  attachments?: Array<{
-    id: number | string;
-    name: string;
-    type: string;
-    dateEpochMs?: number | null;
-    img: string;
-  }>;
-  reviewComments?: Array<{
-    id: string;
-    author: { userId?: string; name: string; avatar: string };
-    content: string;
-    timestamp: string;
-  }>;
+  draftData?: ProjectDraftData | null;
+  attachments?: ProjectData["attachments"];
+  reviewComments?: ReviewComment[];
   creator?: {
     userId?: string;
     name?: string;
@@ -34,7 +31,7 @@ type SnapshotProject = {
   };
 };
 
-type SnapshotTask = {
+export type SnapshotTask = {
   projectPublicId?: string | null;
   taskId: string;
   title: string;
@@ -46,13 +43,26 @@ type SnapshotTask = {
   completed: boolean;
 };
 
-type SnapshotWorkspace = {
+export type SnapshotWorkspace = {
   slug: string;
   name: string;
   plan: string;
   logo?: string;
   logoColor?: string;
   logoText?: string;
+};
+
+export type SnapshotWorkspaceFile = {
+  id: string | number;
+  projectPublicId: string;
+  tab: ProjectFileTab;
+  name: string;
+  type: string;
+  displayDateEpochMs: number;
+  thumbnailRef?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  downloadable?: boolean;
 };
 
 export const mapWorkspacesToUi = (workspaces: SnapshotWorkspace[]): Workspace[] =>
@@ -120,7 +130,7 @@ export const mapProjectsToUi = ({
       completedAt: project.completedAt ?? null,
       draftData: project.draftData ?? undefined,
       attachments: project.attachments,
-      comments: project.reviewComments as ReviewComment[] | undefined,
+      comments: project.reviewComments,
       tasks: tasksByProject[project.publicId] ?? [],
     };
 
@@ -139,4 +149,18 @@ export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
     },
     dueDateEpochMs: task.dueDateEpochMs ?? null,
     completed: task.completed,
+  }));
+
+export const mapWorkspaceFilesToUi = (files: SnapshotWorkspaceFile[]): ProjectFileData[] =>
+  files.map((file) => ({
+    id: String(file.id),
+    projectPublicId: file.projectPublicId,
+    tab: file.tab,
+    name: file.name,
+    type: file.type,
+    displayDateEpochMs: file.displayDateEpochMs,
+    thumbnailRef: file.thumbnailRef ?? null,
+    mimeType: file.mimeType ?? null,
+    sizeBytes: file.sizeBytes ?? null,
+    downloadable: file.downloadable ?? false,
   }));

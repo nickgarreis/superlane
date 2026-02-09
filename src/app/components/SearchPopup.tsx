@@ -1,4 +1,12 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import React, {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { Search, ArrowRight, ListChecks, Plus, Settings, Palette, Archive, CornerDownLeft, ChevronUp, ChevronDown, Clock, X, FileText, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ProjectData, ProjectFileData } from "../types";
@@ -19,6 +27,32 @@ interface SearchResult {
   taskCompleted?: boolean;
   fileType?: string;
   fileTab?: string;
+}
+
+interface SearchIndexedProject {
+  project: ProjectData;
+  searchable: string;
+}
+
+interface SearchIndexedTask {
+  projectId: string;
+  projectName: string;
+  taskId: string;
+  title: string;
+  assigneeName: string;
+  dueDateLabel: string;
+  completed: boolean;
+  searchable: string;
+}
+
+interface SearchIndexedFile {
+  key: string;
+  name: string;
+  type: string;
+  tab: string;
+  projectId: string | null;
+  dateLabel: string;
+  searchable: string;
 }
 
 interface SearchPopupProps {
@@ -58,9 +92,17 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentResults, setRecentResults] = useState<Array<{ id: string; title: string; type: string }>>([]);
+
+  const handleQueryChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    startTransition(() => {
+      setQuery(nextValue);
+    });
+  }, []);
 
   // Focus input on open
   useEffect(() => {
@@ -91,53 +133,84 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     "action-settings": () => { onClose(); onOpenSettings(); },
   }), [onClose, onNavigate, onOpenCreateProject, onOpenSettings]);
 
-  // Get the first navigable project ID for "global" file results
+  const projectsList = useMemo(() => Object.values(projects), [projects]);
+
   const firstActiveProjectId = useMemo(() => {
-    const active = Object.values(projects).find(p => !p.archived && p.status.label !== "Draft");
-    return active?.id || Object.values(projects)[0]?.id;
-  }, [projects]);
+    const active = projectsList.find((project) => !project.archived && project.status.label !== "Draft");
+    return active?.id || projectsList[0]?.id;
+  }, [projectsList]);
 
-  // Build searchable file metadata from persisted Convex records
-  const allFiles = useMemo(() => {
-    const entries: Array<{ name: string; type: string; tab: string; projectId: string | null; date: string }> = [];
-    const seen = new Set<string>();
+  const searchIndex = useMemo(() => {
+    const projectIndex: SearchIndexedProject[] = [];
+    const taskIndex: SearchIndexedTask[] = [];
 
-    files.forEach((file) => {
-      const normalizedProjectId = file.projectPublicId ?? "no-project";
-      const key = `${normalizedProjectId}-${file.tab}-${file.name}-${String(file.id)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        entries.push({
-          name: file.name,
-          type: file.type,
-          tab: file.tab,
-          projectId: file.projectPublicId ?? null,
-          date: formatFileDisplayDate(file.displayDateEpochMs),
+    for (const project of projectsList) {
+      const projectSearchable = [
+        project.name,
+        project.description,
+        project.category,
+        project.status.label,
+        project.scope ?? "",
+      ].join(" ").toLowerCase();
+
+      projectIndex.push({
+        project,
+        searchable: projectSearchable,
+      });
+
+      for (const task of project.tasks ?? []) {
+        const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
+        const assigneeName = task.assignee?.name?.trim() || "Unassigned";
+        taskIndex.push({
+          projectId: project.id,
+          projectName: project.name,
+          taskId: task.id,
+          title: task.title,
+          assigneeName,
+          dueDateLabel,
+          completed: task.completed,
+          searchable: `${task.title} ${assigneeName} ${dueDateLabel}`.toLowerCase(),
         });
       }
-    });
+    }
 
-    return entries;
-  }, [files]);
+    const fileIndex: SearchIndexedFile[] = [];
+    const seen = new Set<string>();
+    for (const file of files) {
+      const normalizedProjectId = file.projectPublicId ?? "no-project";
+      const key = `${normalizedProjectId}-${file.tab}-${file.name}-${String(file.id)}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      fileIndex.push({
+        key,
+        name: file.name,
+        type: file.type,
+        tab: file.tab,
+        projectId: file.projectPublicId ?? null,
+        dateLabel: formatFileDisplayDate(file.displayDateEpochMs),
+        searchable: `${file.name} ${file.type}`.toLowerCase(),
+      });
+    }
+
+    return {
+      projectIndex,
+      taskIndex,
+      fileIndex,
+    };
+  }, [files, projectsList]);
 
   // Search logic
   const results = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = deferredQuery.toLowerCase().trim();
     const items: SearchResult[] = [];
-
-    const allProjects = Object.values(projects);
 
     if (!q) return items;
 
-    // Search projects
-    allProjects.forEach(project => {
-      const nameMatch = project.name.toLowerCase().includes(q);
-      const descMatch = project.description.toLowerCase().includes(q);
-      const catMatch = project.category.toLowerCase().includes(q);
-      const statusMatch = project.status.label.toLowerCase().includes(q);
-      const scopeMatch = project.scope?.toLowerCase().includes(q) || false;
-
-      if (nameMatch || descMatch || catMatch || statusMatch || scopeMatch) {
+    for (const projectEntry of searchIndex.projectIndex) {
+      const { project, searchable } = projectEntry;
+      if (searchable.includes(q)) {
         items.push({
           id: `project-${project.id}`,
           type: "project",
@@ -158,70 +231,59 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
           }
         });
       }
+    }
 
-      // Search tasks within this project (title + assignee + dueDate)
-      if (project.tasks) {
-        project.tasks.forEach(task => {
-          const titleMatch = task.title.toLowerCase().includes(q);
-          const assigneeMatch = task.assignee.name.toLowerCase().includes(q);
-          const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
-          const dueDateMatch = dueDateLabel.toLowerCase().includes(q);
-
-          if (titleMatch || assigneeMatch || dueDateMatch) {
-            items.push({
-              id: `task-${project.id}-${task.id}`,
-              type: "task",
-              title: task.title,
-              subtitle: `${task.assignee.name} · ${dueDateLabel} · in ${project.name}`,
-              icon: <ListChecks size={15} />,
-              projectId: project.id,
-              taskCompleted: task.completed,
-              action: () => {
-                onClose();
-                onNavigate(`project:${project.id}`);
-                if (onHighlightNavigate) {
-                  onHighlightNavigate(project.id, { type: "task", taskId: task.id });
-                }
-              }
-            });
-          }
-        });
+    for (const taskEntry of searchIndex.taskIndex) {
+      if (!taskEntry.searchable.includes(q)) {
+        continue;
       }
-    });
+      items.push({
+        id: `task-${taskEntry.projectId}-${taskEntry.taskId}`,
+        type: "task",
+        title: taskEntry.title,
+        subtitle: `${taskEntry.assigneeName} · ${taskEntry.dueDateLabel} · in ${taskEntry.projectName}`,
+        icon: <ListChecks size={15} />,
+        projectId: taskEntry.projectId,
+        taskCompleted: taskEntry.completed,
+        action: () => {
+          onClose();
+          onNavigate(`project:${taskEntry.projectId}`);
+          if (onHighlightNavigate) {
+            onHighlightNavigate(taskEntry.projectId, { type: "task", taskId: taskEntry.taskId });
+          }
+        }
+      });
+    }
 
-    // Search files
-    allFiles.forEach((file, idx) => {
-      const nameMatch = file.name.toLowerCase().includes(q);
-      const typeMatch = file.type.toLowerCase().includes(q);
-
-      if (nameMatch || typeMatch) {
-        const targetProject = file.projectId || firstActiveProjectId;
-        items.push({
-          id: `file-${idx}-${file.name}`,
-          type: "file",
-          title: file.name,
-          subtitle: file.projectId
-            ? `${file.tab} · in ${projects[file.projectId]?.name || "project"}`
-            : `${file.tab} · ${file.date}`,
-          icon: file.tab === "Attachments" ? <Paperclip size={14} /> : <FileText size={14} />,
-          fileType: file.type,
-          fileTab: file.tab,
-          projectId: targetProject,
-          action: () => {
-            onClose();
-            if (targetProject) {
-              onNavigate(`project:${targetProject}`);
-              if (onHighlightNavigate) {
-                onHighlightNavigate(targetProject, { type: "file", fileName: file.name, fileTab: file.tab });
-              }
+    for (const fileEntry of searchIndex.fileIndex) {
+      if (!fileEntry.searchable.includes(q)) {
+        continue;
+      }
+      const targetProject = fileEntry.projectId || firstActiveProjectId;
+      items.push({
+        id: `file-${fileEntry.key}`,
+        type: "file",
+        title: fileEntry.name,
+        subtitle: fileEntry.projectId
+          ? `${fileEntry.tab} · in ${projects[fileEntry.projectId]?.name || "project"}`
+          : `${fileEntry.tab} · ${fileEntry.dateLabel}`,
+        icon: fileEntry.tab === "Attachments" ? <Paperclip size={14} /> : <FileText size={14} />,
+        fileType: fileEntry.type,
+        fileTab: fileEntry.tab,
+        projectId: targetProject,
+        action: () => {
+          onClose();
+          if (targetProject) {
+            onNavigate(`project:${targetProject}`);
+            if (onHighlightNavigate) {
+              onHighlightNavigate(targetProject, { type: "file", fileName: fileEntry.name, fileTab: fileEntry.tab });
             }
           }
-        });
-      }
-    });
+        }
+      });
+    }
 
-    // Search quick actions
-    QUICK_ACTIONS.forEach(act => {
+    QUICK_ACTIONS.forEach((act) => {
       if (act.label.toLowerCase().includes(q) || act.keyword.toLowerCase().includes(q)) {
         items.push({
           id: act.id,
@@ -235,15 +297,32 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     });
 
     return items;
-  }, [query, projects, allFiles, firstActiveProjectId, onClose, onNavigate, actionHandlers, onHighlightNavigate]);
+  }, [actionHandlers, deferredQuery, firstActiveProjectId, onClose, onHighlightNavigate, onNavigate, projects, searchIndex]);
 
   // Group results by type
   const grouped = useMemo(() => {
-    const projectResults = results.filter(r => r.type === "project");
-    const taskResults = results.filter(r => r.type === "task");
-    const fileResults = results.filter(r => r.type === "file");
-    const actionResults = results.filter(r => r.type === "action");
-    return { projectResults, taskResults, fileResults, actionResults };
+    return results.reduce<{
+      projectResults: SearchResult[];
+      taskResults: SearchResult[];
+      fileResults: SearchResult[];
+      actionResults: SearchResult[];
+    }>((acc, result) => {
+      if (result.type === "project") {
+        acc.projectResults.push(result);
+      } else if (result.type === "task") {
+        acc.taskResults.push(result);
+      } else if (result.type === "file") {
+        acc.fileResults.push(result);
+      } else {
+        acc.actionResults.push(result);
+      }
+      return acc;
+    }, {
+      projectResults: [],
+      taskResults: [],
+      fileResults: [],
+      actionResults: [],
+    });
   }, [results]);
 
   // Flat list for keyboard navigation
@@ -253,15 +332,14 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
   // Default content when no query
   const defaultContent = useMemo(() => {
-    const allProjects = Object.values(projects);
-    const activeProjects = allProjects
-      .filter(p => !p.archived && p.status.label !== "Completed" && p.status.label !== "Draft")
+    const activeProjects = projectsList
+      .filter((project) => !project.archived && project.status.label !== "Completed" && project.status.label !== "Draft")
       .slice(0, 4);
 
     const defaultItems: SearchResult[] = [];
 
     // Recent result items
-    recentResults.forEach(recent => {
+    recentResults.forEach((recent) => {
       const project = projects[recent.id];
       if (project) {
         defaultItems.push({
@@ -287,7 +365,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
     // If no recents, show active projects
     if (defaultItems.length === 0) {
-      activeProjects.forEach(project => {
+      activeProjects.forEach((project) => {
         defaultItems.push({
           id: `default-${project.id}`,
           type: "project",
@@ -306,46 +384,48 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     }
 
     return defaultItems;
-  }, [projects, recentResults, onClose, onNavigate]);
+  }, [onClose, onNavigate, projects, projectsList, recentResults]);
 
   // Suggestions: incomplete tasks, draft projects, projects not already in recents
   const suggestions = useMemo(() => {
-    const recentIds = new Set(recentResults.map(r => r.id));
-    const defaultIds = new Set(defaultContent.map(d => d.projectId));
+    const recentIds = new Set(recentResults.map((recent) => recent.id));
+    const defaultIds = new Set(defaultContent.map((item) => item.projectId).filter(Boolean));
     const items: SearchResult[] = [];
+    let taskSuggestionCount = 0;
 
-    const allProjects = Object.values(projects);
-
-    // 1. Incomplete tasks due soon (up to 3)
-    allProjects.forEach(project => {
-      if (project.archived || project.status.label === "Completed") return;
-      (project.tasks || []).forEach(task => {
-        if (!task.completed && items.filter(i => i.type === "task").length < 3) {
-          items.push({
-            id: `suggest-task-${project.id}-${task.id}`,
-            type: "task",
-            title: task.title,
-            subtitle: `${formatTaskDueDate(task.dueDateEpochMs)} · in ${project.name}`,
-            icon: <ListChecks size={15} />,
-            projectId: project.id,
-            taskCompleted: false,
-            action: () => {
-              onClose();
-              onNavigate(`project:${project.id}`);
-              if (onHighlightNavigate) {
-                onHighlightNavigate(project.id, { type: "task", taskId: task.id });
-              }
-            }
-          });
+    for (const project of projectsList) {
+      if (project.archived || project.status.label === "Completed") {
+        continue;
+      }
+      for (const task of project.tasks || []) {
+        if (task.completed || taskSuggestionCount >= 3) {
+          continue;
         }
-      });
-    });
+        taskSuggestionCount += 1;
+        items.push({
+          id: `suggest-task-${project.id}-${task.id}`,
+          type: "task",
+          title: task.title,
+          subtitle: `${formatTaskDueDate(task.dueDateEpochMs)} · in ${project.name}`,
+          icon: <ListChecks size={15} />,
+          projectId: project.id,
+          taskCompleted: false,
+          action: () => {
+            onClose();
+            onNavigate(`project:${project.id}`);
+            if (onHighlightNavigate) {
+              onHighlightNavigate(project.id, { type: "task", taskId: task.id });
+            }
+          }
+        });
+      }
+    }
 
     // 2. Draft projects that need attention (up to 2)
-    allProjects
-      .filter(p => !p.archived && p.status.label === "Draft" && !recentIds.has(p.id) && !defaultIds.has(p.id))
+    projectsList
+      .filter((project) => !project.archived && project.status.label === "Draft" && !recentIds.has(project.id) && !defaultIds.has(project.id))
       .slice(0, 2)
-      .forEach(project => {
+      .forEach((project) => {
         items.push({
           id: `suggest-draft-${project.id}`,
           type: "project",
@@ -360,10 +440,15 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
       });
 
     // 3. Other active projects not already shown (up to 2)
-    allProjects
-      .filter(p => !p.archived && p.status.label !== "Completed" && p.status.label !== "Draft" && !recentIds.has(p.id) && !defaultIds.has(p.id))
+    projectsList
+      .filter((project) =>
+        !project.archived
+        && project.status.label !== "Completed"
+        && project.status.label !== "Draft"
+        && !recentIds.has(project.id)
+        && !defaultIds.has(project.id))
       .slice(0, 2)
-      .forEach(project => {
+      .forEach((project) => {
         items.push({
           id: `suggest-project-${project.id}`,
           type: "project",
@@ -378,12 +463,13 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
       });
 
     return items;
-  }, [projects, recentResults, defaultContent, onClose, onNavigate, onHighlightNavigate]);
+  }, [defaultContent, onClose, onHighlightNavigate, onNavigate, projectsList, recentResults]);
 
   const flatDefault = useMemo(() => [...defaultContent], [defaultContent]);
   // Combined default list for keyboard navigation: recent/projects + suggestions
   const combinedDefaultList = useMemo(() => [...flatDefault, ...suggestions], [flatDefault, suggestions]);
-  const currentList = query.trim() ? flatResults : combinedDefaultList;
+  const hasSearchQuery = query.trim().length > 0;
+  const currentList = hasSearchQuery ? flatResults : combinedDefaultList;
 
   // Clamp active index
   useEffect(() => {
@@ -392,7 +478,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const totalQuickActions = query.trim() ? 0 : QUICK_ACTIONS.length;
+    const totalQuickActions = hasSearchQuery ? 0 : QUICK_ACTIONS.length;
     const total = currentList.length + totalQuickActions;
 
     if (e.key === "ArrowDown") {
@@ -408,17 +494,17 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         if (item.projectId) {
           trackRecent(item.projectId, item.title, item.type);
         }
-        if (query.trim()) trackRecentSearch(query.trim());
+        if (hasSearchQuery) trackRecentSearch(query.trim());
         item.action();
       } else {
         const actionIdx = activeIndex - currentList.length;
-        if (!query.trim() && actionIdx >= 0 && actionIdx < QUICK_ACTIONS.length) {
+        if (!hasSearchQuery && actionIdx >= 0 && actionIdx < QUICK_ACTIONS.length) {
           const act = QUICK_ACTIONS[actionIdx];
           actionHandlers[act.id]();
         }
       }
     }
-  }, [activeIndex, currentList, query, actionHandlers]);
+  }, [actionHandlers, activeIndex, currentList, hasSearchQuery, query]);
 
   const trackRecent = (id: string, title: string, type: string) => {
     setRecentResults(prev => {
@@ -448,13 +534,12 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     if (item.projectId) {
       trackRecent(item.projectId, item.title, item.type);
     }
-    if (query.trim()) trackRecentSearch(query.trim());
+    if (hasSearchQuery) trackRecentSearch(query.trim());
     item.action();
   };
 
   if (!isOpen) return null;
 
-  const hasQuery = query.trim().length > 0;
   const hasResults = flatResults.length > 0;
 
   // Compute index offsets for each section
@@ -498,7 +583,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
           <span className={`text-[13px] truncate transition-colors ${
             isActive ? "text-[#E8E8E8]" : "text-[#E8E8E8]/80"
           }`}>
-            {hasQuery ? highlightMatch(item.title, query) : item.title}
+            {hasSearchQuery ? highlightMatch(item.title, query) : item.title}
           </span>
           <span className="text-[11px] text-white/30 truncate flex items-center gap-1.5">
             {item.type === "task" && item.taskCompleted !== undefined && (
@@ -584,14 +669,19 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleQueryChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Search projects, tasks, files, or actions..."
                 className="flex-1 bg-transparent border-none text-[14px] text-[#E8E8E8] placeholder:text-white/25 focus:outline-none"
               />
               {query && (
                 <button
-                  onClick={() => { setQuery(""); inputRef.current?.focus(); }}
+                  onClick={() => {
+                    startTransition(() => {
+                      setQuery("");
+                    });
+                    inputRef.current?.focus();
+                  }}
                   className="p-1 hover:bg-white/10 rounded-md transition-colors"
                 >
                   <X size={14} className="text-white/30" />
@@ -602,7 +692,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
             {/* Results */}
             <div ref={resultsRef} className="flex-1 overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide">
-              {hasQuery ? (
+              {hasSearchQuery ? (
                 hasResults ? (
                   <>
                     {grouped.projectResults.length > 0 && (
@@ -650,7 +740,11 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
                           <button
                             key={i}
                             className="text-[11px] text-white/35 hover:text-white/60 bg-white/[0.04] hover:bg-white/[0.07] px-2 py-0.5 rounded-md transition-colors"
-                            onClick={() => setQuery(s)}
+                            onClick={() => {
+                              startTransition(() => {
+                                setQuery(s);
+                              });
+                            }}
                           >
                             {s}
                           </button>
@@ -699,7 +793,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
                 <kbd className="px-1 h-4 inline-flex items-center rounded bg-white/[0.06] border border-white/[0.06] text-[9px]">esc</kbd>
                 close
               </div>
-              {hasQuery && hasResults && (
+              {hasSearchQuery && hasResults && (
                 <span className="ml-auto text-[10px] text-white/15 tabular-nums">{flatResults.length} result{flatResults.length !== 1 ? "s" : ""}</span>
               )}
             </div>

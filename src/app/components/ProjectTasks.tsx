@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, Check, Trash2, Calendar, ArrowUpDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
@@ -17,6 +17,14 @@ type TaskProjectOption = {
   name: string;
   category: string;
 };
+
+type TaskSortBy = "dueDate" | "name" | "status";
+
+const TASK_SORT_OPTIONS: ReadonlyArray<{ id: TaskSortBy; label: string }> = [
+  { id: "dueDate", label: "Due Date" },
+  { id: "name", label: "Name" },
+  { id: "status", label: "Status" },
+];
 
 interface ProjectTasksProps {
   tasks: Task[];
@@ -62,16 +70,20 @@ export function ProjectTasks({
   const [isNewTaskProjectOpen, setIsNewTaskProjectOpen] = useState(false);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<"dueDate" | "name" | "status">("dueDate");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const sortedTasks = disableInternalSort
-    ? initialTasks
-    : [...initialTasks].sort((a, b) => {
-        if (sortBy === "name") return a.title.localeCompare(b.title);
-        if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-        return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
-      });
+  const sortedTasks = useMemo(
+    () =>
+      disableInternalSort
+        ? initialTasks
+        : [...initialTasks].sort((a, b) => {
+            if (sortBy === "name") return a.title.localeCompare(b.title);
+            if (sortBy === "status") return Number(a.completed) - Number(b.completed);
+            return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
+          }),
+    [disableInternalSort, initialTasks, sortBy],
+  );
 
   useEffect(() => {
     if (!showProjectColumn) {
@@ -246,15 +258,11 @@ export function ProjectTasks({
                             <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                                 Sort by
                             </div>
-                            {[
-                                { id: "dueDate", label: "Due Date" },
-                                { id: "name", label: "Name" },
-                                { id: "status", label: "Status" }
-                            ].map((option) => (
+                            {TASK_SORT_OPTIONS.map((option) => (
                                 <button
                                     key={option.id}
                                     onClick={() => {
-                                        setSortBy(option.id as any);
+                                        setSortBy(option.id);
                                         setIsSortOpen(false);
                                     }}
                                     className="w-full px-2 py-1.5 rounded-lg text-left text-[13px] hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3 group"
@@ -426,7 +434,7 @@ export function ProjectTasks({
                         ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
                         layout
                         exit={{ opacity: 0 }}
-                        className="group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative"
+                        className="project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative"
                     >
                         <div 
                             className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"

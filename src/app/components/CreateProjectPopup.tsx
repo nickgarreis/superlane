@@ -79,6 +79,14 @@ const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
 const createDraftSessionId = () =>
   `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+type CreateProjectPayload = Partial<ProjectData> & {
+  status?: string;
+  draftData?: ProjectDraftData | null;
+  _editProjectId?: string;
+  _generatedId?: string;
+  attachmentPendingUploadIds?: string[];
+};
+
 function ServiceIcon() {
   return (
     <div className="col-1 h-[15.159px] mask-alpha mask-intersect mask-no-clip mask-no-repeat mask-position-[0px_0.005px] mask-size-[16px_15.143px] ml-0 mt-[-0.03%] relative row-1 w-[15.989px]" style={{ maskImage: `url('${imgGroup}')` }}>
@@ -262,7 +270,7 @@ export function CreateProjectPopup({
 }: { 
   isOpen: boolean; 
   onClose: () => void;
-  onCreate?: (data: any) => void;
+  onCreate?: (data: CreateProjectPayload) => void;
   user?: { userId?: string; name: string; avatar: string; role?: WorkspaceRole };
   editProjectId?: string | null;
   initialDraftData?: ProjectDraftData | null;
@@ -566,7 +574,7 @@ export function CreateProjectPopup({
     const generatedId = editProjectId || (projectName || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now();
     setCreatedProjectId(generatedId);
 
-    const projectData: any = {
+    const projectData: CreateProjectPayload = {
       _generatedId: generatedId,
       name: projectName,
       description,
@@ -768,7 +776,7 @@ export function CreateProjectPopup({
   const handleConfirmCancel = () => {
     if (editProjectId && initialDraftData) {
       // Revert: re-save the project with its ORIGINAL draft data (no changes)
-      const revertData: any = {
+      const revertData: CreateProjectPayload = {
         name: initialDraftData.projectName,
         description: initialDraftData.description,
         category: initialDraftData.selectedService,

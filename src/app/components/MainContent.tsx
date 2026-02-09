@@ -8,7 +8,12 @@ import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
 import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
-import type { AppView } from "../lib/routing";
+import type {
+  MainContentFileActions,
+  MainContentNavigationActions,
+  MainContentProjectActions,
+  PendingHighlight,
+} from "../dashboard/types";
 import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
 import { scheduleIdlePrefetch } from "../lib/prefetch";
 
@@ -115,6 +120,21 @@ function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, o
   );
 }
 
+interface MainContentProps {
+  onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
+  project: ProjectData;
+  projectFiles: ProjectFileData[];
+  workspaceMembers: WorkspaceMember[];
+  viewerIdentity: ViewerIdentity;
+  fileActions: MainContentFileActions;
+  projectActions: MainContentProjectActions;
+  navigationActions?: MainContentNavigationActions;
+  allProjects?: Record<string, ProjectData>;
+  pendingHighlight?: PendingHighlight | null;
+  onClearPendingHighlight?: () => void;
+}
+
 export function MainContent({ 
     onToggleSidebar, 
     isSidebarOpen,
@@ -122,42 +142,13 @@ export function MainContent({
     projectFiles,
     workspaceMembers,
     viewerIdentity,
-    onCreateFile,
-    onRemoveFile,
-    onDownloadFile,
-    onArchiveProject, 
-    onUnarchiveProject, 
-    onDeleteProject,
+    fileActions,
+    projectActions,
+    navigationActions,
     allProjects,
-    onNavigate,
-    onUpdateStatus,
-    onUpdateProject,
-    backTo,
-    onBack,
     pendingHighlight,
     onClearPendingHighlight
-}: { 
-    onToggleSidebar: () => void, 
-    isSidebarOpen: boolean,
-    project: ProjectData, 
-    projectFiles: ProjectFileData[],
-    workspaceMembers: WorkspaceMember[];
-    viewerIdentity: ViewerIdentity;
-    onCreateFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void,
-    onRemoveFile: (fileId: string) => void,
-    onDownloadFile: (fileId: string) => void,
-    onArchiveProject?: (id: string) => void, 
-    onUnarchiveProject?: (id: string) => void, 
-    onDeleteProject?: (id: string) => void,
-    allProjects?: Record<string, ProjectData>,
-    onNavigate?: (view: AppView) => void,
-    onUpdateStatus?: (id: string, status: string) => void,
-    onUpdateProject?: (data: Partial<ProjectData>) => void,
-    backTo?: string,
-    onBack?: () => void,
-    pendingHighlight?: { projectId?: string; type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string } | null,
-    onClearPendingHighlight?: () => void
-}) {
+}: MainContentProps) {
   const [activeTab, setActiveTab] = useState<ProjectFileTab>("Assets");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"relevance" | "name">("relevance");
@@ -281,36 +272,92 @@ export function MainContent({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadClick = () => {
-      fileInputRef.current?.click();
-  };
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      onCreateFile(project.id, activeTab, file);
+      fileActions.create(project.id, activeTab, file);
 
       if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  }, [activeTab, fileActions, project.id]);
   
-  const handleRemoveFile = (id: string, e: React.MouseEvent) => {
+  const handleRemoveFile = useCallback((id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      onRemoveFile(id);
-  };
+      fileActions.remove(id);
+  }, [fileActions]);
 
   const currentFiles = filesByTab[activeTab];
-  
-  const filteredFiles = currentFiles
-    .filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-        if (sortBy === "name") return a.name.localeCompare(b.name);
-        return 0;
-    });
+
+  const filteredFiles = useMemo(
+    () =>
+      currentFiles
+        .filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => {
+          if (sortBy === "name") return a.name.localeCompare(b.name);
+          return 0;
+        }),
+    [currentFiles, searchQuery, sortBy],
+  );
+
+  const renderedFileRows = useMemo(
+    () =>
+      filteredFiles.map((file) => (
+        <motion.div
+          key={file.id}
+          ref={(el: HTMLDivElement | null) => { fileRowRefs.current[file.id] = el; }}
+          layout
+          exit={{ opacity: 0 }}
+          className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+        >
+          <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
+            <img
+              src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
+            <div className="flex items-center gap-2 text-xs text-white/40">
+              <span className="uppercase">{file.type}</span>
+              <span>•</span>
+              <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
+            </div>
+          </div>
+
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+            {file.downloadable !== false && (
+              <button
+                title="Download"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  fileActions.download(file.id);
+                }}
+                className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
+              >
+                <Download size={14} />
+              </button>
+            )}
+            <button
+              title="Remove"
+              onClick={(e) => handleRemoveFile(file.id, e)}
+              className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </motion.div>
+      )),
+    [filteredFiles, fileActions, handleRemoveFile],
+  );
 
   return (
-    <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-      <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
+    <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
+      <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
@@ -320,9 +367,9 @@ export function MainContent({
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto px-[80px] py-[40px]">
             {/* Back button for archive navigation */}
-            {backTo && onBack && (
+            {navigationActions?.backTo && navigationActions?.back && (
                 <button 
-                    onClick={onBack}
+                    onClick={navigationActions.back}
                     className="flex items-center gap-2 text-[13px] text-white/50 hover:text-white/80 transition-colors mb-6 cursor-pointer group"
                 >
                     <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -339,11 +386,11 @@ export function MainContent({
                 <MenuIcon 
                     isArchived={project.archived}
                     isCompleted={project.status.label === "Completed"}
-                    onArchive={() => onArchiveProject?.(project.id)} 
-                    onUnarchive={() => onUnarchiveProject?.(project.id)}
-                    onDelete={() => onDeleteProject?.(project.id)}
-                    onComplete={() => onUpdateStatus?.(project.id, "Completed")}
-                    onUncomplete={() => onUpdateStatus?.(project.id, "Active")}
+                    onArchive={() => projectActions.archive?.(project.id)} 
+                    onUnarchive={() => projectActions.unarchive?.(project.id)}
+                    onDelete={() => projectActions.remove?.(project.id)}
+                    onComplete={() => projectActions.updateStatus?.(project.id, "Completed")}
+                    onUncomplete={() => projectActions.updateStatus?.(project.id, "Active")}
                 />
                 </div>
                 <div className="max-w-[672px]">
@@ -423,7 +470,7 @@ export function MainContent({
             <ProjectTasks 
                 key={project.id}
                 tasks={project.tasks || []} 
-                onUpdateTasks={(newTasks) => onUpdateProject?.({ tasks: newTasks })} 
+                onUpdateTasks={(newTasks) => projectActions.updateProject?.({ tasks: newTasks })} 
                 highlightedTaskId={highlightedTaskId}
                 onHighlightDone={handleHighlightDone}
                 assignableMembers={workspaceMembers}
@@ -553,54 +600,7 @@ export function MainContent({
             {/* File List */}
             <div className="flex flex-col gap-2">
                 <AnimatePresence initial={false} key={project.id + '-' + activeTab}>
-                {filteredFiles.map((file) => (
-                    <motion.div
-                        key={file.id}
-                        ref={(el: HTMLDivElement | null) => { fileRowRefs.current[file.id] = el; }}
-                        layout
-                        exit={{ opacity: 0 }}
-                        className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
-                    >
-                        <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
-                            <img
-                              src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
-                            <div className="flex items-center gap-2 text-xs text-white/40">
-                                <span className="uppercase">{file.type}</span>
-                                <span>•</span>
-                                <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
-                            </div>
-                        </div>
-
-                        {/* Action icons */}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                          {file.downloadable !== false && (
-                            <button
-                              title="Download"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onDownloadFile(file.id);
-                              }}
-                              className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
-                            >
-                              <Download size={14} />
-                            </button>
-                          )}
-                          <button
-                            title="Remove"
-                            onClick={(e) => handleRemoveFile(file.id, e)}
-                            className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                    </motion.div>
-                ))}
+                {renderedFileRows}
                 </AnimatePresence>
                 {filteredFiles.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-white/40">
@@ -622,7 +622,7 @@ export function MainContent({
                   onClose={() => setIsChatOpen(false)}
                   activeProject={project}
                   allProjects={allProjects || {}}
-                  onSwitchProject={onNavigate}
+                  onSwitchProject={navigationActions?.navigate}
                   onMentionClick={handleMentionClick}
                   allFiles={allFiles}
                   workspaceMembers={workspaceMembers}

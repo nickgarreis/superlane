@@ -65,8 +65,8 @@ export function BrandAssets({ onToggleSidebar, isSidebarOpen }: { onToggleSideba
     });
 
   return (
-    <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-      <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
+    <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
+      <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">

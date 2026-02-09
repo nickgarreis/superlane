@@ -74,7 +74,7 @@ export function AuthCallbackPage() {
   }, [hasCode, navigate, workosError, workosErrorDescription]);
 
   return (
-    <div className="min-h-screen w-full bg-[#141515] flex items-center justify-center p-4 text-white/70 font-['Roboto',sans-serif]">
+    <div className="min-h-screen w-full bg-bg-base flex items-center justify-center p-4 text-white/70 font-['Roboto',sans-serif]">
       Completing secure sign-in...
     </div>
   );

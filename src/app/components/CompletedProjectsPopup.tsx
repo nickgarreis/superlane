@@ -81,7 +81,7 @@ export function CompletedProjectsPopup({
             />
 
             {/* Modal */}
-            <div className="relative w-[720px] max-h-[80vh] bg-[#191A1A] border border-white/[0.08] rounded-2xl shadow-2xl flex flex-col overflow-hidden font-['Roboto',sans-serif]">
+            <div className="relative w-[720px] max-h-[80vh] bg-bg-surface border border-white/[0.08] rounded-2xl shadow-2xl flex flex-col overflow-hidden font-['Roboto',sans-serif]">
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 pt-7 pb-1">
                     <div>

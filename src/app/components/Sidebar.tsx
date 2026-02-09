@@ -561,7 +561,7 @@ export function Sidebar({
                             isCollapsible
                             isExpanded={isProjectsExpanded}
                             onToggle={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                            className="sticky top-0 z-10 bg-[#141515] mt-0 border-b border-transparent transition-colors duration-200"
+                            className="sticky top-0 z-10 bg-bg-base mt-0 border-b border-transparent transition-colors duration-200"
                         />
                         <CollapsibleContent isExpanded={isProjectsExpanded}>
                             <div className="flex flex-col gap-0.5 pb-2">

@@ -8,6 +8,14 @@ import { Filter, Plus, ArrowUpDown } from "lucide-react";
 import { ProjectLogo } from "./ProjectLogo";
 import { compareNullableEpochMsAsc } from "../lib/dates";
 
+type TaskSortBy = "dueDate" | "name" | "status";
+
+const TASK_SORT_OPTIONS: ReadonlyArray<{ id: TaskSortBy; label: string }> = [
+  { id: "dueDate", label: "Due Date" },
+  { id: "name", label: "Name" },
+  { id: "status", label: "Status" },
+];
+
 export function Tasks({ 
     onToggleSidebar, 
     isSidebarOpen,
@@ -26,7 +34,7 @@ export function Tasks({
     viewerIdentity: ViewerIdentity;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"dueDate" | "name" | "status">("dueDate");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
   const [isSortOpen, setIsSortOpen] = useState(false);
   
   const [filterProject, setFilterProject] = useState<string[]>([]);
@@ -57,23 +65,24 @@ export function Tasks({
     setFilterProject((current) => current.filter((projectId) => activeProjectIds.has(projectId)));
   }, [activeProjectIds]);
 
-  const filteredTasks = allTasks
-    .filter(task => {
-        const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        // If filters are active, match selected project IDs.
-        // If no filters are active, include all visible workspace tasks.
-        const matchesProject = filterProject.length > 0
+  const filteredTasks = useMemo(
+    () =>
+      allTasks
+        .filter((task) => {
+          const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
+          const matchesProject = filterProject.length > 0
             ? Boolean(task.projectId && filterProject.includes(task.projectId))
             : true;
 
-        return matchesSearch && matchesProject;
-    })
-    .sort((a, b) => {
-        if (sortBy === "name") return a.title.localeCompare(b.title);
-        if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-        return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
-    });
+          return matchesSearch && matchesProject;
+        })
+        .sort((a, b) => {
+          if (sortBy === "name") return a.title.localeCompare(b.title);
+          if (sortBy === "status") return Number(a.completed) - Number(b.completed);
+          return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
+        }),
+    [allTasks, filterProject, searchQuery, sortBy],
+  );
 
   const handleUpdateTasks = (newTasks: Task[]) => {
       const previousIdsInView = new Set(filteredTasks.map((task) => task.id));
@@ -110,8 +119,8 @@ export function Tasks({
   };
 
   return (
-    <div className="flex-1 h-full bg-[#141515] text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
-      <div className="relative bg-[#191A1A] m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
+    <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
+      <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
@@ -243,15 +252,11 @@ export function Tasks({
                                     <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                                         Sort by
                                     </div>
-                                    {[
-                                        { id: "dueDate", label: "Due Date" },
-                                        { id: "name", label: "Name" },
-                                        { id: "status", label: "Status" }
-                                    ].map((option) => (
+                                    {TASK_SORT_OPTIONS.map((option) => (
                                         <button
                                             key={option.id}
                                             onClick={() => {
-                                                setSortBy(option.id as any);
+                                                setSortBy(option.id);
                                                 setIsSortOpen(false);
                                             }}
                                             className="w-full px-2 py-1.5 rounded-lg text-left text-[13px] hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3 group"

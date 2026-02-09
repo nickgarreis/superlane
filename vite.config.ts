@@ -29,6 +29,27 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined
+          }
+          if (id.includes('/react-dnd/') || id.includes('/react-dnd-html5-backend/')) {
+            return 'vendor-dnd'
+          }
+          if (id.includes('/react-day-picker/')) {
+            return 'vendor-day-picker'
+          }
+          if (id.includes('/@radix-ui/')) {
+            return 'vendor-radix'
+          }
+          return 'vendor'
+        },
+      },
+    },
+  },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],

@@ -208,10 +208,10 @@ export function SettingsPopup({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[980px] h-[680px] bg-[#141515] border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-['Roboto',sans-serif] text-[#E8E8E8]"
+        className="w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-['Roboto',sans-serif] text-[#E8E8E8]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="w-[240px] flex flex-col py-6 px-4 shrink-0 bg-[#141515]">
+        <div className="w-[240px] flex flex-col py-6 px-4 shrink-0 bg-bg-base">
           <div className="px-2 mb-6 mt-2">
             <span className="text-[18px] font-medium text-[#E8E8E8]">Settings</span>
           </div>
@@ -254,7 +254,7 @@ export function SettingsPopup({
           </div>
         </div>
 
-        <div className="flex-1 bg-[#191A1A] m-2 rounded-[20px] border border-white/5 flex flex-col overflow-hidden relative">
+        <div className="flex-1 bg-bg-surface m-2 rounded-[20px] border border-white/5 flex flex-col overflow-hidden relative">
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={onClose}
@@ -442,7 +442,7 @@ function AccountSettings({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarBusy}
-              className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-[#141515] rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-60"
+              className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-bg-base rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-60"
             >
               Upload new
             </button>
@@ -497,7 +497,7 @@ function AccountSettings({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-[#141515] rounded-full text-[14px] font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full text-[14px] font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
@@ -615,7 +615,7 @@ function NotificationSettings({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-[#141515] rounded-full text-[14px] font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full text-[14px] font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
@@ -944,7 +944,7 @@ function WorkspaceSettings({
             <button
               onClick={handleInvite}
               disabled={!inviteEmail || !canManageMembers || !hasOrganizationLink || inviting}
-              className="h-[42px] px-5 bg-[#E8E8E8] text-[#141515] hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-[13px] font-medium transition-colors cursor-pointer"
+              className="h-[42px] px-5 bg-[#E8E8E8] text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-[13px] font-medium transition-colors cursor-pointer"
             >
               {inviting ? "Inviting..." : "Invite"}
             </button>
@@ -1082,7 +1082,7 @@ function WorkspaceSettings({
             <h3 className="text-[16px] font-medium text-[#E8E8E8]">Brand Assets</h3>
             <p className="text-[13px] text-[#E8E8E8]/40">Workspace-level brand files.</p>
           </div>
-          <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-full text-[#141515] text-[13px] font-medium cursor-pointer disabled:opacity-50">
+          <label className="inline-flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-full text-bg-base text-[13px] font-medium cursor-pointer disabled:opacity-50">
             <Upload size={14} /> Upload
             <input
               type="file"

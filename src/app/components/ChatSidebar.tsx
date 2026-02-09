@@ -80,7 +80,7 @@ function ReactionPicker({
 }
 
 // ── Comment Item (stable top-level component) ─────────────────────
-interface CommentItemProps {
+interface CommentItemViewProps {
   comment: CollaborationComment;
   currentUserId: string | null;
   currentUserName: string;
@@ -89,17 +89,21 @@ interface CommentItemProps {
   isTopLevel?: boolean;
   mentionItems: MentionItemType[];
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
-  // State values passed down
+}
+
+interface CommentItemInteractionStateProps {
   replyingTo: string | null;
   editingComment: string | null;
   editValue: string;
   activeReactionPicker: string | null;
   activeMoreMenu: string | null;
   collapsedThreads: Set<string>;
-  // Callbacks
+  replyValue: string;
+}
+
+interface CommentItemInteractionHandlerProps {
   onSetReplyingTo: (id: string | null) => void;
   onSetReplyValue: (val: string) => void;
-  replyValue: string;
   onSetEditingComment: (id: string | null) => void;
   onSetEditValue: (val: string) => void;
   onSetActiveReactionPicker: (id: string | null) => void;
@@ -112,7 +116,9 @@ interface CommentItemProps {
   onToggleThread: (id: string) => void;
 }
 
-function CommentItem({
+type CommentItemProps = CommentItemViewProps & CommentItemInteractionStateProps & CommentItemInteractionHandlerProps;
+
+const CommentItem = React.memo(function CommentItem({
   comment,
   currentUserId,
   currentUserName,
@@ -153,35 +159,63 @@ function CommentItem({
   );
 
   // Shared props to pass recursively to nested CommentItems
-  const sharedProps = {
-    currentUserId,
-    currentUserName,
-    currentUserAvatar,
-    mentionItems,
-    onMentionClick,
-    replyingTo,
-    editingComment,
-    editValue,
-    activeReactionPicker,
-    activeMoreMenu,
-    collapsedThreads,
-    onSetReplyingTo,
-    onSetReplyValue,
-    replyValue,
-    onSetEditingComment,
-    onSetEditValue,
-    onSetActiveReactionPicker,
-    onSetActiveMoreMenu,
-    onReply,
-    onEditComment,
-    onDeleteComment,
-    onResolve,
-    onToggleReaction,
-    onToggleThread,
-  };
+  const sharedProps = useMemo(
+    () => ({
+      currentUserId,
+      currentUserName,
+      currentUserAvatar,
+      mentionItems,
+      onMentionClick,
+      replyingTo,
+      editingComment,
+      editValue,
+      activeReactionPicker,
+      activeMoreMenu,
+      collapsedThreads,
+      onSetReplyingTo,
+      onSetReplyValue,
+      replyValue,
+      onSetEditingComment,
+      onSetEditValue,
+      onSetActiveReactionPicker,
+      onSetActiveMoreMenu,
+      onReply,
+      onEditComment,
+      onDeleteComment,
+      onResolve,
+      onToggleReaction,
+      onToggleThread,
+    }),
+    [
+      activeMoreMenu,
+      activeReactionPicker,
+      collapsedThreads,
+      currentUserAvatar,
+      currentUserId,
+      currentUserName,
+      editValue,
+      editingComment,
+      mentionItems,
+      onDeleteComment,
+      onEditComment,
+      onMentionClick,
+      onReply,
+      onResolve,
+      onSetActiveMoreMenu,
+      onSetActiveReactionPicker,
+      onSetEditValue,
+      onSetEditingComment,
+      onSetReplyValue,
+      onSetReplyingTo,
+      onToggleReaction,
+      onToggleThread,
+      replyValue,
+      replyingTo,
+    ],
+  );
 
   return (
-    <div className={cn("group/comment relative")}>
+    <div className={cn("chat-comment-row group/comment relative")}>
       <div
         className={cn(
           "relative flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-colors duration-150",
@@ -567,7 +601,7 @@ function CommentItem({
       )}
     </div>
   );
-}
+});
 
 // ── Chat Sidebar ──────────────────────────────────────────────────
 interface ChatSidebarProps {
@@ -624,9 +658,18 @@ export function ChatSidebar({
   const toggleResolvedMutation = useMutation(api.comments.toggleResolved);
   const toggleReactionMutation = useMutation(api.comments.toggleReaction);
 
-  const currentComments = (comments ?? []) as CollaborationComment[];
-  const unresolvedComments = currentComments.filter((c) => !c.resolved);
-  const resolvedComments = currentComments.filter((c) => c.resolved);
+  const currentComments = useMemo(
+    () => (comments ?? []) as CollaborationComment[],
+    [comments],
+  );
+  const unresolvedComments = useMemo(
+    () => currentComments.filter((comment) => !comment.resolved),
+    [currentComments],
+  );
+  const resolvedComments = useMemo(
+    () => currentComments.filter((comment) => comment.resolved),
+    [currentComments],
+  );
 
   const totalThreadCount = currentComments.length;
   const resolvedCount = resolvedComments.length;
@@ -811,38 +854,64 @@ export function ChatSidebar({
     });
   }, []);
 
-  const sortedProjects = Object.values(allProjects).sort((a, b) => {
-    if (a.archived === b.archived) return 0;
-    return a.archived ? 1 : -1;
-  });
+  const sortedProjects = useMemo(
+    () =>
+      [...Object.values(allProjects)].sort((a, b) => {
+        if (a.archived === b.archived) return 0;
+        return a.archived ? 1 : -1;
+      }),
+    [allProjects],
+  );
 
   // Shared props object for CommentItem
-  const sharedCommentProps = {
-    currentUserId,
-    currentUserName,
-    currentUserAvatar,
-    mentionItems,
-    onMentionClick,
-    replyingTo,
-    editingComment,
-    editValue,
-    activeReactionPicker,
-    activeMoreMenu,
-    collapsedThreads,
-    onSetReplyingTo: setReplyingTo,
-    onSetReplyValue: setReplyValue,
-    replyValue,
-    onSetEditingComment: setEditingComment,
-    onSetEditValue: setEditValue,
-    onSetActiveReactionPicker: setActiveReactionPicker,
-    onSetActiveMoreMenu: setActiveMoreMenu,
-    onReply: handleReply,
-    onEditComment: handleEditComment,
-    onDeleteComment: handleDeleteComment,
-    onResolve: handleResolve,
-    onToggleReaction: handleToggleReaction,
-    onToggleThread: toggleThread,
-  };
+  const sharedCommentProps = useMemo(
+    () => ({
+      currentUserId,
+      currentUserName,
+      currentUserAvatar,
+      mentionItems,
+      onMentionClick,
+      replyingTo,
+      editingComment,
+      editValue,
+      activeReactionPicker,
+      activeMoreMenu,
+      collapsedThreads,
+      onSetReplyingTo: setReplyingTo,
+      onSetReplyValue: setReplyValue,
+      replyValue,
+      onSetEditingComment: setEditingComment,
+      onSetEditValue: setEditValue,
+      onSetActiveReactionPicker: setActiveReactionPicker,
+      onSetActiveMoreMenu: setActiveMoreMenu,
+      onReply: handleReply,
+      onEditComment: handleEditComment,
+      onDeleteComment: handleDeleteComment,
+      onResolve: handleResolve,
+      onToggleReaction: handleToggleReaction,
+      onToggleThread: toggleThread,
+    }),
+    [
+      activeMoreMenu,
+      activeReactionPicker,
+      collapsedThreads,
+      currentUserAvatar,
+      currentUserId,
+      currentUserName,
+      editValue,
+      editingComment,
+      handleDeleteComment,
+      handleEditComment,
+      handleReply,
+      handleResolve,
+      handleToggleReaction,
+      mentionItems,
+      onMentionClick,
+      replyValue,
+      replyingTo,
+      toggleThread,
+    ],
+  );
 
   return (
     <AnimatePresence>
@@ -852,10 +921,10 @@ export function ChatSidebar({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute top-0 right-0 bottom-0 w-[420px] bg-[#191A1A] border-l border-white/[0.05] shadow-2xl z-50 flex flex-col overflow-hidden pointer-events-auto"
+          className="absolute top-0 right-0 bottom-0 w-[420px] bg-bg-surface border-l border-white/[0.05] shadow-2xl z-50 flex flex-col overflow-hidden pointer-events-auto"
         >
           {/* ── Header ──────────────────────────────────── */}
-          <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-white/[0.05] bg-[#191A1A] relative z-20">
+          <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-white/[0.05] bg-bg-surface relative z-20">
             <div className="flex items-center w-full pr-10">
               <div className="relative">
                 <button
@@ -1028,7 +1097,7 @@ export function ChatSidebar({
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] transition-all cursor-pointer",
                             inputValue.trim()
-                              ? "bg-white/90 text-[#141515] hover:bg-white"
+                              ? "bg-white/90 text-bg-base hover:bg-white"
                               : "bg-white/[0.06] text-white/20 cursor-not-allowed"
                           )}
                         >
@@ -1046,7 +1115,7 @@ export function ChatSidebar({
           {/* ── Comments List ────────────────────────────── */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto px-1.5 pb-8"
+            className="chat-comment-list flex-1 overflow-y-auto px-1.5 pb-8"
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-8">
