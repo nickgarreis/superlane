@@ -7,6 +7,44 @@ export type Workspace = {
   logoText?: string;
 };
 
+export type WorkspaceRole = "owner" | "admin" | "member";
+
+export interface WorkspaceMember {
+  userId: string;
+  workosUserId: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  role: WorkspaceRole;
+  isViewer: boolean;
+}
+
+export interface ViewerIdentity {
+  userId: string | null;
+  workosUserId: string | null;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  role: WorkspaceRole | null;
+}
+
+export interface CommentReaction {
+  emoji: string;
+  users: string[];
+  userIds: string[];
+}
+
+export interface CollaborationComment {
+  id: string;
+  author: { userId: string; name: string; avatar: string };
+  content: string;
+  timestamp: string;
+  replies: CollaborationComment[];
+  resolved?: boolean;
+  edited?: boolean;
+  reactions?: CommentReaction[];
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -36,6 +74,7 @@ export interface ProjectData {
   name: string;
   description: string;
   creator: {
+    userId?: string;
     name: string;
     avatar: string;
   };

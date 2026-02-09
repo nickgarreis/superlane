@@ -30,7 +30,9 @@ import type {
   ProjectFileData,
   ProjectFileTab,
   Task,
+  ViewerIdentity,
   Workspace,
+  WorkspaceMember,
 } from "./types";
 
 type PendingHighlight = {
@@ -181,6 +183,10 @@ function DashboardApp() {
     api.settings.getCompanySettings,
     isAuthenticated && resolvedWorkspaceSlug ? { workspaceSlug: resolvedWorkspaceSlug } : "skip",
   );
+  const workspaceMembersResult = useQuery(
+    api.collaboration.listWorkspaceMembers,
+    isAuthenticated && resolvedWorkspaceSlug ? { workspaceSlug: resolvedWorkspaceSlug } : "skip",
+  );
 
   const currentView = useMemo<AppView>(() => {
     const directView = pathToView(location.pathname);
@@ -283,8 +289,31 @@ function DashboardApp() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const viewerName = snapshot?.viewer?.name || user?.firstName || user?.email || "Nick";
-  const viewerAvatar = snapshot?.viewer?.avatarUrl || user?.profilePictureUrl || imgAvatar;
+  const workspaceMembers: WorkspaceMember[] = workspaceMembersResult?.members ?? [];
+
+  const viewerMembership = useMemo(
+    () => workspaceMembers.find((member) => member.isViewer),
+    [workspaceMembers],
+  );
+
+  const viewerIdentity = useMemo<ViewerIdentity>(() => {
+    const fallbackName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
+      || user?.email
+      || "Unknown user";
+
+    return {
+      userId: snapshot?.viewer?.id ? String(snapshot.viewer.id) : viewerMembership?.userId ?? null,
+      workosUserId: snapshot?.viewer?.workosUserId ?? viewerMembership?.workosUserId ?? null,
+      name: viewerMembership?.name ?? snapshot?.viewer?.name ?? fallbackName,
+      email: viewerMembership?.email ?? snapshot?.viewer?.email ?? user?.email ?? "",
+      avatarUrl: viewerMembership?.avatarUrl ?? snapshot?.viewer?.avatarUrl ?? user?.profilePictureUrl ?? null,
+      role: viewerMembership?.role ?? null,
+    };
+  }, [snapshot?.viewer, user?.email, user?.firstName, user?.lastName, user?.profilePictureUrl, viewerMembership]);
+
+  const viewerName = viewerIdentity.name;
+  const viewerAvatar = viewerIdentity.avatarUrl || imgAvatar;
 
   const workspaces = useMemo(
     () => mapWorkspacesToUi(snapshot?.workspaces ?? []),
@@ -297,10 +326,8 @@ function DashboardApp() {
         projects: (snapshot?.projects ?? []) as any,
         tasks: (snapshot?.tasks ?? []) as any,
         workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
-        fallbackCreatorName: viewerName,
-        fallbackCreatorAvatar: viewerAvatar,
       }),
-    [snapshot?.projects, snapshot?.tasks, snapshot?.activeWorkspaceSlug, viewerName, viewerAvatar],
+    [snapshot?.projects, snapshot?.tasks, snapshot?.activeWorkspaceSlug],
   );
 
   const activeWorkspace: Workspace | undefined =
@@ -823,8 +850,8 @@ function DashboardApp() {
         id: String(task.id),
         title: task.title,
         assignee: {
-          name: task.assignee?.name || viewerName,
-          avatar: task.assignee?.avatar || viewerAvatar,
+          name: task.assignee?.name || viewerIdentity.name,
+          avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
         },
         dueDate: task.dueDate,
         completed: task.completed,
@@ -1018,6 +1045,8 @@ function DashboardApp() {
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
           onUpdateProject={handleUpdateProject}
+          workspaceMembers={workspaceMembers}
+          viewerIdentity={viewerIdentity}
         />
       );
     }
@@ -1047,6 +1076,8 @@ function DashboardApp() {
             isSidebarOpen={isSidebarOpen}
             project={project}
             projectFiles={projectFilesByProject[project.id] ?? []}
+            workspaceMembers={workspaceMembers}
+            viewerIdentity={viewerIdentity}
             onCreateFile={handleCreateProjectFile}
             onRemoveFile={handleRemoveProjectFile}
             onDownloadFile={handleDownloadProjectFile}
@@ -1076,6 +1107,8 @@ function DashboardApp() {
             isSidebarOpen={isSidebarOpen}
             project={project}
             projectFiles={projectFilesByProject[project.id] ?? []}
+            workspaceMembers={workspaceMembers}
+            viewerIdentity={viewerIdentity}
             onCreateFile={handleCreateProjectFile}
             onRemoveFile={handleRemoveProjectFile}
             onDownloadFile={handleDownloadProjectFile}
@@ -1104,6 +1137,8 @@ function DashboardApp() {
           isSidebarOpen={isSidebarOpen}
           project={firstProject}
           projectFiles={projectFilesByProject[firstProject.id] ?? []}
+          workspaceMembers={workspaceMembers}
+          viewerIdentity={viewerIdentity}
           onCreateFile={handleCreateProjectFile}
           onRemoveFile={handleRemoveProjectFile}
           onDownloadFile={handleDownloadProjectFile}
@@ -1277,6 +1312,7 @@ function DashboardApp() {
                   currentView={currentView}
                   onOpenCreateProject={() => setIsCreateProjectOpen(true)}
                   projects={visibleProjects}
+                  viewerIdentity={viewerIdentity}
                   activeWorkspace={activeWorkspace}
                   workspaces={workspaces}
                   onSwitchWorkspace={handleSwitchWorkspace}

@@ -2,9 +2,8 @@ import React, { createContext, useContext, useState, useRef, useEffect } from "r
 import { ArchiveRestore, Archive, Undo2, Settings, HelpCircle, LogOut, ChevronDown, ChevronRight, Search, Plus, Lightbulb, Bug, ListChecks, Info, Maximize2 } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import svgPaths from "../../imports/svg-pclbthwul8";
-import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png";
 import { ProjectLogo } from "./ProjectLogo";
-import { ProjectData, Workspace } from "../types";
+import { ProjectData, ViewerIdentity, Workspace } from "../types";
 import { cn } from "../../lib/utils";
 import { FeedbackPopup } from "./FeedbackPopup";
 import { CompletedProjectsPopup } from "./CompletedProjectsPopup";
@@ -422,6 +421,7 @@ export function Sidebar({
     onOpenCreateProject,
     currentView,
     projects,
+    viewerIdentity,
     activeWorkspace,
     workspaces,
     onSwitchWorkspace,
@@ -439,6 +439,7 @@ export function Sidebar({
     onOpenCreateProject: () => void;
     currentView?: string;
     projects: Record<string, ProjectData>;
+    viewerIdentity: ViewerIdentity;
     activeWorkspace?: Workspace;
     workspaces: Workspace[];
     onSwitchWorkspace: (id: string) => void;
@@ -457,6 +458,15 @@ export function Sidebar({
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [feedbackType, setFeedbackType] = useState<"feature" | "bug" | null>(null);
     const [isCompletedPopupOpen, setIsCompletedPopupOpen] = useState(false);
+    const viewerName = viewerIdentity.name || "Unknown user";
+    const viewerEmail = viewerIdentity.email || "No email";
+    const viewerInitials = viewerName
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part[0] ?? "")
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "U";
     
     const activeProjects = Object.values(projects).filter(p => !p.archived && p.status.label !== "Completed");
     const completedProjects = Object.values(projects).filter(p => !p.archived && p.status.label === "Completed");
@@ -637,11 +647,17 @@ export function Sidebar({
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <div className="size-8 rounded-full overflow-hidden shrink-0 border border-white/10">
-                                <img src={imgAvatar} alt="Profile" className="w-full h-full object-cover" />
+                                {viewerIdentity.avatarUrl ? (
+                                    <img src={viewerIdentity.avatarUrl} alt={viewerName} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-white/10 flex items-center justify-center text-[11px] font-medium text-white/80">
+                                        {viewerInitials}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <span className="text-[13px] font-medium text-[#E8E8E8] truncate">Nick Garreis</span>
-                                <span className="text-[11px] text-white/40 truncate">nick@example.com</span>
+                                <span className="text-[13px] font-medium text-[#E8E8E8] truncate">{viewerName}</span>
+                                <span className="text-[11px] text-white/40 truncate">{viewerEmail}</span>
                             </div>
                             <div className="ml-auto p-1 text-white/40 group-hover:text-white/80 transition-colors">
                                 <ChevronDown size={16} />

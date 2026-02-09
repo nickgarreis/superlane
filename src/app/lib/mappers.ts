@@ -27,6 +27,11 @@ type SnapshotProject = {
     content: string;
     timestamp: string;
   }>;
+  creator?: {
+    userId?: string;
+    name?: string;
+    avatarUrl?: string | null;
+  };
 };
 
 type SnapshotTask = {
@@ -64,14 +69,10 @@ export const mapProjectsToUi = ({
   projects,
   tasks,
   workspaceSlug,
-  fallbackCreatorName,
-  fallbackCreatorAvatar,
 }: {
   projects: SnapshotProject[];
   tasks: SnapshotTask[];
   workspaceSlug: string | null;
-  fallbackCreatorName: string;
-  fallbackCreatorAvatar: string;
 }): Record<string, ProjectData> => {
   const tasksByProject = tasks.reduce<Record<string, Task[]>>((acc, task) => {
     if (!acc[task.projectPublicId]) {
@@ -93,14 +94,17 @@ export const mapProjectsToUi = ({
   return projects.reduce<Record<string, ProjectData>>((acc, project) => {
     const status = getStatusStyle(project.status);
     const previousStatus = project.previousStatus ? getStatusStyle(project.previousStatus) : undefined;
+    const creatorName = project.creator?.name?.trim() || "Unknown user";
+    const creatorAvatar = typeof project.creator?.avatarUrl === "string" ? project.creator.avatarUrl : "";
 
     acc[project.publicId] = {
       id: project.publicId,
       name: project.name,
       description: project.description,
       creator: {
-        name: fallbackCreatorName,
-        avatar: fallbackCreatorAvatar,
+        userId: project.creator?.userId,
+        name: creatorName,
+        avatar: creatorAvatar,
       },
       status,
       previousStatus,

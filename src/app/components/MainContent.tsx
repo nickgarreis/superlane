@@ -7,7 +7,7 @@ import svgPathsStatus from "../../imports/svg-95p4xxlon7";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ChatSidebar } from "./ChatSidebar";
 import { ProjectTasks } from "./ProjectTasks";
-import { ProjectData, ProjectFileData, ProjectFileTab } from "../types";
+import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
 import DeleteButton from "../../imports/DeleteButton";
 import { ProjectLogo } from "./ProjectLogo";
 import type { AppView } from "../lib/routing";
@@ -114,6 +114,8 @@ export function MainContent({
     isSidebarOpen,
     project, 
     projectFiles,
+    workspaceMembers,
+    viewerIdentity,
     onCreateFile,
     onRemoveFile,
     onDownloadFile,
@@ -133,6 +135,8 @@ export function MainContent({
     isSidebarOpen: boolean,
     project: ProjectData, 
     projectFiles: ProjectFileData[],
+    workspaceMembers: WorkspaceMember[];
+    viewerIdentity: ViewerIdentity;
     onCreateFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void,
     onRemoveFile: (fileId: string) => void,
     onDownloadFile: (fileId: string) => void,
@@ -336,7 +340,13 @@ export function MainContent({
                 <div className="text-[12px] font-medium text-white/40 uppercase tracking-wide">Created by</div>
                 <div className="flex items-center gap-2">
                 <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
-                    <img src={project.creator.avatar} alt={project.creator.name} className="w-full h-full object-cover" />
+                    {project.creator.avatar ? (
+                        <img src={project.creator.avatar} alt={project.creator.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-white/10 flex items-center justify-center text-[8px] font-medium text-white/80">
+                            {project.creator.name.slice(0, 1).toUpperCase()}
+                        </div>
+                    )}
                 </div>
                 <span className="text-[14px] font-medium text-[#E8E8E8]">{project.creator.name}</span>
                 </div>
@@ -394,6 +404,8 @@ export function MainContent({
                 onUpdateTasks={(newTasks) => onUpdateProject?.({ tasks: newTasks })} 
                 highlightedTaskId={highlightedTaskId}
                 onHighlightDone={handleHighlightDone}
+                assignableMembers={workspaceMembers}
+                viewerIdentity={viewerIdentity}
             />
 
             {/* Tabs & Action */}
@@ -588,6 +600,8 @@ export function MainContent({
                 onSwitchProject={onNavigate}
                 onMentionClick={handleMentionClick}
                 allFiles={allFiles}
+                workspaceMembers={workspaceMembers}
+                viewerIdentity={viewerIdentity}
             />
         </div>
       </div>

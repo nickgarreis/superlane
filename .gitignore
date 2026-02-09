@@ -6,3 +6,5 @@ dist/
 .env.*
 docs/private/**
 security-reports/**
+
+.firecrawl/

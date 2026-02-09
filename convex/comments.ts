@@ -57,10 +57,11 @@ export const listForProject = query({
     const users = await Promise.all(Array.from(userIds).map((userId) => ctx.db.get(userId)));
     const userMap = new Map(users.filter(Boolean).map((user) => [user!._id, user!]));
 
-    const reactionMap = new Map<string, Map<string, string[]>>();
+    const reactionMap = new Map<string, Map<string, { users: string[]; userIds: string[] }>>();
     reactionRows.forEach((reaction) => {
       const user = userMap.get(reaction.userId);
       const userName = user?.name ?? "Unknown user";
+      const userId = String(reaction.userId);
 
       const key = String(reaction.commentId);
       if (!reactionMap.has(key)) {
@@ -69,10 +70,12 @@ export const listForProject = query({
 
       const emojiUsers = reactionMap.get(key)!;
       if (!emojiUsers.has(reaction.emoji)) {
-        emojiUsers.set(reaction.emoji, []);
+        emojiUsers.set(reaction.emoji, { users: [], userIds: [] });
       }
 
-      emojiUsers.get(reaction.emoji)!.push(userName);
+      const entry = emojiUsers.get(reaction.emoji)!;
+      entry.users.push(userName);
+      entry.userIds.push(userId);
     });
 
     const now = Date.now();
@@ -83,13 +86,13 @@ export const listForProject = query({
       createdAt: number;
       data: {
         id: string;
-        author: { name: string; avatar: string };
+        author: { userId: string; name: string; avatar: string };
         content: string;
         timestamp: string;
         replies: Array<any>;
         resolved: boolean;
         edited: boolean;
-        reactions: Array<{ emoji: string; users: string[] }>;
+        reactions: Array<{ emoji: string; users: string[]; userIds: string[] }>;
       };
     };
 
@@ -105,6 +108,7 @@ export const listForProject = query({
         data: {
           id: String(comment._id),
           author: {
+            userId: String(comment.authorUserId),
             name: author?.name ?? "Unknown user",
             avatar: author?.avatarUrl ?? "",
           },
@@ -114,7 +118,11 @@ export const listForProject = query({
           resolved: comment.resolved,
           edited: comment.edited,
           reactions: reactionByEmoji
-            ? Array.from(reactionByEmoji.entries()).map(([emoji, users]) => ({ emoji, users }))
+            ? Array.from(reactionByEmoji.entries()).map(([emoji, reaction]) => ({
+                emoji,
+                users: reaction.users,
+                userIds: reaction.userIds,
+              }))
             : [],
         },
       });
@@ -166,7 +174,11 @@ export const listForProject = query({
         replies: stripInternalTimestamp(item.replies ?? []),
         resolved: item.resolved,
         edited: item.edited,
-        reactions: item.reactions ?? [],
+        reactions: (item.reactions ?? []).map((reaction: any) => ({
+          emoji: reaction.emoji,
+          users: reaction.users ?? [],
+          userIds: reaction.userIds ?? [],
+        })),
       }));
 
     return stripInternalTimestamp(topLevel);

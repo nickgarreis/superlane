@@ -3,8 +3,7 @@ import { cn } from "../../lib/utils";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
-import { Task, ProjectData } from "../types";
-import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png";
+import { Task, ProjectData, ViewerIdentity, WorkspaceMember } from "../types";
 import { Filter, Plus, ArrowUpDown } from "lucide-react";
 import { ProjectLogo } from "./ProjectLogo";
 
@@ -12,12 +11,16 @@ export function Tasks({
     onToggleSidebar, 
     isSidebarOpen,
     projects,
-    onUpdateProject 
+    onUpdateProject,
+    workspaceMembers,
+    viewerIdentity,
 }: { 
     onToggleSidebar: () => void, 
     isSidebarOpen: boolean,
     projects: Record<string, ProjectData>,
-    onUpdateProject: (id: string, data: Partial<ProjectData>) => void
+    onUpdateProject: (id: string, data: Partial<ProjectData>) => void;
+    workspaceMembers: WorkspaceMember[];
+    viewerIdentity: ViewerIdentity;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"dueDate" | "name" | "status">("dueDate");
@@ -287,6 +290,8 @@ export function Tasks({
                     hideHeader={true}
                     isAddingMode={isAdding}
                     onAddingModeChange={setIsAdding}
+                    assignableMembers={workspaceMembers}
+                    viewerIdentity={viewerIdentity}
                 />
             </div>
         </div>

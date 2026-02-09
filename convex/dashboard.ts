@@ -121,6 +121,38 @@ export const getSnapshot = query({
       return positionA - positionB;
     });
 
+    const creatorById = new Map<string, { userId: string; name: string; avatarUrl: string | null }>();
+    const uniqueCreatorUserIds = Array.from(
+      new Set(activeProjects.map((project) => project.creatorUserId)),
+    );
+    await Promise.all(uniqueCreatorUserIds.map(async (creatorUserId) => {
+      const creatorId = String(creatorUserId);
+      const creatorUser = await ctx.db.get(creatorUserId);
+      if (!creatorUser) {
+        creatorById.set(creatorId, {
+          userId: creatorId,
+          name: "Unknown user",
+          avatarUrl: null,
+        });
+        return;
+      }
+
+      creatorById.set(creatorId, {
+        userId: creatorId,
+        name: creatorUser.name,
+        avatarUrl: await resolveAvatarUrl(ctx, creatorUser),
+      });
+    }));
+
+    const projectsWithCreators = activeProjects.map((project) => ({
+      ...project,
+      creator: creatorById.get(String(project.creatorUserId)) ?? {
+        userId: String(project.creatorUserId),
+        name: "Unknown user",
+        avatarUrl: null,
+      },
+    }));
+
     return {
       viewer: {
         id: appUser._id,
@@ -132,7 +164,7 @@ export const getSnapshot = query({
       workspaces,
       activeWorkspace,
       activeWorkspaceSlug: activeWorkspace?.slug ?? null,
-      projects: activeProjects,
+      projects: projectsWithCreators,
       tasks: visibleTasks,
     };
   },

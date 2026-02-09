@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "convex/react";
-import { useAuth } from "@workos-inc/authkit-react";
 import {
   X,
   CornerDownRight,
@@ -18,10 +17,9 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
-import imgNickGarreis from "figma:asset/8ff76ab4f0991c684214e12b050fc8cc11b7f7f8.png";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { ProjectData } from "../types";
+import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember } from "../types";
 import type { AppView } from "../lib/routing";
 import { ProjectLogo } from "./ProjectLogo";
 import {
@@ -30,38 +28,19 @@ import {
   renderCommentContent,
 } from "./MentionTextarea";
 
-interface Reaction {
-  emoji: string;
-  users: string[];
-}
-
-interface Comment {
-  id: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  content: string;
-  timestamp: string;
-  replies: Comment[];
-  resolved?: boolean;
-  reactions?: Reaction[];
-  edited?: boolean;
-}
-
 const REACTION_OPTIONS = ["👍", "❤️", "👀", "🎉", "💡", "✅"];
 
-const FALLBACK_USER_NAME = "You";
+const formatRoleLabel = (role: WorkspaceMember["role"]) =>
+  role.charAt(0).toUpperCase() + role.slice(1);
 
-// Mock workspace members for @ mentions
-const WORKSPACE_MEMBERS = [
-  { id: "u1", name: "Nick Garreis", role: "Owner" },
-  { id: "u2", name: "Sarah Chen", role: "Designer" },
-  { id: "u3", name: "Mike Ross", role: "Developer" },
-  { id: "u4", name: "Emily Zhang", role: "PM" },
-  { id: "u5", name: "Alex Rivera", role: "Developer" },
-  { id: "u6", name: "Jordan Lee", role: "QA" },
-];
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "U";
 
 // ── Reaction Picker (stable top-level component) ──────────────────
 function ReactionPicker({
@@ -101,7 +80,8 @@ function ReactionPicker({
 
 // ── Comment Item (stable top-level component) ─────────────────────
 interface CommentItemProps {
-  comment: Comment;
+  comment: CollaborationComment;
+  currentUserId: string | null;
   currentUserName: string;
   currentUserAvatar?: string;
   isReply?: boolean;
@@ -133,6 +113,7 @@ interface CommentItemProps {
 
 function CommentItem({
   comment,
+  currentUserId,
   currentUserName,
   currentUserAvatar,
   isReply = false,
@@ -159,7 +140,7 @@ function CommentItem({
   onToggleReaction,
   onToggleThread,
 }: CommentItemProps) {
-  const isOwn = comment.author.name === currentUserName;
+  const isOwn = Boolean(currentUserId) && comment.author.userId === currentUserId;
   const isEditing = editingComment === comment.id;
   const isCollapsed = collapsedThreads.has(comment.id);
   const replyCount = comment.replies.length;
@@ -172,6 +153,7 @@ function CommentItem({
 
   // Shared props to pass recursively to nested CommentItems
   const sharedProps = {
+    currentUserId,
     currentUserName,
     currentUserAvatar,
     mentionItems,
@@ -208,11 +190,17 @@ function CommentItem({
         {/* Avatar */}
         <div className="shrink-0 pt-0.5">
           <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
-            <img
-              src={comment.author.avatar || imgNickGarreis}
-              alt={comment.author.name}
-              className="w-full h-full object-cover"
-            />
+            {comment.author.avatar ? (
+              <img
+                src={comment.author.avatar}
+                alt={comment.author.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
+                {getInitials(comment.author.name)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -288,7 +276,9 @@ function CommentItem({
               {comment.reactions &&
                 comment.reactions.length > 0 &&
                 comment.reactions.map((reaction) => {
-                  const isActive = reaction.users.includes(currentUserName);
+                  const isActive = currentUserId
+                    ? (reaction.userIds ?? []).includes(currentUserId)
+                    : reaction.users.includes(currentUserName);
                   return (
                     <button
                       key={reaction.emoji}
@@ -452,11 +442,17 @@ function CommentItem({
                 >
                   <div className="shrink-0 pt-0.5">
                     <div className="w-5 h-5 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
-                      <img
-                        src={currentUserAvatar || imgNickGarreis}
-                        alt={currentUserName}
-                        className="w-full h-full object-cover"
-                      />
+                      {currentUserAvatar ? (
+                        <img
+                          src={currentUserAvatar}
+                          alt={currentUserName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-white/10 flex items-center justify-center text-[8px] font-medium text-white/80">
+                          {getInitials(currentUserName)}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1">
@@ -578,6 +574,8 @@ interface ChatSidebarProps {
   onClose: () => void;
   activeProject: ProjectData;
   allProjects: Record<string, ProjectData>;
+  workspaceMembers: WorkspaceMember[];
+  viewerIdentity: ViewerIdentity;
   onSwitchProject?: (view: AppView) => void;
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   allFiles?: Array<{ id: number | string; name: string; type: string }>;
@@ -588,11 +586,12 @@ export function ChatSidebar({
   onClose,
   activeProject,
   allProjects,
+  workspaceMembers,
+  viewerIdentity,
   onSwitchProject,
   onMentionClick,
   allFiles,
 }: ChatSidebarProps) {
-  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyValue, setReplyValue] = useState("");
@@ -611,11 +610,9 @@ export function ChatSidebar({
 
   const inputRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const currentUserName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
-    user?.email ||
-    FALLBACK_USER_NAME;
-  const currentUserAvatar = user?.profilePictureUrl || imgNickGarreis;
+  const currentUserName = viewerIdentity.name || "Unknown user";
+  const currentUserAvatar = viewerIdentity.avatarUrl || "";
+  const currentUserId = viewerIdentity.userId;
 
   const comments = useQuery(api.comments.listForProject, {
     projectPublicId: activeProject.id,
@@ -626,7 +623,7 @@ export function ChatSidebar({
   const toggleResolvedMutation = useMutation(api.comments.toggleResolved);
   const toggleReactionMutation = useMutation(api.comments.toggleReaction);
 
-  const currentComments = comments ?? [];
+  const currentComments = (comments ?? []) as CollaborationComment[];
   const unresolvedComments = currentComments.filter((c) => !c.resolved);
   const resolvedComments = currentComments.filter((c) => c.resolved);
 
@@ -662,44 +659,17 @@ export function ChatSidebar({
       });
     }
 
-    // Add workspace members for @ mentions
-    const members = new Map(
-      WORKSPACE_MEMBERS.map((member) => [member.name, member]),
-    );
-    members.set(currentUserName, {
-      id: `current-user-${currentUserName.toLowerCase().replace(/\s+/g, "-")}`,
-      name: currentUserName,
-      role: "You",
-    });
-
-    const collectAuthors = (list: Comment[]) => {
-      list.forEach((comment) => {
-        const name = comment.author.name;
-        if (!members.has(name)) {
-          members.set(name, {
-            id: `author-${name.toLowerCase().replace(/\s+/g, "-")}`,
-            name,
-            role: "Teammate",
-          });
-        }
-        if (comment.replies.length > 0) {
-          collectAuthors(comment.replies);
-        }
-      });
-    };
-    collectAuthors(currentComments);
-
-    members.forEach((member) => {
+    workspaceMembers.forEach((member) => {
       items.push({
         type: "user",
-        id: member.id,
+        id: member.userId,
         label: member.name,
-        meta: member.role,
+        meta: formatRoleLabel(member.role),
       });
     });
 
     return items;
-  }, [activeProject.tasks, allFiles, currentComments, currentUserName]);
+  }, [activeProject.tasks, allFiles, workspaceMembers]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -847,6 +817,7 @@ export function ChatSidebar({
 
   // Shared props object for CommentItem
   const sharedCommentProps = {
+    currentUserId,
     currentUserName,
     currentUserAvatar,
     mentionItems,
@@ -1003,11 +974,17 @@ export function ChatSidebar({
               >
                 <div className="shrink-0 pt-0.5">
                   <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
-                    <img
-                      src={currentUserAvatar}
-                      alt={currentUserName}
-                      className="w-full h-full object-cover"
-                    />
+                    {currentUserAvatar ? (
+                      <img
+                        src={currentUserAvatar}
+                        alt={currentUserName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
+                        {getInitials(currentUserName)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">

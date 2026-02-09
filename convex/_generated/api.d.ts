@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as collaboration from "../collaboration.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
@@ -36,6 +37,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  collaboration: typeof collaboration;
   comments: typeof comments;
   crons: typeof crons;
   dashboard: typeof dashboard;

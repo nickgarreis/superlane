@@ -1,22 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Check, Trash2, Calendar, ArrowUpDown } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Task } from "../types";
+import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { motion, AnimatePresence } from "motion/react";
-import imgAvatar from "figma:asset/fea98b130b1d6a04ebf9c88afab5cd53fbd3e447.png";
 import { DayPicker } from "react-day-picker";
 import { format, parse } from "date-fns";
-
-// Mock members data matching SettingsPopup
-const AVAILABLE_MEMBERS = [
-    { name: "Nick Garreis", avatar: imgAvatar },
-    { name: "Sarah Smith", avatar: null }, // Will use initials
-    { name: "Mike Johnson", avatar: null }
-];
 
 interface ProjectTasksProps {
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
+  assignableMembers: WorkspaceMember[];
+  viewerIdentity: ViewerIdentity;
   hideHeader?: boolean;
   isAddingMode?: boolean;
   onAddingModeChange?: (isAdding: boolean) => void;
@@ -24,7 +18,17 @@ interface ProjectTasksProps {
   onHighlightDone?: () => void;
 }
 
-export function ProjectTasks({ tasks: initialTasks, onUpdateTasks, hideHeader = false, isAddingMode, onAddingModeChange, highlightedTaskId, onHighlightDone }: ProjectTasksProps) {
+export function ProjectTasks({
+  tasks: initialTasks,
+  onUpdateTasks,
+  assignableMembers,
+  viewerIdentity,
+  hideHeader = false,
+  isAddingMode,
+  onAddingModeChange,
+  highlightedTaskId,
+  onHighlightDone,
+}: ProjectTasksProps) {
   const [internalIsAdding, setInternalIsAdding] = useState(false);
   
   const isAdding = isAddingMode !== undefined ? isAddingMode : internalIsAdding;
@@ -59,15 +63,19 @@ export function ProjectTasks({ tasks: initialTasks, onUpdateTasks, hideHeader = 
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return;
-    
+
+    const defaultAssignee = assignableMembers[0];
     const newTask: Task = {
       id: Date.now().toString(),
       title: newTaskTitle,
-      assignee: AVAILABLE_MEMBERS[0], // Default to first member
+      assignee: {
+        name: defaultAssignee?.name ?? viewerIdentity.name ?? "Unassigned",
+        avatar: defaultAssignee?.avatarUrl ?? viewerIdentity.avatarUrl ?? "",
+      },
       dueDate: "No date",
       completed: false
     };
-    
+
     onUpdateTasks([...initialTasks, newTask]);
     setNewTaskTitle("");
     setIsAdding(false);
@@ -83,9 +91,17 @@ export function ProjectTasks({ tasks: initialTasks, onUpdateTasks, hideHeader = 
     setOpenCalendarTaskId(null);
   };
 
-  const handleAssigneeSelect = (taskId: string, member: typeof AVAILABLE_MEMBERS[0]) => {
+  const handleAssigneeSelect = (taskId: string, member: WorkspaceMember) => {
       const newTasks = initialTasks.map(t => 
-          t.id === taskId ? { ...t, assignee: member } : t
+          t.id === taskId
+            ? {
+                ...t,
+                assignee: {
+                  name: member.name,
+                  avatar: member.avatarUrl ?? "",
+                },
+              }
+            : t
       );
       onUpdateTasks(newTasks);
       setOpenAssigneeTaskId(null);
@@ -415,18 +431,25 @@ export function ProjectTasks({ tasks: initialTasks, onUpdateTasks, hideHeader = 
                                             <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
                                                 Assign to
                                             </div>
-                                            {AVAILABLE_MEMBERS.map((member) => (
+                                            {assignableMembers.length === 0 && (
+                                                <div className="px-3 py-2 text-[12px] text-white/40">
+                                                    No active members
+                                                </div>
+                                            )}
+                                            {assignableMembers.map((member) => (
                                                 <div 
-                                                    key={member.name}
+                                                    key={member.userId}
                                                     onClick={() => handleAssigneeSelect(task.id, member)}
                                                     className={cn(
                                                         "flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
-                                                        task.assignee.name === member.name && "bg-white/5"
+                                                        task.assignee.name === member.name
+                                                          && (task.assignee.avatar || "") === (member.avatarUrl || "")
+                                                          && "bg-white/5"
                                                     )}
                                                 >
                                                     <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                                                        {member.avatar ? (
-                                                            <img src={member.avatar} className="w-full h-full object-cover" />
+                                                        {member.avatarUrl ? (
+                                                            <img src={member.avatarUrl} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
                                                                 {getInitials(member.name)}
@@ -435,13 +458,18 @@ export function ProjectTasks({ tasks: initialTasks, onUpdateTasks, hideHeader = 
                                                     </div>
                                                     <span className={cn(
                                                         "text-[13px]",
-                                                        task.assignee.name === member.name ? "text-white font-medium" : "text-[#E8E8E8]"
+                                                        task.assignee.name === member.name
+                                                          && (task.assignee.avatar || "") === (member.avatarUrl || "")
+                                                          ? "text-white font-medium"
+                                                          : "text-[#E8E8E8]"
                                                     )}>
                                                         {member.name}
                                                     </span>
-                                                    {task.assignee.name === member.name && (
+                                                    {task.assignee.name === member.name
+                                                      && (task.assignee.avatar || "") === (member.avatarUrl || "")
+                                                      && (
                                                         <Check size={14} className="ml-auto text-[#58AFFF]" />
-                                                    )}
+                                                      )}
                                                 </div>
                                             ))}
                                         </motion.div>
