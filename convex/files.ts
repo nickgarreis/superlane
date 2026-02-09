@@ -93,7 +93,14 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const project = await getProjectForMember(ctx, args.projectPublicId);
     const now = Date.now();
-    const fileType = (args.type ?? args.name.split(".").pop() ?? "FILE").toUpperCase();
+    const inferredType = args.type ?? args.name.split(".").pop();
+    const fileType = (inferredType?.trim() || "FILE").toUpperCase();
+    const displayDateInput = args.displayDate ?? new Date(now).toISOString();
+    const normalizedDisplayDate = new Date(displayDateInput);
+
+    if (Number.isNaN(normalizedDisplayDate.getTime())) {
+      throw new ConvexError("Invalid displayDate");
+    }
 
     const fileId = await ctx.db.insert("projectFiles", {
       workspaceId: project.workspaceId,
@@ -102,7 +109,7 @@ export const create = mutation({
       tab: args.tab,
       name: args.name,
       type: fileType,
-      displayDate: args.displayDate ?? new Date(now).toLocaleString("en-US"),
+      displayDate: normalizedDisplayDate.toISOString(),
       thumbnailRef: args.thumbnailRef,
       source: "upload",
       createdAt: now,

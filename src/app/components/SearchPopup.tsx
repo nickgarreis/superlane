@@ -102,14 +102,15 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     const seen = new Set<string>();
 
     files.forEach((file) => {
-      const key = `${file.projectPublicId}-${file.tab}-${file.name}`;
+      const normalizedProjectId = file.projectPublicId ?? "no-project";
+      const key = `${normalizedProjectId}-${file.tab}-${file.name}-${String(file.id)}`;
       if (!seen.has(key)) {
         seen.add(key);
         entries.push({
           name: file.name,
           type: file.type,
           tab: file.tab,
-          projectId: file.projectPublicId,
+          projectId: file.projectPublicId ?? null,
           date: file.displayDate,
         });
       }

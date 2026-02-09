@@ -118,6 +118,7 @@ export default defineSchema({
     projectPublicId: v.string(),
     parentCommentId: v.optional(v.id("projectComments")),
     authorUserId: v.id("users"),
+    resolvedByUserId: v.optional(v.id("users")),
     content: v.string(),
     resolved: v.boolean(),
     edited: v.boolean(),

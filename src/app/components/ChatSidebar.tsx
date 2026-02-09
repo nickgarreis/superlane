@@ -103,6 +103,7 @@ function ReactionPicker({
 interface CommentItemProps {
   comment: Comment;
   currentUserName: string;
+  currentUserAvatar?: string;
   isReply?: boolean;
   isTopLevel?: boolean;
   mentionItems: MentionItemType[];
@@ -133,6 +134,7 @@ interface CommentItemProps {
 function CommentItem({
   comment,
   currentUserName,
+  currentUserAvatar,
   isReply = false,
   isTopLevel = false,
   mentionItems,
@@ -171,6 +173,7 @@ function CommentItem({
   // Shared props to pass recursively to nested CommentItems
   const sharedProps = {
     currentUserName,
+    currentUserAvatar,
     mentionItems,
     onMentionClick,
     replyingTo,
@@ -450,7 +453,7 @@ function CommentItem({
                   <div className="shrink-0 pt-0.5">
                     <div className="w-5 h-5 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
                       <img
-                        src={currentUserAvatar}
+                        src={currentUserAvatar || imgNickGarreis}
                         alt={currentUserName}
                         className="w-full h-full object-cover"
                       />
@@ -845,6 +848,7 @@ export function ChatSidebar({
   // Shared props object for CommentItem
   const sharedCommentProps = {
     currentUserName,
+    currentUserAvatar,
     mentionItems,
     onMentionClick,
     replyingTo,

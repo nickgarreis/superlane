@@ -3,8 +3,79 @@ import type { Id } from "../_generated/dataModel";
 import { authKit } from "../auth";
 import { requireActiveOrganizationMembershipForWorkspace } from "./workosOrganization";
 
-export async function requireAuthUser(ctx: any) {
+type ResolvedAuthUser = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profilePictureUrl?: string | null;
+};
+
+const toNonEmptyString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const splitDisplayName = (value: string | undefined): { firstName?: string; lastName?: string } => {
+  if (!value) {
+    return {};
+  }
+  const parts = value.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return {};
+  }
+  if (parts.length === 1) {
+    return { firstName: parts[0] };
+  }
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+};
+
+const buildAuthUserFromIdentity = (identity: any): ResolvedAuthUser | null => {
+  const id = toNonEmptyString(identity?.subject);
+  if (!id) {
+    return null;
+  }
+
+  const normalizedFirstName = toNonEmptyString(identity?.givenName)
+    ?? toNonEmptyString(identity?.given_name)
+    ?? toNonEmptyString(identity?.firstName)
+    ?? toNonEmptyString(identity?.first_name);
+
+  const normalizedLastName = toNonEmptyString(identity?.familyName)
+    ?? toNonEmptyString(identity?.family_name)
+    ?? toNonEmptyString(identity?.lastName)
+    ?? toNonEmptyString(identity?.last_name);
+
+  const splitName = splitDisplayName(
+    toNonEmptyString(identity?.name) ?? toNonEmptyString(identity?.preferredUsername),
+  );
+
+  return {
+    id,
+    email: toNonEmptyString(identity?.email),
+    firstName: normalizedFirstName ?? splitName.firstName,
+    lastName: normalizedLastName ?? splitName.lastName,
+    profilePictureUrl: toNonEmptyString(identity?.pictureUrl)
+      ?? toNonEmptyString(identity?.picture)
+      ?? toNonEmptyString(identity?.profilePictureUrl),
+  };
+};
+
+async function resolveAuthUser(ctx: any): Promise<ResolvedAuthUser | null> {
   const authUser = await authKit.getAuthUser(ctx);
+  if (authUser) {
+    return authUser;
+  }
+
+  const identity = await ctx.auth.getUserIdentity();
+  return buildAuthUserFromIdentity(identity);
+}
+
+export async function requireAuthUser(ctx: any) {
+  const authUser = await resolveAuthUser(ctx);
   if (!authUser) {
     throw new ConvexError("Unauthorized");
   }
@@ -15,6 +86,10 @@ export async function requireAuthUser(ctx: any) {
     .unique();
 
   if (!appUser) {
+    if (typeof ctx.db.insert !== "function") {
+      throw new ConvexError("Authenticated user is not provisioned");
+    }
+
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
       workosUserId: authUser.id,
@@ -37,6 +112,10 @@ export async function requireAuthUser(ctx: any) {
   }
 
   return { authUser, appUser };
+}
+
+export async function getResolvedAuthUser(ctx: any): Promise<ResolvedAuthUser | null> {
+  return resolveAuthUser(ctx);
 }
 
 export async function requireWorkspaceMember(

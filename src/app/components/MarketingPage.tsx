@@ -23,19 +23,23 @@ export function MarketingPage({ isAuthenticated }: { isAuthenticated: boolean })
         </p>
 
         <div className="mt-9 flex flex-wrap items-center gap-3">
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#58AFFF] px-5 py-3 text-[14px] font-semibold text-[#0e2338] transition-colors hover:bg-[#6cb8ff]"
-          >
-            Create account
-            <ArrowRight size={15} />
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center rounded-xl border border-white/20 bg-white/[0.03] px-5 py-3 text-[14px] font-medium text-white/90 transition-colors hover:bg-white/[0.08]"
-          >
-            Sign in
-          </Link>
+          {!isAuthenticated && (
+            <>
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#58AFFF] px-5 py-3 text-[14px] font-semibold text-[#0e2338] transition-colors hover:bg-[#6cb8ff]"
+              >
+                Create account
+                <ArrowRight size={15} />
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center rounded-xl border border-white/20 bg-white/[0.03] px-5 py-3 text-[14px] font-medium text-white/90 transition-colors hover:bg-white/[0.08]"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
           {isAuthenticated && (
             <Link
               to="/tasks"

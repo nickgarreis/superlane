@@ -195,7 +195,9 @@ export const ensureDefaultWorkspace = mutation({
       });
     }
 
-    const defaultWorkspaceName = `${appUser.name.split(" ")[0] || "My"} Workspace`;
+    const trimmedUserName = appUser.name.trim();
+    const workspaceNamePrefix = trimmedUserName ? trimmedUserName.split(/\s+/)[0] : "My";
+    const defaultWorkspaceName = `${workspaceNamePrefix} Workspace`;
     const baseSlug = slugify(defaultWorkspaceName);
     const slug = await ensureUniqueWorkspaceSlug(ctx, baseSlug);
 
@@ -204,7 +206,7 @@ export const ensureDefaultWorkspace = mutation({
       name: defaultWorkspaceName,
       plan: "Free Plan",
       logoColor: "#193cb8",
-      logoText: (appUser.name.charAt(0) || "W").toUpperCase(),
+      logoText: (workspaceNamePrefix.charAt(0) || "W").toUpperCase(),
       ownerUserId: appUser._id,
       createdAt: now,
       updatedAt: now,

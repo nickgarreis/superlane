@@ -2,6 +2,40 @@ import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { clearStoredAuthMode, readStoredAuthMode, readStoredReturnTo } from "../lib/authReturnTo";
 
+const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
+
+const sanitizeReturnTo = (
+  value: string | null | undefined,
+  fallback: string = "/tasks",
+): string => {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || CONTROL_CHARS_PATTERN.test(trimmed)) {
+    return fallback;
+  }
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.includes("://")) {
+    return trimmed;
+  }
+
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.origin !== window.location.origin) {
+      return fallback;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}` || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export function AuthCallbackPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -15,7 +49,7 @@ export function AuthCallbackPage() {
       return;
     }
 
-    const returnTo = readStoredReturnTo() ?? "/tasks";
+    const returnTo = sanitizeReturnTo(readStoredReturnTo(), "/tasks");
 
     if (!workosError) {
       clearStoredAuthMode();

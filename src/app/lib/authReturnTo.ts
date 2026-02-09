@@ -3,14 +3,23 @@ const AUTH_MODE_STORAGE_KEY = "builddesign.auth.mode";
 
 type StoredAuthMode = "signin" | "signup";
 
+const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
+
 const sanitizePath = (value: string | null | undefined): string | null => {
-  if (!value || value.trim().length === 0) {
+  if (!value) {
     return null;
   }
-  if (!value.startsWith("/")) {
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || CONTROL_CHARS_PATTERN.test(trimmed)) {
     return null;
   }
-  return value;
+  if (!trimmed.startsWith("/")) {
+    return null;
+  }
+  if (trimmed.startsWith("//") || trimmed.includes("://")) {
+    return null;
+  }
+  return trimmed;
 };
 
 const sanitizeMode = (value: string | null | undefined): StoredAuthMode | null => {

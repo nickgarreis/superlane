@@ -3,6 +3,14 @@ export type AppView = "tasks" | "archive" | `project:${string}` | `archive-proje
 const archiveProjectPattern = /^\/archive\/([^/]+)$/;
 const projectPattern = /^\/project\/([^/]+)$/;
 
+const safeDecodePathSegment = (value: string): string | null => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+};
+
 export const viewToPath = (view: AppView): string => {
   if (view === "tasks") {
     return "/tasks";
@@ -28,12 +36,18 @@ export const pathToView = (pathname: string): AppView | null => {
 
   const archiveProjectMatch = pathname.match(archiveProjectPattern);
   if (archiveProjectMatch) {
-    return `archive-project:${decodeURIComponent(archiveProjectMatch[1])}`;
+    const decodedArchiveProjectId = safeDecodePathSegment(archiveProjectMatch[1]);
+    if (decodedArchiveProjectId !== null) {
+      return `archive-project:${decodedArchiveProjectId}`;
+    }
   }
 
   const projectMatch = pathname.match(projectPattern);
   if (projectMatch) {
-    return `project:${decodeURIComponent(projectMatch[1])}`;
+    const decodedProjectId = safeDecodePathSegment(projectMatch[1]);
+    if (decodedProjectId !== null) {
+      return `project:${decodedProjectId}`;
+    }
   }
 
   return null;

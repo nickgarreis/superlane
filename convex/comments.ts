@@ -306,6 +306,7 @@ export const toggleResolved = mutation({
     commentId: v.id("projectComments"),
   },
   handler: async (ctx, args) => {
+    const { appUser: user } = await requireAuthUser(ctx);
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
       throw new ConvexError("Comment not found");
@@ -315,10 +316,11 @@ export const toggleResolved = mutation({
 
     await ctx.db.patch(comment._id, {
       resolved: !comment.resolved,
+      resolvedByUserId: user._id,
       updatedAt: Date.now(),
     });
 
-    return { commentId: comment._id, resolved: !comment.resolved };
+    return { commentId: comment._id, resolved: !comment.resolved, resolvedByUserId: user._id };
   },
 });
 

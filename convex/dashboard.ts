@@ -1,14 +1,57 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "./_generated/server";
-import { requireAuthUser } from "./lib/auth";
+import { getResolvedAuthUser, requireAuthUser } from "./lib/auth";
 import { hasActiveOrganizationMembershipForWorkspace } from "./lib/workosOrganization";
+
+const buildProvisioningSnapshot = (authUser: {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profilePictureUrl?: string | null;
+}) => {
+  const name =
+    [authUser.firstName, authUser.lastName].filter(Boolean).join(" ").trim() ||
+    authUser.email ||
+    "Unknown user";
+
+  return {
+    viewer: {
+      id: null,
+      workosUserId: authUser.id,
+      name,
+      email: authUser.email ?? null,
+      avatarUrl: authUser.profilePictureUrl ?? null,
+    },
+    workspaces: [],
+    activeWorkspace: null,
+    activeWorkspaceSlug: null,
+    projects: [],
+    tasks: [],
+  };
+};
 
 export const getSnapshot = query({
   args: {
     activeWorkspaceSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { appUser } = await requireAuthUser(ctx);
+    let appUser: any;
+    try {
+      ({ appUser } = await requireAuthUser(ctx));
+    } catch (error) {
+      if (
+        error instanceof ConvexError &&
+        error.message === "Authenticated user is not provisioned"
+      ) {
+        const authUser = await getResolvedAuthUser(ctx);
+        if (!authUser) {
+          throw new ConvexError("Unauthorized");
+        }
+        return buildProvisioningSnapshot(authUser);
+      }
+      throw error;
+    }
 
     const memberships = await ctx.db
       .query("workspaceMembers")

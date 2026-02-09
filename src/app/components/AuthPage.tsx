@@ -6,11 +6,20 @@ import { storeAuthMode, storeReturnTo } from "../lib/authReturnTo";
 
 type AuthMode = "signin" | "signup";
 
+const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
+
 const ensureSafeReturnTo = (value: string | null | undefined, fallback: string) => {
-  if (!value || value.trim().length === 0) {
+  if (!value) {
     return fallback;
   }
-  return value.startsWith("/") ? value : fallback;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || CONTROL_CHARS_PATTERN.test(trimmed)) {
+    return fallback;
+  }
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.includes("://")) {
+    return fallback;
+  }
+  return trimmed;
 };
 
 export function AuthPage({ mode, defaultReturnTo = "/tasks" }: { mode: AuthMode; defaultReturnTo?: string }) {

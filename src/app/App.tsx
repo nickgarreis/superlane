@@ -925,47 +925,13 @@ export default function App() {
       <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
 
       <Route
-        path="/tasks"
+        path="/*"
         element={(
           <ProtectedRoute>
             <DashboardApp />
           </ProtectedRoute>
         )}
       />
-      <Route
-        path="/archive"
-        element={(
-          <ProtectedRoute>
-            <DashboardApp />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/archive/:projectId"
-        element={(
-          <ProtectedRoute>
-            <DashboardApp />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/project/:projectId"
-        element={(
-          <ProtectedRoute>
-            <DashboardApp />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/settings"
-        element={(
-          <ProtectedRoute>
-            <DashboardApp />
-          </ProtectedRoute>
-        )}
-      />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

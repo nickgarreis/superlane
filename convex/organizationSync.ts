@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { makeFunctionReference } from "convex/server";
 import { action } from "./_generated/server";
 import { authKit } from "./auth";
@@ -16,6 +16,11 @@ export const reconcileWorkspaceOrganizationMemberships = action({
   },
   handler: async (ctx, args) => {
     const context = await ctx.runQuery(getReconciliationContextRef as any, { workspaceSlug: args.workspaceSlug });
+    if (!context || !context.workspaceId || !context.workspaceSlug || !context.workosOrganizationId) {
+      throw new ConvexError(
+        `Unable to reconcile organization memberships: missing reconciliation context for workspace "${args.workspaceSlug}"`,
+      );
+    }
 
     const memberships = await authKit.workos.userManagement
       .listOrganizationMemberships({

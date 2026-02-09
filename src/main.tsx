@@ -14,6 +14,25 @@ const requireEnv = (value: string | undefined, name: string) => {
   return value;
 };
 
+const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
+
+const sanitizeReturnToPath = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || CONTROL_CHARS_PATTERN.test(trimmed)) {
+    return null;
+  }
+
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.includes("://")) {
+    return null;
+  }
+
+  return trimmed;
+};
+
 const convexUrl = requireEnv(import.meta.env.VITE_CONVEX_URL, "VITE_CONVEX_URL");
 const workosClientId = requireEnv(import.meta.env.VITE_WORKOS_CLIENT_ID, "VITE_WORKOS_CLIENT_ID");
 const configuredWorkosRedirectUri = import.meta.env.VITE_WORKOS_REDIRECT_URI;
@@ -34,10 +53,7 @@ createRoot(document.getElementById("root")!).render(
     redirectUri={workosRedirectUri}
     devMode={import.meta.env.DEV}
     onRedirectCallback={({ state }) => {
-      const stateReturnTo =
-        typeof state?.returnTo === "string" && state.returnTo.length > 0 && state.returnTo.startsWith("/")
-          ? state.returnTo
-          : null;
+      const stateReturnTo = sanitizeReturnToPath(state?.returnTo);
       const returnTo = stateReturnTo ?? readStoredReturnTo() ?? "/tasks";
       clearStoredAuthMode();
       clearStoredReturnTo();

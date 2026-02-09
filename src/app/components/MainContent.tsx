@@ -30,6 +30,11 @@ const FILE_THUMBNAIL_BY_TYPE: Record<string, string> = {
   FILE: imgFile4,
 };
 
+const PROJECT_FILE_TABS: readonly ProjectFileTab[] = ["Assets", "Contract", "Attachments"];
+
+const isProjectFileTab = (value: string): value is ProjectFileTab =>
+  (PROJECT_FILE_TABS as readonly string[]).includes(value);
+
 function MenuIcon({ isArchived, isCompleted, onArchive, onUnarchive, onDelete, onComplete, onUncomplete }: { isArchived?: boolean, isCompleted?: boolean, onArchive?: () => void, onUnarchive?: () => void, onDelete?: () => void, onComplete?: () => void, onUncomplete?: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   
@@ -234,8 +239,8 @@ export function MainContent({
       setHighlightedTaskId(pendingHighlight.taskId);
     } else if (pendingHighlight.type === "file" && pendingHighlight.fileName) {
       // Switch to the correct tab first
-      if (pendingHighlight.fileTab) {
-        setActiveTab(pendingHighlight.fileTab as ProjectFileTab);
+      if (pendingHighlight.fileTab && isProjectFileTab(pendingHighlight.fileTab)) {
+        setActiveTab(pendingHighlight.fileTab);
       }
       const file = projectFiles.find((entry) => entry.name === pendingHighlight.fileName);
       if (file) {
