@@ -4,15 +4,15 @@ import { Check } from "lucide-react";
 import Loading03 from "../../imports/Loading03";
 import svgPaths from "../../imports/svg-v61uoamt04";
 import imgMargin from "figma:asset/5d34dbbe9efe462031f89ce6f69320ea3cb706ad.png";
-import imgFileIcon from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
 import { imgGroup } from "../../imports/svg-4v64g";
 import { imgGroup as imgGroupOutlook } from "../../imports/svg-ifuqs";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import "react-day-picker/dist/style.css";
 import { ProjectLogo } from "./ProjectLogo";
-import { ProjectDraftData, ProjectData } from "../types";
+import { PendingDraftAttachmentUpload, ProjectDraftData, ProjectData } from "../types";
 
 // SVG Paths for Outlook Logo (from svg-x13b188avo.ts)
 const outlookPaths = {
@@ -63,6 +63,9 @@ const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
   "Product design": "\u{1F4F1}",
   "Interactive animations": "\u{1F300}",
 };
+
+const createDraftSessionId = () =>
+  `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 function ServiceIcon() {
   return (
@@ -239,7 +242,10 @@ export function CreateProjectPopup({
   initialDraftData,
   onDeleteDraft,
   reviewProject,
-  onUpdateComments
+  onUpdateComments,
+  onUploadAttachment,
+  onRemovePendingAttachment,
+  onDiscardDraftUploads,
 }: { 
   isOpen: boolean; 
   onClose: () => void;
@@ -250,6 +256,18 @@ export function CreateProjectPopup({
   onDeleteDraft?: (id: string) => void;
   reviewProject?: ProjectData | null;
   onUpdateComments?: (projectId: string, comments: Array<{ id: string; author: { name: string; avatar: string }; content: string; timestamp: string }>) => void;
+  onUploadAttachment?: (
+    file: File,
+    draftSessionId: string,
+  ) => Promise<{
+    pendingUploadId: string;
+    name: string;
+    type: string;
+    mimeType: string | null;
+    sizeBytes: number;
+  }>;
+  onRemovePendingAttachment?: (pendingUploadId: string) => Promise<void>;
+  onDiscardDraftUploads?: (draftSessionId: string) => Promise<void>;
 }) {
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -259,13 +277,15 @@ export function CreateProjectPopup({
   const [isAIEnabled, setIsAIEnabled] = useState(true);
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<PendingDraftAttachmentUpload[]>([]);
+  const [draftSessionId, setDraftSessionId] = useState(() => createDraftSessionId());
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteProjectConfirm, setShowDeleteProjectConfirm] = useState(false);
   const [reviewComments, setReviewComments] = useState<Array<{ id: string; author: { name: string; avatar: string }; content: string; timestamp: string }>>([]);
   const [commentInput, setCommentInput] = useState("");
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const discardRequestedRef = useRef(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
@@ -308,6 +328,15 @@ export function CreateProjectPopup({
       setStep(4);
     }
   }, [isOpen, reviewProject]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    discardRequestedRef.current = false;
+    setDraftSessionId(createDraftSessionId());
+    setAttachments([]);
+  }, [isOpen]);
 
   // ── Service-specific configuration ──────────────────────────────
   type ServiceKey = typeof SERVICES[number];
@@ -368,9 +397,108 @@ export function CreateProjectPopup({
     };
   }, [isCalendarOpen]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setAttachments(prev => [...prev, ...acceptedFiles]);
-  }, []);
+  const uploadAttachmentEntry = useCallback(
+    async (file: File, clientId: string) => {
+      if (!onUploadAttachment) {
+        setAttachments((prev) =>
+          prev.map((entry) =>
+            entry.clientId === clientId
+              ? { ...entry, status: "error", error: "Upload handler is unavailable" }
+              : entry,
+          ),
+        );
+        return;
+      }
+
+      try {
+        const uploaded = await onUploadAttachment(file, draftSessionId);
+        if (discardRequestedRef.current && onRemovePendingAttachment) {
+          await onRemovePendingAttachment(uploaded.pendingUploadId);
+          setAttachments((prev) => prev.filter((entry) => entry.clientId !== clientId));
+          return;
+        }
+
+        setAttachments((prev) =>
+          prev.map((entry) =>
+            entry.clientId === clientId
+              ? {
+                  ...entry,
+                  status: "uploaded",
+                  pendingUploadId: uploaded.pendingUploadId,
+                  name: uploaded.name,
+                  type: uploaded.type,
+                  error: undefined,
+                }
+              : entry,
+          ),
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Upload failed";
+        setAttachments((prev) =>
+          prev.map((entry) =>
+            entry.clientId === clientId
+              ? { ...entry, status: "error", error: message }
+              : entry,
+          ),
+        );
+      }
+    },
+    [draftSessionId, onRemovePendingAttachment, onUploadAttachment],
+  );
+
+  const inferAttachmentType = (file: File) =>
+    file.name.split(".").pop()?.toUpperCase() || "FILE";
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const newEntries: PendingDraftAttachmentUpload[] = acceptedFiles.map((file, index) => ({
+        clientId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        file,
+        name: file.name,
+        type: inferAttachmentType(file),
+        status: "uploading",
+      }));
+
+      setAttachments((prev) => [...prev, ...newEntries]);
+      newEntries.forEach((entry) => {
+        void uploadAttachmentEntry(entry.file, entry.clientId);
+      });
+    },
+    [uploadAttachmentEntry],
+  );
+
+  const handleRemoveAttachment = useCallback(
+    (clientId: string) => {
+      setAttachments((prev) => {
+        const target = prev.find((entry) => entry.clientId === clientId);
+        if (target?.pendingUploadId && onRemovePendingAttachment) {
+          void onRemovePendingAttachment(target.pendingUploadId).catch(() => {
+            // The row is removed from UI regardless. Backend retention cleanup still protects storage.
+          });
+        }
+        return prev.filter((entry) => entry.clientId !== clientId);
+      });
+    },
+    [onRemovePendingAttachment],
+  );
+
+  const handleRetryAttachment = useCallback(
+    (clientId: string) => {
+      const target = attachments.find((entry) => entry.clientId === clientId);
+      if (!target) {
+        return;
+      }
+      setAttachments((prev) =>
+        prev.map((entry) =>
+          entry.clientId === clientId
+            ? { ...entry, status: "uploading", error: undefined, pendingUploadId: undefined }
+            : entry,
+        ),
+      );
+      void uploadAttachmentEntry(target.file, target.clientId);
+    },
+    [attachments, uploadAttachmentEntry],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
@@ -381,6 +509,8 @@ export function CreateProjectPopup({
     if (step === 2) return !!projectName.trim() && !!selectedJob;
     return true;
   };
+  const isUploading = attachments.some((file) => file.status === "uploading");
+  const isNextDisabled = !isStepValid() || (step === 3 && isUploading);
 
   const hasUnsavedWork = () => {
     // For new projects: any selection means there's something to save
@@ -415,13 +545,14 @@ export function CreateProjectPopup({
   });
 
   const createProject = (status: string) => {
-    const attachmentData = attachments.map((file, index) => ({
-      id: `new-${Date.now()}-${index}`,
-      name: file.name,
-      type: file.name.split('.').pop()?.toUpperCase() || "FILE",
-      date: format(new Date(), "d. MMM. yyyy, HH:mm"),
-      img: imgFileIcon
-    }));
+    if (isUploading) {
+      toast.error("Please wait for attachments to finish uploading");
+      return;
+    }
+
+    const attachmentPendingUploadIds = attachments
+      .filter((file) => file.status === "uploaded" && file.pendingUploadId)
+      .map((file) => file.pendingUploadId as string);
 
     // Generate project ID so we can reference it for comments on the success page
     const generatedId = editProjectId || (projectName || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now();
@@ -434,7 +565,7 @@ export function CreateProjectPopup({
       category: selectedService,
       scope: selectedJob,
       deadline: deadline ? format(deadline, "dd.MM.yy") : undefined,
-      attachments: attachmentData,
+      attachmentPendingUploadIds,
       status: status,
     };
 
@@ -496,7 +627,21 @@ export function CreateProjectPopup({
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = (options?: { discardUploads?: boolean }) => {
+    const shouldDiscardUploads = options?.discardUploads !== false;
+    if (shouldDiscardUploads) {
+      discardRequestedRef.current = true;
+    }
+    if (
+      shouldDiscardUploads &&
+      onDiscardDraftUploads &&
+      attachments.length > 0
+    ) {
+      void onDiscardDraftUploads(draftSessionId).catch(() => {
+        // Best effort cleanup; stale-upload cron covers missed cases.
+      });
+    }
+
     onClose();
     setTimeout(() => {
       setStep(1);
@@ -513,6 +658,7 @@ export function CreateProjectPopup({
       setReviewComments([]);
       setCommentInput("");
       setCreatedProjectId(null);
+      setDraftSessionId(createDraftSessionId());
     }, 300);
   };
 
@@ -562,7 +708,7 @@ export function CreateProjectPopup({
   const handleConfirmSave = () => {
     createProject("Draft");
     setShowCloseConfirm(false);
-    handleCancel();
+    handleCancel({ discardUploads: false });
   };
 
   // Cancel from confirmation dialog
@@ -575,7 +721,6 @@ export function CreateProjectPopup({
         category: initialDraftData.selectedService,
         scope: initialDraftData.selectedJob,
         deadline: initialDraftData.deadline ? format(new Date(initialDraftData.deadline), "dd.MM.yy") : undefined,
-        attachments: [],
         status: "Draft",
         draftData: initialDraftData,
         _editProjectId: editProjectId,
@@ -829,18 +974,38 @@ export function CreateProjectPopup({
                            
                            {attachments.length > 0 && (
                                <div className="flex flex-col gap-1 mt-2 w-full">
-                                   {attachments.map((file, idx) => (
-                                       <div key={idx} className="flex items-center justify-between text-xs text-white/60 bg-white/5 rounded px-2 py-1">
-                                           <span className="truncate max-w-[90%]">{file.name}</span>
-                                           <button 
-                                               onClick={(e) => {
+                                   {attachments.map((file) => (
+                                       <div key={file.clientId} className="flex items-center justify-between text-xs text-white/60 bg-white/5 rounded px-2 py-1">
+                                           <div className="flex flex-col min-w-0">
+                                             <span className="truncate max-w-[250px]">{file.name}</span>
+                                             <span className="text-[10px] text-white/40">
+                                               {file.status === "uploading" && "Uploading..."}
+                                               {file.status === "uploaded" && "Uploaded"}
+                                               {file.status === "error" && (file.error || "Upload failed")}
+                                             </span>
+                                           </div>
+                                           <div className="flex items-center gap-2 shrink-0">
+                                             {file.status === "error" && (
+                                               <button
+                                                 onClick={(e) => {
                                                    e.stopPropagation();
-                                                   setAttachments(prev => prev.filter((_, i) => i !== idx));
+                                                   handleRetryAttachment(file.clientId);
+                                                 }}
+                                                 className="text-[10px] text-white/70 hover:text-white"
+                                               >
+                                                 Retry
+                                               </button>
+                                             )}
+                                             <button
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 handleRemoveAttachment(file.clientId);
                                                }}
                                                className="hover:text-white"
-                                           >
+                                             >
                                                &times;
-                                           </button>
+                                             </button>
+                                           </div>
                                        </div>
                                    ))}
                                </div>
@@ -1248,10 +1413,10 @@ export function CreateProjectPopup({
 
                   <button 
                     onClick={handleNext}
-                    disabled={!isStepValid()}
+                    disabled={isNextDisabled}
                     className={`
                       content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer
-                      ${!isStepValid() ? "bg-[#e8e8e8]/50 cursor-not-allowed text-[#131314]/50" : "bg-[#e8e8e8] hover:bg-white text-[#131314]"}
+                      ${isNextDisabled ? "bg-[#e8e8e8]/50 cursor-not-allowed text-[#131314]/50" : "bg-[#e8e8e8] hover:bg-white text-[#131314]"}
                     `}
                   >
                     <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center whitespace-nowrap">

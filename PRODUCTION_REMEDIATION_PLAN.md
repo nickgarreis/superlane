@@ -93,8 +93,7 @@ Implementation:
   - remove member flow
 - Notification preferences API + storage table.
 - Billing panel:
-  - if billing integration not ready, switch to explicit read-only "integration pending" state
-  - avoid fake invoice/payment records.
+  - keep mock data -- no functioanlity here
 
 Done when:
 - All settings actions persist server-side and survive reload/device switch.

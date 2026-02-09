@@ -107,17 +107,46 @@ export default defineSchema({
     tab: fileTabValidator,
     name: v.string(),
     type: v.string(),
+    storageId: v.optional(v.id("_storage")),
+    mimeType: v.optional(v.string()),
+    sizeBytes: v.optional(v.number()),
+    checksumSha256: v.optional(v.string()),
     displayDate: v.string(),
     thumbnailRef: v.optional(v.string()),
     source: v.optional(v.union(v.literal("upload"), v.literal("importedAttachment"))),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
+    deletedByUserId: v.optional(v.id("users")),
+    purgeAfterAt: v.optional(v.union(v.number(), v.null())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_projectId", ["projectId"])
+    .index("by_projectId_deletedAt", ["projectId", "deletedAt"])
     .index("by_projectPublicId", ["projectPublicId"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
-    .index("by_workspace_tab", ["workspaceId", "tab"]),
+    .index("by_workspace_tab", ["workspaceId", "tab"])
+    .index("by_purgeAfterAt", ["purgeAfterAt"]),
+
+  pendingFileUploads: defineTable({
+    workspaceId: v.id("workspaces"),
+    uploaderUserId: v.id("users"),
+    draftSessionId: v.string(),
+    name: v.string(),
+    mimeType: v.string(),
+    sizeBytes: v.number(),
+    checksumSha256: v.string(),
+    storageId: v.id("_storage"),
+    projectId: v.optional(v.id("projects")),
+    projectPublicId: v.optional(v.string()),
+    consumedAt: v.optional(v.union(v.number(), v.null())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_draftSessionId", ["draftSessionId"])
+    .index("by_workspaceId", ["workspaceId"])
+    .index("by_uploaderUserId", ["uploaderUserId"])
+    .index("by_createdAt", ["createdAt"]),
 
   projectComments: defineTable({
     workspaceId: v.id("workspaces"),

@@ -1,12 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import {
-  attachmentValidator,
   draftDataValidator,
   projectStatusValidator,
   reviewCommentValidator,
 } from "./lib/validators";
 import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
+import { ensureUniqueFileName, FILE_RETENTION_MS, inferFileTypeFromName, MAX_FILES_PER_PROJECT } from "./lib/filePolicy";
+import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
 
 const slugify = (value: string) =>
@@ -33,41 +34,73 @@ const ensureUniqueProjectPublicId = async (ctx: any, base: string) => {
   }
 };
 
-const syncAttachmentFiles = async (
+const consumePendingUploadsForProject = async (
   ctx: any,
-  project: { _id: any; workspaceId: any; publicId: string },
-  attachments: Array<{ name: string; type: string; date: string; img: string }>,
+  args: {
+    project: { _id: any; workspaceId: any; publicId: string };
+    appUserId: any;
+    pendingUploadIds: any[];
+  },
 ) => {
-  const existingFiles = await ctx.db
-    .query("projectFiles")
-    .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
-    .collect();
-
-  const existingAttachmentFiles = existingFiles.filter((file: any) => file.tab === "Attachments");
-  await Promise.all(existingAttachmentFiles.map((file: any) => ctx.db.delete(file._id)));
-
-  if (attachments.length === 0) {
+  if (args.pendingUploadIds.length === 0) {
     return;
   }
 
-  const now = Date.now();
-  await Promise.all(
-    attachments.map((attachment) =>
-      ctx.db.insert("projectFiles", {
-        workspaceId: project.workspaceId,
-        projectId: project._id,
-        projectPublicId: project.publicId,
-        tab: "Attachments",
-        name: attachment.name,
-        type: attachment.type,
-        displayDate: attachment.date,
-        thumbnailRef: attachment.img,
-        source: "importedAttachment",
-        createdAt: now,
-        updatedAt: now,
-      }),
-    ),
+  const activeFiles = (
+    await ctx.db
+      .query("projectFiles")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", args.project._id))
+      .collect()
+  ).filter((file: any) => file.deletedAt == null);
+
+  if (activeFiles.length + args.pendingUploadIds.length > MAX_FILES_PER_PROJECT) {
+    throw new ConvexError("File limit reached for this project");
+  }
+
+  const pendingUploads = await Promise.all(
+    args.pendingUploadIds.map((pendingUploadId) => ctx.db.get(pendingUploadId)),
   );
+  const now = Date.now();
+  const attachmentNames = new Set<string>(
+    activeFiles.filter((file: any) => file.tab === "Attachments").map((file: any) => file.name),
+  );
+
+  for (let index = 0; index < pendingUploads.length; index += 1) {
+    const pendingUpload = pendingUploads[index];
+    if (!pendingUpload) {
+      throw new ConvexError("Pending upload not found");
+    }
+    if (String(pendingUpload.workspaceId) !== String(args.project.workspaceId)) {
+      throw new ConvexError("Pending upload workspace mismatch");
+    }
+    if (String(pendingUpload.uploaderUserId) !== String(args.appUserId)) {
+      throw new ConvexError("Forbidden");
+    }
+
+    const finalName = ensureUniqueFileName(pendingUpload.name, attachmentNames);
+    attachmentNames.add(finalName);
+
+    await ctx.db.insert("projectFiles", {
+      workspaceId: args.project.workspaceId,
+      projectId: args.project._id,
+      projectPublicId: args.project.publicId,
+      tab: "Attachments",
+      name: finalName,
+      type: inferFileTypeFromName(finalName),
+      storageId: pendingUpload.storageId,
+      mimeType: pendingUpload.mimeType,
+      sizeBytes: pendingUpload.sizeBytes,
+      checksumSha256: pendingUpload.checksumSha256,
+      displayDate: new Date(now).toISOString(),
+      source: "importedAttachment",
+      deletedAt: null,
+      purgeAfterAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.delete(pendingUpload._id);
+  }
 };
 
 export const create = mutation({
@@ -80,7 +113,7 @@ export const create = mutation({
     scope: v.optional(v.string()),
     deadline: v.optional(v.string()),
     status: v.optional(projectStatusValidator),
-    attachments: v.optional(v.array(attachmentValidator)),
+    attachmentPendingUploadIds: v.optional(v.array(v.id("pendingFileUploads"))),
     draftData: v.optional(v.union(draftDataValidator, v.null())),
     reviewComments: v.optional(v.array(reviewCommentValidator)),
   },
@@ -120,17 +153,19 @@ export const create = mutation({
       completedAt: status === "Completed" ? now : null,
       deletedAt: null,
       draftData: args.draftData ?? null,
-      attachments: args.attachments,
+      attachments: [],
       reviewComments: args.reviewComments,
       createdAt: now,
       updatedAt: now,
     });
 
-    await syncAttachmentFiles(
-      ctx,
-      { _id: projectId, workspaceId: workspace._id, publicId },
-      args.attachments ?? [],
-    );
+    const projectRef = { _id: projectId, workspaceId: workspace._id, publicId };
+    await consumePendingUploadsForProject(ctx, {
+      project: projectRef,
+      appUserId: appUser._id,
+      pendingUploadIds: args.attachmentPendingUploadIds ?? [],
+    });
+    await syncProjectAttachmentMirror(ctx, projectRef);
 
     return { projectId, publicId };
   },
@@ -145,7 +180,7 @@ export const update = mutation({
     scope: v.optional(v.string()),
     deadline: v.optional(v.string()),
     status: v.optional(projectStatusValidator),
-    attachments: v.optional(v.array(attachmentValidator)),
+    attachmentPendingUploadIds: v.optional(v.array(v.id("pendingFileUploads"))),
     draftData: v.optional(v.union(draftDataValidator, v.null())),
     reviewComments: v.optional(v.array(reviewCommentValidator)),
   },
@@ -162,7 +197,6 @@ export const update = mutation({
     if (args.category !== undefined) patch.category = args.category;
     if (args.scope !== undefined) patch.scope = args.scope;
     if (args.deadline !== undefined) patch.deadline = args.deadline;
-    if (args.attachments !== undefined) patch.attachments = args.attachments;
     if (args.draftData !== undefined) patch.draftData = args.draftData;
     if (args.reviewComments !== undefined) patch.reviewComments = args.reviewComments;
 
@@ -179,9 +213,14 @@ export const update = mutation({
     }
 
     await ctx.db.patch(project._id, patch);
-    if (args.attachments !== undefined) {
-      await syncAttachmentFiles(ctx, project, args.attachments);
+    if (args.attachmentPendingUploadIds && args.attachmentPendingUploadIds.length > 0) {
+      await consumePendingUploadsForProject(ctx, {
+        project,
+        appUserId: appUser._id,
+        pendingUploadIds: args.attachmentPendingUploadIds,
+      });
     }
+    await syncProjectAttachmentMirror(ctx, project);
 
     return { publicId: project.publicId };
   },
@@ -259,6 +298,23 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
     const now = Date.now();
+
+    const activeProjectFiles = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+    await Promise.all(
+      activeProjectFiles
+        .filter((file: any) => file.deletedAt == null)
+        .map((file: any) =>
+          ctx.db.patch(file._id, {
+            deletedAt: now,
+            deletedByUserId: appUser._id,
+            purgeAfterAt: now + FILE_RETENTION_MS,
+            updatedAt: now,
+          }),
+        ),
+    );
 
     await ctx.db.patch(project._id, {
       deletedAt: now,

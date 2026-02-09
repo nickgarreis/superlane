@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuth } from "@workos-inc/authkit-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster, toast } from "sonner";
@@ -24,7 +24,14 @@ import { isProtectedPath, pathToView, viewToPath } from "./lib/routing";
 import type { AppView } from "./lib/routing";
 import { mapProjectsToUi, mapWorkspacesToUi } from "./lib/mappers";
 import { parseProjectStatus } from "./lib/status";
-import type { ProjectData, ProjectDraftData, ProjectFileData, ProjectFileTab, Task, Workspace } from "./types";
+import type {
+  ProjectData,
+  ProjectDraftData,
+  ProjectFileData,
+  ProjectFileTab,
+  Task,
+  Workspace,
+} from "./types";
 
 type PendingHighlight = {
   type: "task" | "file";
@@ -42,6 +49,40 @@ const parseSettingsTab = (value: string | null | undefined): SettingsTab => {
     return value as SettingsTab;
   }
   return "Account";
+};
+
+const bytesToHex = (bytes: Uint8Array) =>
+  Array.from(bytes)
+    .map((entry) => entry.toString(16).padStart(2, "0"))
+    .join("");
+
+const computeFileChecksumSha256 = async (file: File) => {
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return bytesToHex(new Uint8Array(digest));
+};
+
+const uploadFileToConvexStorage = async (
+  uploadUrl: string,
+  file: File,
+) => {
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (!payload?.storageId) {
+    throw new Error("Upload response missing storageId");
+  }
+  return String(payload.storageId);
 };
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -67,6 +108,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function DashboardApp() {
   const { user, signOut } = useAuth();
   const { isAuthenticated } = useConvexAuth();
+  const convex = useConvex();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -92,7 +134,11 @@ function DashboardApp() {
   const setProjectStatusMutation = useMutation(api.projects.setStatus);
   const updateReviewCommentsMutation = useMutation(api.projects.updateReviewComments);
   const replaceProjectTasksMutation = useMutation(api.tasks.replaceForProject);
-  const createProjectFileMutation = useMutation(api.files.create);
+  const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
+  const finalizeProjectUploadAction = useAction(api.files.finalizeProjectUpload);
+  const finalizePendingDraftAttachmentUploadAction = useAction(api.files.finalizePendingDraftAttachmentUpload);
+  const discardPendingUploadMutation = useMutation(api.files.discardPendingUpload);
+  const discardPendingUploadsForSessionMutation = useMutation(api.files.discardPendingUploadsForSession);
   const removeProjectFileMutation = useMutation(api.files.remove);
 
   const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
@@ -260,6 +306,9 @@ function DashboardApp() {
         type: file.type,
         displayDate: file.displayDate,
         thumbnailRef: file.thumbnailRef ?? null,
+        mimeType: file.mimeType ?? null,
+        sizeBytes: file.sizeBytes ?? null,
+        downloadable: file.downloadable ?? false,
       })),
     [workspaceFiles],
   );
@@ -376,6 +425,7 @@ function DashboardApp() {
       draftData?: ProjectDraftData | null;
       _editProjectId?: string;
       _generatedId?: string;
+      attachmentPendingUploadIds?: string[];
     },
   ) => {
     const normalizedStatus = parseProjectStatus(projectData.status);
@@ -383,9 +433,6 @@ function DashboardApp() {
 
     if (existingId && projects[existingId]) {
       const existing = projects[existingId];
-      const mergedAttachments = projectData.attachments && projectData.attachments.length > 0
-        ? [...(existing.attachments || []), ...projectData.attachments]
-        : existing.attachments;
 
       void updateProjectMutation(omitUndefined({
         publicId: existingId,
@@ -396,7 +443,7 @@ function DashboardApp() {
         deadline: projectData.deadline ?? existing.deadline,
         status: normalizedStatus,
         draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
-        attachments: mergedAttachments,
+        attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
       }))
         .then(() => {
           if (normalizedStatus !== "Draft" && normalizedStatus !== "Review") {
@@ -431,7 +478,7 @@ function DashboardApp() {
       scope: projectData.scope || undefined,
       deadline: projectData.deadline || undefined,
       status: normalizedStatus,
-      attachments: projectData.attachments,
+      attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
       draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
     }))
       .then(() => {
@@ -597,7 +644,6 @@ function DashboardApp() {
       category?: string;
       scope?: string;
       deadline?: string;
-      attachments?: ProjectData["attachments"];
       reviewComments?: ProjectData["comments"];
     } = {
       publicId: id,
@@ -608,7 +654,6 @@ function DashboardApp() {
     if (data.category !== undefined) patch.category = data.category;
     if (data.scope !== undefined) patch.scope = data.scope;
     if (data.deadline !== undefined) patch.deadline = data.deadline;
-    if (data.attachments !== undefined) patch.attachments = data.attachments;
     if (data.comments !== undefined) patch.reviewComments = data.comments;
 
     if (Object.keys(patch).length > 1) {
@@ -619,37 +664,110 @@ function DashboardApp() {
     }
   };
 
-  const buildDisplayDate = () => {
-    const now = new Date();
-    const date = now.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-    const time = now.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return `${date}, ${time}`;
-  };
+  const resolveUploadWorkspaceSlug = () => activeWorkspace?.id ?? resolvedWorkspaceSlug ?? null;
 
   const handleCreateProjectFile = (projectPublicId: string, tab: ProjectFileTab, file: File) => {
-    const type = file.name.split(".").pop()?.toUpperCase() || "FILE";
-    void createProjectFileMutation({
-      projectPublicId,
-      tab,
-      name: file.name,
-      type,
-      displayDate: buildDisplayDate(),
-    })
-      .then(() => {
-        toast.success(`Successfully uploaded ${file.name}`);
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to upload file");
+    void (async () => {
+      const workspaceSlug = resolveUploadWorkspaceSlug();
+      if (!workspaceSlug) {
+        throw new Error("No active workspace selected");
+      }
+
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      await finalizeProjectUploadAction({
+        projectPublicId,
+        tab,
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+        storageId: storageId as any,
       });
+
+      toast.success(`Successfully uploaded ${file.name}`);
+    })().catch((error) => {
+      console.error(error);
+      toast.error("Failed to upload file");
+    });
   };
+
+  const handleUploadDraftAttachment = useCallback(
+    async (file: File, draftSessionId: string): Promise<{
+      pendingUploadId: string;
+      name: string;
+      type: string;
+      mimeType: string | null;
+      sizeBytes: number;
+    }> => {
+      const workspaceSlug = resolveUploadWorkspaceSlug();
+      if (!workspaceSlug) {
+        throw new Error("No active workspace selected");
+      }
+
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      const result = await finalizePendingDraftAttachmentUploadAction({
+        workspaceSlug,
+        draftSessionId,
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+        storageId: storageId as any,
+      });
+
+      return {
+        pendingUploadId: String(result.pendingUploadId),
+        name: result.name,
+        type: result.type,
+        mimeType: result.mimeType ?? null,
+        sizeBytes: result.sizeBytes,
+      };
+    },
+    [
+      activeWorkspace?.id,
+      resolvedWorkspaceSlug,
+      generateUploadUrlMutation,
+      finalizePendingDraftAttachmentUploadAction,
+    ],
+  );
+
+  const handleRemoveDraftAttachment = useCallback(
+    async (pendingUploadId: string) => {
+      await discardPendingUploadMutation({
+        pendingUploadId: pendingUploadId as any,
+      });
+    },
+    [discardPendingUploadMutation],
+  );
+
+  const handleDiscardDraftSessionUploads = useCallback(
+    async (draftSessionId: string) => {
+      const workspaceSlug = resolveUploadWorkspaceSlug();
+      if (!workspaceSlug) {
+        return;
+      }
+      try {
+        await discardPendingUploadsForSessionMutation({
+          workspaceSlug,
+          draftSessionId,
+        });
+      } catch (error) {
+        console.error("Failed to discard draft session uploads", {
+          error,
+          draftSessionId,
+          workspaceSlug,
+        });
+        toast.error("Failed to discard draft uploads");
+      }
+    },
+    [activeWorkspace?.id, resolvedWorkspaceSlug, discardPendingUploadsForSessionMutation],
+  );
 
   const handleRemoveProjectFile = (fileId: string) => {
     void removeProjectFileMutation({ fileId: fileId as Id<"projectFiles"> })
@@ -663,6 +781,32 @@ function DashboardApp() {
         toast.error("Failed to remove file");
       });
   };
+
+  const handleDownloadProjectFile = useCallback(
+    (fileId: string) => {
+      void convex
+        .query(api.files.getDownloadUrl, {
+          fileId: fileId as Id<"projectFiles">,
+        })
+        .then((result) => {
+          const downloadUrl = typeof result?.url === "string" ? result.url.trim() : "";
+          if (!downloadUrl || !/^https?:\/\//i.test(downloadUrl)) {
+            console.error("Invalid download URL returned by api.files.getDownloadUrl", {
+              fileId,
+              result,
+            });
+            toast.error("Failed to download file");
+            return;
+          }
+          window.open(downloadUrl, "_blank", "noopener,noreferrer");
+        })
+        .catch((error) => {
+          console.error(error);
+          toast.error("Failed to download file");
+        });
+    },
+    [convex],
+  );
 
   const renderContent = () => {
     if (currentView === "tasks") {
@@ -703,6 +847,7 @@ function DashboardApp() {
             projectFiles={projectFilesByProject[project.id] ?? []}
             onCreateFile={handleCreateProjectFile}
             onRemoveFile={handleRemoveProjectFile}
+            onDownloadFile={handleDownloadProjectFile}
             onArchiveProject={handleArchiveProject}
             onUnarchiveProject={handleUnarchiveProject}
             onDeleteProject={handleDeleteProject}
@@ -731,6 +876,7 @@ function DashboardApp() {
             projectFiles={projectFilesByProject[project.id] ?? []}
             onCreateFile={handleCreateProjectFile}
             onRemoveFile={handleRemoveProjectFile}
+            onDownloadFile={handleDownloadProjectFile}
             onArchiveProject={handleArchiveProject}
             onUnarchiveProject={handleUnarchiveProject}
             onDeleteProject={handleDeleteProject}
@@ -758,6 +904,7 @@ function DashboardApp() {
           projectFiles={projectFilesByProject[firstProject.id] ?? []}
           onCreateFile={handleCreateProjectFile}
           onRemoveFile={handleRemoveProjectFile}
+          onDownloadFile={handleDownloadProjectFile}
           onArchiveProject={handleArchiveProject}
           onUnarchiveProject={handleUnarchiveProject}
           onDeleteProject={handleDeleteProject}
@@ -830,6 +977,9 @@ function DashboardApp() {
           onDeleteDraft={handleDeleteProject}
           reviewProject={reviewProject}
           onUpdateComments={handleUpdateComments}
+          onUploadAttachment={handleUploadDraftAttachment}
+          onRemovePendingAttachment={handleRemoveDraftAttachment}
+          onDiscardDraftUploads={handleDiscardDraftSessionUploads}
         />
 
         <SettingsPopup

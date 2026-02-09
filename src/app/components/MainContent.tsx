@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Archive, ArchiveRestore, CheckCircle2, Undo2, ArrowLeft } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, Download, Undo2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import svgPaths from "../../imports/svg-0erue6fqwq";
@@ -116,6 +116,7 @@ export function MainContent({
     projectFiles,
     onCreateFile,
     onRemoveFile,
+    onDownloadFile,
     onArchiveProject, 
     onUnarchiveProject, 
     onDeleteProject,
@@ -134,6 +135,7 @@ export function MainContent({
     projectFiles: ProjectFileData[],
     onCreateFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void,
     onRemoveFile: (fileId: string) => void,
+    onDownloadFile: (fileId: string) => void,
     onArchiveProject?: (id: string) => void, 
     onUnarchiveProject?: (id: string) => void, 
     onDeleteProject?: (id: string) => void,
@@ -542,11 +544,25 @@ export function MainContent({
                         </div>
 
                         {/* Remove Button */}
-                        <div 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 w-[88px] h-[34px]"
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                          {file.downloadable !== false && (
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onDownloadFile(file.id);
+                              }}
+                              className="h-[34px] px-3 rounded-full bg-white/10 hover:bg-white/20 text-white/90 text-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Download size={13} />
+                              <span>Download</span>
+                            </button>
+                          )}
+                          <div
+                            className="w-[88px] h-[34px]"
                             onClick={(e) => handleRemoveFile(file.id, e)}
-                        >
+                          >
                             <DeleteButton />
+                          </div>
                         </div>
                     </motion.div>
                 ))}

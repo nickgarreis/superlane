@@ -10,10 +10,13 @@
 
 import type * as auth from "../auth.js";
 import type * as comments from "../comments.js";
+import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_filePolicy from "../lib/filePolicy.js";
+import type * as lib_projectAttachments from "../lib/projectAttachments.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lib_workosOrganization from "../lib/workosOrganization.js";
@@ -32,10 +35,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   comments: typeof comments;
+  crons: typeof crons;
   dashboard: typeof dashboard;
   files: typeof files;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/filePolicy": typeof lib_filePolicy;
+  "lib/projectAttachments": typeof lib_projectAttachments;
   "lib/rbac": typeof lib_rbac;
   "lib/validators": typeof lib_validators;
   "lib/workosOrganization": typeof lib_workosOrganization;

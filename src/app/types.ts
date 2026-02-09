@@ -107,7 +107,20 @@ export interface ProjectFileData {
   type: string;
   displayDate: string;
   thumbnailRef?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  downloadable?: boolean;
 }
+
+export type PendingDraftAttachmentUpload = {
+  clientId: string;
+  file: File;
+  name: string;
+  type: string;
+  status: "uploading" | "uploaded" | "error";
+  error?: string;
+  pendingUploadId?: string;
+};
 
 export interface DbProjectRecord {
   id: string;
