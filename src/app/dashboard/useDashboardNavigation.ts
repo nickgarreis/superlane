@@ -7,6 +7,7 @@ import type { ProjectData, ProjectDraftData } from "../types";
 type UseDashboardNavigationArgs = {
   preloadSearchPopup: () => void;
   preloadCreateProjectPopup: () => void;
+  preloadCreateWorkspacePopup: () => void;
   preloadSettingsPopup: () => void;
 };
 
@@ -23,6 +24,8 @@ export type DashboardNavigationState = {
   setIsSearchOpen: Dispatch<SetStateAction<boolean>>;
   isCreateProjectOpen: boolean;
   setIsCreateProjectOpen: Dispatch<SetStateAction<boolean>>;
+  isCreateWorkspaceOpen: boolean;
+  setIsCreateWorkspaceOpen: Dispatch<SetStateAction<boolean>>;
   highlightedArchiveProjectId: string | null;
   setHighlightedArchiveProjectId: Dispatch<SetStateAction<string | null>>;
   pendingHighlight: PendingHighlight | null;
@@ -39,6 +42,8 @@ export type DashboardNavigationState = {
   openSearch: () => void;
   openCreateProject: () => void;
   closeCreateProject: () => void;
+  openCreateWorkspace: () => void;
+  closeCreateWorkspace: () => void;
   handleOpenSettings: (tab?: SettingsTab) => void;
   handleCloseSettings: () => void;
 };
@@ -46,6 +51,7 @@ export type DashboardNavigationState = {
 export const useDashboardNavigation = ({
   preloadSearchPopup,
   preloadCreateProjectPopup,
+  preloadCreateWorkspacePopup,
   preloadSettingsPopup,
 }: UseDashboardNavigationArgs): DashboardNavigationState => {
   const navigate = useNavigate();
@@ -57,6 +63,7 @@ export const useDashboardNavigation = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [highlightedArchiveProjectId, setHighlightedArchiveProjectId] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<PendingHighlight | null>(null);
   const [editProjectId, setEditProjectId] = useState<string | null>(null);
@@ -126,6 +133,15 @@ export const useDashboardNavigation = ({
     setReviewProject(null);
   }, []);
 
+  const openCreateWorkspace = useCallback(() => {
+    preloadCreateWorkspacePopup();
+    setIsCreateWorkspaceOpen(true);
+  }, [preloadCreateWorkspacePopup]);
+
+  const closeCreateWorkspace = useCallback(() => {
+    setIsCreateWorkspaceOpen(false);
+  }, []);
+
   const handleOpenSettings = useCallback((tab: SettingsTab = "Account") => {
     preloadSettingsPopup();
     const params = new URLSearchParams({
@@ -153,6 +169,8 @@ export const useDashboardNavigation = ({
     setIsSearchOpen,
     isCreateProjectOpen,
     setIsCreateProjectOpen,
+    isCreateWorkspaceOpen,
+    setIsCreateWorkspaceOpen,
     highlightedArchiveProjectId,
     setHighlightedArchiveProjectId,
     pendingHighlight,
@@ -169,6 +187,8 @@ export const useDashboardNavigation = ({
     openSearch,
     openCreateProject,
     closeCreateProject,
+    openCreateWorkspace,
+    closeCreateWorkspace,
     handleOpenSettings,
     handleCloseSettings,
   };

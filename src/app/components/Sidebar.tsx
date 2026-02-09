@@ -33,6 +33,7 @@ const SidebarContext = createContext<{
   workspaces: Workspace[];
   onSwitchWorkspace: (id: string) => void;
   onCreateWorkspace: () => void;
+  canCreateWorkspace: boolean;
   onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
   onArchiveProject: (id: string) => void;
   onUnarchiveProject: (id: string) => void;
@@ -48,6 +49,7 @@ const SidebarContext = createContext<{
   workspaces: [],
   onSwitchWorkspace: () => {},
   onCreateWorkspace: () => {},
+  canCreateWorkspace: false,
   onOpenSettings: () => {},
   onArchiveProject: () => {},
   onUnarchiveProject: () => {},
@@ -60,7 +62,7 @@ const SidebarContext = createContext<{
 // Components
 
 function WorkspaceSwitcher() {
-  const { activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace } = useContext(SidebarContext);
+  const { activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace, canCreateWorkspace } = useContext(SidebarContext);
   const [isOpen, setIsOpen] = useState(false);
 
   const bgStyle = activeWorkspace?.logoColor && !activeWorkspace.logoColor.includes('-') 
@@ -146,12 +148,26 @@ function WorkspaceSwitcher() {
             
             <div 
                 onClick={() => {
+                    if (!canCreateWorkspace) {
+                        return;
+                    }
                     onCreateWorkspace();
                     setIsOpen(false);
                 }}
-                className="px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 text-white/60 hover:text-white transition-colors"
+                className={cn(
+                    "px-2 py-1.5 flex items-center gap-3 rounded-lg mx-1 transition-colors",
+                    canCreateWorkspace
+                        ? "hover:bg-white/5 cursor-pointer text-white/60 hover:text-white"
+                        : "text-white/25 cursor-not-allowed"
+                )}
+                title={canCreateWorkspace ? undefined : "Only owners can create workspaces"}
             >
-                <div className="size-6 rounded border border-dashed border-white/20 flex items-center justify-center shrink-0">
+                <div
+                    className={cn(
+                        "size-6 rounded border border-dashed flex items-center justify-center shrink-0",
+                        canCreateWorkspace ? "border-white/20" : "border-white/10"
+                    )}
+                >
                     <Plus size={12} />
                 </div>
                 <span className="text-[12px] font-medium">Create Workspace</span>
@@ -433,6 +449,7 @@ export function Sidebar({
     workspaces,
     onSwitchWorkspace,
     onCreateWorkspace,
+    canCreateWorkspace,
     onOpenSettings,
     onOpenSettingsIntent,
     onArchiveProject,
@@ -454,6 +471,7 @@ export function Sidebar({
     workspaces: Workspace[];
     onSwitchWorkspace: (id: string) => void;
     onCreateWorkspace: () => void;
+    canCreateWorkspace: boolean;
     onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
     onOpenSettingsIntent?: () => void;
     onArchiveProject: (id: string) => void;
@@ -519,7 +537,7 @@ export function Sidebar({
 
     return (
         <SidebarContext.Provider value={{
-            onNavigate, onSearch, onOpenCreateProject, currentView, projects, activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace, onOpenSettings, onArchiveProject, onUnarchiveProject, onUpdateProjectStatus, onEditProject, onViewReviewProject, onLogout
+            onNavigate, onSearch, onOpenCreateProject, currentView, projects, activeWorkspace, workspaces, onSwitchWorkspace, onCreateWorkspace, canCreateWorkspace, onOpenSettings, onArchiveProject, onUnarchiveProject, onUpdateProjectStatus, onEditProject, onViewReviewProject, onLogout
         }}>
             <div className="flex flex-col h-full w-full bg-transparent px-3 py-4 select-none">
                 <WorkspaceSwitcher />

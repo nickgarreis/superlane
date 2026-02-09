@@ -344,9 +344,9 @@ export function ProjectTasks({
                                             className={cn(
                                               "flex items-center gap-1.5 text-[12px] transition-colors py-1 px-2 rounded-md w-full",
                                               projectOptions.length === 0
-                                                ? "text-white/20 cursor-not-allowed"
-                                                : "text-white/40 cursor-pointer hover:text-[#E8E8E8] hover:bg-white/5",
-                                              isNewTaskProjectOpen && "bg-white/5 text-[#E8E8E8]",
+                                                ? "text-[rgba(232,232,232,0.22)] cursor-not-allowed"
+                                                : "text-[rgba(232,232,232,0.44)] cursor-pointer hover:text-[#E8E8E8] hover:bg-[rgba(232,232,232,0.08)]",
+                                              isNewTaskProjectOpen && "bg-[rgba(232,232,232,0.08)] text-[#E8E8E8]",
                                             )}
                                         >
                                             {newTaskProjectId ? (
@@ -357,7 +357,7 @@ export function ProjectTasks({
                                                   }
                                                 />
                                             ) : (
-                                                <div className="w-3 h-3 rounded-full bg-white/20" />
+                                                <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
                                             )}
                                             <span className="truncate">
                                                 {projectOptions.length === 0
@@ -372,10 +372,10 @@ export function ProjectTasks({
                                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute right-0 top-full mt-2 z-50 py-1 bg-[#262626] rounded-xl shadow-xl border border-white/10 w-[220px] overflow-hidden"
+                                                    className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
                                                     onClick={(event) => event.stopPropagation()}
                                                 >
-                                                    <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
+                                                    <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
                                                         Project
                                                     </div>
                                                     <div
@@ -384,11 +384,11 @@ export function ProjectTasks({
                                                             setIsNewTaskProjectOpen(false);
                                                         }}
                                                         className={cn(
-                                                          "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
-                                                          newTaskProjectId === "" && "bg-white/5",
+                                                          "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
+                                                          newTaskProjectId === "" && "bg-[rgba(232,232,232,0.08)]",
                                                         )}
                                                     >
-                                                        <div className="w-3 h-3 rounded-full bg-white/20" />
+                                                        <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
                                                         <span className={cn(
                                                           "text-[13px]",
                                                           newTaskProjectId === "" ? "text-white font-medium" : "text-[#E8E8E8]",
@@ -404,8 +404,8 @@ export function ProjectTasks({
                                                                 setIsNewTaskProjectOpen(false);
                                                             }}
                                                             className={cn(
-                                                              "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
-                                                              newTaskProjectId === project.id && "bg-white/5",
+                                                              "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
+                                                              newTaskProjectId === project.id && "bg-[rgba(232,232,232,0.08)]",
                                                             )}
                                                         >
                                                             <ProjectLogo size={12} category={project.category} />
@@ -482,9 +482,9 @@ export function ProjectTasks({
                                             setOpenProjectTaskId(openProjectTaskId === task.id ? null : task.id);
                                         }}
                                         className={cn(
-                                          "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5 w-full",
-                                          task.completed ? "text-white/30 pointer-events-none" : "text-white/40",
-                                          openProjectTaskId === task.id && "bg-white/5 text-[#E8E8E8]",
+                                          "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-[rgba(232,232,232,0.08)] w-full",
+                                          task.completed ? "text-white/30 pointer-events-none" : "text-[rgba(232,232,232,0.44)]",
+                                          openProjectTaskId === task.id && "bg-[rgba(232,232,232,0.08)] text-[#E8E8E8]",
                                         )}
                                     >
                                         {projectOptions.some((project) => project.id === task.projectId) ? (
@@ -495,7 +495,7 @@ export function ProjectTasks({
                                                 }
                                             />
                                         ) : (
-                                            <div className="w-3 h-3 rounded-full bg-white/20" />
+                                            <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
                                         )}
                                         <span className="truncate">
                                             {projectOptions.find((project) => project.id === task.projectId)?.name ?? "No project"}
@@ -508,10 +508,10 @@ export function ProjectTasks({
                                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute right-0 top-full mt-2 z-50 py-1 bg-[#262626] rounded-xl shadow-xl border border-white/10 w-[220px] overflow-hidden"
+                                                className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
                                                 onClick={(event) => event.stopPropagation()}
                                             >
-                                                <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
+                                                <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
                                                     Move to project
                                                 </div>
                                                 <div
@@ -520,11 +520,11 @@ export function ProjectTasks({
                                                         setOpenProjectTaskId(null);
                                                     }}
                                                     className={cn(
-                                                      "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
-                                                      !task.projectId && "bg-white/5",
+                                                      "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
+                                                      !task.projectId && "bg-[rgba(232,232,232,0.08)]",
                                                     )}
                                                 >
-                                                    <div className="w-3 h-3 rounded-full bg-white/20" />
+                                                    <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
                                                     <span className={cn(
                                                       "text-[13px] truncate",
                                                       !task.projectId ? "text-white font-medium" : "text-[#E8E8E8]",
@@ -540,8 +540,8 @@ export function ProjectTasks({
                                                             setOpenProjectTaskId(null);
                                                         }}
                                                         className={cn(
-                                                          "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
-                                                          task.projectId === project.id && "bg-white/5",
+                                                          "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
+                                                          task.projectId === project.id && "bg-[rgba(232,232,232,0.08)]",
                                                         )}
                                                     >
                                                         <ProjectLogo size={12} category={project.category} />
@@ -621,14 +621,14 @@ export function ProjectTasks({
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 top-full mt-2 z-50 py-1 bg-[#262626] rounded-xl shadow-xl border border-white/10 w-[200px] overflow-hidden"
+                                            className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[200px] overflow-hidden"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
+                                            <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
                                                 Assign to
                                             </div>
                                             {assignableMembers.length === 0 && (
-                                                <div className="px-3 py-2 text-[12px] text-white/40">
+                                                <div className="px-3 py-2 text-[12px] text-[rgba(232,232,232,0.44)]">
                                                     No active members
                                                 </div>
                                             )}
@@ -637,10 +637,10 @@ export function ProjectTasks({
                                                     key={member.userId}
                                                     onClick={() => handleAssigneeSelect(task.id, member)}
                                                     className={cn(
-                                                        "flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
+                                                        "flex items-center gap-3 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
                                                         task.assignee.name === member.name
                                                           && (task.assignee.avatar || "") === (member.avatarUrl || "")
-                                                          && "bg-white/5"
+                                                          && "bg-[rgba(232,232,232,0.08)]"
                                                     )}
                                                 >
                                                     <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
@@ -713,7 +713,7 @@ export function ProjectTasks({
                     left: calendarPosition.left,
                     zIndex: 9999,
                 }}
-                className="p-2 bg-[#262626] rounded-2xl shadow-xl border border-white/10"
+                className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <DayPicker

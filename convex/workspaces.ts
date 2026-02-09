@@ -241,10 +241,42 @@ export const internalGetProvisioningAuthContext = internalMutation({
   args: {},
   handler: async (ctx) => {
     const { appUser } = await requireAuthUser(ctx);
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_userId", (q: any) => q.eq("userId", appUser._id))
+      .collect();
+    const activeMemberships = memberships.filter((membership: any) => membership.status === "active");
+
+    let hasAccessibleMembership = false;
+    let hasAccessibleOwnerMembership = false;
+    for (const membership of activeMemberships) {
+      const workspace = await ctx.db.get(membership.workspaceId);
+      if (!workspace || workspace.deletedAt != null) {
+        continue;
+      }
+
+      const hasOrganizationAccess = await hasActiveOrganizationMembershipForWorkspace(
+        ctx,
+        workspace,
+        appUser.workosUserId,
+      );
+      if (!hasOrganizationAccess) {
+        continue;
+      }
+
+      hasAccessibleMembership = true;
+      if (membership.role === "owner") {
+        hasAccessibleOwnerMembership = true;
+        break;
+      }
+    }
+
     return {
       userId: appUser._id,
       workosUserId: appUser.workosUserId,
       name: appUser.name,
+      hasAccessibleMembership,
+      hasAccessibleOwnerMembership,
     };
   },
 });
@@ -580,6 +612,10 @@ export const create = action({
   },
   handler: async (ctx, args) => {
     const authContext = await ctx.runMutation(getProvisioningAuthContextRef as any, {});
+    if (authContext.hasAccessibleMembership && !authContext.hasAccessibleOwnerMembership) {
+      throw new ConvexError("Only workspace owners can create workspaces");
+    }
+
     const workspaceName = args.name.trim();
     if (!workspaceName) {
       throw new ConvexError("Workspace name is required");

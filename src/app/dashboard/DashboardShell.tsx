@@ -81,6 +81,11 @@ type CreateProjectPayload = {
   attachmentPendingUploadIds?: string[];
 };
 
+type CreateWorkspacePayload = {
+  name: string;
+  logoFile?: File | null;
+};
+
 const uploadFileToConvexStorage = async (
   uploadUrl: string,
   file: File,
@@ -106,6 +111,7 @@ const uploadFileToConvexStorage = async (
 
 const loadSearchPopupModule = () => import("../components/SearchPopup");
 const loadCreateProjectPopupModule = () => import("../components/CreateProjectPopup");
+const loadCreateWorkspacePopupModule = () => import("../components/CreateWorkspacePopup");
 const loadSettingsPopupModule = () => import("../components/SettingsPopup");
 
 const LazySearchPopup = React.lazy(async () => {
@@ -115,6 +121,10 @@ const LazySearchPopup = React.lazy(async () => {
 const LazyCreateProjectPopup = React.lazy(async () => {
   const module = await loadCreateProjectPopupModule();
   return { default: module.CreateProjectPopup };
+});
+const LazyCreateWorkspacePopup = React.lazy(async () => {
+  const module = await loadCreateWorkspacePopupModule();
+  return { default: module.CreateWorkspacePopup };
 });
 const LazySettingsPopup = React.lazy(async () => {
   const module = await loadSettingsPopupModule();
@@ -138,6 +148,9 @@ export default function DashboardShell() {
     preloadCreateProjectPopup: () => {
       void loadCreateProjectPopupModule();
     },
+    preloadCreateWorkspacePopup: () => {
+      void loadCreateWorkspacePopupModule();
+    },
     preloadSettingsPopup: () => {
       void loadSettingsPopupModule();
     },
@@ -153,6 +166,7 @@ export default function DashboardShell() {
     isSearchOpen,
     setIsSearchOpen,
     isCreateProjectOpen,
+    isCreateWorkspaceOpen,
     highlightedArchiveProjectId,
     setHighlightedArchiveProjectId,
     pendingHighlight,
@@ -169,6 +183,8 @@ export default function DashboardShell() {
     openSearch,
     openCreateProject,
     closeCreateProject,
+    openCreateWorkspace,
+    closeCreateWorkspace,
     handleOpenSettings,
     handleCloseSettings,
   } = navigation;
@@ -300,6 +316,7 @@ export default function DashboardShell() {
 
   const viewerName = viewerIdentity.name;
   const viewerAvatar = viewerIdentity.avatarUrl || imgAvatar;
+  const canCreateWorkspace = viewerIdentity.role === "owner";
 
   const invalidRouteRef = useRef<string | null>(null);
 
@@ -363,23 +380,13 @@ export default function DashboardShell() {
     navigateView("tasks");
   };
 
-  const handleCreateWorkspace = () => {
-    const name = window.prompt("Enter workspace name:")?.trim();
-    if (!name) {
+  const handleCreateWorkspace = useCallback(() => {
+    if (!canCreateWorkspace) {
+      toast.error("Only workspace owners can create workspaces");
       return;
     }
-
-    void createWorkspaceMutation({ name })
-      .then((result) => {
-        setActiveWorkspaceSlug(result.slug);
-        navigateView("tasks");
-        toast.success("Workspace created");
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to create workspace");
-      });
-  };
+    openCreateWorkspace();
+  }, [canCreateWorkspace, openCreateWorkspace]);
 
   const runWorkspaceSettingsReconciliation = useCallback(
     async (workspaceSlug: string) => {
@@ -460,6 +467,65 @@ export default function DashboardShell() {
     [saveNotificationPreferencesMutation],
   );
 
+  const uploadWorkspaceLogoForSlug = useCallback(
+    async (workspaceSlug: string, file: File) => {
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateWorkspaceLogoUploadUrlMutation({
+        workspaceSlug,
+      });
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      await finalizeWorkspaceLogoUploadMutation({
+        workspaceSlug,
+        storageId: asStorageId(storageId),
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+      });
+    },
+    [generateWorkspaceLogoUploadUrlMutation, finalizeWorkspaceLogoUploadMutation],
+  );
+
+  const handleCreateWorkspaceSubmit = useCallback(
+    async (payload: CreateWorkspacePayload) => {
+      if (!canCreateWorkspace) {
+        throw new Error("Only workspace owners can create workspaces");
+      }
+
+      try {
+        const createdWorkspace = await createWorkspaceMutation({
+          name: payload.name,
+        });
+
+        if (payload.logoFile) {
+          try {
+            await uploadWorkspaceLogoForSlug(createdWorkspace.slug, payload.logoFile);
+          } catch (logoError) {
+            console.error(logoError);
+            toast.error("Workspace created, but logo upload failed");
+          }
+        }
+
+        setActiveWorkspaceSlug(createdWorkspace.slug);
+        navigateView("tasks");
+        closeCreateWorkspace();
+        toast.success("Workspace created");
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to create workspace");
+        throw error;
+      }
+    },
+    [
+      canCreateWorkspace,
+      createWorkspaceMutation,
+      uploadWorkspaceLogoForSlug,
+      setActiveWorkspaceSlug,
+      navigateView,
+      closeCreateWorkspace,
+    ],
+  );
+
   const handleUpdateWorkspaceGeneral = useCallback(
     async (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -484,21 +550,9 @@ export default function DashboardShell() {
       if (!resolvedWorkspaceSlug) {
         throw new Error("No active workspace");
       }
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateWorkspaceLogoUploadUrlMutation({
-        workspaceSlug: resolvedWorkspaceSlug,
-      });
-      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
-      await finalizeWorkspaceLogoUploadMutation({
-        workspaceSlug: resolvedWorkspaceSlug,
-        storageId: asStorageId(storageId),
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-        checksumSha256,
-      });
+      await uploadWorkspaceLogoForSlug(resolvedWorkspaceSlug, file);
     },
-    [resolvedWorkspaceSlug, generateWorkspaceLogoUploadUrlMutation, finalizeWorkspaceLogoUploadMutation],
+    [resolvedWorkspaceSlug, uploadWorkspaceLogoForSlug],
   );
 
   const handleRemoveWorkspaceLogo = useCallback(async () => {
@@ -1251,6 +1305,16 @@ export default function DashboardShell() {
           </Suspense>
         )}
 
+        {isCreateWorkspaceOpen && (
+          <Suspense fallback={PopupLoadingFallback}>
+            <LazyCreateWorkspacePopup
+              isOpen={isCreateWorkspaceOpen}
+              onClose={closeCreateWorkspace}
+              onCreate={handleCreateWorkspaceSubmit}
+            />
+          </Suspense>
+        )}
+
         {isSettingsOpen && (
           <Suspense fallback={PopupLoadingFallback}>
             <LazySettingsPopup
@@ -1385,6 +1449,7 @@ export default function DashboardShell() {
                   workspaces={workspaces}
                   onSwitchWorkspace={dashboardCommands.workspace.switchWorkspace}
                   onCreateWorkspace={dashboardCommands.workspace.createWorkspace}
+                  canCreateWorkspace={canCreateWorkspace}
                   onOpenSettings={dashboardCommands.settings.openSettings}
                   onOpenSettingsIntent={() => {
                     void loadSettingsPopupModule();

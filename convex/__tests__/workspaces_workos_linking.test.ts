@@ -66,6 +66,7 @@ describe("workspace WorkOS organization linking", () => {
   });
 
   const asOwner = () => t.withIdentity(IDENTITIES.owner);
+  const asAdmin = () => t.withIdentity(IDENTITIES.admin);
 
   test("create provisions linked workspace and owner organization membership cache row", async () => {
     vi.spyOn(authKit.workos.organizations, "createOrganization")
@@ -117,6 +118,83 @@ describe("workspace WorkOS organization linking", () => {
       userId: IDENTITIES.owner.subject,
       roleSlug: "admin",
     });
+  });
+
+  test("create rejects non-owner members from creating additional workspaces", async () => {
+    const createOrganizationSpy = vi.spyOn(authKit.workos.organizations, "createOrganization")
+      .mockResolvedValue(mockOrganization("org_should_not_create", "Should Not Create"));
+
+    await t.run(async (ctx) => {
+      const createdAt = now();
+      const ownerUserId = await ctx.db.insert("users", {
+        workosUserId: IDENTITIES.owner.subject,
+        name: "Owner User",
+        createdAt,
+        updatedAt: createdAt,
+      });
+      const adminUserId = await ctx.db.insert("users", {
+        workosUserId: IDENTITIES.admin.subject,
+        name: "Admin User",
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      const workspaceId = await ctx.db.insert("workspaces", {
+        slug: "existing-admin-workspace",
+        name: "Existing Admin Workspace",
+        plan: "Pro",
+        ownerUserId,
+        workosOrganizationId: "org_existing_admin_workspace",
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      await ctx.db.insert("workspaceMembers", {
+        workspaceId,
+        userId: ownerUserId,
+        role: "owner",
+        status: "active",
+        joinedAt: createdAt,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("workspaceMembers", {
+        workspaceId,
+        userId: adminUserId,
+        role: "admin",
+        status: "active",
+        joinedAt: createdAt,
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      await ctx.db.insert("workosOrganizationMemberships", {
+        membershipId: "membership_owner_existing_admin_workspace",
+        workosOrganizationId: "org_existing_admin_workspace",
+        workosUserId: IDENTITIES.owner.subject,
+        roleSlug: "admin",
+        status: "active",
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("workosOrganizationMemberships", {
+        membershipId: "membership_admin_existing_admin_workspace",
+        workosOrganizationId: "org_existing_admin_workspace",
+        workosUserId: IDENTITIES.admin.subject,
+        roleSlug: "admin",
+        status: "active",
+        createdAt,
+        updatedAt: createdAt,
+      });
+    });
+
+    await expect(
+      asAdmin().action(api.workspaces.create, {
+        name: "Admin Attempt Workspace",
+      }),
+    ).rejects.toThrow("Only workspace owners can create workspaces");
+
+    expect(createOrganizationSpy).not.toHaveBeenCalled();
   });
 
   test("create fails without writing workspace when WorkOS organization provisioning fails", async () => {

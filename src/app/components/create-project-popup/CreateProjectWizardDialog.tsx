@@ -1063,7 +1063,7 @@ export function CreateProjectPopup({
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="absolute bottom-[calc(100%+8px)] right-0 z-50 p-4 bg-[#262626] rounded-2xl shadow-xl border border-white/10"
+                                    className="absolute bottom-[calc(100%+8px)] right-0 z-50 p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
                                  >
                                     <DayPicker
                                        className="rdp-dark-theme"
