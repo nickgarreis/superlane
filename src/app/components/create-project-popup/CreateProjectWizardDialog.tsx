@@ -211,6 +211,29 @@ export function CreateProjectPopup({
     };
   }, [isCalendarOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    setStep(1);
+    setSelectedService(null);
+    setProjectName("");
+    setSelectedJob(null);
+    setDescription("");
+    setIsAIEnabled(true);
+    setDeadline(undefined);
+    setIsCalendarOpen(false);
+    resetAttachments();
+    setShowCloseConfirm(false);
+    setShowDeleteConfirm(false);
+    setShowDeleteProjectConfirm(false);
+    setReviewComments([]);
+    setCommentInput("");
+    setCreatedProjectId(null);
+    setDraftSessionId(createDraftSessionId());
+  }, [isOpen, resetAttachments]);
+
   if (!isOpen) return null;
 
   const isStepValid = () => {
@@ -356,23 +379,6 @@ export function CreateProjectPopup({
     }
 
     onClose();
-    setTimeout(() => {
-      setStep(1);
-      setSelectedService(null);
-      setProjectName("");
-      setSelectedJob(null);
-      setDescription("");
-      setIsAIEnabled(true);
-      setDeadline(undefined);
-      setIsCalendarOpen(false);
-      resetAttachments();
-      setShowCloseConfirm(false);
-      setShowDeleteConfirm(false);
-      setReviewComments([]);
-      setCommentInput("");
-      setCreatedProjectId(null);
-      setDraftSessionId(createDraftSessionId());
-    }, 300);
   };
 
   // Close button handler: show confirmation if there's unsaved work
@@ -410,7 +416,11 @@ export function CreateProjectPopup({
         toast.error("Failed to update comments");
       });
     }
-    setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    requestAnimationFrame(() => {
+      if (typeof commentsEndRef.current?.scrollIntoView === "function") {
+        commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    });
   };
 
   const handleDeleteComment = (commentId: string) => {

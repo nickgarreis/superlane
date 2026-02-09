@@ -1,15 +1,11 @@
+import React, { Suspense } from "react";
 import imgLogo from "figma:asset/c3a996a7bf06b0777eaf43cb323cfde0872e163e.png";
-import { ArchivePage } from "../../components/ArchivePage";
-import { MainContent } from "../../components/MainContent";
-import { Tasks } from "../../components/Tasks";
 import type {
+  DashboardContentModel,
   MainContentFileActions,
   MainContentNavigationActions,
   MainContentProjectActions,
   PendingHighlight,
-} from "../types";
-import type {
-  DashboardContentModel,
 } from "../types";
 import type {
   ProjectData,
@@ -18,6 +14,31 @@ import type {
   ViewerIdentity,
   WorkspaceMember,
 } from "../../types";
+
+const loadArchivePageModule = () => import("../../components/ArchivePage");
+const loadMainContentModule = () => import("../../components/MainContent");
+const loadTasksModule = () => import("../../components/Tasks");
+
+const LazyArchivePage = React.lazy(async () => {
+  const module = await loadArchivePageModule();
+  return { default: module.ArchivePage };
+});
+
+const LazyMainContent = React.lazy(async () => {
+  const module = await loadMainContentModule();
+  return { default: module.MainContent };
+});
+
+const LazyTasks = React.lazy(async () => {
+  const module = await loadTasksModule();
+  return { default: module.Tasks };
+});
+
+const ContentLoadingFallback = (
+  <div className="flex-1 h-full bg-bg-base flex items-center justify-center text-white/50 text-sm font-['Roboto',sans-serif]">
+    Loading...
+  </div>
+);
 
 type DashboardContentProps = {
   contentModel: DashboardContentModel;
@@ -66,30 +87,34 @@ export function DashboardContent({
 }: DashboardContentProps) {
   if (contentModel.kind === "tasks") {
     return (
-      <Tasks
-        onToggleSidebar={handleToggleSidebar}
-        isSidebarOpen={isSidebarOpen}
-        projects={visibleProjects}
-        workspaceTasks={workspaceTasks}
-        onUpdateWorkspaceTasks={handleReplaceWorkspaceTasks}
-        workspaceMembers={workspaceMembers}
-        viewerIdentity={viewerIdentity}
-      />
+      <Suspense fallback={ContentLoadingFallback}>
+        <LazyTasks
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          projects={visibleProjects}
+          workspaceTasks={workspaceTasks}
+          onUpdateWorkspaceTasks={handleReplaceWorkspaceTasks}
+          workspaceMembers={workspaceMembers}
+          viewerIdentity={viewerIdentity}
+        />
+      </Suspense>
     );
   }
 
   if (contentModel.kind === "archive") {
     return (
-      <ArchivePage
-        onToggleSidebar={handleToggleSidebar}
-        isSidebarOpen={isSidebarOpen}
-        projects={visibleProjects}
-        onNavigateToProject={handleNavigateToArchiveProject}
-        onUnarchiveProject={handleUnarchiveProject}
-        onDeleteProject={handleDeleteProject}
-        highlightedProjectId={highlightedArchiveProjectId}
-        setHighlightedProjectId={setHighlightedArchiveProjectId}
-      />
+      <Suspense fallback={ContentLoadingFallback}>
+        <LazyArchivePage
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          projects={visibleProjects}
+          onNavigateToProject={handleNavigateToArchiveProject}
+          onUnarchiveProject={handleUnarchiveProject}
+          onDeleteProject={handleDeleteProject}
+          highlightedProjectId={highlightedArchiveProjectId}
+          setHighlightedProjectId={setHighlightedArchiveProjectId}
+        />
+      </Suspense>
     );
   }
 
@@ -104,20 +129,22 @@ export function DashboardContent({
       : baseMainContentNavigationActions;
 
     return (
-      <MainContent
-        onToggleSidebar={handleToggleSidebar}
-        isSidebarOpen={isSidebarOpen}
-        project={project}
-        projectFiles={projectFilesByProject[project.id] ?? []}
-        workspaceMembers={workspaceMembers}
-        viewerIdentity={viewerIdentity}
-        fileActions={mainContentFileActions}
-        projectActions={createMainContentProjectActions(project.id)}
-        navigationActions={navigationActions}
-        allProjects={visibleProjects}
-        pendingHighlight={pendingHighlight}
-        onClearPendingHighlight={clearPendingHighlight}
-      />
+      <Suspense fallback={ContentLoadingFallback}>
+        <LazyMainContent
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarOpen={isSidebarOpen}
+          project={project}
+          projectFiles={projectFilesByProject[project.id] ?? []}
+          workspaceMembers={workspaceMembers}
+          viewerIdentity={viewerIdentity}
+          fileActions={mainContentFileActions}
+          projectActions={createMainContentProjectActions(project.id)}
+          navigationActions={navigationActions}
+          allProjects={visibleProjects}
+          pendingHighlight={pendingHighlight}
+          onClearPendingHighlight={clearPendingHighlight}
+        />
+      </Suspense>
     );
   }
 

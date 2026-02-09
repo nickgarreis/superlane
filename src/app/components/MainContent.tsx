@@ -354,6 +354,8 @@ export function MainContent({
       )),
     [filteredFiles, fileActions, handleRemoveFile],
   );
+  const canCreateProjectTasks =
+    !project.archived && project.status.label === "Active" && !project.completedAt;
 
   return (
     <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
@@ -475,6 +477,8 @@ export function MainContent({
                 onHighlightDone={handleHighlightDone}
                 assignableMembers={workspaceMembers}
                 viewerIdentity={viewerIdentity}
+                canAddTasks={canCreateProjectTasks}
+                addTaskDisabledMessage="Tasks can only be created for active projects"
             />
 
             {/* Tabs & Action */}

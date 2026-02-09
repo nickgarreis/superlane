@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint:checks": "node scripts/quality/check-suppressions.mjs",
+    "lint:checks": "node scripts/quality/check-suppressions.mjs && node scripts/quality/check-component-size.mjs",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"convex/**/*.ts\" \"vite.config.ts\" && npm run lint:checks",
     "typecheck:frontend": "tsc --noEmit --project tsconfig.app.json && tsc --noEmit --project tsconfig.node.json",
     "typecheck:backend": "convex codegen && tsc --noEmit --project convex/tsconfig.json",

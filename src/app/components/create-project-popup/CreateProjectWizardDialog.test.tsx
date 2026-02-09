@@ -6,6 +6,12 @@ import { describe, expect, test, vi } from "vitest";
 import { CreateProjectPopup } from "./CreateProjectWizardDialog";
 import type { ProjectDraftData } from "../../types";
 
+vi.mock("../../../imports/Loading03", () => ({
+  default: ({ className }: { className?: string }) => (
+    <div className={className} data-testid="loading03" />
+  ),
+}));
+
 const STEP_THREE_DRAFT: ProjectDraftData = {
   selectedService: "Web Design",
   projectName: "Website Redesign",
@@ -35,7 +41,7 @@ describe("CreateProjectPopup", () => {
       expect(onCreate).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("Lets explore some possibilities")).toBeInTheDocument();
+    expect(screen.getByText("Let's explore some possibilities")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Your Project is in Review" }),
     ).not.toBeInTheDocument();

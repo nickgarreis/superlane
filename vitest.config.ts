@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
+import { figmaAssetResolverPlugin } from "./config/figmaAssetResolver";
 
 export default defineConfig({
+  plugins: [figmaAssetResolverPlugin()],
   test: {
     environment: "node",
     include: ["convex/__tests__/**/*.test.ts", "src/app/**/*.test.{ts,tsx}"],

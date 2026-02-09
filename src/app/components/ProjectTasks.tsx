@@ -43,6 +43,8 @@ interface ProjectTasksProps {
   onAddingModeChange?: (isAdding: boolean) => void;
   highlightedTaskId?: string | null;
   onHighlightDone?: () => void;
+  canAddTasks?: boolean;
+  addTaskDisabledMessage?: string;
 }
 
 export function ProjectTasks({
@@ -59,6 +61,8 @@ export function ProjectTasks({
   onAddingModeChange,
   highlightedTaskId,
   onHighlightDone,
+  canAddTasks = true,
+  addTaskDisabledMessage = "Tasks can only be created for active projects",
 }: ProjectTasksProps) {
   const [internalIsAdding, setInternalIsAdding] = useState(false);
   
@@ -219,6 +223,18 @@ export function ProjectTasks({
     };
   }, [handleCancelAddTask, isAdding]);
 
+  useEffect(() => {
+    if (canAddTasks) {
+      return;
+    }
+
+    if (!isAdding) {
+      return;
+    }
+
+    handleCancelAddTask();
+  }, [canAddTasks, handleCancelAddTask, isAdding]);
+
   // ── Highlight / scroll-into-view for mention clicks ──────────
   const taskRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -256,12 +272,34 @@ export function ProjectTasks({
              </div>
              
              <div className="flex items-center gap-3">
-                 <button
-                    onClick={() => setIsAdding(true)}
-                    className="text-[12px] font-medium text-[#58AFFF] hover:text-[#58AFFF]/80 transition-colors flex items-center gap-1 cursor-pointer"
-                 >
-                    <Plus size={14} /> Add Task
-                 </button>
+                 <div className={cn("relative", !canAddTasks && "group/task-add-lock")}>
+                    <button
+                       type="button"
+                       onClick={() => {
+                         if (!canAddTasks) {
+                           return;
+                         }
+                         setIsAdding(true);
+                       }}
+                       aria-disabled={!canAddTasks}
+                       className={cn(
+                         "text-[12px] font-medium transition-colors flex items-center gap-1",
+                         canAddTasks
+                           ? "text-[#58AFFF] hover:text-[#58AFFF]/80 cursor-pointer"
+                           : "text-[#58AFFF]/45 opacity-50 cursor-not-allowed",
+                       )}
+                    >
+                       <Plus size={14} /> Add Task
+                    </button>
+                    {!canAddTasks && (
+                      <div
+                        role="tooltip"
+                        className="pointer-events-none absolute right-0 top-[calc(100%+6px)] z-60 w-[min(280px,calc(100vw-24px))] rounded-[10px] border border-[rgba(232,232,232,0.12)] bg-[rgba(30,31,32,0.98)] px-2.5 py-1.5 text-[11px] leading-[1.35] font-medium text-left text-[rgba(232,232,232,0.72)] shadow-[0px_14px_30px_-22px_rgba(0,0,0,0.9)] backdrop-blur-[6px] opacity-0 translate-y-0.5 transition-all duration-200 ease-out group-hover/task-add-lock:opacity-100 group-hover/task-add-lock:translate-y-0"
+                      >
+                        {addTaskDisabledMessage}
+                      </div>
+                    )}
+                 </div>
 
                  {/* Sort Dropdown */}
                  <div className="relative">

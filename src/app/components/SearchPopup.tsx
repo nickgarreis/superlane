@@ -106,23 +106,30 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
   // Focus input on open
   useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setActiveIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+    if (!isOpen) {
+      return;
     }
+    setQuery("");
+    setActiveIndex(0);
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [isOpen]);
 
   // Escape to close
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, isOpen]);
+  }, [isOpen, onClose]);
 
   // Build action handlers
   const actionHandlers: Record<string, () => void> = useMemo(() => ({
@@ -134,6 +141,11 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
   }), [onClose, onNavigate, onOpenCreateProject, onOpenSettings]);
 
   const projectsList = useMemo(() => Object.values(projects), [projects]);
+  const normalizedDeferredQuery = useMemo(
+    () => deferredQuery.toLowerCase().trim(),
+    [deferredQuery],
+  );
+  const trimmedQuery = useMemo(() => query.trim(), [query]);
 
   const firstActiveProjectId = useMemo(() => {
     const active = projectsList.find((project) => !project.archived && project.status.label !== "Draft");
@@ -203,14 +215,13 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
 
   // Search logic
   const results = useMemo(() => {
-    const q = deferredQuery.toLowerCase().trim();
     const items: SearchResult[] = [];
 
-    if (!q) return items;
+    if (!normalizedDeferredQuery) return items;
 
     for (const projectEntry of searchIndex.projectIndex) {
       const { project, searchable } = projectEntry;
-      if (searchable.includes(q)) {
+      if (searchable.includes(normalizedDeferredQuery)) {
         items.push({
           id: `project-${project.id}`,
           type: "project",
@@ -234,7 +245,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     }
 
     for (const taskEntry of searchIndex.taskIndex) {
-      if (!taskEntry.searchable.includes(q)) {
+      if (!taskEntry.searchable.includes(normalizedDeferredQuery)) {
         continue;
       }
       items.push({
@@ -256,7 +267,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     }
 
     for (const fileEntry of searchIndex.fileIndex) {
-      if (!fileEntry.searchable.includes(q)) {
+      if (!fileEntry.searchable.includes(normalizedDeferredQuery)) {
         continue;
       }
       const targetProject = fileEntry.projectId || firstActiveProjectId;
@@ -284,7 +295,10 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     }
 
     QUICK_ACTIONS.forEach((act) => {
-      if (act.label.toLowerCase().includes(q) || act.keyword.toLowerCase().includes(q)) {
+      if (
+        act.label.toLowerCase().includes(normalizedDeferredQuery)
+        || act.keyword.toLowerCase().includes(normalizedDeferredQuery)
+      ) {
         items.push({
           id: act.id,
           type: "action",
@@ -297,7 +311,16 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     });
 
     return items;
-  }, [actionHandlers, deferredQuery, firstActiveProjectId, onClose, onHighlightNavigate, onNavigate, projects, searchIndex]);
+  }, [
+    actionHandlers,
+    firstActiveProjectId,
+    normalizedDeferredQuery,
+    onClose,
+    onHighlightNavigate,
+    onNavigate,
+    projects,
+    searchIndex,
+  ]);
 
   // Group results by type
   const grouped = useMemo(() => {
@@ -468,13 +491,27 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
   const flatDefault = useMemo(() => [...defaultContent], [defaultContent]);
   // Combined default list for keyboard navigation: recent/projects + suggestions
   const combinedDefaultList = useMemo(() => [...flatDefault, ...suggestions], [flatDefault, suggestions]);
-  const hasSearchQuery = query.trim().length > 0;
+  const hasSearchQuery = trimmedQuery.length > 0;
   const currentList = hasSearchQuery ? flatResults : combinedDefaultList;
 
   // Clamp active index
   useEffect(() => {
     setActiveIndex(0);
-  }, [query]);
+  }, [trimmedQuery]);
+
+  const trackRecent = useCallback((id: string, title: string, type: string) => {
+    setRecentResults((prev) => {
+      const filtered = prev.filter((entry) => entry.id !== id);
+      return [{ id, title, type }, ...filtered].slice(0, MAX_RECENT);
+    });
+  }, []);
+
+  const trackRecentSearch = useCallback((value: string) => {
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((entry) => entry.toLowerCase() !== value.toLowerCase());
+      return [value, ...filtered].slice(0, MAX_RECENT);
+    });
+  }, []);
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -494,7 +531,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         if (item.projectId) {
           trackRecent(item.projectId, item.title, item.type);
         }
-        if (hasSearchQuery) trackRecentSearch(query.trim());
+        if (hasSearchQuery) trackRecentSearch(trimmedQuery);
         item.action();
       } else {
         const actionIdx = activeIndex - currentList.length;
@@ -504,21 +541,15 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         }
       }
     }
-  }, [actionHandlers, activeIndex, currentList, hasSearchQuery, query]);
-
-  const trackRecent = (id: string, title: string, type: string) => {
-    setRecentResults(prev => {
-      const filtered = prev.filter(r => r.id !== id);
-      return [{ id, title, type }, ...filtered].slice(0, MAX_RECENT);
-    });
-  };
-
-  const trackRecentSearch = (q: string) => {
-    setRecentSearches(prev => {
-      const filtered = prev.filter(s => s.toLowerCase() !== q.toLowerCase());
-      return [q, ...filtered].slice(0, MAX_RECENT);
-    });
-  };
+  }, [
+    actionHandlers,
+    activeIndex,
+    currentList,
+    hasSearchQuery,
+    trackRecent,
+    trackRecentSearch,
+    trimmedQuery,
+  ]);
 
   // Scroll active item into view
   useEffect(() => {
@@ -530,13 +561,13 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
     }
   }, [activeIndex]);
 
-  const handleItemClick = (item: SearchResult) => {
+  const handleItemClick = useCallback((item: SearchResult) => {
     if (item.projectId) {
       trackRecent(item.projectId, item.title, item.type);
     }
-    if (hasSearchQuery) trackRecentSearch(query.trim());
+    if (hasSearchQuery) trackRecentSearch(trimmedQuery);
     item.action();
-  };
+  }, [hasSearchQuery, trackRecent, trackRecentSearch, trimmedQuery]);
 
   if (!isOpen) return null;
 
