@@ -3,6 +3,7 @@ export type WorkspaceRole = "owner" | "admin" | "member";
 type RbacEntry =
   | {
       access: "authenticated";
+      notes?: string;
     }
   | {
       access: "minimumRole";
@@ -31,8 +32,19 @@ export const hasRequiredWorkspaceRole = (
 ): boolean => ROLE_RANK[role] >= ROLE_RANK[minimumRole];
 
 export const RBAC_MATRIX = {
-  "workspaces.create": { access: "authenticated" },
-  "workspaces.ensureDefaultWorkspace": { access: "authenticated" },
+  "workspaces.create": {
+    access: "authenticated",
+    notes: "Action-orchestrated WorkOS organization provisioning at create time.",
+  },
+  "workspaces.ensureDefaultWorkspace": {
+    access: "authenticated",
+    notes: "Action-orchestrated default workspace creation with WorkOS organization provisioning.",
+  },
+  "workspaces.ensureOrganizationLink": {
+    access: "minimumRole",
+    minimumRole: "owner",
+    notes: "Owner-only backfill to link existing unlinked workspace to WorkOS organization.",
+  },
   "workspaces.update": { access: "minimumRole", minimumRole: "admin" },
   "workspaces.softDelete": { access: "minimumRole", minimumRole: "owner" },
   "workspaces.update.workosOrganizationId": {
@@ -50,6 +62,7 @@ export const RBAC_MATRIX = {
   "projects.remove": { access: "minimumRole", minimumRole: "admin" },
 
   "tasks.replaceForProject": { access: "minimumRole", minimumRole: "member" },
+  "tasks.replaceForWorkspace": { access: "minimumRole", minimumRole: "member" },
   "tasks.bulkReplaceForWorkspace": { access: "minimumRole", minimumRole: "member" },
 
   "files.create": { access: "minimumRole", minimumRole: "member" },
@@ -69,12 +82,14 @@ export const RBAC_MATRIX = {
   "comments.toggleReaction": { access: "minimumRole", minimumRole: "member" },
   "comments.toggleResolved": { access: "minimumRole", minimumRole: "member" },
   "comments.update": {
-    access: "authorOrMinimumRole",
-    minimumRole: "admin",
+    access: "minimumRole",
+    minimumRole: "member",
+    notes: "Member access with additional author-only enforcement in the mutation handler.",
   },
   "comments.remove": {
-    access: "authorOrMinimumRole",
-    minimumRole: "admin",
+    access: "minimumRole",
+    minimumRole: "member",
+    notes: "Member access with additional author-only enforcement in the mutation handler.",
   },
 
   "organizationSync.reconcileWorkspaceOrganizationMemberships": {

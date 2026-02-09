@@ -12,7 +12,13 @@ import { DayPicker } from "react-day-picker";
 import { toast } from "sonner";
 import "react-day-picker/dist/style.css";
 import { ProjectLogo } from "./ProjectLogo";
-import { PendingDraftAttachmentUpload, ProjectDraftData, ProjectData } from "../types";
+import {
+  PendingDraftAttachmentUpload,
+  ProjectDraftData,
+  ProjectData,
+  ReviewComment,
+  WorkspaceRole,
+} from "../types";
 import {
   formatProjectDeadlineLong,
   formatProjectDeadlineMedium,
@@ -249,6 +255,7 @@ export function CreateProjectPopup({
   onDeleteDraft,
   reviewProject,
   onUpdateComments,
+  onApproveReviewProject,
   onUploadAttachment,
   onRemovePendingAttachment,
   onDiscardDraftUploads,
@@ -256,12 +263,13 @@ export function CreateProjectPopup({
   isOpen: boolean; 
   onClose: () => void;
   onCreate?: (data: any) => void;
-  user?: { name: string; avatar: string };
+  user?: { userId?: string; name: string; avatar: string; role?: WorkspaceRole };
   editProjectId?: string | null;
   initialDraftData?: ProjectDraftData | null;
   onDeleteDraft?: (id: string) => void;
   reviewProject?: ProjectData | null;
-  onUpdateComments?: (projectId: string, comments: Array<{ id: string; author: { name: string; avatar: string }; content: string; timestamp: string }>) => void;
+  onUpdateComments?: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  onApproveReviewProject?: (projectId: string) => Promise<unknown>;
   onUploadAttachment?: (
     file: File,
     draftSessionId: string,
@@ -288,9 +296,10 @@ export function CreateProjectPopup({
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteProjectConfirm, setShowDeleteProjectConfirm] = useState(false);
-  const [reviewComments, setReviewComments] = useState<Array<{ id: string; author: { name: string; avatar: string }; content: string; timestamp: string }>>([]);
+  const [reviewComments, setReviewComments] = useState<ReviewComment[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [isApprovingReview, setIsApprovingReview] = useState(false);
   const discardRequestedRef = useRef(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
@@ -677,30 +686,75 @@ export function CreateProjectPopup({
 
   const handleAddComment = () => {
     if (!commentInput.trim()) return;
-    const newComment = {
+    const newComment: ReviewComment = {
       id: Date.now().toString(),
-      author: { name: user?.name || "You", avatar: user?.avatar || "" },
+      author: { userId: user?.userId, name: user?.name || "You", avatar: user?.avatar || "" },
       content: commentInput.trim(),
       timestamp: "Just now",
     };
-    const updated = [...reviewComments, newComment];
+    const previous = reviewComments;
+    const updated = [...previous, newComment];
     setReviewComments(updated);
     setCommentInput("");
     // Persist to project data
     const projectId = reviewProject?.id || editProjectId || createdProjectId;
     if (projectId && onUpdateComments) {
-      onUpdateComments(projectId, updated);
+      void onUpdateComments(projectId, updated).catch((error) => {
+        console.error(error);
+        setReviewComments(previous);
+        toast.error("Failed to update comments");
+      });
     }
     setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleDeleteComment = (commentId: string) => {
-    const updated = reviewComments.filter((c) => c.id !== commentId);
+    const comment = reviewComments.find((entry) => entry.id === commentId);
+    if (!comment) {
+      return;
+    }
+
+    if (!user?.userId || comment.author.userId !== user.userId) {
+      toast.error("You can only delete your own comments");
+      return;
+    }
+
+    const previous = reviewComments;
+    const updated = previous.filter((c) => c.id !== commentId);
     setReviewComments(updated);
     const projectId = reviewProject?.id || editProjectId || createdProjectId;
     if (projectId && onUpdateComments) {
-      onUpdateComments(projectId, updated);
+      void onUpdateComments(projectId, updated).catch((error) => {
+        console.error(error);
+        setReviewComments(previous);
+        toast.error("Failed to update comments");
+      });
     }
+  };
+
+  const canApproveReviewProject =
+    !!reviewProject?.id &&
+    reviewProject.status.label === "Review" &&
+    user?.role === "owner" &&
+    !!onApproveReviewProject;
+
+  const handleApproveReview = () => {
+    if (!reviewProject?.id || !onApproveReviewProject || isApprovingReview) {
+      return;
+    }
+
+    setIsApprovingReview(true);
+    void onApproveReviewProject(reviewProject.id)
+      .then(() => {
+        handleCancel();
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Failed to approve project");
+      })
+      .finally(() => {
+        setIsApprovingReview(false);
+      });
   };
 
   // Save draft / Save progress from confirmation dialog
@@ -1296,13 +1350,15 @@ export function CreateProjectPopup({
                               </div>
                               <p className="text-[13.5px] text-[#E8E8E8]/75 leading-[1.55] whitespace-pre-wrap break-words">{comment.content}</p>
                             </div>
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="shrink-0 mt-[2px] opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 p-[5px] rounded-md hover:bg-white/[0.06] cursor-pointer"
-                              title="Delete comment"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,232,232,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                            </button>
+                            {user?.userId && comment.author.userId === user.userId && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="shrink-0 mt-[2px] opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 p-[5px] rounded-md hover:bg-white/[0.06] cursor-pointer"
+                                title="Delete comment"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(232,232,232,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1382,12 +1438,27 @@ export function CreateProjectPopup({
                       <p className="leading-[20px]">Delete project</p>
                     </div>
                   </button>
-                  <button 
-                    onClick={handleCancel}
-                    className="h-[36px] px-[20px] bg-[#e8e8e8] hover:bg-white text-[#131314] rounded-full text-[14px] font-medium transition-all cursor-pointer"
-                  >
-                    Close
-                  </button>
+                  <div className="flex items-center gap-[10px]">
+                    {canApproveReviewProject && (
+                      <button
+                        onClick={handleApproveReview}
+                        disabled={isApprovingReview}
+                        className="h-[36px] px-[20px] bg-[#e8e8e8] hover:bg-white disabled:bg-[#e8e8e8]/50 disabled:text-[#131314]/50 disabled:cursor-not-allowed text-[#131314] rounded-full text-[14px] font-medium transition-all cursor-pointer"
+                      >
+                        {isApprovingReview ? "Approving..." : "Approve"}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleCancel}
+                      className={`h-[36px] px-[20px] rounded-full text-[14px] font-medium transition-all cursor-pointer ${
+                        canApproveReviewProject
+                          ? "border border-[rgba(232,232,232,0.2)] text-[#e8e8e8] hover:bg-white/5"
+                          : "bg-[#e8e8e8] hover:bg-white text-[#131314]"
+                      }`}
+                    >
+                      Close
+                    </button>
+                  </div>
                 </motion.div>
               </div>
             )}

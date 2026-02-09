@@ -45,6 +45,88 @@ const normalizeOptionalEpochMs = (
   return assertFiniteEpochMs(value, label);
 };
 
+type ReviewCommentRecord = {
+  id: string;
+  author: {
+    userId?: string;
+    name: string;
+    avatar: string;
+  };
+  content: string;
+  timestamp: string;
+};
+
+const normalizeReviewCommentForAuthor = (
+  comment: ReviewCommentRecord,
+  appUser: { _id: unknown; name?: string; avatarUrl?: string | null },
+): ReviewCommentRecord => ({
+  id: comment.id,
+  author: {
+    userId: String(appUser._id),
+    name: appUser.name ?? "Unknown user",
+    avatar: appUser.avatarUrl ?? "",
+  },
+  content: comment.content,
+  timestamp: comment.timestamp,
+});
+
+const reviewCommentsEqual = (left: ReviewCommentRecord, right: ReviewCommentRecord) =>
+  left.id === right.id
+  && left.content === right.content
+  && left.timestamp === right.timestamp
+  && left.author.name === right.author.name
+  && left.author.avatar === right.author.avatar
+  && (left.author.userId ?? null) === (right.author.userId ?? null);
+
+const enforceReviewCommentOwnership = (args: {
+  existingComments: ReviewCommentRecord[] | undefined;
+  nextComments: ReviewCommentRecord[];
+  appUser: { _id: unknown; name?: string; avatarUrl?: string | null };
+}) => {
+  const viewerUserId = String(args.appUser._id);
+  const existing = args.existingComments ?? [];
+  const existingById = new Map(existing.map((comment) => [comment.id, comment]));
+  const seenIds = new Set<string>();
+  const normalizedComments: ReviewCommentRecord[] = [];
+
+  for (const nextComment of args.nextComments) {
+    if (seenIds.has(nextComment.id)) {
+      throw new ConvexError("Duplicate review comment id");
+    }
+    seenIds.add(nextComment.id);
+
+    const existingComment = existingById.get(nextComment.id);
+    if (!existingComment) {
+      if (nextComment.author.userId && nextComment.author.userId !== viewerUserId) {
+        throw new ConvexError("Forbidden");
+      }
+      normalizedComments.push(normalizeReviewCommentForAuthor(nextComment, args.appUser));
+      continue;
+    }
+
+    if (existingComment.author.userId !== viewerUserId) {
+      if (!reviewCommentsEqual(nextComment, existingComment)) {
+        throw new ConvexError("Forbidden");
+      }
+      normalizedComments.push(existingComment);
+      continue;
+    }
+
+    normalizedComments.push(normalizeReviewCommentForAuthor(nextComment, args.appUser));
+  }
+
+  for (const existingComment of existing) {
+    if (seenIds.has(existingComment.id)) {
+      continue;
+    }
+    if (existingComment.author.userId !== viewerUserId) {
+      throw new ConvexError("Forbidden");
+    }
+  }
+
+  return normalizedComments;
+};
+
 const consumePendingUploadsForProject = async (
   ctx: any,
   args: {
@@ -166,7 +248,13 @@ export const create = mutation({
       deletedAt: null,
       draftData: args.draftData ?? null,
       attachments: [],
-      reviewComments: args.reviewComments,
+      reviewComments: args.reviewComments
+        ? enforceReviewCommentOwnership({
+            existingComments: [],
+            nextComments: args.reviewComments as ReviewCommentRecord[],
+            appUser,
+          })
+        : undefined,
       createdAt: now,
       updatedAt: now,
     });
@@ -214,7 +302,13 @@ export const update = mutation({
       patch.deadlineEpochMs = normalizeOptionalEpochMs(args.deadlineEpochMs, "deadlineEpochMs");
     }
     if (args.draftData !== undefined) patch.draftData = args.draftData;
-    if (args.reviewComments !== undefined) patch.reviewComments = args.reviewComments;
+    if (args.reviewComments !== undefined) {
+      patch.reviewComments = enforceReviewCommentOwnership({
+        existingComments: (project.reviewComments ?? []) as ReviewCommentRecord[],
+        nextComments: args.reviewComments as ReviewCommentRecord[],
+        appUser,
+      });
+    }
 
     if (args.status !== undefined) {
       if (!hasRequiredWorkspaceRole(membership.role, "admin")) {
@@ -352,11 +446,16 @@ export const updateReviewComments = mutation({
     comments: v.array(reviewCommentValidator),
   },
   handler: async (ctx, args) => {
-    const { project } = await requireProjectRole(ctx, args.publicId, "member");
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "member");
 
     await ctx.db.patch(project._id, {
       deadline: undefined,
-      reviewComments: args.comments,
+      reviewComments: enforceReviewCommentOwnership({
+        existingComments: (project.reviewComments ?? []) as ReviewCommentRecord[],
+        nextComments: args.comments as ReviewCommentRecord[],
+        appUser,
+      }),
+      updatedByUserId: appUser._id,
       updatedAt: Date.now(),
     });
 

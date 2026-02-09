@@ -16,7 +16,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Tasks } from "./components/Tasks";
 import { isProtectedPath, pathToView, viewToPath } from "./lib/routing";
 import type { AppView } from "./lib/routing";
-import { mapProjectsToUi, mapWorkspacesToUi } from "./lib/mappers";
+import { mapProjectsToUi, mapWorkspaceTasksToUi, mapWorkspacesToUi } from "./lib/mappers";
 import { scheduleIdlePrefetch } from "./lib/prefetch";
 import { parseProjectStatus } from "./lib/status";
 import type {
@@ -24,6 +24,7 @@ import type {
   ProjectDraftData,
   ProjectFileData,
   ProjectFileTab,
+  ReviewComment,
   Task,
   ViewerIdentity,
   Workspace,
@@ -123,8 +124,8 @@ export default function DashboardApp() {
   const [reviewProject, setReviewProject] = useState<ProjectData | null>(null);
   const [activeWorkspaceSlug, setActiveWorkspaceSlug] = useState<string | null>(null);
 
-  const ensureDefaultWorkspace = useMutation(api.workspaces.ensureDefaultWorkspace);
-  const createWorkspaceMutation = useMutation(api.workspaces.create);
+  const ensureDefaultWorkspace = useAction(api.workspaces.ensureDefaultWorkspace);
+  const createWorkspaceMutation = useAction(api.workspaces.create);
   const createProjectMutation = useMutation(api.projects.create);
   const updateProjectMutation = useMutation(api.projects.update);
   const archiveProjectMutation = useMutation(api.projects.archive);
@@ -133,6 +134,7 @@ export default function DashboardApp() {
   const setProjectStatusMutation = useMutation(api.projects.setStatus);
   const updateReviewCommentsMutation = useMutation(api.projects.updateReviewComments);
   const replaceProjectTasksMutation = useMutation(api.tasks.replaceForProject);
+  const replaceWorkspaceTasksMutation = useMutation(api.tasks.replaceForWorkspace);
   const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
   const finalizeProjectUploadAction = useAction(api.files.finalizeProjectUpload);
   const finalizePendingDraftAttachmentUploadAction = useAction(api.files.finalizePendingDraftAttachmentUpload);
@@ -144,6 +146,9 @@ export default function DashboardApp() {
   const removeAvatarMutation = useMutation(api.settings.removeAvatar);
   const saveNotificationPreferencesMutation = useMutation(api.settings.saveNotificationPreferences);
   const updateWorkspaceGeneralMutation = useMutation(api.settings.updateWorkspaceGeneral);
+  const generateWorkspaceLogoUploadUrlMutation = useMutation(api.settings.generateWorkspaceLogoUploadUrl);
+  const finalizeWorkspaceLogoUploadMutation = useMutation(api.settings.finalizeWorkspaceLogoUpload);
+  const removeWorkspaceLogoMutation = useMutation(api.settings.removeWorkspaceLogo);
   const generateBrandAssetUploadUrlMutation = useMutation(api.settings.generateBrandAssetUploadUrl);
   const finalizeBrandAssetUploadMutation = useMutation(api.settings.finalizeBrandAssetUpload);
   const removeBrandAssetMutation = useMutation(api.settings.removeBrandAsset);
@@ -158,6 +163,7 @@ export default function DashboardApp() {
   const reconcileWorkspaceOrganizationMembershipsAction = useAction(
     api.organizationSync.reconcileWorkspaceOrganizationMemberships,
   );
+  const ensureOrganizationLinkAction = useAction(api.workspaces.ensureOrganizationLink);
 
   const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
     Object.fromEntries(
@@ -263,6 +269,7 @@ export default function DashboardApp() {
   }, [navigate, searchParams, toProtectedFromPath]);
 
   const defaultWorkspaceRequestedRef = useRef(false);
+  const organizationLinkAttemptedWorkspacesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!snapshot) {
@@ -355,6 +362,11 @@ export default function DashboardApp() {
         workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
       }),
     [snapshot?.projects, snapshot?.tasks, snapshot?.activeWorkspaceSlug],
+  );
+
+  const workspaceTasks = useMemo(
+    () => mapWorkspaceTasksToUi((snapshot?.tasks ?? []) as any),
+    [snapshot?.tasks],
   );
 
   const activeWorkspace: Workspace | undefined =
@@ -493,6 +505,38 @@ export default function DashboardApp() {
     [reconcileWorkspaceInvitationsAction, reconcileWorkspaceOrganizationMembershipsAction],
   );
 
+  useEffect(() => {
+    if (!resolvedWorkspaceSlug || !companySettings) {
+      return;
+    }
+    if (companySettings.capability.hasOrganizationLink || companySettings.viewerRole !== "owner") {
+      return;
+    }
+
+    const attempted = organizationLinkAttemptedWorkspacesRef.current;
+    if (attempted.has(resolvedWorkspaceSlug)) {
+      return;
+    }
+    attempted.add(resolvedWorkspaceSlug);
+
+    void ensureOrganizationLinkAction({ workspaceSlug: resolvedWorkspaceSlug })
+      .then(async (result) => {
+        if (!result.alreadyLinked) {
+          await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+          toast.success("Workspace linked to WorkOS organization");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Failed to link workspace organization");
+      });
+  }, [
+    resolvedWorkspaceSlug,
+    companySettings,
+    ensureOrganizationLinkAction,
+    runWorkspaceSettingsReconciliation,
+  ]);
+
   const handleSaveAccountSettings = useCallback(
     async (payload: { firstName: string; lastName: string; email: string }) => {
       await updateAccountProfileAction(payload);
@@ -548,6 +592,37 @@ export default function DashboardApp() {
     },
     [resolvedWorkspaceSlug, updateWorkspaceGeneralMutation],
   );
+
+  const handleUploadWorkspaceLogo = useCallback(
+    async (file: File) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateWorkspaceLogoUploadUrlMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+      });
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      await finalizeWorkspaceLogoUploadMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+        storageId: storageId as any,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+      });
+    },
+    [resolvedWorkspaceSlug, generateWorkspaceLogoUploadUrlMutation, finalizeWorkspaceLogoUploadMutation],
+  );
+
+  const handleRemoveWorkspaceLogo = useCallback(async () => {
+    if (!resolvedWorkspaceSlug) {
+      throw new Error("No active workspace");
+    }
+    await removeWorkspaceLogoMutation({
+      workspaceSlug: resolvedWorkspaceSlug,
+    });
+  }, [resolvedWorkspaceSlug, removeWorkspaceLogoMutation]);
 
   const handleInviteWorkspaceMember = useCallback(
     async (payload: { email: string; role: "admin" | "member" }) => {
@@ -787,14 +862,11 @@ export default function DashboardApp() {
 
   const handleUpdateComments = (
     projectId: string,
-    comments: Array<{ id: string; author: { name: string; avatar: string }; content: string; timestamp: string }>,
+    comments: ReviewComment[],
   ) => {
-    void updateReviewCommentsMutation({
+    return updateReviewCommentsMutation({
       publicId: projectId,
       comments,
-    }).catch((error) => {
-      console.error(error);
-      toast.error("Failed to update comments");
     });
   };
 
@@ -869,6 +941,18 @@ export default function DashboardApp() {
       });
   };
 
+  const handleApproveReviewProject = useCallback(
+    async (projectId: string) => {
+      await setProjectStatusMutation({
+        publicId: projectId,
+        status: "Active",
+      });
+      toast.success("Project approved");
+      navigateView(`project:${projectId}`);
+    },
+    [setProjectStatusMutation, navigateView],
+  );
+
   const handleUpdateProject = (id: string, data: Partial<ProjectData>) => {
     const tasks = data.tasks;
 
@@ -919,6 +1003,36 @@ export default function DashboardApp() {
       });
     }
   };
+
+  const handleReplaceWorkspaceTasks = useCallback(
+    (tasks: Task[]) => {
+      if (!activeWorkspace?.id) {
+        toast.error("Select a workspace before updating tasks");
+        return;
+      }
+
+      const cleanTasks = tasks.map((task) => ({
+        id: String(task.id),
+        title: task.title,
+        assignee: {
+          name: task.assignee?.name || viewerIdentity.name,
+          avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
+        },
+        dueDateEpochMs: task.dueDateEpochMs ?? null,
+        completed: task.completed,
+        projectPublicId: task.projectId ?? null,
+      }));
+
+      void replaceWorkspaceTasksMutation({
+        workspaceSlug: activeWorkspace.id,
+        tasks: cleanTasks,
+      }).catch((error) => {
+        console.error(error);
+        toast.error("Failed to update tasks");
+      });
+    },
+    [activeWorkspace?.id, replaceWorkspaceTasksMutation, viewerIdentity.avatarUrl, viewerIdentity.name],
+  );
 
   const resolveUploadWorkspaceSlug = useCallback(
     () => activeWorkspace?.id ?? resolvedWorkspaceSlug ?? null,
@@ -1238,12 +1352,18 @@ export default function DashboardApp() {
               isOpen={isCreateProjectOpen}
               onClose={closeCreateProject}
               onCreate={handleCreateProject}
-              user={{ name: viewerName, avatar: viewerAvatar }}
+              user={{
+                userId: viewerIdentity.userId ?? undefined,
+                name: viewerName,
+                avatar: viewerAvatar,
+                role: viewerIdentity.role ?? undefined,
+              }}
               editProjectId={editProjectId}
               initialDraftData={editDraftData}
               onDeleteDraft={handleDeleteProject}
               reviewProject={reviewProject}
               onUpdateComments={handleUpdateComments}
+              onApproveReviewProject={handleApproveReviewProject}
               onUploadAttachment={handleUploadDraftAttachment}
               onRemovePendingAttachment={handleRemoveDraftAttachment}
               onDiscardDraftUploads={handleDiscardDraftSessionUploads}
@@ -1290,6 +1410,8 @@ export default function DashboardApp() {
               onRemoveAvatar={handleRemoveAccountAvatar}
               onSaveNotifications={handleSaveSettingsNotifications}
               onUpdateWorkspaceGeneral={handleUpdateWorkspaceGeneral}
+              onUploadWorkspaceLogo={handleUploadWorkspaceLogo}
+              onRemoveWorkspaceLogo={handleRemoveWorkspaceLogo}
               onInviteMember={handleInviteWorkspaceMember}
               onChangeMemberRole={handleChangeWorkspaceMemberRole}
               onRemoveMember={handleRemoveWorkspaceMember}

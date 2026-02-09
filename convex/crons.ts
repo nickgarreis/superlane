@@ -10,4 +10,11 @@ crons.daily(
   {},
 );
 
+crons.interval(
+  "cleanup-pending-workspace-member-removals",
+  { hours: 1 },
+  internal.workspaces.internalCleanupPendingWorkspaceMemberRemovals,
+  {},
+);
+
 export default crons;

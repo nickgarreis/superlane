@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Archive, ArchiveRestore, CheckCircle2, Download, Undo2, ArrowLeft } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, Download, Trash2, Undo2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import svgPaths from "../../imports/svg-0erue6fqwq";
@@ -7,7 +7,6 @@ import svgPathsStatus from "../../imports/svg-95p4xxlon7";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
 import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
-import DeleteButton from "../../imports/DeleteButton";
 import { ProjectLogo } from "./ProjectLogo";
 import type { AppView } from "../lib/routing";
 import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
@@ -573,26 +572,27 @@ export function MainContent({
                             </div>
                         </div>
 
-                        {/* Remove Button */}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        {/* Action icons */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
                           {file.downloadable !== false && (
                             <button
+                              title="Download"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onDownloadFile(file.id);
                               }}
-                              className="h-[34px] px-3 rounded-full bg-white/10 hover:bg-white/20 text-white/90 text-xs flex items-center gap-1.5 cursor-pointer"
+                              className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
                             >
-                              <Download size={13} />
-                              <span>Download</span>
+                              <Download size={14} />
                             </button>
                           )}
-                          <div
-                            className="w-[88px] h-[34px]"
+                          <button
+                            title="Remove"
                             onClick={(e) => handleRemoveFile(file.id, e)}
+                            className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer"
                           >
-                            <DeleteButton />
-                          </div>
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                     </motion.div>
                 ))}

@@ -22,6 +22,17 @@ export const taskInputValidator = v.object({
   completed: v.boolean(),
 });
 
+export const workspaceTaskInputValidator = v.object({
+  id: v.string(),
+  title: v.string(),
+  assignee: taskAssigneeValidator,
+  dueDateEpochMs: v.optional(v.union(v.number(), v.null())),
+  // Legacy compatibility for pre-normalization payloads.
+  dueDate: v.optional(v.union(v.string(), v.null())),
+  completed: v.boolean(),
+  projectPublicId: v.optional(v.union(v.string(), v.null())),
+});
+
 export const draftDataValidator = v.object({
   selectedService: v.string(),
   projectName: v.string(),
@@ -53,6 +64,7 @@ export const fileTabValidator = v.union(
 export const reviewCommentValidator = v.object({
   id: v.string(),
   author: v.object({
+    userId: v.optional(v.string()),
     name: v.string(),
     avatar: v.string(),
   }),

@@ -378,7 +378,74 @@ describe("P0.1 RBAC and soft-delete", () => {
     });
   });
 
-  test("comments support author edits/removals with admin override and member resolve", async () => {
+  test("review comments only allow author updates/removals", async () => {
+    const workspace = await seedWorkspace();
+    const project = await seedProject(workspace);
+    const memberComment = {
+      id: "review-1",
+      author: {
+        userId: String(workspace.memberUserId),
+        name: "Member User",
+        avatar: "",
+      },
+      content: "Looks good",
+      timestamp: "now",
+    };
+
+    await asMember().mutation(api.projects.updateReviewComments, {
+      publicId: project.projectPublicId,
+      comments: [memberComment],
+    });
+
+    await expect(
+      asMemberTwo().mutation(api.projects.updateReviewComments, {
+        publicId: project.projectPublicId,
+        comments: [],
+      }),
+    ).rejects.toThrow("Forbidden");
+
+    await expect(
+      asAdmin().mutation(api.projects.updateReviewComments, {
+        publicId: project.projectPublicId,
+        comments: [{ ...memberComment, content: "Admin cannot edit others" }],
+      }),
+    ).rejects.toThrow("Forbidden");
+
+    await expect(
+      asAdmin().mutation(api.projects.update, {
+        publicId: project.projectPublicId,
+        reviewComments: [{ ...memberComment, content: "Admin cannot edit through projects.update" }],
+      }),
+    ).rejects.toThrow("Forbidden");
+
+    await asMemberTwo().mutation(api.projects.updateReviewComments, {
+      publicId: project.projectPublicId,
+      comments: [
+        memberComment,
+        {
+          id: "review-2",
+          author: {
+            name: "Member Two User",
+            avatar: "",
+          },
+          content: "Member two comment",
+          timestamp: "now",
+        },
+      ],
+    });
+
+    await asMemberTwo().mutation(api.projects.updateReviewComments, {
+      publicId: project.projectPublicId,
+      comments: [memberComment],
+    });
+
+    await t.run(async (ctx) => {
+      const row = await ctx.db.get(project.projectId);
+      expect(row?.reviewComments).toEqual([memberComment]);
+    });
+  });
+
+  test("comments only allow author edits/removals and member resolve", async () => {
     const workspace = await seedWorkspace();
     const project = await seedProject(workspace);
 
@@ -401,14 +468,17 @@ describe("P0.1 RBAC and soft-delete", () => {
       }),
     ).rejects.toThrow("Forbidden");
 
-    await asAdmin().mutation(api.comments.update, {
-      commentId,
-      content: "Admin override edit",
-    });
+    await expect(
+      asAdmin().mutation(api.comments.update, {
+        commentId,
+        content: "Admin override edit",
+      }),
+    ).rejects.toThrow("Forbidden");
 
     await expect(asMemberTwo().mutation(api.comments.remove, { commentId })).rejects.toThrow("Forbidden");
+    await expect(asAdmin().mutation(api.comments.remove, { commentId })).rejects.toThrow("Forbidden");
 
-    await asAdmin().mutation(api.comments.remove, { commentId });
+    await asMember().mutation(api.comments.remove, { commentId });
 
     await t.run(async (ctx) => {
       const row = await ctx.db.get(commentId as Id<"projectComments">);

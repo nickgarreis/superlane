@@ -1,7 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
-import { hasRequiredWorkspaceRole } from "./lib/rbac";
 
 const formatRelativeTime = (timestamp: number, now: number) => {
   const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
@@ -241,9 +240,9 @@ export const update = mutation({
       throw new ConvexError("Comment not found");
     }
 
-    const { appUser, membership } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
-    if (comment.authorUserId !== appUser._id && !hasRequiredWorkspaceRole(membership.role, "admin")) {
+    if (comment.authorUserId !== appUser._id) {
       throw new ConvexError("Forbidden");
     }
 
@@ -286,9 +285,9 @@ export const remove = mutation({
       return { removed: false };
     }
 
-    const { appUser, membership } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
 
-    if (comment.authorUserId !== appUser._id && !hasRequiredWorkspaceRole(membership.role, "admin")) {
+    if (comment.authorUserId !== appUser._id) {
       throw new ConvexError("Forbidden");
     }
 

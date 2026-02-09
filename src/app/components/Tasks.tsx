@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import HorizontalBorder from "../../imports/HorizontalBorder";
@@ -31,21 +31,43 @@ export function Tasks({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
-  
-  // Derived state from projects prop
-  const allTasks = Object.values(projects).flatMap(p => 
-      (p.tasks || []).map(t => ({ ...t, projectId: p.id }))
+
+  const activeProjects = useMemo(
+    () =>
+      Object.values(projects).filter(
+        (project) => !project.archived && project.status.label === "Active",
+      ),
+    [projects],
   );
+
+  const activeProjectIds = useMemo(
+    () => new Set(activeProjects.map((project) => project.id)),
+    [activeProjects],
+  );
+  const canAssignToActiveProjects = activeProjects.length > 0;
+
+  // Derived state from projects prop
+  const allTasks = useMemo(
+    () =>
+      activeProjects.flatMap((project) =>
+        (project.tasks || []).map((task) => ({ ...task, projectId: project.id })),
+      ),
+    [activeProjects],
+  );
+
+  useEffect(() => {
+    setFilterProject((current) => current.filter((projectId) => activeProjectIds.has(projectId)));
+  }, [activeProjectIds]);
 
   const filteredTasks = allTasks
     .filter(task => {
         const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
         
         // If filters are active, match against selected IDs.
-        // If NO filters are active, only show tasks from UNARCHIVED projects.
-        const matchesProject = filterProject.length > 0 
+        // If no filters are active, only show tasks from ACTIVE projects.
+        const matchesProject = filterProject.length > 0
             ? filterProject.includes(task.projectId)
-            : !projects[task.projectId]?.archived;
+            : activeProjectIds.has(task.projectId);
 
         return matchesSearch && matchesProject;
     })
@@ -55,62 +77,80 @@ export function Tasks({
         return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
     });
 
-  const handleUpdateTasks = (newTasks: any[]) => {
-      // Group current tasks by project for easier updating
+  const handleUpdateTasks = (newTasks: Task[]) => {
       const updatesByProject: Record<string, Task[]> = {};
-      Object.values(projects).forEach(p => {
-          updatesByProject[p.id] = [...(p.tasks || [])];
+      activeProjects.forEach((project) => {
+          updatesByProject[project.id] = [...(project.tasks || [])];
       });
 
-      // 1. Identify Deleted Tasks
-      // If a task ID was in filteredTasks but is NOT in newTasks, it was deleted.
-      const previousIdsInView = new Set(filteredTasks.map(t => t.id));
-      const newIdsInView = new Set(newTasks.map(t => t.id));
-      
-      const deletedIds = [...previousIdsInView].filter(id => !newIdsInView.has(id));
-      
-      deletedIds.forEach(id => {
-          const task = allTasks.find(t => t.id === id);
-          if (task) {
-              const pId = task.projectId;
-              if (updatesByProject[pId]) {
-                  updatesByProject[pId] = updatesByProject[pId].filter(t => t.id !== id);
-              }
+      const previousByTaskId = new Map(allTasks.map((task) => [task.id, task]));
+      const deletedIds = new Set(
+          filteredTasks
+              .map((task) => task.id)
+              .filter((id) => !newTasks.some((task) => task.id === id)),
+      );
+
+      const changedProjectIds = new Set<string>();
+
+      const removeTaskFromProject = (projectId: string, taskId: string) => {
+          const list = updatesByProject[projectId];
+          if (!list) {
+              return;
           }
-      });
+          const nextList = list.filter((task) => task.id !== taskId);
+          if (nextList.length !== list.length) {
+              updatesByProject[projectId] = nextList;
+              changedProjectIds.add(projectId);
+          }
+      };
 
-      // 2. Identify New and Updated Tasks
-      newTasks.forEach(t => {
-          if (!t.projectId) {
-              // New Task
-              // Assign to first selected filter project or first available project
-              const targetPId = filterProject.length > 0 ? filterProject[0] : Object.keys(projects)[0];
-              if (targetPId && updatesByProject[targetPId]) {
-                  // Strip projectId if it accidentally got there, though for new tasks it shouldn't be there
-                  const { projectId, ...cleanTask } = t;
-                  updatesByProject[targetPId].push(cleanTask);
-              }
+      const upsertTaskOnProject = (projectId: string, task: Task) => {
+          const list = updatesByProject[projectId];
+          if (!list) {
+              return;
+          }
+          const { projectId: _ignoredProjectId, ...cleanTask } = task;
+          const existingIndex = list.findIndex((entry) => entry.id === cleanTask.id);
+          if (existingIndex >= 0) {
+              const nextList = [...list];
+              nextList[existingIndex] = cleanTask;
+              updatesByProject[projectId] = nextList;
           } else {
-              // Existing Task - Update it in its project
-              const pId = t.projectId;
-              if (updatesByProject[pId]) {
-                  updatesByProject[pId] = updatesByProject[pId].map(existing => 
-                      existing.id === t.id ? { ...t, projectId: undefined } : existing
-                  );
-              }
+              updatesByProject[projectId] = [...list, cleanTask];
           }
+          changedProjectIds.add(projectId);
+      };
+
+      deletedIds.forEach((taskId) => {
+          Object.keys(updatesByProject).forEach((projectId) => {
+              removeTaskFromProject(projectId, taskId);
+          });
       });
 
-      // 3. Apply updates
-      Object.entries(updatesByProject).forEach(([pId, updatedList]) => {
-          // Simple equality check to avoid infinite loops or unnecessary updates
-          // This is a shallow check, ideally we'd do deep check but this is okay for now
-          // as long as onUpdateProject doesn't cause a re-render if value is same (it might).
-          // Better to just fire it.
-          
-          // Clean up the tasks to ensure no projectId field remains
-          const cleanList = updatedList.map(({ projectId, ...rest }: any) => rest);
-          onUpdateProject(pId, { tasks: cleanList });
+      const defaultProjectId = filterProject.find((projectId) => activeProjectIds.has(projectId))
+          ?? null;
+
+      newTasks.forEach((task) => {
+          const previousProjectId = previousByTaskId.get(task.id)?.projectId;
+          const targetProjectId =
+              (task.projectId && activeProjectIds.has(task.projectId) ? task.projectId : null)
+              ?? (previousProjectId && activeProjectIds.has(previousProjectId) ? previousProjectId : null)
+              ?? defaultProjectId;
+
+          if (!targetProjectId) {
+              return;
+          }
+
+          Object.keys(updatesByProject).forEach((projectId) => {
+              if (projectId !== targetProjectId) {
+                  removeTaskFromProject(projectId, task.id);
+              }
+          });
+          upsertTaskOnProject(targetProjectId, { ...task, projectId: targetProjectId });
+      });
+
+      changedProjectIds.forEach((projectId) => {
+          onUpdateProject(projectId, { tasks: updatesByProject[projectId] ?? [] });
       });
   };
 
@@ -158,7 +198,13 @@ export function Tasks({
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="text-[12px] font-medium text-[#58AFFF] hover:text-[#58AFFF]/80 transition-colors flex items-center gap-1 cursor-pointer mr-2"
+                        disabled={!canAssignToActiveProjects}
+                        className={cn(
+                          "text-[12px] font-medium transition-colors flex items-center gap-1 mr-2",
+                          canAssignToActiveProjects
+                            ? "text-[#58AFFF] hover:text-[#58AFFF]/80 cursor-pointer"
+                            : "text-[#58AFFF]/40 cursor-not-allowed",
+                        )}
                     >
                         <Plus size={14} /> Add Task
                     </button>
@@ -187,7 +233,7 @@ export function Tasks({
                                     <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                                         Filter by Project
                                     </div>
-                                    {Object.values(projects).filter(p => !p.archived).map(project => {
+                                    {activeProjects.map(project => {
                                         const isSelected = filterProject.includes(project.id);
                                         return (
                                             <button
@@ -217,6 +263,11 @@ export function Tasks({
                                             </button>
                                         );
                                     })}
+                                    {activeProjects.length === 0 && (
+                                        <div className="px-3 py-2 text-[12px] text-white/40">
+                                            No active projects
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -287,11 +338,22 @@ export function Tasks({
                 <ProjectTasks 
                     tasks={filteredTasks} 
                     onUpdateTasks={handleUpdateTasks}
+                    disableInternalSort={true}
                     hideHeader={true}
                     isAddingMode={isAdding}
                     onAddingModeChange={setIsAdding}
                     assignableMembers={workspaceMembers}
                     viewerIdentity={viewerIdentity}
+                    showProjectColumn={true}
+                    projectOptions={activeProjects.map((project) => ({
+                      id: project.id,
+                      name: project.name,
+                      category: project.category,
+                    }))}
+                    defaultProjectId={
+                      filterProject.find((projectId) => activeProjectIds.has(projectId))
+                      ?? null
+                    }
                 />
             </div>
         </div>

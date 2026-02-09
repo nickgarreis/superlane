@@ -154,12 +154,13 @@ export async function syncWorkspaceMemberFromOrganizationMembership(
     .unique();
 
   if (existing) {
+    const nextRole: WorkspaceRole = existing.role === "owner" ? "owner" : workspaceRole;
     await ctx.db.patch(existing._id, {
-      role: workspaceRole,
+      role: nextRole,
       status: workspaceStatus,
       updatedAt: now,
     });
-    return { created: false, role: workspaceRole, status: workspaceStatus };
+    return { created: false, role: nextRole, status: workspaceStatus };
   }
 
   await ctx.db.insert("workspaceMembers", {
@@ -174,4 +175,3 @@ export async function syncWorkspaceMemberFromOrganizationMembership(
 
   return { created: true, role: workspaceRole, status: workspaceStatus };
 }
-

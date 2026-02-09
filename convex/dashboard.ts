@@ -108,7 +108,9 @@ export const getSnapshot = query({
           .withIndex("by_workspaceId", (q) => q.eq("workspaceId", activeWorkspace._id))
           .collect()
       : [];
-    const visibleTasks = tasks.filter((task) => activeProjectIds.has(String(task.projectId)));
+    const visibleTasks = tasks.filter((task) =>
+      task.projectId == null || activeProjectIds.has(String(task.projectId)),
+    );
 
     activeProjects.sort((a, b) => {
       const updatedAtA = typeof a.updatedAt === "number" ? a.updatedAt : 0;

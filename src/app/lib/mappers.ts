@@ -1,4 +1,4 @@
-import type { ProjectData, Task, Workspace } from "../types";
+import type { ProjectData, ReviewComment, Task, Workspace } from "../types";
 import { getStatusStyle } from "./status";
 
 type SnapshotProject = {
@@ -23,7 +23,7 @@ type SnapshotProject = {
   }>;
   reviewComments?: Array<{
     id: string;
-    author: { name: string; avatar: string };
+    author: { userId?: string; name: string; avatar: string };
     content: string;
     timestamp: string;
   }>;
@@ -35,7 +35,7 @@ type SnapshotProject = {
 };
 
 type SnapshotTask = {
-  projectPublicId: string;
+  projectPublicId?: string | null;
   taskId: string;
   title: string;
   assignee: {
@@ -75,6 +75,9 @@ export const mapProjectsToUi = ({
   workspaceSlug: string | null;
 }): Record<string, ProjectData> => {
   const tasksByProject = tasks.reduce<Record<string, Task[]>>((acc, task) => {
+    if (!task.projectPublicId) {
+      return acc;
+    }
     if (!acc[task.projectPublicId]) {
       acc[task.projectPublicId] = [];
     }
@@ -117,10 +120,23 @@ export const mapProjectsToUi = ({
       completedAt: project.completedAt ?? null,
       draftData: project.draftData ?? undefined,
       attachments: project.attachments,
-      comments: project.reviewComments,
+      comments: project.reviewComments as ReviewComment[] | undefined,
       tasks: tasksByProject[project.publicId] ?? [],
     };
 
     return acc;
   }, {});
 };
+
+export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
+  tasks.map((task) => ({
+    id: task.taskId,
+    title: task.title,
+    projectId: task.projectPublicId ?? undefined,
+    assignee: {
+      name: task.assignee.name,
+      avatar: task.assignee.avatar,
+    },
+    dueDateEpochMs: task.dueDateEpochMs ?? null,
+    completed: task.completed,
+  }));

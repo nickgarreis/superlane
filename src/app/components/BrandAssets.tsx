@@ -1,10 +1,10 @@
 import React, { useState, useRef } from "react";
+import { Download, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import HorizontalBorder from "../../imports/HorizontalBorder";
-import DeleteButton from "../../imports/DeleteButton";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -198,12 +198,22 @@ export function BrandAssets({ onToggleSidebar, isSidebarOpen }: { onToggleSideba
                             </div>
                         </div>
                         
-                        {/* Remove Button */}
-                        <div 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 w-[88px] h-[34px]"
-                            onClick={(e) => handleRemoveFile(file.id, e)}
-                        >
-                            <DeleteButton />
+                        {/* Action icons */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                            <button
+                                title="Download"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
+                            >
+                                <Download size={14} />
+                            </button>
+                            <button
+                                title="Remove"
+                                onClick={(e) => handleRemoveFile(file.id, e)}
+                                className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <Trash2 size={14} />
+                            </button>
                         </div>
                     </motion.div>
                 ))}

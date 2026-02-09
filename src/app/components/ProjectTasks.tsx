@@ -10,12 +10,23 @@ import {
   fromUtcNoonEpochMsToDateOnly,
   toUtcNoonEpochMsFromDateOnly,
 } from "../lib/dates";
+import { ProjectLogo } from "./ProjectLogo";
+
+type TaskProjectOption = {
+  id: string;
+  name: string;
+  category: string;
+};
 
 interface ProjectTasksProps {
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
   assignableMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
+  projectOptions?: TaskProjectOption[];
+  showProjectColumn?: boolean;
+  defaultProjectId?: string | null;
+  disableInternalSort?: boolean;
   hideHeader?: boolean;
   isAddingMode?: boolean;
   onAddingModeChange?: (isAdding: boolean) => void;
@@ -28,6 +39,10 @@ export function ProjectTasks({
   onUpdateTasks,
   assignableMembers,
   viewerIdentity,
+  projectOptions = [],
+  showProjectColumn = false,
+  defaultProjectId = null,
+  disableInternalSort = false,
   hideHeader = false,
   isAddingMode,
   onAddingModeChange,
@@ -40,18 +55,39 @@ export function ProjectTasks({
   const setIsAdding = onAddingModeChange || setInternalIsAdding;
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string>(defaultProjectId ?? "");
   const [openCalendarTaskId, setOpenCalendarTaskId] = useState<string | null>(null);
   const [openAssigneeTaskId, setOpenAssigneeTaskId] = useState<string | null>(null);
+  const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(null);
+  const [isNewTaskProjectOpen, setIsNewTaskProjectOpen] = useState(false);
 
   // Sorting
   const [sortBy, setSortBy] = useState<"dueDate" | "name" | "status">("dueDate");
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const sortedTasks = [...initialTasks].sort((a, b) => {
-      if (sortBy === "name") return a.title.localeCompare(b.title);
-      if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-      return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
-  });
+  const sortedTasks = disableInternalSort
+    ? initialTasks
+    : [...initialTasks].sort((a, b) => {
+        if (sortBy === "name") return a.title.localeCompare(b.title);
+        if (sortBy === "status") return Number(a.completed) - Number(b.completed);
+        return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
+      });
+
+  useEffect(() => {
+    if (!showProjectColumn) {
+      return;
+    }
+
+    const isCurrentValid = projectOptions.some((project) => project.id === newTaskProjectId);
+    if (isCurrentValid) {
+      return;
+    }
+
+    const preferredProjectId = defaultProjectId && projectOptions.some((project) => project.id === defaultProjectId)
+      ? defaultProjectId
+      : "";
+    setNewTaskProjectId(preferredProjectId);
+  }, [defaultProjectId, newTaskProjectId, projectOptions, showProjectColumn]);
 
   const handleToggle = (id: string) => {
     const newTasks = initialTasks.map(t => 
@@ -67,11 +103,18 @@ export function ProjectTasks({
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return;
+    const resolvedProjectId = showProjectColumn
+      ? newTaskProjectId || defaultProjectId || projectOptions[0]?.id
+      : undefined;
+    if (showProjectColumn && !resolvedProjectId) {
+      return;
+    }
 
     const defaultAssignee = assignableMembers[0];
     const newTask: Task = {
       id: Date.now().toString(),
       title: newTaskTitle,
+      projectId: resolvedProjectId,
       assignee: {
         name: defaultAssignee?.name ?? viewerIdentity.name ?? "Unassigned",
         avatar: defaultAssignee?.avatarUrl ?? viewerIdentity.avatarUrl ?? "",
@@ -82,6 +125,7 @@ export function ProjectTasks({
 
     onUpdateTasks([...initialTasks, newTask]);
     setNewTaskTitle("");
+    setNewTaskProjectId(defaultProjectId ?? "");
     setIsAdding(false);
   };
 
@@ -111,6 +155,13 @@ export function ProjectTasks({
       setOpenAssigneeTaskId(null);
   };
 
+  const handleProjectSelect = (taskId: string, projectId: string) => {
+    const newTasks = initialTasks.map((task) =>
+      task.id === taskId ? { ...task, projectId } : task,
+    );
+    onUpdateTasks(newTasks);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddTask();
@@ -127,6 +178,8 @@ export function ProjectTasks({
   const closeAllDropdowns = () => {
       setOpenCalendarTaskId(null);
       setOpenAssigneeTaskId(null);
+      setOpenProjectTaskId(null);
+      setIsNewTaskProjectOpen(false);
   };
 
   // ── Highlight / scroll-into-view for mention clicks ──────────
@@ -152,7 +205,7 @@ export function ProjectTasks({
   return (
     <div className="flex flex-col gap-5 mb-8">
         {/* Backdrop for dropdowns */}
-        {(openCalendarTaskId || openAssigneeTaskId || isSortOpen) && (
+        {(openCalendarTaskId || openAssigneeTaskId || openProjectTaskId || isNewTaskProjectOpen || isSortOpen) && (
             <div className="fixed inset-0 z-40 bg-transparent" onClick={() => {
                 closeAllDropdowns();
                 setIsSortOpen(false);
@@ -230,6 +283,17 @@ export function ProjectTasks({
         )}
 
         <div className="flex flex-col border-t border-white/5">
+            {showProjectColumn && (
+                <div className="flex items-center justify-between py-2 border-b border-white/5 text-[10px] uppercase tracking-wider text-white/35">
+                    <div className="pl-8">Task</div>
+                    <div className="flex items-center gap-3 shrink-0 pl-4">
+                        <div className="w-[170px]">Project</div>
+                        <div className="w-[120px]">Due Date</div>
+                        <div className="w-6 text-center">Assignee</div>
+                        <div className="w-7" />
+                    </div>
+                </div>
+            )}
             <AnimatePresence initial={false}>
                 {isAdding && (
                      <motion.div
@@ -238,18 +302,118 @@ export function ProjectTasks({
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden border-b border-white/5"
                      >
-                        <div className="py-3 flex items-center gap-3">
-                            <div className="w-5 h-5 rounded-full border border-white/20 shrink-0 opacity-50" />
-                            <input
-                                autoFocus
-                                type="text"
-                                value={newTaskTitle}
-                                onChange={(e) => setNewTaskTitle(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                onBlur={() => !newTaskTitle && setIsAdding(false)}
-                                placeholder="What needs to be done?"
-                                className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#E8E8E8] placeholder:text-white/20"
-                            />
+                        <div className="py-3 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-5 h-5 rounded-full border border-white/20 shrink-0 opacity-50" />
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={newTaskTitle}
+                                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    onBlur={() => !newTaskTitle && setIsAdding(false)}
+                                    placeholder="What needs to be done?"
+                                    className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#E8E8E8] placeholder:text-white/20"
+                                />
+                            </div>
+
+                            {showProjectColumn && (
+                                <div className="flex items-center gap-3 shrink-0 pl-4">
+                                    <div className="w-[170px] relative">
+                                        <div
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                closeAllDropdowns();
+                                                if (projectOptions.length === 0) {
+                                                  return;
+                                                }
+                                                setIsNewTaskProjectOpen((open) => !open);
+                                            }}
+                                            className={cn(
+                                              "flex items-center gap-1.5 text-[12px] transition-colors py-1 px-2 rounded-md w-full",
+                                              projectOptions.length === 0
+                                                ? "text-white/20 cursor-not-allowed"
+                                                : "text-white/40 cursor-pointer hover:text-[#E8E8E8] hover:bg-white/5",
+                                              isNewTaskProjectOpen && "bg-white/5 text-[#E8E8E8]",
+                                            )}
+                                        >
+                                            {newTaskProjectId ? (
+                                                <ProjectLogo
+                                                  size={12}
+                                                  category={
+                                                    projectOptions.find((project) => project.id === newTaskProjectId)?.category ?? "General"
+                                                  }
+                                                />
+                                            ) : (
+                                                <div className="w-3 h-3 rounded-full bg-white/20" />
+                                            )}
+                                            <span className="truncate">
+                                                {projectOptions.length === 0
+                                                  ? "No active projects"
+                                                  : projectOptions.find((project) => project.id === newTaskProjectId)?.name ?? "No project"}
+                                            </span>
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {isNewTaskProjectOpen && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    className="absolute right-0 top-full mt-2 z-50 py-1 bg-[#262626] rounded-xl shadow-xl border border-white/10 w-[220px] overflow-hidden"
+                                                    onClick={(event) => event.stopPropagation()}
+                                                >
+                                                    <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
+                                                        Project
+                                                    </div>
+                                                    <div
+                                                        onClick={() => {
+                                                            setNewTaskProjectId("");
+                                                            setIsNewTaskProjectOpen(false);
+                                                        }}
+                                                        className={cn(
+                                                          "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
+                                                          newTaskProjectId === "" && "bg-white/5",
+                                                        )}
+                                                    >
+                                                        <div className="w-3 h-3 rounded-full bg-white/20" />
+                                                        <span className={cn(
+                                                          "text-[13px]",
+                                                          newTaskProjectId === "" ? "text-white font-medium" : "text-[#E8E8E8]",
+                                                        )}>
+                                                            No project
+                                                        </span>
+                                                    </div>
+                                                    {projectOptions.map((project) => (
+                                                        <div
+                                                            key={project.id}
+                                                            onClick={() => {
+                                                                setNewTaskProjectId(project.id);
+                                                                setIsNewTaskProjectOpen(false);
+                                                            }}
+                                                            className={cn(
+                                                              "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
+                                                              newTaskProjectId === project.id && "bg-white/5",
+                                                            )}
+                                                        >
+                                                            <ProjectLogo size={12} category={project.category} />
+                                                            <span className={cn(
+                                                              "text-[13px] truncate",
+                                                              newTaskProjectId === project.id ? "text-white font-medium" : "text-[#E8E8E8]",
+                                                            )}>
+                                                                {project.name}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="w-[120px] text-[11px] text-white/35">No due date</div>
+                                    <div className="w-6" />
+                                    <div className="w-7" />
+                                </div>
+                            )}
                         </div>
                      </motion.div>
                 )}
@@ -287,9 +451,77 @@ export function ProjectTasks({
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-4 shrink-0 pl-4 relative">
+                        <div className="flex items-center gap-3 shrink-0 pl-4 relative">
+                             {/* Project */}
+                             {showProjectColumn && (
+                                <div className="w-[170px] relative">
+                                    <div
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            closeAllDropdowns();
+                                            setOpenProjectTaskId(openProjectTaskId === task.id ? null : task.id);
+                                        }}
+                                        className={cn(
+                                          "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5 w-full",
+                                          task.completed ? "text-white/30 pointer-events-none" : "text-white/40",
+                                          openProjectTaskId === task.id && "bg-white/5 text-[#E8E8E8]",
+                                        )}
+                                    >
+                                        {projectOptions.some((project) => project.id === task.projectId) ? (
+                                            <ProjectLogo
+                                                size={12}
+                                                category={
+                                                    projectOptions.find((project) => project.id === task.projectId)?.category ?? "General"
+                                                }
+                                            />
+                                        ) : (
+                                            <div className="w-3 h-3 rounded-full bg-white/20" />
+                                        )}
+                                        <span className="truncate">
+                                            {projectOptions.find((project) => project.id === task.projectId)?.name ?? "No project"}
+                                        </span>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {openProjectTaskId === task.id && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className="absolute right-0 top-full mt-2 z-50 py-1 bg-[#262626] rounded-xl shadow-xl border border-white/10 w-[220px] overflow-hidden"
+                                                onClick={(event) => event.stopPropagation()}
+                                            >
+                                                <div className="px-3 py-2 text-[10px] uppercase font-medium text-white/40 tracking-wider">
+                                                    Move to project
+                                                </div>
+                                                {projectOptions.map((project) => (
+                                                    <div
+                                                        key={project.id}
+                                                        onClick={() => {
+                                                            handleProjectSelect(task.id, project.id);
+                                                            setOpenProjectTaskId(null);
+                                                        }}
+                                                        className={cn(
+                                                          "flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors",
+                                                          task.projectId === project.id && "bg-white/5",
+                                                        )}
+                                                    >
+                                                        <ProjectLogo size={12} category={project.category} />
+                                                        <span className={cn(
+                                                          "text-[13px] truncate",
+                                                          task.projectId === project.id ? "text-white font-medium" : "text-[#E8E8E8]",
+                                                        )}>
+                                                            {project.name}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                             )}
                              {/* Date */}
-                             <div className="relative">
+                             <div className="relative w-[120px]">
                                  <div 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -297,7 +529,7 @@ export function ProjectTasks({
                                         setOpenCalendarTaskId(openCalendarTaskId === task.id ? null : task.id);
                                     }}
                                     className={cn(
-                                        "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5", 
+                                        "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5 w-full", 
                                         task.completed ? "text-white/20 pointer-events-none" : "text-white/40",
                                         openCalendarTaskId === task.id && "bg-white/5 text-[#E8E8E8]"
                                     )}
@@ -389,7 +621,7 @@ export function ProjectTasks({
                              </div>
 
                              {/* Assignee */}
-                             <div className="relative">
+                             <div className="relative w-6">
                                  <div 
                                     className={cn(
                                         "w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0 cursor-pointer transition-transform active:scale-95",
@@ -468,7 +700,7 @@ export function ProjectTasks({
                                     )}
                                  </AnimatePresence>
                              </div>
-                             
+                            
                              {/* Delete Action (visible on hover) */}
                              <button 
                                 onClick={(e) => {
@@ -486,7 +718,9 @@ export function ProjectTasks({
             
             {initialTasks.length === 0 && !isAdding && (
                 <div className="py-8 text-center text-[13px] text-white/20 italic">
-                    No tasks yet. Click "Add Task" to create one.
+                    {showProjectColumn && projectOptions.length === 0
+                      ? "No active projects available. Activate a project to assign tasks."
+                      : "No tasks yet. Click \"Add Task\" to create one."}
                 </div>
             )}
         </div>

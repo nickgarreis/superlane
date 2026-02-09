@@ -20,6 +20,13 @@ const AVATAR_ALLOWED_MIME = new Set([
   "image/gif",
 ]);
 
+const WORKSPACE_LOGO_ALLOWED_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+]);
+
 const DEFAULT_NOTIFICATION_PREFERENCES = {
   channels: {
     email: true,
@@ -369,6 +376,106 @@ export const updateWorkspaceGeneral = mutation({
     await ctx.db.patch(workspace._id, patch);
 
     return { updated: true };
+  },
+});
+
+export const generateWorkspaceLogoUploadUrl = mutation({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
+
+    return {
+      uploadUrl: await ctx.storage.generateUploadUrl(),
+    };
+  },
+});
+
+export const finalizeWorkspaceLogoUpload = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    sizeBytes: v.number(),
+    checksumSha256: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
+
+    const normalizedMimeType = normalizeMimeType(args.mimeType);
+
+    try {
+      if (!WORKSPACE_LOGO_ALLOWED_MIME.has(normalizedMimeType)) {
+        throw new ConvexError("Unsupported workspace logo file type. Use PNG, JPG, GIF, or WebP.");
+      }
+      assertValidChecksumSha256(args.checksumSha256);
+      if (!Number.isFinite(args.sizeBytes) || args.sizeBytes <= 0) {
+        throw new ConvexError("Invalid file size");
+      }
+      if (args.sizeBytes > TWO_MB_IN_BYTES) {
+        throw new ConvexError("Workspace logo exceeds max size of 2MB");
+      }
+
+      await validateStorageMetadata(ctx, {
+        storageId: args.storageId,
+        sizeBytes: args.sizeBytes,
+        checksumSha256: args.checksumSha256,
+        mimeType: normalizedMimeType,
+      });
+
+      const previousStorageId = workspace.logoStorageId ?? null;
+      const now = Date.now();
+      const resolvedUrl = (await ctx.storage.getUrl(args.storageId)) ?? undefined;
+
+      await ctx.db.patch(workspace._id, {
+        logo: resolvedUrl,
+        logoStorageId: args.storageId,
+        updatedAt: now,
+        updatedByUserId: appUser._id,
+      });
+
+      if (previousStorageId && String(previousStorageId) !== String(args.storageId)) {
+        await ctx.storage.delete(previousStorageId);
+      }
+
+      return {
+        logoUrl: resolvedUrl ?? null,
+      };
+    } catch (error) {
+      await ctx.storage.delete(args.storageId);
+      throw error;
+    }
+  },
+});
+
+export const removeWorkspaceLogo = mutation({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
+
+    const previousStorageId = workspace.logoStorageId ?? null;
+    const now = Date.now();
+
+    await ctx.db.patch(workspace._id, {
+      logo: undefined,
+      logoStorageId: undefined,
+      logoColor: undefined,
+      logoText: undefined,
+      updatedAt: now,
+      updatedByUserId: appUser._id,
+    });
+
+    if (previousStorageId) {
+      await ctx.storage.delete(previousStorageId);
+    }
+
+    return { removed: true };
   },
 });
 

@@ -27,6 +27,7 @@ export default defineSchema({
     name: v.string(),
     plan: v.string(),
     logo: v.optional(v.string()),
+    logoStorageId: v.optional(v.id("_storage")),
     logoColor: v.optional(v.string()),
     logoText: v.optional(v.string()),
     ownerUserId: v.id("users"),
@@ -46,13 +47,34 @@ export default defineSchema({
     userId: v.id("users"),
     role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
     status: v.union(v.literal("active"), v.literal("invited"), v.literal("removed")),
+    pendingRemovalAt: v.optional(v.union(v.number(), v.null())),
     joinedAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
+    .index("by_status", ["status"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_user", ["workspaceId", "userId"]),
+
+  workspaceMemberAuditLogs: defineTable({
+    workspaceMemberId: v.id("workspaceMembers"),
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    eventType: v.union(
+      v.literal("pending_removal_scheduled"),
+      v.literal("pending_removal_cleared"),
+      v.literal("removed_after_grace"),
+    ),
+    reason: v.string(),
+    previousStatus: v.union(v.literal("active"), v.literal("invited"), v.literal("removed")),
+    nextStatus: v.union(v.literal("active"), v.literal("invited"), v.literal("removed")),
+    pendingRemovalAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_workspaceMemberId", ["workspaceMemberId"])
+    .index("by_workspaceId", ["workspaceId"])
+    .index("by_userId", ["userId"]),
 
   notificationPreferences: defineTable({
     userId: v.id("users"),
@@ -146,8 +168,8 @@ export default defineSchema({
 
   tasks: defineTable({
     workspaceId: v.id("workspaces"),
-    projectId: v.id("projects"),
-    projectPublicId: v.string(),
+    projectId: v.union(v.id("projects"), v.null()),
+    projectPublicId: v.union(v.string(), v.null()),
     taskId: v.string(),
     title: v.string(),
     assignee: taskAssigneeValidator,

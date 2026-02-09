@@ -1,12 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   Building2,
+  Camera,
   Check,
   ChevronDown,
   CreditCard,
   Download,
   Plus,
+  RotateCcw,
+  Trash2,
   Upload,
   User,
   X,
@@ -15,6 +18,24 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 import type { Workspace } from "../types";
+
+// File-type thumbnail assets (same assets used in MainContent.tsx)
+import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
+import imgFile2 from "figma:asset/ed2300ecc7d7f37175475469dd895c1a9c7a47a7.png";
+import imgFile3 from "figma:asset/a6d8d90aa9a345c6a0a0841855776fa6f038f822.png";
+import imgFile4 from "figma:asset/6ec5d42097faff5a5e15a92d842d637a67eb0f04.png";
+import imgFile5 from "figma:asset/13b4fb46cd2c4b965c5823ea01fe2f6c7842b7bd.png";
+
+const FILE_THUMBNAIL_BY_TYPE: Record<string, string> = {
+  SVG: imgFile1,
+  PNG: imgFile2,
+  ZIP: imgFile3,
+  PDF: imgFile4,
+  DOCX: imgFile5,
+  FIG: imgFile5,
+  XLSX: imgFile4,
+  FILE: imgFile4,
+};
 
 type SettingsTab = "Account" | "Notifications" | "Company" | "Billing";
 type CompanyRole = "owner" | "admin" | "member";
@@ -64,6 +85,14 @@ type CompanyBrandAsset = {
   downloadUrl: string | null;
 };
 
+/** Pick the best preview source for a brand asset: real image when possible, type-icon fallback otherwise. */
+const getAssetPreviewSrc = (asset: CompanyBrandAsset): string => {
+  if (asset.downloadUrl && asset.mimeType.startsWith("image/")) {
+    return asset.downloadUrl;
+  }
+  return FILE_THUMBNAIL_BY_TYPE[asset.type] ?? imgFile4;
+};
+
 type CompanySettingsData = {
   workspace: {
     id: string;
@@ -109,6 +138,8 @@ interface SettingsPopupProps {
     logoColor?: string;
     logoText?: string;
   }) => Promise<void>;
+  onUploadWorkspaceLogo: (file: File) => Promise<void>;
+  onRemoveWorkspaceLogo: () => Promise<void>;
   onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
   onChangeMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
   onRemoveMember: (payload: { userId: string }) => Promise<void>;
@@ -148,6 +179,8 @@ export function SettingsPopup({
   onRemoveAvatar,
   onSaveNotifications,
   onUpdateWorkspaceGeneral,
+  onUploadWorkspaceLogo,
+  onRemoveWorkspaceLogo,
   onInviteMember,
   onChangeMemberRole,
   onRemoveMember,
@@ -281,6 +314,8 @@ export function SettingsPopup({
                       company={company}
                       loading={loadingCompany}
                       onUpdateWorkspaceGeneral={onUpdateWorkspaceGeneral}
+                      onUploadWorkspaceLogo={onUploadWorkspaceLogo}
+                      onRemoveWorkspaceLogo={onRemoveWorkspaceLogo}
                       onInviteMember={onInviteMember}
                       onChangeMemberRole={onChangeMemberRole}
                       onRemoveMember={onRemoveMember}
@@ -594,6 +629,8 @@ function WorkspaceSettings({
   company,
   loading,
   onUpdateWorkspaceGeneral,
+  onUploadWorkspaceLogo,
+  onRemoveWorkspaceLogo,
   onInviteMember,
   onChangeMemberRole,
   onRemoveMember,
@@ -612,6 +649,8 @@ function WorkspaceSettings({
     logoColor?: string;
     logoText?: string;
   }) => Promise<void>;
+  onUploadWorkspaceLogo: (file: File) => Promise<void>;
+  onRemoveWorkspaceLogo: () => Promise<void>;
   onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
   onChangeMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
   onRemoveMember: (payload: { userId: string }) => Promise<void>;
@@ -626,12 +665,17 @@ function WorkspaceSettings({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [isInviteRoleOpen, setIsInviteRoleOpen] = useState(false);
-  const [updatingWorkspace, setUpdatingWorkspace] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [deletingWorkspace, setDeletingWorkspace] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [nameSaveStatus, setNameSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const logoFileInputRef = React.useRef<HTMLInputElement>(null);
+  const nameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     setNameDraft(workspaceName);
+    isFirstRender.current = true;
   }, [workspaceName]);
 
   const members = company?.members ?? [];
@@ -650,21 +694,81 @@ function WorkspaceSettings({
     return workspaceName.charAt(0).toUpperCase() || "W";
   }, [company?.workspace.logoText, workspaceName]);
 
-  const handleWorkspaceUpdate = async () => {
-    if (!company) {
+  const saveWorkspaceName = useCallback(
+    async (name: string) => {
+      if (!company) {
+        return;
+      }
+      const trimmed = name.trim();
+      if (!trimmed || trimmed === company.workspace.name) {
+        return;
+      }
+      setNameSaveStatus("saving");
+      try {
+        await onUpdateWorkspaceGeneral({ name: trimmed });
+        setNameSaveStatus("saved");
+        setTimeout(() => setNameSaveStatus("idle"), 1500);
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to update workspace name");
+        setNameSaveStatus("idle");
+      }
+    },
+    [company, onUpdateWorkspaceGeneral],
+  );
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
       return;
     }
-    setUpdatingWorkspace(true);
+
+    if (nameDebounceRef.current) {
+      clearTimeout(nameDebounceRef.current);
+    }
+
+    nameDebounceRef.current = setTimeout(() => {
+      void saveWorkspaceName(nameDraft);
+    }, 800);
+
+    return () => {
+      if (nameDebounceRef.current) {
+        clearTimeout(nameDebounceRef.current);
+      }
+    };
+  }, [nameDraft, saveWorkspaceName]);
+
+  const handleLogoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setLogoBusy(true);
     try {
-      await onUpdateWorkspaceGeneral({
-        name: nameDraft,
-      });
-      toast.success("Workspace updated");
+      await onUploadWorkspaceLogo(file);
+      toast.success("Workspace logo updated");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update workspace");
+      toast.error("Failed to update workspace logo");
     } finally {
-      setUpdatingWorkspace(false);
+      setLogoBusy(false);
+      if (logoFileInputRef.current) {
+        logoFileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    setLogoBusy(true);
+    try {
+      await onRemoveWorkspaceLogo();
+      toast.success("Workspace logo removed");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to remove workspace logo");
+    } finally {
+      setLogoBusy(false);
     }
   };
 
@@ -730,36 +834,52 @@ function WorkspaceSettings({
         <h3 className="text-[16px] font-medium text-[#E8E8E8]">General</h3>
 
         <div className="flex items-start gap-6">
+          <input
+            type="file"
+            ref={logoFileInputRef}
+            className="hidden"
+            accept="image/png, image/jpeg, image/gif, image/webp"
+            onChange={handleLogoFile}
+          />
+
           <div
-            className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-white/10 bg-blue-600 overflow-hidden"
+            className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-white/10 bg-blue-600 overflow-hidden group relative cursor-pointer"
             style={company?.workspace.logoColor ? { backgroundColor: company.workspace.logoColor } : undefined}
+            onClick={() => !logoBusy && canManageMembers && logoFileInputRef.current?.click()}
           >
             {company?.workspace.logo ? (
               <img src={company.workspace.logo} alt={company.workspace.name} className="w-full h-full object-cover" />
             ) : (
               initials
             )}
+            {canManageMembers && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                <Camera size={20} className="text-white" />
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-4 flex-1 max-w-[460px]">
-            <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 flex-1 max-w-[460px]">
+            <div className="flex items-center justify-between">
               <label className="text-[13px] font-medium text-[#E8E8E8]/60">Workspace Name</label>
-              <input
-                type="text"
-                value={nameDraft}
-                onChange={(event) => setNameDraft(event.target.value)}
-                className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
-              />
+              {nameSaveStatus !== "idle" && (
+                <span className="text-[12px] text-[#E8E8E8]/40 flex items-center gap-1.5">
+                  {nameSaveStatus === "saving" && "Saving..."}
+                  {nameSaveStatus === "saved" && (
+                    <>
+                      <Check size={12} className="text-emerald-400" />
+                      <span className="text-emerald-400/70">Saved</span>
+                    </>
+                  )}
+                </span>
+              )}
             </div>
-            <div>
-              <button
-                onClick={handleWorkspaceUpdate}
-                disabled={updatingWorkspace}
-                className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-[#141515] rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-60"
-              >
-                {updatingWorkspace ? "Saving..." : "Save General Settings"}
-              </button>
-            </div>
+            <input
+              type="text"
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 text-[14px] text-[#E8E8E8] focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+            />
           </div>
         </div>
       </div>
@@ -832,7 +952,7 @@ function WorkspaceSettings({
         </div>
 
         <div className="flex flex-col">
-          <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider mb-4">Active Members ({members.length})</h4>
+          <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider mb-4">Members ({members.length + pendingInvitations.length})</h4>
           <div className="flex flex-col">
             {members.map((member) => (
               <div
@@ -895,26 +1015,31 @@ function WorkspaceSettings({
                 </div>
               </div>
             ))}
-          </div>
-        </div>
 
-        <div className="flex flex-col gap-2">
-          <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider">Pending Invitations ({pendingInvitations.length})</h4>
-          <div className="flex flex-col gap-2">
-            {pendingInvitations.length === 0 && (
-              <p className="text-[13px] text-[#E8E8E8]/40">No pending invitations</p>
-            )}
             {pendingInvitations.map((invitation) => (
-              <div key={invitation.invitationId} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                <div className="flex flex-col">
-                  <span className="text-[13px] text-[#E8E8E8]">{invitation.email}</span>
-                  <span className="text-[12px] text-[#E8E8E8]/40">
-                    role: {invitation.requestedRole} • expires {new Date(invitation.expiresAt).toLocaleDateString()}
-                  </span>
+              <div
+                key={invitation.invitationId}
+                className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center text-[12px] font-medium text-white/60 overflow-hidden shadow-inner border border-dashed border-white/20">
+                    {invitation.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-medium text-[#E8E8E8]/70">{invitation.email}</span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/15 text-amber-300/80 rounded">Pending</span>
+                    </div>
+                    <span className="text-[12px] text-[#E8E8E8]/40">
+                      {invitation.requestedRole} · expires {new Date(invitation.expiresAt).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-1">
                   <button
-                    className="text-[12px] text-[#58AFFF] hover:text-[#7fc0ff] transition-colors"
+                    title="Resend invitation"
+                    className="p-1.5 hover:bg-white/10 text-[#E8E8E8]/30 hover:text-[#58AFFF] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                     disabled={!canManageMembers || !hasOrganizationLink}
                     onClick={() => {
                       void onResendInvitation({ invitationId: invitation.invitationId })
@@ -925,10 +1050,11 @@ function WorkspaceSettings({
                         });
                     }}
                   >
-                    Resend
+                    <RotateCcw size={14} />
                   </button>
                   <button
-                    className="text-[12px] text-red-400/80 hover:text-red-400 transition-colors"
+                    title="Revoke invitation"
+                    className="p-1.5 hover:bg-red-500/10 text-[#E8E8E8]/30 hover:text-red-400 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                     disabled={!canManageMembers || !hasOrganizationLink}
                     onClick={() => {
                       void onRevokeInvitation({ invitationId: invitation.invitationId })
@@ -939,7 +1065,7 @@ function WorkspaceSettings({
                         });
                     }}
                   >
-                    Revoke
+                    <X size={14} />
                   </button>
                 </div>
               </div>
@@ -970,16 +1096,26 @@ function WorkspaceSettings({
         <div className="flex flex-col gap-2">
           {brandAssets.length === 0 && <p className="text-[13px] text-[#E8E8E8]/40">No brand assets uploaded.</p>}
           {brandAssets.map((asset) => (
-            <div key={asset.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-              <div className="flex flex-col">
-                <span className="text-[14px] text-[#E8E8E8]">{asset.name}</span>
+            <div key={asset.id} className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 relative">
+              {/* Thumbnail preview */}
+              <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
+                <img
+                  src={getAssetPreviewSrc(asset)}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {/* Name + metadata */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                <span className="text-[14px] text-[#E8E8E8] truncate">{asset.name}</span>
                 <span className="text-[12px] text-[#E8E8E8]/40">
                   {asset.type} • {bytesToHumanReadable(asset.sizeBytes)} • {new Date(asset.displayDateEpochMs).toLocaleDateString()}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
+              {/* Actions – visible on row hover */}
+              <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="text-[12px] text-[#58AFFF] hover:text-[#7fc0ff] transition-colors disabled:opacity-50"
+                  className="text-[12px] text-[#58AFFF] hover:text-[#7fc0ff] transition-colors disabled:opacity-50 cursor-pointer"
                   disabled={!asset.downloadUrl}
                   onClick={() => {
                     if (!asset.downloadUrl) {
@@ -991,7 +1127,7 @@ function WorkspaceSettings({
                   <Download size={14} />
                 </button>
                 <button
-                  className="text-[12px] text-red-400/80 hover:text-red-400 transition-colors disabled:opacity-50"
+                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                   disabled={!canManageBrandAssets}
                   onClick={() => {
                     void onRemoveBrandAsset({ brandAssetId: asset.id })
@@ -1002,7 +1138,7 @@ function WorkspaceSettings({
                       });
                   }}
                 >
-                  Remove
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

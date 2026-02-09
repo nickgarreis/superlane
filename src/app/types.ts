@@ -45,9 +45,17 @@ export interface CollaborationComment {
   reactions?: CommentReaction[];
 }
 
+export interface ReviewComment {
+  id: string;
+  author: { userId?: string; name: string; avatar: string };
+  content: string;
+  timestamp: string;
+}
+
 export interface Task {
   id: string;
   title: string;
+  projectId?: string;
   assignee: {
     name: string;
     avatar: string;
@@ -106,12 +114,7 @@ export interface ProjectData {
     img: string;
   }>;
   tasks?: Task[];
-  comments?: Array<{
-    id: string;
-    author: { name: string; avatar: string };
-    content: string;
-    timestamp: string;
-  }>;
+  comments?: ReviewComment[];
 }
 
 export interface DbWorkspaceRecord {
@@ -127,7 +130,7 @@ export interface DbWorkspaceRecord {
 
 export interface DbTaskRecord {
   id: string;
-  projectPublicId: string;
+  projectPublicId?: string | null;
   taskId: string;
   title: string;
   assignee: {
@@ -184,10 +187,5 @@ export interface DbProjectRecord {
     dateEpochMs?: number | null;
     img: string;
   }>;
-  reviewComments?: Array<{
-    id: string;
-    author: { name: string; avatar: string };
-    content: string;
-    timestamp: string;
-  }>;
+  reviewComments?: ReviewComment[];
 }
