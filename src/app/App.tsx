@@ -125,7 +125,6 @@ function DashboardApp() {
 
   const ensureDefaultWorkspace = useMutation(api.workspaces.ensureDefaultWorkspace);
   const createWorkspaceMutation = useMutation(api.workspaces.create);
-  const updateWorkspaceMutation = useMutation(api.workspaces.update);
   const createProjectMutation = useMutation(api.projects.create);
   const updateProjectMutation = useMutation(api.projects.update);
   const archiveProjectMutation = useMutation(api.projects.archive);
@@ -140,6 +139,25 @@ function DashboardApp() {
   const discardPendingUploadMutation = useMutation(api.files.discardPendingUpload);
   const discardPendingUploadsForSessionMutation = useMutation(api.files.discardPendingUploadsForSession);
   const removeProjectFileMutation = useMutation(api.files.remove);
+  const generateAvatarUploadUrlMutation = useMutation(api.settings.generateAvatarUploadUrl);
+  const finalizeAvatarUploadMutation = useMutation(api.settings.finalizeAvatarUpload);
+  const removeAvatarMutation = useMutation(api.settings.removeAvatar);
+  const saveNotificationPreferencesMutation = useMutation(api.settings.saveNotificationPreferences);
+  const updateWorkspaceGeneralMutation = useMutation(api.settings.updateWorkspaceGeneral);
+  const generateBrandAssetUploadUrlMutation = useMutation(api.settings.generateBrandAssetUploadUrl);
+  const finalizeBrandAssetUploadMutation = useMutation(api.settings.finalizeBrandAssetUpload);
+  const removeBrandAssetMutation = useMutation(api.settings.removeBrandAsset);
+  const softDeleteWorkspaceMutation = useMutation(api.settings.softDeleteWorkspace);
+  const updateAccountProfileAction = useAction(api.settings.updateAccountProfile);
+  const inviteWorkspaceMemberAction = useAction(api.settings.inviteWorkspaceMember);
+  const resendWorkspaceInvitationAction = useAction(api.settings.resendWorkspaceInvitation);
+  const revokeWorkspaceInvitationAction = useAction(api.settings.revokeWorkspaceInvitation);
+  const changeWorkspaceMemberRoleAction = useAction(api.settings.changeWorkspaceMemberRole);
+  const removeWorkspaceMemberAction = useAction(api.settings.removeWorkspaceMember);
+  const reconcileWorkspaceInvitationsAction = useAction(api.settings.reconcileWorkspaceInvitations);
+  const reconcileWorkspaceOrganizationMembershipsAction = useAction(
+    api.organizationSync.reconcileWorkspaceOrganizationMemberships,
+  );
 
   const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
     Object.fromEntries(
@@ -156,6 +174,12 @@ function DashboardApp() {
     isAuthenticated && resolvedWorkspaceSlug
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
+  );
+  const accountSettings = useQuery(api.settings.getAccountSettings, isAuthenticated ? {} : "skip");
+  const notificationSettings = useQuery(api.settings.getNotificationPreferences, isAuthenticated ? {} : "skip");
+  const companySettings = useQuery(
+    api.settings.getCompanySettings,
+    isAuthenticated && resolvedWorkspaceSlug ? { workspaceSlug: resolvedWorkspaceSlug } : "skip",
   );
 
   const currentView = useMemo<AppView>(() => {
@@ -259,8 +283,8 @@ function DashboardApp() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const viewerName = user?.firstName || user?.email || "Nick";
-  const viewerAvatar = user?.profilePictureUrl || imgAvatar;
+  const viewerName = snapshot?.viewer?.name || user?.firstName || user?.email || "Nick";
+  const viewerAvatar = snapshot?.viewer?.avatarUrl || user?.profilePictureUrl || imgAvatar;
 
   const workspaces = useMemo(
     () => mapWorkspacesToUi(snapshot?.workspaces ?? []),
@@ -405,19 +429,197 @@ function DashboardApp() {
       });
   };
 
-  const handleUpdateWorkspace = (id: string, data: Partial<Workspace>) => {
-    void updateWorkspaceMutation(omitUndefined({
-      slug: id,
-      name: data.name,
-      plan: data.plan,
-      logo: data.logo,
-      logoColor: data.logoColor,
-      logoText: data.logoText,
-    })).catch((error) => {
+  const runWorkspaceSettingsReconciliation = useCallback(
+    async (workspaceSlug: string) => {
+      await Promise.allSettled([
+        reconcileWorkspaceInvitationsAction({ workspaceSlug }),
+        reconcileWorkspaceOrganizationMembershipsAction({ workspaceSlug }),
+      ]);
+    },
+    [reconcileWorkspaceInvitationsAction, reconcileWorkspaceOrganizationMembershipsAction],
+  );
+
+  const handleSaveAccountSettings = useCallback(
+    async (payload: { firstName: string; lastName: string; email: string }) => {
+      await updateAccountProfileAction(payload);
+    },
+    [updateAccountProfileAction],
+  );
+
+  const handleUploadAccountAvatar = useCallback(
+    async (file: File) => {
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateAvatarUploadUrlMutation({});
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      await finalizeAvatarUploadMutation({
+        storageId: storageId as any,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+      });
+    },
+    [generateAvatarUploadUrlMutation, finalizeAvatarUploadMutation],
+  );
+
+  const handleRemoveAccountAvatar = useCallback(async () => {
+    await removeAvatarMutation({});
+  }, [removeAvatarMutation]);
+
+  const handleSaveSettingsNotifications = useCallback(
+    async (payload: {
+      channels: { email: boolean; desktop: boolean };
+      events: { productUpdates: boolean; teamActivity: boolean };
+    }) => {
+      await saveNotificationPreferencesMutation(payload);
+    },
+    [saveNotificationPreferencesMutation],
+  );
+
+  const handleUpdateWorkspaceGeneral = useCallback(
+    async (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+
+      await updateWorkspaceGeneralMutation(
+        omitUndefined({
+          workspaceSlug: resolvedWorkspaceSlug,
+          name: payload.name,
+          logo: payload.logo,
+          logoColor: payload.logoColor,
+          logoText: payload.logoText,
+        }),
+      );
+    },
+    [resolvedWorkspaceSlug, updateWorkspaceGeneralMutation],
+  );
+
+  const handleInviteWorkspaceMember = useCallback(
+    async (payload: { email: string; role: "admin" | "member" }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await inviteWorkspaceMemberAction({
+        workspaceSlug: resolvedWorkspaceSlug,
+        email: payload.email,
+        role: payload.role,
+      });
+      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+    },
+    [resolvedWorkspaceSlug, inviteWorkspaceMemberAction, runWorkspaceSettingsReconciliation],
+  );
+
+  const handleChangeWorkspaceMemberRole = useCallback(
+    async (payload: { userId: string; role: "admin" | "member" }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await changeWorkspaceMemberRoleAction({
+        workspaceSlug: resolvedWorkspaceSlug,
+        targetUserId: payload.userId as any,
+        role: payload.role,
+      });
+      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+    },
+    [resolvedWorkspaceSlug, changeWorkspaceMemberRoleAction, runWorkspaceSettingsReconciliation],
+  );
+
+  const handleRemoveWorkspaceMember = useCallback(
+    async (payload: { userId: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await removeWorkspaceMemberAction({
+        workspaceSlug: resolvedWorkspaceSlug,
+        targetUserId: payload.userId as any,
+      });
+      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+    },
+    [resolvedWorkspaceSlug, removeWorkspaceMemberAction, runWorkspaceSettingsReconciliation],
+  );
+
+  const handleResendWorkspaceInvitation = useCallback(
+    async (payload: { invitationId: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await resendWorkspaceInvitationAction({
+        workspaceSlug: resolvedWorkspaceSlug,
+        invitationId: payload.invitationId,
+      });
+      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+    },
+    [resolvedWorkspaceSlug, resendWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
+  );
+
+  const handleRevokeWorkspaceInvitation = useCallback(
+    async (payload: { invitationId: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await revokeWorkspaceInvitationAction({
+        workspaceSlug: resolvedWorkspaceSlug,
+        invitationId: payload.invitationId,
+      });
+      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
+    },
+    [resolvedWorkspaceSlug, revokeWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
+  );
+
+  const handleUploadWorkspaceBrandAsset = useCallback(
+    async (file: File) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      const checksumSha256 = await computeFileChecksumSha256(file);
+      const { uploadUrl } = await generateBrandAssetUploadUrlMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+      });
+      const storageId = await uploadFileToConvexStorage(uploadUrl, file);
+
+      await finalizeBrandAssetUploadMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+        storageId: storageId as any,
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        checksumSha256,
+      });
+    },
+    [resolvedWorkspaceSlug, generateBrandAssetUploadUrlMutation, finalizeBrandAssetUploadMutation],
+  );
+
+  const handleRemoveWorkspaceBrandAsset = useCallback(
+    async (payload: { brandAssetId: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      await removeBrandAssetMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+        brandAssetId: payload.brandAssetId as any,
+      });
+    },
+    [resolvedWorkspaceSlug, removeBrandAssetMutation],
+  );
+
+  const handleSoftDeleteWorkspace = useCallback(async () => {
+    if (!resolvedWorkspaceSlug) {
+      throw new Error("No active workspace");
+    }
+
+    setActiveWorkspaceSlug(null);
+    try {
+      await softDeleteWorkspaceMutation({
+        workspaceSlug: resolvedWorkspaceSlug,
+      });
+      navigate("/tasks");
+    } catch (error) {
+      setActiveWorkspaceSlug(resolvedWorkspaceSlug);
       console.error(error);
-      toast.error("Failed to update workspace");
-    });
-  };
+      throw error;
+    }
+  }, [resolvedWorkspaceSlug, softDeleteWorkspaceMutation, setActiveWorkspaceSlug, navigate]);
 
   const handleCreateProject = (
     projectData: Partial<ProjectData> & {
@@ -987,7 +1189,46 @@ function DashboardApp() {
           onClose={handleCloseSettings}
           initialTab={settingsTab}
           activeWorkspace={activeWorkspace}
-          onUpdateWorkspace={handleUpdateWorkspace}
+          account={
+            accountSettings ?? {
+              firstName: user?.firstName ?? "",
+              lastName: user?.lastName ?? "",
+              email: user?.email ?? "",
+              avatarUrl: user?.profilePictureUrl ?? null,
+            }
+          }
+          notifications={
+            notificationSettings
+              ? {
+                  channels: notificationSettings.channels,
+                  events: notificationSettings.events,
+                }
+              : {
+                  channels: {
+                    email: true,
+                    desktop: true,
+                  },
+                  events: {
+                    productUpdates: true,
+                    teamActivity: true,
+                  },
+                }
+          }
+          company={companySettings ?? null}
+          loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySettings === undefined}
+          onSaveAccount={handleSaveAccountSettings}
+          onUploadAvatar={handleUploadAccountAvatar}
+          onRemoveAvatar={handleRemoveAccountAvatar}
+          onSaveNotifications={handleSaveSettingsNotifications}
+          onUpdateWorkspaceGeneral={handleUpdateWorkspaceGeneral}
+          onInviteMember={handleInviteWorkspaceMember}
+          onChangeMemberRole={handleChangeWorkspaceMemberRole}
+          onRemoveMember={handleRemoveWorkspaceMember}
+          onResendInvitation={handleResendWorkspaceInvitation}
+          onRevokeInvitation={handleRevokeWorkspaceInvitation}
+          onUploadBrandAsset={handleUploadWorkspaceBrandAsset}
+          onRemoveBrandAsset={handleRemoveWorkspaceBrandAsset}
+          onSoftDeleteWorkspace={handleSoftDeleteWorkspace}
         />
 
         <Toaster

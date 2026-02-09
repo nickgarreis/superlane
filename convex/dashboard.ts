@@ -31,6 +31,13 @@ const buildProvisioningSnapshot = (authUser: {
   };
 };
 
+const resolveAvatarUrl = async (ctx: any, appUser: any) => {
+  if (appUser.avatarStorageId) {
+    return (await ctx.storage.getUrl(appUser.avatarStorageId)) ?? null;
+  }
+  return appUser.avatarUrl ?? null;
+};
+
 export const getSnapshot = query({
   args: {
     activeWorkspaceSlug: v.optional(v.string()),
@@ -62,7 +69,7 @@ export const getSnapshot = query({
 
     const workspaceCandidates = (
       await Promise.all(activeMemberships.map((membership) => ctx.db.get(membership.workspaceId)))
-    ).filter(Boolean);
+    ).filter((workspace: any) => Boolean(workspace) && workspace.deletedAt == null);
 
     const workspacesWithOrgAccess = await Promise.all(
       workspaceCandidates.map(async (workspace: any) => {
@@ -120,7 +127,7 @@ export const getSnapshot = query({
         workosUserId: appUser.workosUserId,
         name: appUser.name,
         email: appUser.email ?? null,
-        avatarUrl: appUser.avatarUrl ?? null,
+        avatarUrl: await resolveAvatarUrl(ctx, appUser),
       },
       workspaces,
       activeWorkspace,

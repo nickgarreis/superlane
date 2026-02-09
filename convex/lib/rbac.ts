@@ -34,6 +34,7 @@ export const RBAC_MATRIX = {
   "workspaces.create": { access: "authenticated" },
   "workspaces.ensureDefaultWorkspace": { access: "authenticated" },
   "workspaces.update": { access: "minimumRole", minimumRole: "admin" },
+  "workspaces.softDelete": { access: "minimumRole", minimumRole: "owner" },
   "workspaces.update.workosOrganizationId": {
     access: "minimumRole",
     minimumRole: "owner",
@@ -53,6 +54,16 @@ export const RBAC_MATRIX = {
 
   "files.create": { access: "minimumRole", minimumRole: "member" },
   "files.remove": { access: "minimumRole", minimumRole: "member" },
+
+  "settings.account.updateProfile": { access: "authenticated" },
+  "settings.account.avatar": { access: "authenticated" },
+  "settings.notifications.update": { access: "authenticated" },
+  "settings.company.members.invite": { access: "minimumRole", minimumRole: "admin" },
+  "settings.company.members.changeRole": { access: "minimumRole", minimumRole: "admin" },
+  "settings.company.members.remove": { access: "minimumRole", minimumRole: "admin" },
+  "settings.company.invitations.resend": { access: "minimumRole", minimumRole: "admin" },
+  "settings.company.invitations.revoke": { access: "minimumRole", minimumRole: "admin" },
+  "settings.company.brandAssets.manage": { access: "minimumRole", minimumRole: "admin" },
 
   "comments.create": { access: "minimumRole", minimumRole: "member" },
   "comments.toggleReaction": { access: "minimumRole", minimumRole: "member" },

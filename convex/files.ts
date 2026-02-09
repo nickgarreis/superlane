@@ -237,6 +237,9 @@ const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
   if (!workspace) {
     throw new ConvexError("Workspace not found");
   }
+  if (workspace.deletedAt != null) {
+    throw new ConvexError("Workspace not found");
+  }
 
   return workspace;
 };

@@ -25,6 +25,10 @@ export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
     "organization.created",
     "organization.updated",
     "organization.deleted",
+    "invitation.created",
+    "invitation.resent",
+    "invitation.revoked",
+    "invitation.accepted",
   ],
 });
 
@@ -132,6 +136,67 @@ const syncOrganizationNameEvent = async (
       }),
     ),
   );
+};
+
+const syncInvitationEvent = async (
+  ctx: any,
+  event: {
+    data: {
+      id?: string;
+      email?: string;
+      state?: "pending" | "accepted" | "expired" | "revoked";
+      organizationId?: string | null;
+      expiresAt?: string;
+      inviterUserId?: string | null;
+    };
+  },
+) => {
+  const invitationId = event.data.id;
+  const organizationId = event.data.organizationId;
+  const email = event.data.email;
+  const state = event.data.state;
+  const expiresAt = event.data.expiresAt;
+
+  if (!invitationId || !organizationId || !email || !state || !expiresAt) {
+    return;
+  }
+
+  const workspace = await ctx.db
+    .query("workspaces")
+    .withIndex("by_workosOrganizationId", (q: any) => q.eq("workosOrganizationId", organizationId))
+    .unique();
+
+  if (!workspace) {
+    return;
+  }
+
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("workspaceInvitations")
+    .withIndex("by_invitationId", (q: any) => q.eq("invitationId", invitationId))
+    .unique();
+
+  const patch = {
+    workspaceId: workspace._id,
+    workosOrganizationId: organizationId,
+    invitationId,
+    email,
+    state,
+    requestedRole: existing?.requestedRole ?? "member",
+    expiresAt,
+    inviterWorkosUserId: event.data.inviterUserId ?? undefined,
+    updatedAt: now,
+  };
+
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+    return;
+  }
+
+  await ctx.db.insert("workspaceInvitations", {
+    ...patch,
+    createdAt: now,
+  });
 };
 
 export const { authKitEvent } = authKit.events({
@@ -267,6 +332,22 @@ export const { authKitEvent } = authKit.events({
         }),
       ),
     );
+  },
+
+  "invitation.created": async (ctx, event) => {
+    await syncInvitationEvent(ctx, event);
+  },
+
+  "invitation.resent": async (ctx, event) => {
+    await syncInvitationEvent(ctx, event);
+  },
+
+  "invitation.revoked": async (ctx, event) => {
+    await syncInvitationEvent(ctx, event);
+  },
+
+  "invitation.accepted": async (ctx, event) => {
+    await syncInvitationEvent(ctx, event);
   },
 });
 

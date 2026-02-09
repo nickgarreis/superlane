@@ -24,6 +24,7 @@ import type * as lib_workosOrganization from "../lib/workosOrganization.js";
 import type * as organizationSync from "../organizationSync.js";
 import type * as organizationSyncInternal from "../organizationSyncInternal.js";
 import type * as projects from "../projects.js";
+import type * as settings from "../settings.js";
 import type * as tasks from "../tasks.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   organizationSync: typeof organizationSync;
   organizationSyncInternal: typeof organizationSyncInternal;
   projects: typeof projects;
+  settings: typeof settings;
   tasks: typeof tasks;
   workspaces: typeof workspaces;
 }>;

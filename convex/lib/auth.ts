@@ -145,6 +145,9 @@ export async function requireWorkspaceMember(
   if (!workspace) {
     throw new ConvexError("Workspace not found");
   }
+  if (workspace.deletedAt != null) {
+    throw new ConvexError("Workspace not found");
+  }
 
   const organizationMembership = await requireActiveOrganizationMembershipForWorkspace(
     ctx,

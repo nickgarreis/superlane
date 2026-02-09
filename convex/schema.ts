@@ -17,6 +17,7 @@ export default defineSchema({
     lastName: v.optional(v.string()),
     name: v.string(),
     avatarUrl: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_workosUserId", ["workosUserId"]),
@@ -30,6 +31,8 @@ export default defineSchema({
     logoText: v.optional(v.string()),
     ownerUserId: v.id("users"),
     workosOrganizationId: v.optional(v.string()),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
+    deletedByUserId: v.optional(v.id("users")),
     updatedByUserId: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -50,6 +53,59 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_user", ["workspaceId", "userId"]),
+
+  notificationPreferences: defineTable({
+    userId: v.id("users"),
+    channels: v.object({
+      email: v.boolean(),
+      desktop: v.boolean(),
+    }),
+    events: v.object({
+      productUpdates: v.boolean(),
+      teamActivity: v.boolean(),
+    }),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  workspaceInvitations: defineTable({
+    workspaceId: v.id("workspaces"),
+    workosOrganizationId: v.string(),
+    invitationId: v.string(),
+    email: v.string(),
+    state: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("expired"),
+      v.literal("revoked"),
+    ),
+    requestedRole: v.optional(v.union(v.literal("admin"), v.literal("member"))),
+    expiresAt: v.string(),
+    inviterWorkosUserId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspaceId", ["workspaceId"])
+    .index("by_invitationId", ["invitationId"])
+    .index("by_workspace_state", ["workspaceId", "state"]),
+
+  workspaceBrandAssets: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    type: v.string(),
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    sizeBytes: v.number(),
+    checksumSha256: v.string(),
+    displayDate: v.string(),
+    createdByUserId: v.id("users"),
+    deletedAt: v.optional(v.union(v.number(), v.null())),
+    deletedByUserId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspaceId", ["workspaceId"])
+    .index("by_workspace_deletedAt", ["workspaceId", "deletedAt"]),
 
   projects: defineTable({
     publicId: v.string(),

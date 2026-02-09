@@ -102,6 +102,9 @@ export const update = mutation({
     if (!workspace) {
       throw new ConvexError("Workspace not found");
     }
+    if (workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
 
     const { appUser, membership } = await requireWorkspaceRole(ctx, workspace._id, "admin", {
       workspace,
@@ -155,6 +158,9 @@ export const switchWorkspace = query({
     if (!workspace) {
       return null;
     }
+    if (workspace.deletedAt != null) {
+      return null;
+    }
 
     await requireWorkspaceMember(ctx, workspace._id, { workspace });
 
@@ -183,6 +189,13 @@ export const ensureDefaultWorkspace = mutation({
 
       const workspace = await ctx.db.get(membership.workspaceId);
       if (!workspace) {
+        continue;
+      }
+      if (workspace.deletedAt != null) {
+        await ctx.db.patch(membership._id, {
+          status: "removed",
+          updatedAt: now,
+        });
         continue;
       }
 
