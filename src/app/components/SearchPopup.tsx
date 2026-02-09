@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ProjectData, ProjectFileData } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import type { AppView } from "../lib/routing";
+import { formatFileDisplayDate, formatTaskDueDate } from "../lib/dates";
 
 interface SearchResult {
   id: string;
@@ -111,7 +112,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
           type: file.type,
           tab: file.tab,
           projectId: file.projectPublicId ?? null,
-          date: file.displayDate,
+          date: formatFileDisplayDate(file.displayDateEpochMs),
         });
       }
     });
@@ -163,14 +164,15 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
         project.tasks.forEach(task => {
           const titleMatch = task.title.toLowerCase().includes(q);
           const assigneeMatch = task.assignee.name.toLowerCase().includes(q);
-          const dueDateMatch = task.dueDate.toLowerCase().includes(q);
+          const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
+          const dueDateMatch = dueDateLabel.toLowerCase().includes(q);
 
           if (titleMatch || assigneeMatch || dueDateMatch) {
             items.push({
               id: `task-${project.id}-${task.id}`,
               type: "task",
               title: task.title,
-              subtitle: `${task.assignee.name} · ${task.dueDate} · in ${project.name}`,
+              subtitle: `${task.assignee.name} · ${dueDateLabel} · in ${project.name}`,
               icon: <ListChecks size={15} />,
               projectId: project.id,
               taskCompleted: task.completed,
@@ -323,7 +325,7 @@ export function SearchPopup({ isOpen, onClose, projects, files, onNavigate, onOp
             id: `suggest-task-${project.id}-${task.id}`,
             type: "task",
             title: task.title,
-            subtitle: `${task.dueDate} · in ${project.name}`,
+            subtitle: `${formatTaskDueDate(task.dueDateEpochMs)} · in ${project.name}`,
             icon: <ListChecks size={15} />,
             projectId: project.id,
             taskCompleted: false,

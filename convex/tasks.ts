@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { taskInputValidator } from "./lib/validators";
 import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
+import { assertFiniteEpochMs } from "./lib/dateNormalization";
 
 const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) => {
   const existing = await ctx.db
@@ -21,7 +22,10 @@ const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) =>
         taskId: task.id,
         title: task.title,
         assignee: task.assignee,
-        dueDate: task.dueDate,
+        dueDateEpochMs:
+          task.dueDateEpochMs === undefined || task.dueDateEpochMs === null
+            ? null
+            : assertFiniteEpochMs(task.dueDateEpochMs, "dueDateEpochMs"),
         completed: task.completed,
         position: index,
         createdAt: now,

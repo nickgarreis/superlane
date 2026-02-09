@@ -4,7 +4,12 @@ import { cn } from "../../lib/utils";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
-import { format, parse } from "date-fns";
+import {
+  compareNullableEpochMsAsc,
+  formatTaskDueDate,
+  fromUtcNoonEpochMsToDateOnly,
+  toUtcNoonEpochMsFromDateOnly,
+} from "../lib/dates";
 
 interface ProjectTasksProps {
   tasks: Task[];
@@ -45,8 +50,7 @@ export function ProjectTasks({
   const sortedTasks = [...initialTasks].sort((a, b) => {
       if (sortBy === "name") return a.title.localeCompare(b.title);
       if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-      // Simple date sort (just string comparison for now as dates are formatted strings)
-      return 0;
+      return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
   });
 
   const handleToggle = (id: string) => {
@@ -72,7 +76,7 @@ export function ProjectTasks({
         name: defaultAssignee?.name ?? viewerIdentity.name ?? "Unassigned",
         avatar: defaultAssignee?.avatarUrl ?? viewerIdentity.avatarUrl ?? "",
       },
-      dueDate: "No date",
+      dueDateEpochMs: null,
       completed: false
     };
 
@@ -83,9 +87,9 @@ export function ProjectTasks({
 
   const handleDateSelect = (taskId: string, date: Date | undefined) => {
     if (!date) return;
-    const formattedDate = format(date, "MMM d");
+    const dueDateEpochMs = toUtcNoonEpochMsFromDateOnly(date);
     const newTasks = initialTasks.map(t => 
-        t.id === taskId ? { ...t, dueDate: formattedDate } : t
+        t.id === taskId ? { ...t, dueDateEpochMs } : t
     );
     onUpdateTasks(newTasks);
     setOpenCalendarTaskId(null);
@@ -105,18 +109,6 @@ export function ProjectTasks({
       );
       onUpdateTasks(newTasks);
       setOpenAssigneeTaskId(null);
-  };
-
-  // Helper to parse date string back to Date object
-  const getTaskDate = (dateStr: string): Date | undefined => {
-    if (!dateStr || dateStr === "No date") return undefined;
-    try {
-        const parsedDate = parse(dateStr, "MMM d", new Date());
-        if (isNaN(parsedDate.getTime())) return undefined;
-        return parsedDate;
-    } catch (e) {
-        return undefined;
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -311,7 +303,7 @@ export function ProjectTasks({
                                     )}
                                  >
                                     <Calendar size={12} />
-                                    <span>{task.dueDate}</span>
+                                    <span>{formatTaskDueDate(task.dueDateEpochMs)}</span>
                                  </div>
 
                                  <AnimatePresence>
@@ -386,7 +378,7 @@ export function ProjectTasks({
                                             `}</style>
                                             <DayPicker
                                                 mode="single"
-                                                selected={getTaskDate(task.dueDate)}
+                                                selected={fromUtcNoonEpochMsToDateOnly(task.dueDateEpochMs)}
                                                 onSelect={(date) => handleDateSelect(task.id, date)}
                                                 showOutsideDays
                                                 disabled={{ before: new Date() }}

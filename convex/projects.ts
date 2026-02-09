@@ -9,6 +9,7 @@ import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
 import { ensureUniqueFileName, FILE_RETENTION_MS, inferFileTypeFromName, MAX_FILES_PER_PROJECT } from "./lib/filePolicy";
 import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
+import { assertFiniteEpochMs } from "./lib/dateNormalization";
 
 const slugify = (value: string) =>
   value
@@ -32,6 +33,16 @@ const ensureUniqueProjectPublicId = async (ctx: any, base: string) => {
     candidate = `${base}-${i}`;
     i += 1;
   }
+};
+
+const normalizeOptionalEpochMs = (
+  value: number | null | undefined,
+  label: string,
+) => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return assertFiniteEpochMs(value, label);
 };
 
 const consumePendingUploadsForProject = async (
@@ -91,7 +102,7 @@ const consumePendingUploadsForProject = async (
       mimeType: pendingUpload.mimeType,
       sizeBytes: pendingUpload.sizeBytes,
       checksumSha256: pendingUpload.checksumSha256,
-      displayDate: new Date(now).toISOString(),
+      displayDateEpochMs: now,
       source: "importedAttachment",
       deletedAt: null,
       purgeAfterAt: null,
@@ -111,7 +122,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     category: v.string(),
     scope: v.optional(v.string()),
-    deadline: v.optional(v.string()),
+    deadlineEpochMs: v.optional(v.union(v.number(), v.null())),
     status: v.optional(projectStatusValidator),
     attachmentPendingUploadIds: v.optional(v.array(v.id("pendingFileUploads"))),
     draftData: v.optional(v.union(draftDataValidator, v.null())),
@@ -136,6 +147,7 @@ export const create = mutation({
 
     const now = Date.now();
     const status = args.status ?? "Draft";
+    const deadlineEpochMs = normalizeOptionalEpochMs(args.deadlineEpochMs, "deadlineEpochMs");
 
     const projectId = await ctx.db.insert("projects", {
       publicId,
@@ -145,7 +157,7 @@ export const create = mutation({
       description: args.description ?? "",
       category: args.category,
       scope: args.scope,
-      deadline: args.deadline,
+      deadlineEpochMs,
       status,
       previousStatus: null,
       archived: false,
@@ -178,7 +190,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     category: v.optional(v.string()),
     scope: v.optional(v.string()),
-    deadline: v.optional(v.string()),
+    deadlineEpochMs: v.optional(v.union(v.number(), v.null())),
     status: v.optional(projectStatusValidator),
     attachmentPendingUploadIds: v.optional(v.array(v.id("pendingFileUploads"))),
     draftData: v.optional(v.union(draftDataValidator, v.null())),
@@ -190,13 +202,17 @@ export const update = mutation({
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
       updatedByUserId: appUser._id,
+      // Remove legacy pre-normalization field when this row is touched.
+      deadline: undefined,
     };
 
     if (args.name !== undefined) patch.name = args.name;
     if (args.description !== undefined) patch.description = args.description;
     if (args.category !== undefined) patch.category = args.category;
     if (args.scope !== undefined) patch.scope = args.scope;
-    if (args.deadline !== undefined) patch.deadline = args.deadline;
+    if (args.deadlineEpochMs !== undefined) {
+      patch.deadlineEpochMs = normalizeOptionalEpochMs(args.deadlineEpochMs, "deadlineEpochMs");
+    }
     if (args.draftData !== undefined) patch.draftData = args.draftData;
     if (args.reviewComments !== undefined) patch.reviewComments = args.reviewComments;
 
@@ -237,6 +253,7 @@ export const setStatus = mutation({
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
+      deadline: undefined,
       status: args.status,
       archived: false,
       previousStatus: null,
@@ -259,6 +276,7 @@ export const archive = mutation({
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
+      deadline: undefined,
       archived: true,
       archivedAt: now,
       previousStatus: project.status,
@@ -279,6 +297,7 @@ export const unarchive = mutation({
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
+      deadline: undefined,
       archived: false,
       archivedAt: null,
       status: project.previousStatus ?? "Review",
@@ -317,6 +336,7 @@ export const remove = mutation({
     );
 
     await ctx.db.patch(project._id, {
+      deadline: undefined,
       deletedAt: now,
       deletedByUserId: appUser._id,
       updatedAt: now,
@@ -335,6 +355,7 @@ export const updateReviewComments = mutation({
     const { project } = await requireProjectRole(ctx, args.publicId, "member");
 
     await ctx.db.patch(project._id, {
+      deadline: undefined,
       reviewComments: args.comments,
       updatedAt: Date.now(),
     });

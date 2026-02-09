@@ -22,6 +22,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember } from "../types";
 import type { AppView } from "../lib/routing";
 import { ProjectLogo } from "./ProjectLogo";
+import { formatTaskDueDate } from "../lib/dates";
 import {
   MentionTextarea,
   MentionItem as MentionItemType,
@@ -641,7 +642,7 @@ export function ChatSidebar({
           type: "task",
           id: task.id,
           label: task.title,
-          meta: task.completed ? "Done" : task.dueDate,
+          meta: task.completed ? "Done" : formatTaskDueDate(task.dueDateEpochMs),
           completed: task.completed,
         });
       });

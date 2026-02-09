@@ -97,7 +97,9 @@ export default defineSchema({
     mimeType: v.string(),
     sizeBytes: v.number(),
     checksumSha256: v.string(),
-    displayDate: v.string(),
+    displayDateEpochMs: v.number(),
+    // Legacy compatibility for pre-normalization rows.
+    displayDate: v.optional(v.union(v.string(), v.null())),
     createdByUserId: v.id("users"),
     deletedAt: v.optional(v.union(v.number(), v.null())),
     deletedByUserId: v.optional(v.id("users")),
@@ -105,7 +107,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_workspaceId", ["workspaceId"])
-    .index("by_workspace_deletedAt", ["workspaceId", "deletedAt"]),
+    .index("by_workspace_deletedAt", ["workspaceId", "deletedAt"])
+    .index("by_workspace_deletedAt_displayDateEpochMs", ["workspaceId", "deletedAt", "displayDateEpochMs"]),
 
   projects: defineTable({
     publicId: v.string(),
@@ -115,7 +118,9 @@ export default defineSchema({
     description: v.string(),
     category: v.string(),
     scope: v.optional(v.string()),
-    deadline: v.optional(v.string()),
+    deadlineEpochMs: v.optional(v.union(v.number(), v.null())),
+    // Legacy compatibility for pre-normalization rows.
+    deadline: v.optional(v.union(v.string(), v.null())),
     status: projectStatusValidator,
     previousStatus: v.optional(v.union(projectStatusValidator, v.null())),
     archived: v.boolean(),
@@ -136,7 +141,8 @@ export default defineSchema({
     .index("by_publicId", ["publicId"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_status", ["workspaceId", "status"])
-    .index("by_workspace_archived", ["workspaceId", "archived"]),
+    .index("by_workspace_archived", ["workspaceId", "archived"])
+    .index("by_workspace_deadlineEpochMs", ["workspaceId", "deadlineEpochMs"]),
 
   tasks: defineTable({
     workspaceId: v.id("workspaces"),
@@ -145,7 +151,9 @@ export default defineSchema({
     taskId: v.string(),
     title: v.string(),
     assignee: taskAssigneeValidator,
-    dueDate: v.string(),
+    dueDateEpochMs: v.optional(v.union(v.number(), v.null())),
+    // Legacy compatibility for pre-normalization rows.
+    dueDate: v.optional(v.union(v.string(), v.null())),
     completed: v.boolean(),
     position: v.number(),
     createdAt: v.number(),
@@ -154,7 +162,9 @@ export default defineSchema({
     .index("by_projectId", ["projectId"])
     .index("by_projectPublicId", ["projectPublicId"])
     .index("by_workspaceId", ["workspaceId"])
-    .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"]),
+    .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
+    .index("by_project_dueDateEpochMs", ["projectId", "dueDateEpochMs"])
+    .index("by_workspace_dueDateEpochMs", ["workspaceId", "dueDateEpochMs"]),
 
   projectFiles: defineTable({
     workspaceId: v.id("workspaces"),
@@ -167,7 +177,9 @@ export default defineSchema({
     mimeType: v.optional(v.string()),
     sizeBytes: v.optional(v.number()),
     checksumSha256: v.optional(v.string()),
-    displayDate: v.string(),
+    displayDateEpochMs: v.number(),
+    // Legacy compatibility for pre-normalization rows.
+    displayDate: v.optional(v.union(v.string(), v.null())),
     thumbnailRef: v.optional(v.string()),
     source: v.optional(v.union(v.literal("upload"), v.literal("importedAttachment"))),
     deletedAt: v.optional(v.union(v.number(), v.null())),
@@ -182,7 +194,8 @@ export default defineSchema({
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
     .index("by_workspace_tab", ["workspaceId", "tab"])
-    .index("by_purgeAfterAt", ["purgeAfterAt"]),
+    .index("by_purgeAfterAt", ["purgeAfterAt"])
+    .index("by_workspace_displayDateEpochMs", ["workspaceId", "displayDateEpochMs"]),
 
   pendingFileUploads: defineTable({
     workspaceId: v.id("workspaces"),

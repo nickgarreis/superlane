@@ -355,7 +355,7 @@ function DashboardApp() {
         tab: file.tab as ProjectFileTab,
         name: file.name,
         type: file.type,
-        displayDate: file.displayDate,
+        displayDateEpochMs: file.displayDateEpochMs,
         thumbnailRef: file.thumbnailRef ?? null,
         mimeType: file.mimeType ?? null,
         sizeBytes: file.sizeBytes ?? null,
@@ -669,7 +669,7 @@ function DashboardApp() {
         description: projectData.description ?? existing.description,
         category: projectData.category ?? existing.category,
         scope: projectData.scope ?? existing.scope,
-        deadline: projectData.deadline ?? existing.deadline,
+        deadlineEpochMs: projectData.deadlineEpochMs ?? existing.deadlineEpochMs ?? null,
         status: normalizedStatus,
         draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
         attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
@@ -705,7 +705,7 @@ function DashboardApp() {
       description: projectData.description || "",
       category: projectData.category || "General",
       scope: projectData.scope || undefined,
-      deadline: projectData.deadline || undefined,
+      deadlineEpochMs: projectData.deadlineEpochMs ?? null,
       status: normalizedStatus,
       attachmentPendingUploadIds: projectData.attachmentPendingUploadIds?.map((entry) => entry as any),
       draftData: normalizedStatus === "Draft" ? projectData.draftData ?? null : null,
@@ -744,7 +744,7 @@ function DashboardApp() {
       selectedJob: project.scope || "",
       description: project.description,
       isAIEnabled: true,
-      deadline: undefined,
+      deadlineEpochMs: null,
       lastStep: 1,
     };
 
@@ -853,7 +853,7 @@ function DashboardApp() {
           name: task.assignee?.name || viewerIdentity.name,
           avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
         },
-        dueDate: task.dueDate,
+        dueDateEpochMs: task.dueDateEpochMs ?? null,
         completed: task.completed,
       }));
 
@@ -872,7 +872,7 @@ function DashboardApp() {
       description?: string;
       category?: string;
       scope?: string;
-      deadline?: string;
+      deadlineEpochMs?: number | null;
       reviewComments?: ProjectData["comments"];
     } = {
       publicId: id,
@@ -882,7 +882,7 @@ function DashboardApp() {
     if (data.description !== undefined) patch.description = data.description;
     if (data.category !== undefined) patch.category = data.category;
     if (data.scope !== undefined) patch.scope = data.scope;
-    if (data.deadline !== undefined) patch.deadline = data.deadline;
+    if (data.deadlineEpochMs !== undefined) patch.deadlineEpochMs = data.deadlineEpochMs;
     if (data.comments !== undefined) patch.reviewComments = data.comments;
 
     if (Object.keys(patch).length > 1) {

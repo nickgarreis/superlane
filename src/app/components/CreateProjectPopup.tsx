@@ -8,11 +8,16 @@ import { imgGroup } from "../../imports/svg-4v64g";
 import { imgGroup as imgGroupOutlook } from "../../imports/svg-ifuqs";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import "react-day-picker/dist/style.css";
 import { ProjectLogo } from "./ProjectLogo";
 import { PendingDraftAttachmentUpload, ProjectDraftData, ProjectData } from "../types";
+import {
+  formatProjectDeadlineLong,
+  formatProjectDeadlineMedium,
+  fromUtcNoonEpochMsToDateOnly,
+  toUtcNoonEpochMsFromDateOnly,
+} from "../lib/dates";
 
 // SVG Paths for Outlook Logo (from svg-x13b188avo.ts)
 const outlookPaths = {
@@ -297,7 +302,7 @@ export function CreateProjectPopup({
       setSelectedJob(initialDraftData.selectedJob);
       setDescription(initialDraftData.description);
       setIsAIEnabled(initialDraftData.isAIEnabled);
-      setDeadline(initialDraftData.deadline ? new Date(initialDraftData.deadline) : undefined);
+      setDeadline(fromUtcNoonEpochMsToDateOnly(initialDraftData.deadlineEpochMs));
       setStep(initialDraftData.lastStep);
     }
   }, [isOpen, initialDraftData]);
@@ -316,14 +321,7 @@ export function CreateProjectPopup({
       setProjectName(reviewProject.name);
       setSelectedJob(reviewProject.scope || null);
       setDescription(reviewProject.description);
-      // Parse deadline from dd.MM.yy format
-      if (reviewProject.deadline) {
-        const parts = reviewProject.deadline.split(".");
-        if (parts.length === 3) {
-          const d = new Date(parseInt("20" + parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          if (!isNaN(d.getTime())) setDeadline(d);
-        }
-      }
+      setDeadline(fromUtcNoonEpochMsToDateOnly(reviewProject.deadlineEpochMs));
       setReviewComments(reviewProject.comments || []);
       setStep(4);
     }
@@ -524,9 +522,9 @@ export function CreateProjectPopup({
       if ((selectedJob || "") !== (initialDraftData.selectedJob || "")) return true;
       if (description !== (initialDraftData.description || "")) return true;
       if (isAIEnabled !== initialDraftData.isAIEnabled) return true;
-      const initialDeadlineStr = initialDraftData.deadline || "";
-      const currentDeadlineStr = deadline ? deadline.toISOString() : "";
-      if (currentDeadlineStr !== initialDeadlineStr) return true;
+      const initialDeadlineEpochMs = initialDraftData.deadlineEpochMs ?? null;
+      const currentDeadlineEpochMs = deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null;
+      if (currentDeadlineEpochMs !== initialDeadlineEpochMs) return true;
       if (attachments.length > 0) return true;
       return false;
     }
@@ -540,7 +538,7 @@ export function CreateProjectPopup({
     selectedJob: selectedJob || "",
     description,
     isAIEnabled,
-    deadline: deadline ? deadline.toISOString() : undefined,
+    deadlineEpochMs: deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null,
     lastStep: step,
   });
 
@@ -564,7 +562,7 @@ export function CreateProjectPopup({
       description,
       category: selectedService,
       scope: selectedJob,
-      deadline: deadline ? format(deadline, "dd.MM.yy") : undefined,
+      deadlineEpochMs: deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null,
       attachmentPendingUploadIds,
       status: status,
     };
@@ -720,7 +718,7 @@ export function CreateProjectPopup({
         description: initialDraftData.description,
         category: initialDraftData.selectedService,
         scope: initialDraftData.selectedJob,
-        deadline: initialDraftData.deadline ? format(new Date(initialDraftData.deadline), "dd.MM.yy") : undefined,
+        deadlineEpochMs: initialDraftData.deadlineEpochMs ?? null,
         status: "Draft",
         draftData: initialDraftData,
         _editProjectId: editProjectId,
@@ -1056,7 +1054,9 @@ export function CreateProjectPopup({
                               onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                            >
                               <div className="flex-1 text-[#e8e8e8] text-[14px] font-medium">
-                                 {deadline ? format(deadline, "dd.MM.yyyy") : "Select date"}
+                                 {formatProjectDeadlineLong(
+                                   deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null,
+                                 )}
                               </div>
                               <div className="size-[16px] shrink-0 opacity-80">
                                  <svg className="block size-full" fill="none" viewBox="0 0 16 16">
@@ -1227,7 +1227,11 @@ export function CreateProjectPopup({
                       </div>
                       <div className="flex flex-col gap-[4px]">
                         <span className="text-[12px] text-[rgba(232,232,232,0.4)] tracking-wide uppercase">Deadline</span>
-                        <span className="text-[14px] text-[#e8e8e8] font-medium">{deadline ? format(deadline, "dd MMM yyyy") : "Not set"}</span>
+                        <span className="text-[14px] text-[#e8e8e8] font-medium">
+                          {formatProjectDeadlineMedium(
+                            deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null,
+                          )}
+                        </span>
                       </div>
                     </div>
                   </motion.div>

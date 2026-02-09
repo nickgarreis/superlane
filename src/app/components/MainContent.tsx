@@ -11,6 +11,7 @@ import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, Workspace
 import DeleteButton from "../../imports/DeleteButton";
 import { ProjectLogo } from "./ProjectLogo";
 import type { AppView } from "../lib/routing";
+import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -382,7 +383,9 @@ export function MainContent({
             
             <div className="flex flex-col gap-1.5">
                 <div className="text-[12px] font-medium text-white/40 uppercase tracking-wide">Deadline</div>
-                <div className="text-[14px] font-medium text-[#E8E8E8]">{project.deadline}</div>
+                <div className="text-[14px] font-medium text-[#E8E8E8]">
+                  {formatProjectDeadlineShort(project.deadlineEpochMs) || "Not set"}
+                </div>
             </div>
 
             {project.completedAt && (
@@ -551,7 +554,7 @@ export function MainContent({
                             <div className="flex items-center gap-2 text-xs text-white/40">
                                 <span className="uppercase">{file.type}</span>
                                 <span>•</span>
-                                <span>{file.displayDate}</span>
+                                <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
                             </div>
                         </div>
 

@@ -16,7 +16,9 @@ export const taskInputValidator = v.object({
   id: v.string(),
   title: v.string(),
   assignee: taskAssigneeValidator,
-  dueDate: v.string(),
+  dueDateEpochMs: v.optional(v.union(v.number(), v.null())),
+  // Legacy compatibility for pre-normalization payloads.
+  dueDate: v.optional(v.union(v.string(), v.null())),
   completed: v.boolean(),
 });
 
@@ -26,7 +28,9 @@ export const draftDataValidator = v.object({
   selectedJob: v.string(),
   description: v.string(),
   isAIEnabled: v.boolean(),
-  deadline: v.optional(v.string()),
+  deadlineEpochMs: v.optional(v.union(v.number(), v.null())),
+  // Legacy compatibility for pre-normalization payloads.
+  deadline: v.optional(v.union(v.string(), v.null())),
   lastStep: v.number(),
 });
 
@@ -34,7 +38,9 @@ export const attachmentValidator = v.object({
   id: v.union(v.string(), v.number()),
   name: v.string(),
   type: v.string(),
-  date: v.string(),
+  dateEpochMs: v.optional(v.union(v.number(), v.null())),
+  // Legacy compatibility for pre-normalization payloads.
+  date: v.optional(v.union(v.string(), v.null())),
   img: v.string(),
 });
 

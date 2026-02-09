@@ -52,7 +52,7 @@ export interface Task {
     name: string;
     avatar: string;
   };
-  dueDate: string;
+  dueDateEpochMs?: number | null;
   completed: boolean;
 }
 
@@ -62,7 +62,7 @@ export interface ProjectDraftData {
   selectedJob: string;
   description: string;
   isAIEnabled: boolean;
-  deadline?: string; // ISO date string
+  deadlineEpochMs?: number | null;
   lastStep: number;
 }
 
@@ -92,17 +92,17 @@ export interface ProjectData {
   };
   category: string;
   scope?: string;
-  deadline: string;
+  deadlineEpochMs?: number | null;
   workspaceId?: string;
   archived?: boolean;
-  archivedAt?: string;
-  completedAt?: string;
+  archivedAt?: number | null;
+  completedAt?: number | null;
   draftData?: ProjectDraftData;
   attachments?: Array<{
     id: number | string;
     name: string;
     type: string;
-    date: string;
+    dateEpochMs?: number | null;
     img: string;
   }>;
   tasks?: Task[];
@@ -134,7 +134,7 @@ export interface DbTaskRecord {
     name: string;
     avatar: string;
   };
-  dueDate: string;
+  dueDateEpochMs?: number | null;
   completed: boolean;
 }
 
@@ -144,7 +144,7 @@ export interface ProjectFileData {
   tab: ProjectFileTab;
   name: string;
   type: string;
-  displayDate: string;
+  displayDateEpochMs: number;
   thumbnailRef?: string | null;
   mimeType?: string | null;
   sizeBytes?: number | null;
@@ -170,7 +170,7 @@ export interface DbProjectRecord {
   description: string;
   category: string;
   scope?: string;
-  deadline?: string;
+  deadlineEpochMs?: number | null;
   status: ProjectStatus;
   previousStatus?: ProjectStatus | null;
   archived: boolean;
@@ -181,7 +181,7 @@ export interface DbProjectRecord {
     id: number | string;
     name: string;
     type: string;
-    date: string;
+    dateEpochMs?: number | null;
     img: string;
   }>;
   reviewComments?: Array<{

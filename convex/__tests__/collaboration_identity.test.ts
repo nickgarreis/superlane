@@ -205,14 +205,14 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
     expect(result.members[0].userId).toBe(String(workspace.adminUserId));
     expect(result.members[0].isViewer).toBe(true);
 
-    const namesAfterViewer = result.members.slice(1).map((entry) => entry.name);
+    const namesAfterViewer = result.members.slice(1).map((entry: any) => entry.name);
     expect(namesAfterViewer).toEqual(["Member User", "Owner User"]);
 
-    const adminMember = result.members.find((entry) => entry.userId === String(workspace.adminUserId));
+    const adminMember = result.members.find((entry: any) => entry.userId === String(workspace.adminUserId));
     expect(adminMember?.avatarUrl).toContain("http");
     expect(adminMember?.avatarUrl).not.toBe("https://example.com/admin-fallback-avatar.png");
 
-    const ownerMember = result.members.find((entry) => entry.userId === String(workspace.ownerUserId));
+    const ownerMember = result.members.find((entry: any) => entry.userId === String(workspace.ownerUserId));
     expect(ownerMember?.avatarUrl).toBe("https://example.com/owner-avatar.png");
   });
 

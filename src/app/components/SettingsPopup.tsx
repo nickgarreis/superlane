@@ -58,7 +58,7 @@ type CompanyBrandAsset = {
   id: string;
   name: string;
   type: string;
-  displayDate: string;
+  displayDateEpochMs: number;
   sizeBytes: number;
   mimeType: string;
   downloadUrl: string | null;
@@ -974,7 +974,7 @@ function WorkspaceSettings({
               <div className="flex flex-col">
                 <span className="text-[14px] text-[#E8E8E8]">{asset.name}</span>
                 <span className="text-[12px] text-[#E8E8E8]/40">
-                  {asset.type} • {bytesToHumanReadable(asset.sizeBytes)} • {new Date(asset.displayDate).toLocaleDateString()}
+                  {asset.type} • {bytesToHumanReadable(asset.sizeBytes)} • {new Date(asset.displayDateEpochMs).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex items-center gap-3">

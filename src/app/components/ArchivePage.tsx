@@ -58,10 +58,10 @@ export function ArchivePage({
         p.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "—";
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
+    const formatDate = (dateValue?: number | null) => {
+        if (typeof dateValue !== "number" || !Number.isFinite(dateValue)) return "—";
+        const d = new Date(dateValue);
+        if (isNaN(d.getTime())) return "—";
         const now = new Date();
         const diffMs = now.getTime() - d.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

@@ -6,6 +6,7 @@ import { ProjectTasks } from "./ProjectTasks";
 import { Task, ProjectData, ViewerIdentity, WorkspaceMember } from "../types";
 import { Filter, Plus, ArrowUpDown } from "lucide-react";
 import { ProjectLogo } from "./ProjectLogo";
+import { compareNullableEpochMsAsc } from "../lib/dates";
 
 export function Tasks({ 
     onToggleSidebar, 
@@ -51,8 +52,7 @@ export function Tasks({
     .sort((a, b) => {
         if (sortBy === "name") return a.title.localeCompare(b.title);
         if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-        // Simple date sort (just string comparison for now as dates are formatted strings)
-        return 0;
+        return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
     });
 
   const handleUpdateTasks = (newTasks: any[]) => {

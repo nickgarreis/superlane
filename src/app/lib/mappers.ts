@@ -7,7 +7,7 @@ type SnapshotProject = {
   description: string;
   category: string;
   scope?: string;
-  deadline?: string;
+  deadlineEpochMs?: number | null;
   status: string;
   previousStatus?: string | null;
   archived: boolean;
@@ -18,7 +18,7 @@ type SnapshotProject = {
     id: number | string;
     name: string;
     type: string;
-    date: string;
+    dateEpochMs?: number | null;
     img: string;
   }>;
   reviewComments?: Array<{
@@ -42,7 +42,7 @@ type SnapshotTask = {
     name: string;
     avatar: string;
   };
-  dueDate: string;
+  dueDateEpochMs?: number | null;
   completed: boolean;
 };
 
@@ -85,7 +85,7 @@ export const mapProjectsToUi = ({
         name: task.assignee.name,
         avatar: task.assignee.avatar,
       },
-      dueDate: task.dueDate,
+      dueDateEpochMs: task.dueDateEpochMs ?? null,
       completed: task.completed,
     });
     return acc;
@@ -110,11 +110,11 @@ export const mapProjectsToUi = ({
       previousStatus,
       category: project.category,
       scope: project.scope,
-      deadline: project.deadline || "",
+      deadlineEpochMs: project.deadlineEpochMs ?? null,
       workspaceId: workspaceSlug ?? undefined,
       archived: project.archived,
-      archivedAt: project.archivedAt ? new Date(project.archivedAt).toISOString() : undefined,
-      completedAt: project.completedAt ? new Date(project.completedAt).toISOString() : undefined,
+      archivedAt: project.archivedAt ?? null,
+      completedAt: project.completedAt ?? null,
       draftData: project.draftData ?? undefined,
       attachments: project.attachments,
       comments: project.reviewComments,

@@ -15,6 +15,7 @@ import {
 } from "./lib/filePolicy";
 import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { fileTabValidator } from "./lib/validators";
+import { assertFiniteEpochMs, parseDisplayDateEpochMs } from "./lib/dateNormalization";
 
 const UPLOAD_SOURCE_VALIDATOR = v.union(v.literal("upload"), v.literal("importedAttachment"));
 const FINALIZE_PROJECT_UPLOAD_ARGS = {
@@ -25,7 +26,7 @@ const FINALIZE_PROJECT_UPLOAD_ARGS = {
   sizeBytes: v.number(),
   checksumSha256: v.string(),
   storageId: v.id("_storage"),
-  displayDate: v.optional(v.string()),
+  displayDateEpochMs: v.optional(v.number()),
   source: v.optional(UPLOAD_SOURCE_VALIDATOR),
 } as const;
 
@@ -52,7 +53,7 @@ const mapProjectFile = (file: any) => ({
   tab: file.tab,
   name: file.name,
   type: file.type,
-  displayDate: file.displayDate,
+  displayDateEpochMs: file.displayDateEpochMs,
   thumbnailRef: file.thumbnailRef ?? null,
   mimeType: file.mimeType ?? null,
   sizeBytes: file.sizeBytes ?? null,
@@ -60,14 +61,6 @@ const mapProjectFile = (file: any) => ({
   createdAt: file.createdAt,
   updatedAt: file.updatedAt,
 });
-
-const parseDisplayDate = (value: string | undefined, now: number) => {
-  const date = new Date(value ?? now);
-  if (Number.isNaN(date.getTime())) {
-    throw new ConvexError("Invalid displayDate");
-  }
-  return date.toISOString();
-};
 
 const normalizeMimeType = (value: string) => value.trim().toLowerCase();
 
@@ -142,7 +135,7 @@ const finalizeProjectUploadCore = async (
     sizeBytes: number;
     checksumSha256: string;
     storageId: any;
-    displayDate?: string;
+    displayDateEpochMs?: number;
     source?: "upload" | "importedAttachment";
   },
 ) => {
@@ -169,7 +162,8 @@ const finalizeProjectUploadCore = async (
     });
 
     const now = Date.now();
-    const displayDate = parseDisplayDate(args.displayDate, now);
+    const parsedDisplayDateEpochMs = parseDisplayDateEpochMs(args.displayDateEpochMs, now);
+    const displayDateEpochMs = assertFiniteEpochMs(parsedDisplayDateEpochMs, "displayDateEpochMs");
     const activeFiles = await collectActiveProjectFiles(ctx, project._id);
 
     if (activeFiles.length >= MAX_FILES_PER_PROJECT) {
@@ -193,7 +187,7 @@ const finalizeProjectUploadCore = async (
       mimeType: normalizedMimeType,
       sizeBytes: args.sizeBytes,
       checksumSha256: args.checksumSha256.toLowerCase(),
-      displayDate,
+      displayDateEpochMs,
       source,
       deletedAt: null,
       purgeAfterAt: null,
@@ -272,7 +266,7 @@ export const listForWorkspace = query({
           file.deletedAt == null &&
           file.storageId != null,
       )
-      .sort((a: any, b: any) => b.createdAt - a.createdAt);
+      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt));
 
     return visibleFiles.map(mapProjectFile);
   },
@@ -291,7 +285,7 @@ export const listForProject = query({
 
     return files
       .filter((file: any) => file.deletedAt == null && file.storageId != null)
-      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt))
       .map(mapProjectFile);
   },
 });
@@ -336,7 +330,7 @@ export const internalFinalizeProjectUpload = internalMutation({
       sizeBytes: args.sizeBytes,
       checksumSha256: args.checksumSha256,
       storageId: args.storageId,
-      displayDate: args.displayDate,
+      displayDateEpochMs: args.displayDateEpochMs,
       source: args.source,
     }),
 });
@@ -501,7 +495,7 @@ export const create = mutation({
     tab: fileTabValidator,
     name: v.string(),
     type: v.optional(v.string()),
-    displayDate: v.optional(v.string()),
+    displayDateEpochMs: v.optional(v.number()),
     thumbnailRef: v.optional(v.string()),
     mimeType: v.optional(v.string()),
     sizeBytes: v.optional(v.number()),
@@ -521,7 +515,7 @@ export const create = mutation({
       sizeBytes: args.sizeBytes,
       checksumSha256: args.checksumSha256,
       storageId: args.storageId,
-      displayDate: args.displayDate,
+      displayDateEpochMs: args.displayDateEpochMs,
       source: "upload",
     });
 

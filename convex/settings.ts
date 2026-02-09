@@ -307,13 +307,13 @@ export const getCompanySettings = query({
       .query("workspaceBrandAssets")
       .withIndex("by_workspace_deletedAt", (q: any) => q.eq("workspaceId", workspace._id).eq("deletedAt", null))
       .collect())
-      .sort((a: any, b: any) => b.createdAt - a.createdAt);
+      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt));
 
     const mappedBrandAssets = await Promise.all(brandAssets.map(async (asset: any) => ({
       id: String(asset._id),
       name: asset.name,
       type: asset.type,
-      displayDate: asset.displayDate,
+      displayDateEpochMs: asset.displayDateEpochMs,
       sizeBytes: asset.sizeBytes,
       mimeType: asset.mimeType,
       downloadUrl: (await ctx.storage.getUrl(asset.storageId)) ?? null,
@@ -425,7 +425,6 @@ export const finalizeBrandAssetUpload = mutation({
 
       const finalName = ensureUniqueFileName(trimmedName, existing.map((entry: any) => entry.name));
       const now = Date.now();
-      const displayDate = new Date(now).toISOString();
 
       const assetId = await ctx.db.insert("workspaceBrandAssets", {
         workspaceId: workspace._id,
@@ -435,7 +434,7 @@ export const finalizeBrandAssetUpload = mutation({
         mimeType: normalizedMimeType,
         sizeBytes: args.sizeBytes,
         checksumSha256: args.checksumSha256.toLowerCase(),
-        displayDate,
+        displayDateEpochMs: now,
         createdByUserId: appUser._id,
         deletedAt: null,
         createdAt: now,

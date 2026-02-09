@@ -7,7 +7,7 @@ const toAttachmentMirror = (file: any) => ({
   id: String(file._id),
   name: file.name,
   type: file.type,
-  date: file.displayDate,
+  dateEpochMs: file.displayDateEpochMs ?? null,
   img: file.thumbnailRef ?? "",
 });
 

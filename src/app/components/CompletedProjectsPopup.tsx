@@ -42,8 +42,8 @@ export function CompletedProjectsPopup({
             } else if (sortField === "category") {
                 cmp = a.category.localeCompare(b.category);
             } else {
-                const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
-                const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+                const dateA = typeof a.completedAt === "number" ? a.completedAt : 0;
+                const dateB = typeof b.completedAt === "number" ? b.completedAt : 0;
                 cmp = dateA - dateB;
             }
             return sortDir === "asc" ? cmp : -cmp;
@@ -58,10 +58,10 @@ export function CompletedProjectsPopup({
         }
     };
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "\u2014";
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
+    const formatDate = (dateEpochMs?: number | null) => {
+        if (typeof dateEpochMs !== "number" || !Number.isFinite(dateEpochMs)) return "\u2014";
+        const d = new Date(dateEpochMs);
+        if (isNaN(d.getTime())) return "\u2014";
         return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     };
 
