@@ -1,10 +1,11 @@
+import React from "react";
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { clearStoredAuthMode, readStoredAuthMode, readStoredReturnTo } from "../lib/authReturnTo";
 
 const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
 
-const sanitizeReturnTo = (
+export const sanitizeReturnTo = (
   value: string | null | undefined,
   fallback: string = "/tasks",
 ): string => {

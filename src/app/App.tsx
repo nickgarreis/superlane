@@ -15,6 +15,7 @@ import { AuthCallbackPage } from "./components/AuthCallbackPage";
 import { AuthPage } from "./components/AuthPage";
 import { CreateProjectPopup } from "./components/CreateProjectPopup";
 import { MainContent } from "./components/MainContent";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RootPage } from "./components/RootPage";
 import { SearchPopup } from "./components/SearchPopup";
 import { SettingsPopup } from "./components/SettingsPopup";
@@ -86,26 +87,6 @@ const uploadFileToConvexStorage = async (
   }
   return String(payload.storageId);
 };
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  const location = useLocation();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen w-full bg-[#141515] flex items-center justify-center text-white/60 font-['Roboto',sans-serif]">
-        Checking authentication...
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    const returnTo = `${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
-  }
-
-  return <>{children}</>;
-}
 
 function DashboardApp() {
   const { user, signOut } = useAuth();

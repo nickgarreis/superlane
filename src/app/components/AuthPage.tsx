@@ -8,7 +8,7 @@ type AuthMode = "signin" | "signup";
 
 const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
 
-const ensureSafeReturnTo = (value: string | null | undefined, fallback: string) => {
+export const ensureSafeReturnTo = (value: string | null | undefined, fallback: string) => {
   if (!value) {
     return fallback;
   }
