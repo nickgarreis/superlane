@@ -164,8 +164,7 @@ function WorkspaceSwitcher() {
 }
 
 function DroppableSection({ status, children, onDrop }: { status: string, children: React.ReactNode, onDrop: (id: string, status: string) => void }) {
-    // @ts-ignore
-    const [{ isOver }, drop] = useDrop(() => ({
+    const [{ isOver }, drop] = useDrop<{ id: string }, void, { isOver: boolean }>(() => ({
         accept: 'PROJECT',
         drop: (item: { id: string }) => {
             onDrop(item.id, status);
@@ -176,7 +175,9 @@ function DroppableSection({ status, children, onDrop }: { status: string, childr
     }), [status, onDrop]);
 
     return (
-        <div ref={drop} className={cn("rounded-lg transition-colors min-h-[10px]", isOver ? "bg-white/5 ring-1 ring-[#58AFFF]/30" : "")}>
+        <div ref={(element) => {
+          drop(element);
+        }} className={cn("rounded-lg transition-colors min-h-[10px]", isOver ? "bg-white/5 ring-1 ring-[#58AFFF]/30" : "")}>
             {children}
         </div>
     );
@@ -219,8 +220,7 @@ function SidebarItem({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // @ts-ignore
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag<{ id?: string; status?: string }, void, { isDragging: boolean }>(() => ({
       type: 'PROJECT',
       item: { id: projectId, status: projectStatus },
       canDrag: !!projectId,

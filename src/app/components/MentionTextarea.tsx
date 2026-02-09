@@ -197,10 +197,11 @@ function setCursorAtOffset(root: HTMLElement, target: number) {
   }
 
   walk(root);
-  if (result) {
+  const resolvedResult = result as { node: Node; offset: number } | null;
+  if (resolvedResult) {
     const sel = window.getSelection();
     const range = document.createRange();
-    range.setStart(result.node, result.offset);
+    range.setStart(resolvedResult.node, resolvedResult.offset);
     range.collapse(true);
     sel?.removeAllRanges();
     sel?.addRange(range);
@@ -356,7 +357,7 @@ export const MentionTextarea = forwardRef<
         setCursorAtOffset(el, value.length);
       }
     }
-  }, []);
+  }, [autoFocus, syncDOM, value]);
 
   // Sync when value changes externally
   useEffect(() => {

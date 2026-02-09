@@ -68,6 +68,7 @@ export type SnapshotWorkspaceFile = {
 export const mapWorkspacesToUi = (workspaces: SnapshotWorkspace[]): Workspace[] =>
   workspaces.map((workspace) => ({
     id: workspace.slug,
+    slug: workspace.slug,
     name: workspace.name,
     plan: workspace.plan,
     logo: workspace.logo,

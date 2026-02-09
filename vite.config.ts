@@ -36,6 +36,25 @@ export default defineConfig({
           if (!id.includes('node_modules')) {
             return undefined
           }
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/scheduler/')
+          ) {
+            return 'vendor-react'
+          }
+          if (id.includes('/react-router') || id.includes('/history/')) {
+            return 'vendor-router'
+          }
+          if (id.includes('/convex/') || id.includes('/@convex-dev/')) {
+            return 'vendor-convex'
+          }
+          if (id.includes('/motion/') || id.includes('/framer-motion/')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('/@workos-inc/')) {
+            return 'vendor-auth'
+          }
           if (id.includes('/react-dnd/') || id.includes('/react-dnd-html5-backend/')) {
             return 'vendor-dnd'
           }
@@ -45,7 +64,13 @@ export default defineConfig({
           if (id.includes('/@radix-ui/')) {
             return 'vendor-radix'
           }
-          return 'vendor'
+          if (id.includes('/date-fns/') || id.includes('/sonner/') || id.includes('/lucide-react/')) {
+            return 'vendor-ui'
+          }
+          if (id.includes('/@emotion/')) {
+            return 'vendor-emotion'
+          }
+          return 'vendor-misc'
         },
       },
     },

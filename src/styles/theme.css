@@ -117,7 +117,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-bg-base: #141415;
+  --color-bg-base: #121215;
   --color-bg-surface: #181819;
 }
 
@@ -219,6 +219,123 @@
   animation: fileRowFlash 1.6s ease-out forwards;
 }
 
+/* ── Shared DayPicker dark theme (used by task + project calendars) ── */
+.rdp-dark-theme {
+  --rdp-cell-size: 32px;
+  --rdp-accent-color: #ffffff;
+  --rdp-background-color: #333333;
+  margin: 0;
+}
+
+/* Reset month margin from base stylesheet to prevent overflow */
+.rdp-dark-theme .rdp-months {
+  display: flex;
+}
+
+.rdp-dark-theme .rdp-month {
+  margin: 0;
+}
+
+.rdp-dark-theme .rdp-table {
+  width: 100%;
+}
+
+.rdp-dark-theme .rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.rdp-dark-theme .rdp-day_selected:not([disabled]) {
+  background-color: #ef4444;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.rdp-dark-theme .rdp-day_selected:hover:not([disabled]) {
+  background-color: #dc2626;
+}
+
+.rdp-dark-theme .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.rdp-dark-theme .rdp-caption_label {
+  color: #e8e8e8;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+}
+
+.rdp-dark-theme .rdp-nav {
+  display: flex;
+  gap: 2px;
+}
+
+.rdp-dark-theme .rdp-nav_button {
+  color: #e8e8e8;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rdp-dark-theme .rdp-nav_button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.rdp-dark-theme .rdp-nav_button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rdp-dark-theme .rdp-head_cell {
+  color: rgba(232, 232, 232, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 0 4px;
+  height: auto;
+  text-transform: uppercase;
+}
+
+.rdp-dark-theme .rdp-cell {
+  padding: 1px;
+}
+
+.rdp-dark-theme .rdp-day {
+  color: #e8e8e8;
+  font-size: 13px;
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+}
+
+.rdp-dark-theme .rdp-day_outside {
+  opacity: 0.5;
+}
+
+.rdp-dark-theme .rdp-day_disabled {
+  color: rgba(232, 232, 232, 0.2);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.rdp-dark-theme .rdp-day_today:not(.rdp-day_selected) {
+  font-weight: 600;
+}
+
 /* ── Archive row flash animation (newly archived project highlight) ── */
 @keyframes archiveRowFlash {
   0%   { background-color: rgba(255, 255, 255, 0); }
@@ -235,7 +352,6 @@
 
 /* ── Long list rendering optimization ── */
 .project-file-row,
-.project-task-row,
 .chat-comment-row {
   content-visibility: auto;
   contain-intrinsic-size: 0 72px;

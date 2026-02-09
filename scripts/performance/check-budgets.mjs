@@ -38,7 +38,7 @@ const gzipSizeBytes = (filePath) => {
   return zlib.gzipSync(content, { level: 9 }).length;
 };
 
-const statLargestAsset = () => {
+const readAssetEntries = () => {
   if (!fs.existsSync(ASSETS_DIR)) {
     throw new Error(`Assets directory not found: ${ASSETS_DIR}`);
   }
@@ -61,9 +61,30 @@ const statLargestAsset = () => {
     throw new Error(`No emitted files found in ${ASSETS_DIR}`);
   }
 
+  return entries;
+};
+
+const statLargestAsset = () => {
+  const entries = readAssetEntries();
   return entries.reduce((largest, current) =>
     current.sizeBytes > largest.sizeBytes ? current : largest,
   );
+};
+
+const statLargestJsChunkByGzip = () => {
+  const jsEntries = readAssetEntries().filter((entry) => entry.name.endsWith(".js"));
+  if (jsEntries.length === 0) {
+    throw new Error(`No emitted JavaScript files found in ${ASSETS_DIR}`);
+  }
+
+  return jsEntries
+    .map((entry) => ({
+      ...entry,
+      gzipBytes: gzipSizeBytes(entry.filePath),
+    }))
+    .reduce((largest, current) =>
+      current.gzipBytes > largest.gzipBytes ? current : largest,
+    );
 };
 
 const findDashboardAsset = () => {
@@ -115,6 +136,7 @@ const entryCssAsset = parseAssetPath(html, /<link[^>]*href="([^"]+\.css)"[^>]*>/
 const entryJsPath = path.join(DIST_DIR, entryJsAsset);
 const entryCssPath = path.join(DIST_DIR, entryCssAsset);
 const largestAsset = statLargestAsset();
+const largestJsChunk = statLargestJsChunkByGzip();
 const dashboardAsset = findDashboardAsset();
 const dashboardAssetPath = path.join(ASSETS_DIR, dashboardAsset);
 
@@ -130,6 +152,7 @@ const measured = {
   entryCssGzipKb: toKb(gzipSizeBytes(entryCssPath)),
   dashboardJsGzipKb: toKb(gzipSizeBytes(dashboardAssetPath)),
   largestAssetKb: toKb(largestAsset.sizeBytes),
+  largestJsChunkGzipKb: toKb(largestJsChunk.gzipBytes),
 };
 
 const budgets = {
@@ -137,6 +160,7 @@ const budgets = {
   entryCssGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "entryCssGzipKb"),
   dashboardJsGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "dashboardJsGzipKb"),
   largestAssetKb: parseFiniteMetric(activePhaseConfig.metrics, "largestAssetKb"),
+  largestJsChunkGzipKb: parseFiniteMetric(activePhaseConfig.metrics, "largestJsChunkGzipKb"),
 };
 
 assertFiniteMetrics("measured metric", measured);
@@ -167,6 +191,12 @@ const checks = [
     measured: measured.largestAssetKb,
     budget: budgets.largestAssetKb,
   },
+  {
+    key: "largestJsChunkGzipKb",
+    label: "Largest JS chunk gzip",
+    measured: measured.largestJsChunkGzipKb,
+    budget: budgets.largestJsChunkGzipKb,
+  },
 ];
 
 const failures = checks
@@ -191,6 +221,10 @@ const report = {
     largest: {
       name: largestAsset.name,
       sizeKb: measured.largestAssetKb,
+    },
+    largestJsChunk: {
+      name: largestJsChunk.name,
+      gzipKb: measured.largestJsChunkGzipKb,
     },
   },
   pass: failures.length === 0,

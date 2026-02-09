@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Check, Trash2, Calendar, ArrowUpDown } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import {
   compareNullableEpochMsAsc,
   formatTaskDueDate,
@@ -65,6 +67,7 @@ export function ProjectTasks({
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskProjectId, setNewTaskProjectId] = useState<string>(defaultProjectId ?? "");
   const [openCalendarTaskId, setOpenCalendarTaskId] = useState<string | null>(null);
+  const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number } | null>(null);
   const [openAssigneeTaskId, setOpenAssigneeTaskId] = useState<string | null>(null);
   const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(null);
   const [isNewTaskProjectOpen, setIsNewTaskProjectOpen] = useState(false);
@@ -189,6 +192,7 @@ export function ProjectTasks({
 
   const closeAllDropdowns = () => {
       setOpenCalendarTaskId(null);
+      setCalendarPosition(null);
       setOpenAssigneeTaskId(null);
       setOpenProjectTaskId(null);
       setIsNewTaskProjectOpen(false);
@@ -428,13 +432,21 @@ export function ProjectTasks({
             </AnimatePresence>
 
                 <AnimatePresence initial={false}>
-                {sortedTasks.map((task) => (
+                {sortedTasks.map((task) => {
+                    const hasOpenDropdown =
+                      openCalendarTaskId === task.id ||
+                      openAssigneeTaskId === task.id ||
+                      openProjectTaskId === task.id;
+                    return (
                     <motion.div
                         key={task.id}
                         ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
                         layout
                         exit={{ opacity: 0 }}
-                        className="project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative"
+                        className={cn(
+                            "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
+                            hasOpenDropdown && "z-50"
+                        )}
                     >
                         <div 
                             className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
@@ -551,8 +563,23 @@ export function ProjectTasks({
                                  <div 
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (openCalendarTaskId === task.id) {
+                                            closeAllDropdowns();
+                                            return;
+                                        }
                                         closeAllDropdowns();
-                                        setOpenCalendarTaskId(openCalendarTaskId === task.id ? null : task.id);
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const calH = 310;
+                                        const calW = 250;
+                                        const gap = 8;
+                                        const spaceBelow = window.innerHeight - rect.bottom;
+                                        setCalendarPosition({
+                                            top: spaceBelow >= calH + gap
+                                                ? rect.bottom + gap
+                                                : Math.max(gap, rect.top - calH - gap),
+                                            left: Math.max(gap, Math.min(rect.right - calW, window.innerWidth - calW - gap)),
+                                        });
+                                        setOpenCalendarTaskId(task.id);
                                     }}
                                     className={cn(
                                         "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5 w-full", 
@@ -563,87 +590,6 @@ export function ProjectTasks({
                                     <Calendar size={12} />
                                     <span>{formatTaskDueDate(task.dueDateEpochMs)}</span>
                                  </div>
-
-                                 <AnimatePresence>
-                                    {openCalendarTaskId === task.id && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 top-full mt-2 z-50 p-4 bg-[#262626] rounded-2xl shadow-xl border border-white/10 w-[280px]"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <style>{`
-                                                .rdp {
-                                                  --rdp-cell-size: 32px;
-                                                  --rdp-accent-color: #ffffff;
-                                                  --rdp-background-color: #333333;
-                                                  margin: 0;
-                                                }
-                                                .rdp-day_selected:not([disabled]) { 
-                                                  background-color: #ef4444;
-                                                  color: #ffffff;
-                                                  font-weight: bold;
-                                                  border-radius: 50%;
-                                                }
-                                                .rdp-day_selected:hover:not([disabled]) { 
-                                                  background-color: #dc2626;
-                                                }
-                                                .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-                                                  background-color: rgba(255,255,255,0.1);
-                                                  border-radius: 50%;
-                                                }
-                                                .rdp-caption_label {
-                                                  color: #e8e8e8;
-                                                  font-size: 14px;
-                                                  font-weight: 500;
-                                                }
-                                                .rdp-nav_button {
-                                                  color: #e8e8e8;
-                                                  width: 24px;
-                                                  height: 24px;
-                                                  background: transparent;
-                                                  border: none;
-                                                  opacity: 0.7;
-                                                  transition: opacity 0.2s;
-                                                  cursor: pointer;
-                                                }
-                                                .rdp-nav_button:hover {
-                                                  opacity: 1;
-                                                  background-color: rgba(255,255,255,0.05) !important;
-                                                }
-                                                .rdp-nav_button svg {
-                                                  width: 14px;
-                                                  height: 14px;
-                                                }
-                                                .rdp-head_cell {
-                                                   color: rgba(232,232,232,0.5);
-                                                   font-size: 12px;
-                                                }
-                                                .rdp-day {
-                                                   color: #e8e8e8;
-                                                   font-size: 13px;
-                                                   cursor: pointer;
-                                                }
-                                                .rdp-day_outside {
-                                                  opacity: 0.5;
-                                                }
-                                                .rdp-day_disabled { 
-                                                  color: rgba(232,232,232, 0.2);
-                                                  opacity: 0.5;
-                                                  pointer-events: none;
-                                                }
-                                            `}</style>
-                                            <DayPicker
-                                                mode="single"
-                                                selected={fromUtcNoonEpochMsToDateOnly(task.dueDateEpochMs)}
-                                                onSelect={(date) => handleDateSelect(task.id, date)}
-                                                showOutsideDays
-                                                disabled={{ before: new Date() }}
-                                            />
-                                        </motion.div>
-                                    )}
-                                 </AnimatePresence>
                              </div>
 
                              {/* Assignee */}
@@ -728,18 +674,21 @@ export function ProjectTasks({
                              </div>
                             
                              {/* Delete Action (visible on hover) */}
-                             <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(task.id);
-                                }}
-                                className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                             >
-                                <Trash2 size={14} />
-                             </button>
+                             <div className="w-7 flex items-center justify-center">
+                               <button
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(task.id);
+                                  }}
+                                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                               >
+                                  <Trash2 size={14} />
+                               </button>
+                             </div>
                         </div>
                     </motion.div>
-                ))}
+                    );
+                })}
                 </AnimatePresence>
             
             {initialTasks.length === 0 && !isAdding && (
@@ -750,6 +699,37 @@ export function ProjectTasks({
                 </div>
             )}
         </div>
+
+        {/* Calendar dropdown – portaled to body to escape overflow containers */}
+        {openCalendarTaskId && calendarPosition && createPortal(
+            <motion.div
+                key={openCalendarTaskId}
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{
+                    position: "fixed",
+                    top: calendarPosition.top,
+                    left: calendarPosition.left,
+                    zIndex: 9999,
+                }}
+                className="p-2 bg-[#262626] rounded-2xl shadow-xl border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <DayPicker
+                    className="rdp-dark-theme"
+                    mode="single"
+                    selected={(() => {
+                        const activeTask = initialTasks.find(tk => tk.id === openCalendarTaskId);
+                        return activeTask ? fromUtcNoonEpochMsToDateOnly(activeTask.dueDateEpochMs) : undefined;
+                    })()}
+                    onSelect={(date) => handleDateSelect(openCalendarTaskId, date)}
+                    showOutsideDays
+                    disabled={{ before: new Date() }}
+                />
+            </motion.div>,
+            document.body,
+        )}
     </div>
   );
 }

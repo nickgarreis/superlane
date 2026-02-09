@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { AppView } from "../lib/routing";
-import type { ProjectData, ProjectFileTab } from "../types";
+import type { ProjectData, ProjectDraftData, ProjectFileTab } from "../types";
 
 export type PendingHighlight = {
   projectId: string;
@@ -33,6 +33,67 @@ export interface MainContentFileActions {
   create: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
   remove: (fileId: string) => void;
   download: (fileId: string) => void;
+}
+
+export interface ProjectCommands {
+  createOrUpdateProject: (payload: {
+    name?: string;
+    description?: string;
+    category?: string;
+    scope?: string;
+    deadlineEpochMs?: number | null;
+    status?: string;
+    draftData?: ProjectDraftData | null;
+    _editProjectId?: string;
+    _generatedId?: string;
+    attachmentPendingUploadIds?: string[];
+  }) => Promise<void>;
+  editProject: (project: ProjectData) => void;
+  viewReviewProject: (project: ProjectData) => void;
+  archiveProject: (projectId: string) => void;
+  unarchiveProject: (projectId: string) => void;
+  deleteProject: (projectId: string) => void;
+  updateProjectStatus: (projectId: string, newStatus: string) => void;
+}
+
+export interface FileCommands {
+  createProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
+  removeProjectFile: (fileId: string) => void;
+  downloadProjectFile: (fileId: string) => void;
+  uploadDraftAttachment: (
+    file: File,
+    draftSessionId: string,
+  ) => Promise<{
+    pendingUploadId: string;
+    name: string;
+    type: string;
+    mimeType: string | null;
+    sizeBytes: number;
+  }>;
+  removeDraftAttachment: (pendingUploadId: string) => Promise<void>;
+  discardDraftSessionUploads: (draftSessionId: string) => Promise<void>;
+}
+
+export interface SettingsCommands {
+  openSettings: (tab?: SettingsTab) => void;
+  closeSettings: () => void;
+  saveAccount: (payload: { firstName: string; lastName: string; email: string }) => Promise<void>;
+  uploadAccountAvatar: (file: File) => Promise<void>;
+  removeAccountAvatar: () => Promise<void>;
+  saveNotifications: (payload: {
+    channels: { email: boolean; desktop: boolean };
+    events: { productUpdates: boolean; teamActivity: boolean };
+  }) => Promise<void>;
+}
+
+export interface DashboardCommands {
+  project: ProjectCommands;
+  file: FileCommands;
+  settings: SettingsCommands;
+  workspace: {
+    switchWorkspace: (workspaceSlug: string) => void;
+    createWorkspace: () => void;
+  };
 }
 
 export type NavigationDestination = "archive";

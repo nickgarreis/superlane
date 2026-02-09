@@ -1,6 +1,5 @@
-import { ConvexProviderWithAuth } from "convex/react";
+import { ConvexProviderWithAuth, type ConvexReactClient } from "convex/react";
 import { useAuth } from "@workos-inc/authkit-react";
-import type { ConvexReactClient } from "convex/react";
 import { useCallback, useMemo, type ReactNode } from "react";
 
 type FetchTokenArgs = {

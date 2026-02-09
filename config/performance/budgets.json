@@ -8,7 +8,8 @@
         "entryJsGzipKb": 250.0,
         "entryCssGzipKb": 24.0,
         "dashboardJsGzipKb": 95.0,
-        "largestAssetKb": 20289.2
+        "largestAssetKb": 20289.2,
+        "largestJsChunkGzipKb": 220.0
       }
     },
     "phase2": {
@@ -17,7 +18,8 @@
         "entryJsGzipKb": 200.0,
         "entryCssGzipKb": 19.1,
         "dashboardJsGzipKb": 84.0,
-        "largestAssetKb": 2048.0
+        "largestAssetKb": 2048.0,
+        "largestJsChunkGzipKb": 170.0
       }
     }
   }

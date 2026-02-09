@@ -1,5 +1,4 @@
-import React from "react";
-import { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { clearStoredAuthMode, readStoredAuthMode, readStoredReturnTo } from "../lib/authReturnTo";
 
