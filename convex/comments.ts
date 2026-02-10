@@ -1,6 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
+
+const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 
 const formatRelativeTime = (timestamp: number, now: number) => {
   const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
@@ -219,6 +222,20 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    try {
+      await ctx.scheduler.runAfter(NOTIFICATION_DISPATCH_DELAY_MS, internal.notificationsEmail.sendTeamActivityForComment, {
+        workspaceId: project.workspaceId,
+        actorUserId: appUser._id,
+        actorName: appUser.name ?? appUser.email ?? "Unknown user",
+        projectPublicId: project.publicId,
+        projectName: project.name,
+        commentContent: trimmedContent,
+        isReply: Boolean(args.parentCommentId),
+      });
+    } catch (error) {
+      console.error("[comments.create] Failed to schedule team activity email notification", error);
+    }
 
     return { commentId };
   },

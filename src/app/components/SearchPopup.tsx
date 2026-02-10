@@ -216,7 +216,7 @@ export function SearchPopup({
             exit={{ opacity: 0, scale: 0.97, y: -8 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="w-full max-w-[560px] bg-[#1C1D1E] border border-white/[0.06] rounded-2xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[min(70vh,520px)]"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
           >
             <div className="flex items-center gap-3 px-4 h-[52px] shrink-0 border-b border-white/[0.06]">
               <Search size={17} className="text-white/30 shrink-0" />

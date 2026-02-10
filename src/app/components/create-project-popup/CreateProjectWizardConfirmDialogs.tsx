@@ -142,7 +142,7 @@ export function CreateProjectWizardConfirmDialogs({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-labelledby={closeConfirmTitleId}
@@ -194,7 +194,7 @@ export function CreateProjectWizardConfirmDialogs({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
             >
               <p className="text-[15px] text-[#e8e8e8] font-medium mb-[6px]">
                 Delete this draft?
@@ -237,7 +237,7 @@ export function CreateProjectWizardConfirmDialogs({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
             >
               <p className="text-[15px] text-[#e8e8e8] font-medium mb-[6px]">
                 Delete this project?

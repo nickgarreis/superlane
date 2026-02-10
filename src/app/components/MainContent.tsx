@@ -1,4 +1,12 @@
-import React, { Suspense, useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  Suspense,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  useDeferredValue,
+} from "react";
 import { CheckCircle2, Download, Trash2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion } from "motion/react";
@@ -79,6 +87,7 @@ export function MainContent({
 }: MainContentProps) {
   const [activeTab, setActiveTab] = useState<ProjectFileTab>("Assets");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [sortBy, setSortBy] = useState<"relevance" | "name">("relevance");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -236,12 +245,12 @@ export function MainContent({
   const filteredFiles = useMemo(
     () =>
       currentFiles
-        .filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter((file) => file.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()))
         .sort((a, b) => {
           if (sortBy === "name") return a.name.localeCompare(b.name);
           return 0;
         }),
-    [currentFiles, searchQuery, sortBy],
+    [currentFiles, deferredSearchQuery, sortBy],
   );
   const shouldOptimizeFileRows = filteredFiles.length > 40;
   const fileRowStyle = useMemo(

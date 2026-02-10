@@ -101,8 +101,11 @@ export interface SettingsCommands {
   uploadAccountAvatar: (file: File) => Promise<void>;
   removeAccountAvatar: () => Promise<void>;
   saveNotifications: (payload: {
-    channels: { email: boolean; desktop: boolean };
-    events: { productUpdates: boolean; teamActivity: boolean };
+    events: {
+      eventNotifications: boolean;
+      teamActivities: boolean;
+      productUpdates: boolean;
+    };
   }) => Promise<void>;
 }
 

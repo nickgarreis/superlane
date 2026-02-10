@@ -146,8 +146,11 @@ export const useDashboardWorkspaceActions = ({
 
   const handleSaveSettingsNotifications = useCallback(
     async (payload: {
-      channels: { email: boolean; desktop: boolean };
-      events: { productUpdates: boolean; teamActivity: boolean };
+      events: {
+        eventNotifications: boolean;
+        teamActivities: boolean;
+        productUpdates: boolean;
+      };
     }) => {
       await saveNotificationPreferencesMutation(payload);
     },

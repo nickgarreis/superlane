@@ -36,8 +36,11 @@ type UseDashboardCommandsArgs = {
   handleUploadAccountAvatar: (file: File) => Promise<void>;
   handleRemoveAccountAvatar: () => Promise<void>;
   handleSaveSettingsNotifications: (payload: {
-    channels: { email: boolean; desktop: boolean };
-    events: { productUpdates: boolean; teamActivity: boolean };
+    events: {
+      eventNotifications: boolean;
+      teamActivities: boolean;
+      productUpdates: boolean;
+    };
   }) => Promise<void>;
   handleSwitchWorkspace: (workspaceSlug: string) => void;
   handleCreateWorkspace: () => void;

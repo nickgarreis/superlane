@@ -75,21 +75,27 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col rounded-xl">
         <ToggleRow
-          label="Email Channel"
-          description="Allow email delivery for enabled events."
-          checked={state.channels.email}
+          label="Event Notifications"
+          description="Receive project submitted, review approved, and completed notifications."
+          checked={state.events.eventNotifications}
           onToggle={() => setState((current) => ({
             ...current,
-            channels: { ...current.channels, email: !current.channels.email },
+            events: {
+              ...current.events,
+              eventNotifications: !current.events.eventNotifications,
+            },
           }))}
         />
         <ToggleRow
-          label="Desktop Channel"
-          description="Allow in-app/browser notifications for enabled events."
-          checked={state.channels.desktop}
+          label="Team Activities"
+          description="Receive notifications for new comments and replies."
+          checked={state.events.teamActivities}
           onToggle={() => setState((current) => ({
             ...current,
-            channels: { ...current.channels, desktop: !current.channels.desktop },
+            events: {
+              ...current.events,
+              teamActivities: !current.events.teamActivities,
+            },
           }))}
         />
         <ToggleRow
@@ -99,15 +105,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           onToggle={() => setState((current) => ({
             ...current,
             events: { ...current.events, productUpdates: !current.events.productUpdates },
-          }))}
-        />
-        <ToggleRow
-          label="Team Activity"
-          description="Receive notifications for comments and team actions."
-          checked={state.events.teamActivity}
-          onToggle={() => setState((current) => ({
-            ...current,
-            events: { ...current.events, teamActivity: !current.events.teamActivity },
           }))}
         />
       </div>

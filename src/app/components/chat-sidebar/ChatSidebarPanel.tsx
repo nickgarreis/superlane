@@ -125,9 +125,14 @@ export function ChatSidebar({
   const totalThreadCount = currentComments.length;
   const resolvedCount = resolvedComments.length;
   const shouldOptimizeCommentRows = currentComments.length > 40;
-  const commentRowStyle = shouldOptimizeCommentRows
-    ? ({ contentVisibility: "auto", containIntrinsicSize: "120px" } as const)
-    : undefined;
+  const commentRowStyle = useMemo(
+    () => (
+      shouldOptimizeCommentRows
+        ? ({ contentVisibility: "auto", containIntrinsicSize: "120px" } as const)
+        : undefined
+    ),
+    [shouldOptimizeCommentRows],
+  );
 
   // Build mention items from active project data
   const mentionItems: MentionItemType[] = useMemo(() => {
@@ -321,6 +326,79 @@ export function ChatSidebar({
     });
   }, [setCollapsedThreads]);
 
+  const renderComments = useCallback(
+    (comments: CollaborationComment[]) =>
+      comments.map((comment) => (
+        <CommentItem
+          key={comment.id}
+          comment={comment}
+          isTopLevel
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          currentUserAvatar={currentUserAvatar}
+          mentionItems={mentionItems}
+          onMentionClick={onMentionClick}
+          performanceStyle={commentRowStyle}
+          replyingTo={replyingTo}
+          editingComment={editingComment}
+          editValue={editValue}
+          activeReactionPicker={activeReactionPicker}
+          activeMoreMenu={activeMoreMenu}
+          collapsedThreads={collapsedThreads}
+          onSetReplyingTo={setReplyingTo}
+          onSetReplyValue={setReplyValue}
+          replyValue={replyValue}
+          onSetEditingComment={setEditingComment}
+          onSetEditValue={setEditValue}
+          onSetActiveReactionPicker={setActiveReactionPicker}
+          onSetActiveMoreMenu={setActiveMoreMenu}
+          onReply={handleReply}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
+          onResolve={handleResolve}
+          onToggleReaction={handleToggleReaction}
+          onToggleThread={toggleThread}
+        />
+      )),
+    [
+      activeMoreMenu,
+      activeReactionPicker,
+      collapsedThreads,
+      commentRowStyle,
+      currentUserAvatar,
+      currentUserId,
+      currentUserName,
+      editValue,
+      editingComment,
+      handleDeleteComment,
+      handleEditComment,
+      handleReply,
+      handleResolve,
+      handleToggleReaction,
+      mentionItems,
+      onMentionClick,
+      replyValue,
+      replyingTo,
+      setActiveMoreMenu,
+      setActiveReactionPicker,
+      setEditValue,
+      setEditingComment,
+      setReplyValue,
+      setReplyingTo,
+      toggleThread,
+    ],
+  );
+
+  const unresolvedCommentItems = useMemo(
+    () => renderComments(unresolvedComments),
+    [renderComments, unresolvedComments],
+  );
+
+  const resolvedCommentItems = useMemo(
+    () => renderComments(resolvedComments),
+    [renderComments, resolvedComments],
+  );
+
   const sortedProjects = useMemo(
     () =>
       [...Object.values(allProjects)].sort((a, b) => {
@@ -474,38 +552,7 @@ export function ChatSidebar({
                 {/* Unresolved threads */}
                 {unresolvedComments.length > 0 && (
                   <div className="pt-2">
-                    {unresolvedComments.map((comment) => (
-                      <CommentItem
-                        key={comment.id}
-                        comment={comment}
-                        isTopLevel
-                        currentUserId={currentUserId}
-                        currentUserName={currentUserName}
-                        currentUserAvatar={currentUserAvatar}
-                        mentionItems={mentionItems}
-                        onMentionClick={onMentionClick}
-                        performanceStyle={commentRowStyle}
-                        replyingTo={replyingTo}
-                        editingComment={editingComment}
-                        editValue={editValue}
-                        activeReactionPicker={activeReactionPicker}
-                        activeMoreMenu={activeMoreMenu}
-                        collapsedThreads={collapsedThreads}
-                        onSetReplyingTo={setReplyingTo}
-                        onSetReplyValue={setReplyValue}
-                        replyValue={replyValue}
-                        onSetEditingComment={setEditingComment}
-                        onSetEditValue={setEditValue}
-                        onSetActiveReactionPicker={setActiveReactionPicker}
-                        onSetActiveMoreMenu={setActiveMoreMenu}
-                        onReply={handleReply}
-                        onEditComment={handleEditComment}
-                        onDeleteComment={handleDeleteComment}
-                        onResolve={handleResolve}
-                        onToggleReaction={handleToggleReaction}
-                        onToggleThread={toggleThread}
-                      />
-                    ))}
+                    {unresolvedCommentItems}
                   </div>
                 )}
 
@@ -545,38 +592,7 @@ export function ChatSidebar({
                           className="overflow-hidden"
                         >
                           <div className="opacity-50">
-                            {resolvedComments.map((comment) => (
-                              <CommentItem
-                                key={comment.id}
-                                comment={comment}
-                                isTopLevel
-                                currentUserId={currentUserId}
-                                currentUserName={currentUserName}
-                                currentUserAvatar={currentUserAvatar}
-                                mentionItems={mentionItems}
-                                onMentionClick={onMentionClick}
-                                performanceStyle={commentRowStyle}
-                                replyingTo={replyingTo}
-                                editingComment={editingComment}
-                                editValue={editValue}
-                                activeReactionPicker={activeReactionPicker}
-                                activeMoreMenu={activeMoreMenu}
-                                collapsedThreads={collapsedThreads}
-                                onSetReplyingTo={setReplyingTo}
-                                onSetReplyValue={setReplyValue}
-                                replyValue={replyValue}
-                                onSetEditingComment={setEditingComment}
-                                onSetEditValue={setEditValue}
-                                onSetActiveReactionPicker={setActiveReactionPicker}
-                                onSetActiveMoreMenu={setActiveMoreMenu}
-                                onReply={handleReply}
-                                onEditComment={handleEditComment}
-                                onDeleteComment={handleDeleteComment}
-                                onResolve={handleResolve}
-                                onToggleReaction={handleToggleReaction}
-                                onToggleThread={toggleThread}
-                              />
-                            ))}
+                            {resolvedCommentItems}
                           </div>
                         </motion.div>
                       )}

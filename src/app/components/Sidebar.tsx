@@ -1,4 +1,13 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ArchiveRestore, Archive, Undo2, Settings, HelpCircle, LogOut, ChevronDown, ChevronRight, Search, Plus, Lightbulb, Bug, ListChecks, Info, Maximize2 } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import svgPaths from "../../imports/svg-pclbthwul8";
@@ -206,7 +215,7 @@ function DroppableSection({ status, children, onDrop }: { status: string, childr
     );
 }
 
-function SidebarItem({ 
+const SidebarItem = React.memo(function SidebarItem({ 
     icon, 
     label, 
     onClick, 
@@ -364,7 +373,7 @@ function SidebarItem({
         )}
     </div>
   );
-}
+});
 
 function SectionHeader({ title, count, action, isCollapsible, isExpanded, onToggle, className, tooltip, onExpandPopup }: { title: string, count?: number, action?: React.ReactNode, isCollapsible?: boolean, isExpanded?: boolean, onToggle?: () => void, className?: string, tooltip?: string, onExpandPopup?: () => void }) {
     const [showTooltip, setShowTooltip] = useState(false);
@@ -509,9 +518,38 @@ export function Sidebar({
         [viewerName],
     );
 
+    const deferredProjects = useDeferredValue(projects);
     const { activeProjects, completedProjects, activeCompletedProject } = useMemo(
-        () => partitionSidebarProjects(projects, currentView),
-        [projects, currentView],
+        () => partitionSidebarProjects(deferredProjects, currentView),
+        [deferredProjects, currentView],
+    );
+
+    const renderedActiveProjects = useMemo(
+      () => activeProjects.map((project) => {
+        const projectIsDraft = project.status.label === "Draft";
+        const projectIsReview = project.status.label === "Review";
+        return (
+          <SidebarItem
+            key={project.id}
+            projectId={project.id}
+            icon={<ProjectLogo size={16} category={project.category} />}
+            label={project.name}
+            onClick={() => {
+              if (projectIsDraft) {
+                onEditProject(project);
+              } else if (projectIsReview) {
+                onViewReviewProject(project);
+              } else {
+                onNavigate(`project:${project.id}`);
+              }
+            }}
+            isActive={!projectIsDraft && !projectIsReview && currentView === `project:${project.id}`}
+            isDraft={projectIsDraft}
+            isReview={projectIsReview}
+          />
+        );
+      }),
+      [activeProjects, currentView, onEditProject, onNavigate, onViewReviewProject],
     );
 
     // Auto-close logic for the main Projects section if it becomes empty (though rare as it's the main list)
@@ -632,30 +670,7 @@ export function Sidebar({
                         <CollapsibleContent isExpanded={isProjectsExpanded}>
                             <div className="flex flex-col gap-0.5 pb-2">
                                 {activeProjects.length > 0 ? (
-                                    activeProjects.map(project => {
-                                        const projectIsDraft = project.status.label === "Draft";
-                                        const projectIsReview = project.status.label === "Review";
-                                        return (
-                                         <SidebarItem 
-                                            key={project.id}
-                                            projectId={project.id}
-                                            icon={<ProjectLogo size={16} category={project.category} />} 
-                                            label={project.name} 
-                                            onClick={() => {
-                                                if (projectIsDraft) {
-                                                    onEditProject(project);
-                                                } else if (projectIsReview) {
-                                                    onViewReviewProject(project);
-                                                } else {
-                                                    onNavigate(`project:${project.id}`);
-                                                }
-                                            }} 
-                                            isActive={!projectIsDraft && !projectIsReview && currentView === `project:${project.id}`}
-                                            isDraft={projectIsDraft}
-                                            isReview={projectIsReview}
-                                        />
-                                        );
-                                    })
+                                    renderedActiveProjects
                                 ) : (
                                     <div className="px-3 py-1.5 text-[12px] text-white/30 italic">No projects</div>
                                 )}

@@ -375,7 +375,7 @@ export const CommentItem = React.memo(function CommentItem({
                       left: menuPos.left,
                     }}
                     className="bg-[#1E1F20] border border-white/10 rounded-lg shadow-xl shadow-black/40 overflow-hidden py-1 z-[9999] w-[120px]"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
                   >
                     <button
                       onClick={() => {

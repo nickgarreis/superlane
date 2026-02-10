@@ -45,7 +45,7 @@ export function StepService({ selectedService, onSelectService }: StepServicePro
             onClick={() => onSelectService(service)}
             role="button"
             tabIndex={0}
-            onKeyDown={(event) => handleKeyDown(event, () => onSelectService(service))}
+            onKeyDown={(event: KeyboardEvent) => handleKeyDown(event, () => onSelectService(service))}
             className={`
               content-stretch flex gap-[8px] h-[36px] items-center px-[14px] relative rounded-full shrink-0 cursor-pointer transition-all border outline-none focus-visible:ring-2 focus-visible:ring-white/50
               ${

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MainContent } from "./MainContent";
 import type {
   MainContentFileActions,
@@ -117,6 +117,20 @@ const renderMainContent = (args?: {
 };
 
 describe("MainContent", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    const refWarnings = consoleErrorSpy.mock.calls
+      .map((args) => args.map((arg) => String(arg)).join(" "))
+      .filter((message) => message.includes("`ref` is not a prop"));
+    expect(refWarnings).toHaveLength(0);
+    consoleErrorSpy.mockRestore();
+  });
+
   test("uploads files for active projects", () => {
     const { container, fileActions } = renderMainContent();
 

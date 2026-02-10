@@ -17,4 +17,11 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  "cleanup-resend-component-data",
+  { hours: 1 },
+  internal.notificationsEmail.cleanupResend,
+  {},
+);
+
 export default crons;

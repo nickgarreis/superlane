@@ -23,7 +23,7 @@ export function ReactionPicker({
           exit={{ opacity: 0, scale: 0.9, y: 4 }}
           transition={{ duration: 0.1 }}
           className="absolute left-0 bottom-full mb-1 bg-[#1E1F20] border border-white/10 rounded-lg shadow-xl shadow-black/40 flex items-center gap-0.5 p-1 z-50"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
         >
           {REACTION_OPTIONS.map((emoji) => (
             <button

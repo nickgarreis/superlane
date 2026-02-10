@@ -14,6 +14,9 @@ export default defineConfig({
       WORKOS_API_KEY: "test_api_key",
       WORKOS_WEBHOOK_SECRET: "test_webhook_secret",
       WORKOS_ACTION_SECRET: "test_action_secret",
+      RESEND_API_KEY: "re_test_key",
+      RESEND_WEBHOOK_SECRET: "whsec_test_key",
+      NOTIFICATIONS_FROM_EMAIL: "notifications@test.example",
     },
     coverage: {
       provider: "v8",

@@ -1,5 +1,4 @@
 import React from "react";
-import { AnimatePresence } from "motion/react";
 import { cn } from "../../../lib/utils";
 import type { ProjectFileTab } from "../../types";
 import svgPaths from "../../../imports/svg-0erue6fqwq";
@@ -10,7 +9,7 @@ type FileSectionProps = {
   activeTab: ProjectFileTab;
   setActiveTab: (value: ProjectFileTab) => void;
   handleUploadClick: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   canMutateProjectFiles: boolean;
   fileMutationDisabledMessage: string;
@@ -196,9 +195,9 @@ export const FileSection = React.memo(function FileSection({
           ? ({ contentVisibility: "auto", containIntrinsicSize: "640px" } as const)
           : undefined}
       >
-        <AnimatePresence initial={false} key={projectId + "-" + activeTab}>
+        <div key={projectId + "-" + activeTab}>
           {renderedFileRows}
-        </AnimatePresence>
+        </div>
         {filteredFilesLength === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-white/40">
             <p className="text-sm">

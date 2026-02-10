@@ -29,6 +29,7 @@
     "convex:deploy": "convex deploy"
   },
   "dependencies": {
+    "@convex-dev/resend": "^0.2.3",
     "@convex-dev/workos": "^0.0.1",
     "@convex-dev/workos-authkit": "^0.1.6",
     "@emotion/react": "11.14.0",
@@ -89,8 +90,8 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.2.2",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
     "@typescript-eslint/parser": "^8.44.1",
     "@vitejs/plugin-react": "4.7.0",
     "@vitest/coverage-v8": "^2.1.9",

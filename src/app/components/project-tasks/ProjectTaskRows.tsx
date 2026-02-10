@@ -72,8 +72,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
 }: ProjectTaskRowsProps) {
   return (
     <>
-      <AnimatePresence initial={false}>
-        {sortedTasks.map((task) => {
+      {sortedTasks.map((task) => {
           const taskIsEditable = isTaskEditable(task);
           const hasOpenDropdown =
             openCalendarTaskId === task.id
@@ -84,7 +83,6 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
               key={task.id}
               ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
               layout
-              exit={{ opacity: 0 }}
               className={cn(
                 "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
                 hasOpenDropdown && "z-50",
@@ -166,7 +164,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
                           className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
-                          onClick={(event) => event.stopPropagation()}
+                          onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
                         >
                           <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
                             Move to project
@@ -292,7 +290,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[200px] overflow-hidden"
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
                       >
                         <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
                           Assign to
@@ -372,7 +370,6 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
             </motion.div>
           );
         })}
-      </AnimatePresence>
 
       {initialTasks.length === 0 && !isAdding && (
         <div className="py-8 text-center text-[13px] text-white/20 italic">
@@ -395,7 +392,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
             zIndex: 9999,
           }}
           className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
         >
           <DayPicker
             className="rdp-dark-theme"

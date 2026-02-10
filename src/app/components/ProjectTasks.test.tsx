@@ -2,7 +2,7 @@
 
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ProjectTasks } from "./ProjectTasks";
 import type { Task, ViewerIdentity, WorkspaceMember } from "../types";
 
@@ -41,6 +41,23 @@ const TASKS: Task[] = [
 ];
 
 describe("ProjectTasks", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    const refWarnings = consoleErrorSpy.mock.calls
+      .map((args) => args.map((arg) => String(arg)).join(" "))
+      .filter((message) => message.includes("`ref` is not a prop"));
+    try {
+      expect(refWarnings).toHaveLength(0);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   test("creates a task when pressing Enter in add mode", () => {
     const onUpdateTasks = vi.fn();
 

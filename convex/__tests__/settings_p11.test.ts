@@ -135,28 +135,50 @@ describe("P1.1 settings backendization", () => {
 
     const defaults = await asMember().query(api.settings.getNotificationPreferences, {});
     expect(defaults.exists).toBe(false);
-    expect(defaults.channels.email).toBe(true);
-    expect(defaults.channels.desktop).toBe(true);
+    expect(defaults.events.eventNotifications).toBe(true);
+    expect(defaults.events.teamActivities).toBe(true);
     expect(defaults.events.productUpdates).toBe(true);
-    expect(defaults.events.teamActivity).toBe(true);
 
     await asMember().mutation(api.settings.saveNotificationPreferences, {
-      channels: {
-        email: false,
-        desktop: true,
-      },
       events: {
+        eventNotifications: false,
+        teamActivities: true,
         productUpdates: false,
-        teamActivity: true,
       },
     });
 
     const updated = await asMember().query(api.settings.getNotificationPreferences, {});
     expect(updated.exists).toBe(true);
-    expect(updated.channels.email).toBe(false);
-    expect(updated.channels.desktop).toBe(true);
+    expect(updated.events.eventNotifications).toBe(false);
+    expect(updated.events.teamActivities).toBe(true);
     expect(updated.events.productUpdates).toBe(false);
-    expect(updated.events.teamActivity).toBe(true);
+  });
+
+  test("notification preferences normalize legacy channels + teamActivity shape", async () => {
+    const workspace = await seedWorkspace();
+    const createdAt = now();
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("notificationPreferences", {
+        userId: workspace.memberUserId,
+        channels: {
+          email: false,
+          desktop: true,
+        },
+        events: {
+          productUpdates: false,
+          teamActivity: true,
+        } as any,
+        createdAt,
+        updatedAt: createdAt,
+      } as any);
+    });
+
+    const normalized = await asMember().query(api.settings.getNotificationPreferences, {});
+    expect(normalized.exists).toBe(true);
+    expect(normalized.events.eventNotifications).toBe(false);
+    expect(normalized.events.teamActivities).toBe(true);
+    expect(normalized.events.productUpdates).toBe(false);
   });
 
   test("avatar upload validates and replaces prior storage blob", async () => {

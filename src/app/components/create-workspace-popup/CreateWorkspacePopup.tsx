@@ -133,7 +133,7 @@ export function CreateWorkspacePopup({ isOpen, onClose, onCreate }: CreateWorksp
             exit={{ y: 8, opacity: 0, scale: 0.985 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             onSubmit={handleSubmit}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event: React.MouseEvent<HTMLFormElement>) => event.stopPropagation()}
             className="bg-[#1e1f20] relative rounded-[32px] w-full max-w-[520px] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.04),0px_12px_32px_0px_rgba(0,0,0,0.08)] overflow-hidden"
           >
             <div

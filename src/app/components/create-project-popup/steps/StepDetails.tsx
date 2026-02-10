@@ -70,7 +70,7 @@ type StepDetailsProps = {
   onSelectDeadline: (date: Date) => void;
   isCalendarOpen: boolean;
   onCalendarOpenChange: (open: boolean) => void;
-  calendarRef: RefObject<HTMLDivElement | null>;
+  calendarRef: RefObject<HTMLDivElement>;
   attachments: PendingDraftAttachmentUpload[];
   getRootProps: () => DropzoneRootProps;
   getInputProps: () => DropzoneInputProps;
@@ -176,7 +176,7 @@ export function StepDetails({
                   onClick={() => onSelectJob(job)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(event) => handleKeyDown(event, () => onSelectJob(job))}
+                  onKeyDown={(event: KeyboardEvent) => handleKeyDown(event, () => onSelectJob(job))}
                   className={`
                     backdrop-blur-[6px] bg-[rgba(232,232,232,0.04)] content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50
                     ${

@@ -11,6 +11,7 @@ import {
   inferFileTypeFromName,
 } from "./lib/filePolicy";
 import { api, internal } from "./_generated/api";
+import { DEFAULT_NOTIFICATION_EVENTS, normalizeNotificationEvents } from "./lib/notificationPreferences";
 
 const TWO_MB_IN_BYTES = 2 * 1024 * 1024;
 
@@ -26,17 +27,6 @@ const WORKSPACE_LOGO_ALLOWED_MIME = new Set([
   "image/gif",
   "image/webp",
 ]);
-
-const DEFAULT_NOTIFICATION_PREFERENCES = {
-  channels: {
-    email: true,
-    desktop: true,
-  },
-  events: {
-    productUpdates: true,
-    teamActivity: true,
-  },
-} as const;
 
 const normalizeMimeType = (value: string) => value.trim().toLowerCase();
 
@@ -127,14 +117,13 @@ export const getNotificationPreferences = query({
 
     if (!row) {
       return {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
+        events: DEFAULT_NOTIFICATION_EVENTS,
         exists: false,
       };
     }
 
     return {
-      channels: row.channels,
-      events: row.events,
+      events: normalizeNotificationEvents(row as any),
       exists: true,
     };
   },
@@ -142,13 +131,10 @@ export const getNotificationPreferences = query({
 
 export const saveNotificationPreferences = mutation({
   args: {
-    channels: v.object({
-      email: v.boolean(),
-      desktop: v.boolean(),
-    }),
     events: v.object({
+      eventNotifications: v.boolean(),
+      teamActivities: v.boolean(),
       productUpdates: v.boolean(),
-      teamActivity: v.boolean(),
     }),
   },
   handler: async (ctx, args) => {
@@ -161,8 +147,8 @@ export const saveNotificationPreferences = mutation({
     const now = Date.now();
     if (existing) {
       await ctx.db.patch(existing._id, {
-        channels: args.channels,
         events: args.events,
+        channels: undefined,
         updatedAt: now,
       });
       return { updated: true };
@@ -170,7 +156,6 @@ export const saveNotificationPreferences = mutation({
 
     await ctx.db.insert("notificationPreferences", {
       userId: appUser._id,
-      channels: args.channels,
       events: args.events,
       createdAt: now,
       updatedAt: now,

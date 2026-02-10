@@ -77,7 +77,7 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full max-w-[480px] mx-4 bg-[#1A1A1C] border border-[#262626] rounded-2xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-0">

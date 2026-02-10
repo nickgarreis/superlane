@@ -9,6 +9,17 @@ import {
   taskAssigneeValidator,
 } from "./lib/validators";
 
+const notificationEventsValidator = v.object({
+  eventNotifications: v.boolean(),
+  teamActivities: v.boolean(),
+  productUpdates: v.boolean(),
+});
+
+const legacyNotificationEventsValidator = v.object({
+  productUpdates: v.boolean(),
+  teamActivity: v.boolean(),
+});
+
 export default defineSchema({
   users: defineTable({
     workosUserId: v.string(),
@@ -78,14 +89,13 @@ export default defineSchema({
 
   notificationPreferences: defineTable({
     userId: v.id("users"),
-    channels: v.object({
-      email: v.boolean(),
-      desktop: v.boolean(),
-    }),
-    events: v.object({
-      productUpdates: v.boolean(),
-      teamActivity: v.boolean(),
-    }),
+    channels: v.optional(
+      v.object({
+        email: v.boolean(),
+        desktop: v.boolean(),
+      }),
+    ),
+    events: v.union(notificationEventsValidator, legacyNotificationEventsValidator),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),

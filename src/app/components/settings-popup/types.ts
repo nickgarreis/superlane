@@ -17,13 +17,10 @@ export type AccountSettingsData = {
 };
 
 export type NotificationSettingsData = {
-  channels: {
-    email: boolean;
-    desktop: boolean;
-  };
   events: {
+    eventNotifications: boolean;
+    teamActivities: boolean;
     productUpdates: boolean;
-    teamActivity: boolean;
   };
 };
 

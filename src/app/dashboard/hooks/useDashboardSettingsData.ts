@@ -48,17 +48,13 @@ export const useDashboardSettingsData = ({
     () =>
       notificationSettings
         ? {
-            channels: notificationSettings.channels,
             events: notificationSettings.events,
           }
         : {
-            channels: {
-              email: true,
-              desktop: true,
-            },
             events: {
+              eventNotifications: true,
+              teamActivities: true,
               productUpdates: true,
-              teamActivity: true,
             },
           },
     [notificationSettings],

@@ -24,7 +24,7 @@ type StepReviewProps = {
   commentInput: string;
   setCommentInput: Dispatch<SetStateAction<string>>;
   reviewComments: ReviewComment[];
-  commentsEndRef: RefObject<HTMLDivElement | null>;
+  commentsEndRef: RefObject<HTMLDivElement>;
   canDeleteReviewProject: boolean;
   reviewDeleteDeniedReason: string | null;
   canRenderReviewApprovalAction: boolean;

@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import {
   draftDataValidator,
   projectStatusValidator,
@@ -10,6 +11,8 @@ import { ensureUniqueFileName, FILE_RETENTION_MS, inferFileTypeFromName, MAX_FIL
 import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
 import { assertFiniteEpochMs } from "./lib/dateNormalization";
+
+const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 
 const slugify = (value: string) =>
   value
@@ -43,6 +46,52 @@ const normalizeOptionalEpochMs = (
     return null;
   }
   return assertFiniteEpochMs(value, label);
+};
+
+const resolveLifecycleEventType = (previousStatus: string | null, nextStatus: string) => {
+  if (nextStatus === "Review" && previousStatus !== "Review") {
+    return "submitted" as const;
+  }
+  if (previousStatus === "Review" && nextStatus === "Active") {
+    return "reviewApproved" as const;
+  }
+  if (nextStatus === "Completed" && previousStatus !== "Completed") {
+    return "completed" as const;
+  }
+  return null;
+};
+
+const scheduleProjectLifecycleNotification = async (
+  ctx: any,
+  args: {
+    workspaceId: any;
+    projectPublicId: string;
+    projectName: string;
+    actorUserId: any;
+    actorName: string;
+    previousStatus: string | null;
+    nextStatus: string;
+  },
+) => {
+  const eventType = resolveLifecycleEventType(args.previousStatus, args.nextStatus);
+  if (!eventType) {
+    return;
+  }
+
+  try {
+    await ctx.scheduler.runAfter(NOTIFICATION_DISPATCH_DELAY_MS, internal.notificationsEmail.sendProjectLifecycleEvent, {
+      workspaceId: args.workspaceId,
+      actorUserId: args.actorUserId,
+      actorName: args.actorName,
+      projectPublicId: args.projectPublicId,
+      projectName: args.projectName,
+      eventType,
+      previousStatus: args.previousStatus ?? undefined,
+      nextStatus: args.nextStatus,
+    });
+  } catch (error) {
+    console.error("[projects] Failed to schedule lifecycle email notification", error);
+  }
 };
 
 type ReviewCommentRecord = {
@@ -266,6 +315,15 @@ export const create = mutation({
       pendingUploadIds: args.attachmentPendingUploadIds ?? [],
     });
     await syncProjectAttachmentMirror(ctx, projectRef);
+    await scheduleProjectLifecycleNotification(ctx, {
+      workspaceId: workspace._id,
+      projectPublicId: publicId,
+      projectName: args.name,
+      actorUserId: appUser._id,
+      actorName: appUser.name ?? appUser.email ?? "Unknown user",
+      previousStatus: null,
+      nextStatus: status,
+    });
 
     return { projectId, publicId };
   },
@@ -335,6 +393,19 @@ export const update = mutation({
     }
     await syncProjectAttachmentMirror(ctx, project);
 
+    if (args.status !== undefined) {
+      const updatedName = args.name ?? project.name;
+      await scheduleProjectLifecycleNotification(ctx, {
+        workspaceId: project.workspaceId,
+        projectPublicId: project.publicId,
+        projectName: updatedName,
+        actorUserId: appUser._id,
+        actorName: appUser.name ?? appUser.email ?? "Unknown user",
+        previousStatus: project.status,
+        nextStatus: args.status,
+      });
+    }
+
     return { publicId: project.publicId };
   },
 });
@@ -362,6 +433,16 @@ export const setStatus = mutation({
       completedAt: args.status === "Completed" ? now : null,
       updatedAt: now,
       statusUpdatedByUserId: appUser._id,
+    });
+
+    await scheduleProjectLifecycleNotification(ctx, {
+      workspaceId: project.workspaceId,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      actorUserId: appUser._id,
+      actorName: appUser.name ?? appUser.email ?? "Unknown user",
+      previousStatus: project.status,
+      nextStatus: args.status,
     });
 
     return { publicId: project.publicId };
