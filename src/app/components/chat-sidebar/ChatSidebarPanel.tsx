@@ -6,9 +6,7 @@ import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember
 import type { AppView } from "../../lib/routing";
 import { formatTaskDueDate } from "../../lib/dates";
 import { reportUiError } from "../../lib/errors";
-import {
-  MentionItem as MentionItemType,
-} from "../MentionTextarea";
+import type { MentionItem as MentionItemType } from "../mentions/types";
 import { CommentItem } from "./CommentItem";
 import { useChatSidebarState } from "./useChatSidebarState";
 import { ChatSidebarView } from "./ChatSidebarView";

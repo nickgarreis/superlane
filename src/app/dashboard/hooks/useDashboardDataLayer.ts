@@ -41,8 +41,47 @@ export function useDashboardDataLayer() {
       void loadSettingsPopupModule();
     },
   });
+  const {
+    activeWorkspaceSlug,
+    setActiveWorkspaceSlug,
+    isSettingsOpen,
+    isSearchOpen,
+    currentView,
+    setIsSidebarOpen,
+    setPendingHighlight,
+    navigateView,
+    openCreateWorkspace,
+    closeCreateWorkspace,
+    openSearch,
+    navigate,
+    location,
+  } = navigation;
 
   const apiHandlers = useDashboardApiHandlers();
+  const {
+    ensureDefaultWorkspaceAction,
+    createWorkspaceMutation,
+    updateAccountProfileAction,
+    generateAvatarUploadUrlMutation,
+    finalizeAvatarUploadMutation,
+    removeAvatarMutation,
+    saveNotificationPreferencesMutation,
+    updateWorkspaceGeneralMutation,
+    generateWorkspaceLogoUploadUrlMutation,
+    finalizeWorkspaceLogoUploadMutation,
+    inviteWorkspaceMemberAction,
+    resendWorkspaceInvitationAction,
+    revokeWorkspaceInvitationAction,
+    changeWorkspaceMemberRoleAction,
+    removeWorkspaceMemberAction,
+    generateBrandAssetUploadUrlMutation,
+    finalizeBrandAssetUploadMutation,
+    removeBrandAssetMutation,
+    softDeleteWorkspaceMutation,
+    reconcileWorkspaceInvitationsAction,
+    reconcileWorkspaceOrganizationMembershipsAction,
+    ensureOrganizationLinkAction,
+  } = apiHandlers;
 
   const viewerFallback = useMemo(
     () => ({
@@ -58,25 +97,25 @@ export function useDashboardDataLayer() {
 
   const data = useDashboardData({
     isAuthenticated,
-    activeWorkspaceSlug: navigation.activeWorkspaceSlug,
-    setActiveWorkspaceSlug: navigation.setActiveWorkspaceSlug,
-    isSettingsOpen: navigation.isSettingsOpen,
-    isSearchOpen: navigation.isSearchOpen,
-    currentView: navigation.currentView,
+    activeWorkspaceSlug,
+    setActiveWorkspaceSlug,
+    isSettingsOpen,
+    isSearchOpen,
+    currentView,
     viewerFallback,
-    setIsSidebarOpen: navigation.setIsSidebarOpen,
-    setPendingHighlight: navigation.setPendingHighlight,
-    navigateView: navigation.navigateView,
+    setIsSidebarOpen,
+    setPendingHighlight,
+    navigateView,
   });
 
   const canCreateWorkspace = data.viewerIdentity.role === "owner";
 
   const handleSwitchWorkspace = useCallback(
     (workspaceSlug: string) => {
-      navigation.setActiveWorkspaceSlug(workspaceSlug);
-      navigation.navigateView("tasks");
+      setActiveWorkspaceSlug(workspaceSlug);
+      navigateView("tasks");
     },
-    [navigation],
+    [navigateView, setActiveWorkspaceSlug],
   );
 
   const handleCreateWorkspace = useCallback(() => {
@@ -84,36 +123,44 @@ export function useDashboardDataLayer() {
       toast.error("Only workspace owners can create workspaces");
       return;
     }
-    navigation.openCreateWorkspace();
-  }, [canCreateWorkspace, navigation]);
+    openCreateWorkspace();
+  }, [canCreateWorkspace, openCreateWorkspace]);
+
+  const navigateToPath = useCallback((path: string) => navigate(path), [navigate]);
+  const navigateToPathWithReplace = useCallback(
+    (path: string, replace = false) => {
+      navigate(path, { replace });
+    },
+    [navigate],
+  );
 
   const workspaceActions = useDashboardWorkspaceActions({
     canCreateWorkspace,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
-    setActiveWorkspaceSlug: navigation.setActiveWorkspaceSlug,
-    navigateToPath: (path) => navigation.navigate(path),
-    navigateView: navigation.navigateView,
-    closeCreateWorkspace: navigation.closeCreateWorkspace,
-    createWorkspaceMutation: apiHandlers.createWorkspaceMutation,
-    reconcileWorkspaceInvitationsAction: apiHandlers.reconcileWorkspaceInvitationsAction,
-    reconcileWorkspaceOrganizationMembershipsAction: apiHandlers.reconcileWorkspaceOrganizationMembershipsAction,
-    updateAccountProfileAction: apiHandlers.updateAccountProfileAction,
-    generateAvatarUploadUrlMutation: apiHandlers.generateAvatarUploadUrlMutation,
-    finalizeAvatarUploadMutation: apiHandlers.finalizeAvatarUploadMutation,
-    removeAvatarMutation: apiHandlers.removeAvatarMutation,
-    saveNotificationPreferencesMutation: apiHandlers.saveNotificationPreferencesMutation,
-    updateWorkspaceGeneralMutation: apiHandlers.updateWorkspaceGeneralMutation,
-    generateWorkspaceLogoUploadUrlMutation: apiHandlers.generateWorkspaceLogoUploadUrlMutation,
-    finalizeWorkspaceLogoUploadMutation: apiHandlers.finalizeWorkspaceLogoUploadMutation,
-    inviteWorkspaceMemberAction: apiHandlers.inviteWorkspaceMemberAction,
-    resendWorkspaceInvitationAction: apiHandlers.resendWorkspaceInvitationAction,
-    revokeWorkspaceInvitationAction: apiHandlers.revokeWorkspaceInvitationAction,
-    changeWorkspaceMemberRoleAction: apiHandlers.changeWorkspaceMemberRoleAction,
-    removeWorkspaceMemberAction: apiHandlers.removeWorkspaceMemberAction,
-    generateBrandAssetUploadUrlMutation: apiHandlers.generateBrandAssetUploadUrlMutation,
-    finalizeBrandAssetUploadMutation: apiHandlers.finalizeBrandAssetUploadMutation,
-    removeBrandAssetMutation: apiHandlers.removeBrandAssetMutation,
-    softDeleteWorkspaceMutation: apiHandlers.softDeleteWorkspaceMutation,
+    setActiveWorkspaceSlug,
+    navigateToPath,
+    navigateView,
+    closeCreateWorkspace,
+    createWorkspaceMutation,
+    reconcileWorkspaceInvitationsAction,
+    reconcileWorkspaceOrganizationMembershipsAction,
+    updateAccountProfileAction,
+    generateAvatarUploadUrlMutation,
+    finalizeAvatarUploadMutation,
+    removeAvatarMutation,
+    saveNotificationPreferencesMutation,
+    updateWorkspaceGeneralMutation,
+    generateWorkspaceLogoUploadUrlMutation,
+    finalizeWorkspaceLogoUploadMutation,
+    inviteWorkspaceMemberAction,
+    resendWorkspaceInvitationAction,
+    revokeWorkspaceInvitationAction,
+    changeWorkspaceMemberRoleAction,
+    removeWorkspaceMemberAction,
+    generateBrandAssetUploadUrlMutation,
+    finalizeBrandAssetUploadMutation,
+    removeBrandAssetMutation,
+    softDeleteWorkspaceMutation,
     computeFileChecksumSha256,
     uploadFileToConvexStorage,
     asStorageId,
@@ -124,16 +171,16 @@ export function useDashboardDataLayer() {
 
   useDashboardLifecycleEffects({
     snapshot: data.snapshot,
-    ensureDefaultWorkspace: apiHandlers.ensureDefaultWorkspaceAction,
-    setActiveWorkspaceSlug: navigation.setActiveWorkspaceSlug,
+    ensureDefaultWorkspace: ensureDefaultWorkspaceAction,
+    setActiveWorkspaceSlug,
     preloadSearchPopupModule: loadSearchPopupModule,
-    openSearch: navigation.openSearch,
-    locationPathname: navigation.location.pathname,
+    openSearch,
+    locationPathname: location.pathname,
     projects: data.projects,
-    navigateToPath: (path, replace = false) => navigation.navigate(path, { replace }),
+    navigateToPath: navigateToPathWithReplace,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
     companySettings: data.companySettings,
-    ensureOrganizationLinkAction: apiHandlers.ensureOrganizationLinkAction,
+    ensureOrganizationLinkAction,
     runWorkspaceSettingsReconciliation: workspaceActions.runWorkspaceSettingsReconciliation,
   });
 

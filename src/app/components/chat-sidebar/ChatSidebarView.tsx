@@ -10,7 +10,8 @@ import {
 import { cn } from "../../../lib/utils";
 import type { CollaborationComment, ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
-import { MentionItem as MentionItemType, MentionTextarea } from "../MentionTextarea";
+import { MentionTextarea } from "../MentionTextarea";
+import type { MentionItem as MentionItemType } from "../mentions/types";
 import { ProjectDropdown } from "./ProjectDropdown";
 
 type ChatSidebarViewProps = {

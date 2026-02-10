@@ -14,17 +14,12 @@ const LEGACY_OVERSIZED_ALLOWLIST = new Set([
   "convex/auth.ts",
   "convex/comments.ts",
   "convex/notificationsEmail.ts",
-  "src/app/components/create-project-popup/hooks/useCreateProjectWizardController.ts",
-  "src/app/components/ProjectTasks.tsx",
-  "src/app/components/SearchPopup.tsx",
   "src/app/components/chat-sidebar/ChatSidebarPanel.tsx",
   "src/app/dashboard/useDashboardWorkspaceActions.ts",
   "src/app/components/project-tasks/ProjectTaskRows.tsx",
   "src/app/components/create-project-popup/steps/StepDetails.tsx",
   "src/app/components/MainContent.tsx",
-  "src/app/components/search-popup/useSearchPopupData.tsx",
   "src/app/dashboard/hooks/useDashboardProjectActions.ts",
-  "src/app/components/MentionTextarea.tsx",
 ]);
 
 const shouldSkipPath = (relativePath) => {

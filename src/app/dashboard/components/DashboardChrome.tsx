@@ -28,7 +28,7 @@ type DashboardChromeProps = {
   onViewReviewProject: (project: ProjectData) => void;
 };
 
-export function DashboardChrome({
+export const DashboardChrome = React.memo(function DashboardChrome({
   isSidebarOpen,
   navigateView,
   openSearch,
@@ -119,4 +119,6 @@ export function DashboardChrome({
       </AnimatePresence>
     </>
   );
-}
+});
+
+DashboardChrome.displayName = "DashboardChrome";

@@ -5,6 +5,7 @@ import type { WorkspaceRole } from "../../types";
 import { bytesToHumanReadable, getAssetPreviewSrc, type CompanyBrandAsset } from "./types";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getBrandAssetDeniedReason } from "../../lib/permissionRules";
+import { reportUiError } from "../../lib/errors";
 
 type CompanyBrandAssetsSectionProps = {
   brandAssets: CompanyBrandAsset[];
@@ -32,7 +33,7 @@ export function CompanyBrandAssetsSection({
       await onUploadBrandAsset(file);
       toast.success("Brand asset uploaded");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.brandAssets.upload", error, { showToast: false });
       toast.error("Failed to upload brand asset");
     } finally {
       input.value = "";
@@ -106,7 +107,7 @@ export function CompanyBrandAssetsSection({
                     void onRemoveBrandAsset({ brandAssetId: asset.id })
                       .then(() => toast.success("Brand asset removed"))
                       .catch((error) => {
-                        console.error(error);
+                        reportUiError("settings.brandAssets.remove", error, { showToast: false });
                         toast.error("Failed to remove brand asset");
                       });
                   }}

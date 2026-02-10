@@ -1,12 +1,5 @@
 import { useMemo } from "react";
-import type { MentionEntityType } from "./types";
-
-type MentionItem = {
-  type: MentionEntityType;
-  id: string;
-  label: string;
-  meta?: string;
-};
+import type { MentionItem } from "./types";
 
 type MentionSection =
   | { kind: "header"; label: string }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { User } from "lucide-react";
 import { toast } from "sonner";
+import { reportUiError } from "../../lib/errors";
 import type { AccountSettingsData } from "./types";
 
 type AccountTabProps = {
@@ -30,7 +31,7 @@ export function AccountTab({ data, onSave, onUploadAvatar, onRemoveAvatar }: Acc
       await onSave({ firstName, lastName, email });
       toast.success("Account updated");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.account.save", error, { showToast: false });
       toast.error("Failed to update account");
     } finally {
       setSaving(false);
@@ -48,7 +49,7 @@ export function AccountTab({ data, onSave, onUploadAvatar, onRemoveAvatar }: Acc
       await onUploadAvatar(file);
       toast.success("Profile picture updated");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.account.uploadAvatar", error, { showToast: false });
       toast.error("Failed to update profile picture");
     } finally {
       setAvatarBusy(false);
@@ -64,7 +65,7 @@ export function AccountTab({ data, onSave, onUploadAvatar, onRemoveAvatar }: Acc
       await onRemoveAvatar();
       toast.success("Profile picture removed");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.account.removeAvatar", error, { showToast: false });
       toast.error("Failed to remove profile picture");
     } finally {
       setAvatarBusy(false);

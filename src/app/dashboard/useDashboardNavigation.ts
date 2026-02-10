@@ -3,6 +3,10 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { isProtectedPath, pathToView, viewToPath, type AppView } from "../lib/routing";
 import { parseSettingsTab, type PendingHighlight, type SettingsTab } from "./types";
 import type { ProjectData, ProjectDraftData } from "../types";
+import {
+  readPersistedDashboardWorkspaceSlug,
+  writeDashboardWorkspaceSlug,
+} from "./storage";
 
 type UseDashboardNavigationArgs = {
   preloadSearchPopup: () => void;
@@ -11,7 +15,6 @@ type UseDashboardNavigationArgs = {
   preloadSettingsPopup: () => void;
 };
 
-const ACTIVE_WORKSPACE_SLUG_STORAGE_KEY = "dashboard.activeWorkspaceSlug";
 const WORKSPACE_SLUG_QUERY_KEY = "workspace";
 
 const isValidWorkspaceSlug = (value: string): boolean => /^[a-z0-9-]+$/.test(value);
@@ -22,16 +25,7 @@ const readPersistedWorkspaceSlug = (searchParams: URLSearchParams): string | nul
     return fromQuery;
   }
 
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const fromStorage = window.localStorage.getItem(ACTIVE_WORKSPACE_SLUG_STORAGE_KEY)?.trim();
-  if (fromStorage && isValidWorkspaceSlug(fromStorage)) {
-    return fromStorage;
-  }
-
-  return null;
+  return readPersistedDashboardWorkspaceSlug();
 };
 
 export type DashboardNavigationState = {
@@ -97,14 +91,7 @@ export const useDashboardNavigation = ({
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (activeWorkspaceSlug) {
-      window.localStorage.setItem(ACTIVE_WORKSPACE_SLUG_STORAGE_KEY, activeWorkspaceSlug);
-      return;
-    }
-    window.localStorage.removeItem(ACTIVE_WORKSPACE_SLUG_STORAGE_KEY);
+    writeDashboardWorkspaceSlug(activeWorkspaceSlug);
   }, [activeWorkspaceSlug]);
 
   const currentView = useMemo<AppView>(() => {

@@ -17,8 +17,8 @@ vi.mock("convex/react", () => ({
 describe("useDashboardApiHandlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useActionMock.mockImplementation((ref: unknown) => ({ kind: "action", ref }));
-    useMutationMock.mockImplementation((ref: unknown) => ({ kind: "mutation", ref }));
+    useActionMock.mockReturnValue({ kind: "action" });
+    useMutationMock.mockReturnValue({ kind: "mutation" });
   });
 
   test("maps convex action/mutation hooks into dashboard handlers", () => {
@@ -31,5 +31,14 @@ describe("useDashboardApiHandlers", () => {
     expect(result.current.createProjectMutation).toMatchObject({ kind: "mutation" });
     expect(result.current.ensureOrganizationLinkAction).toMatchObject({ kind: "action" });
     expect(result.current.softDeleteWorkspaceMutation).toMatchObject({ kind: "mutation" });
+  });
+
+  test("keeps handler object reference stable across rerenders", () => {
+    const { result, rerender } = renderHook(() => useDashboardApiHandlers());
+    const firstResult = result.current;
+
+    rerender();
+
+    expect(result.current).toBe(firstResult);
   });
 });

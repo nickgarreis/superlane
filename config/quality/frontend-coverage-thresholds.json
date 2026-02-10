@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "activePhase": "phase4",
+  "activePhase": "phase5",
   "phases": {
     "phase1": {
       "description": "Initial frontend quality baseline",
@@ -28,6 +28,13 @@
       "thresholds": {
         "linesPct": 55,
         "functionsPct": 60
+      }
+    },
+    "phase5": {
+      "description": "Wave 3 frontend quality ratchet",
+      "thresholds": {
+        "linesPct": 68,
+        "functionsPct": 66
       }
     }
   }

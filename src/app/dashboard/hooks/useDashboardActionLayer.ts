@@ -89,25 +89,37 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     handleCreateWorkspace,
   });
   const { handleUpdateProject } = projectActions;
+  const { file: fileCommands, project: projectCommands } = dashboardCommands;
+  const {
+    createProjectFile,
+    removeProjectFile,
+    downloadProjectFile,
+  } = fileCommands;
+  const {
+    archiveProject,
+    unarchiveProject,
+    deleteProject,
+    updateProjectStatus,
+  } = projectCommands;
 
   const mainContentFileActions = useMemo<MainContentFileActions>(
     () => ({
-      create: dashboardCommands.file.createProjectFile,
-      remove: dashboardCommands.file.removeProjectFile,
-      download: dashboardCommands.file.downloadProjectFile,
+      create: createProjectFile,
+      remove: removeProjectFile,
+      download: downloadProjectFile,
     }),
-    [dashboardCommands.file],
+    [createProjectFile, downloadProjectFile, removeProjectFile],
   );
 
   const createMainContentProjectActions = useCallback(
     (projectId: string): MainContentProjectActions => ({
-      archive: dashboardCommands.project.archiveProject,
-      unarchive: dashboardCommands.project.unarchiveProject,
-      remove: dashboardCommands.project.deleteProject,
-      updateStatus: dashboardCommands.project.updateProjectStatus,
+      archive: archiveProject,
+      unarchive: unarchiveProject,
+      remove: deleteProject,
+      updateStatus: updateProjectStatus,
       updateProject: (payload) => handleUpdateProject(projectId, payload),
     }),
-    [dashboardCommands.project, handleUpdateProject],
+    [archiveProject, deleteProject, handleUpdateProject, unarchiveProject, updateProjectStatus],
   );
 
   const baseMainContentNavigationActions = useMemo<MainContentNavigationActions>(

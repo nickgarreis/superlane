@@ -1,5 +1,14 @@
 export type MentionEntityType = "task" | "file" | "user";
 
+export type MentionItem = {
+  type: MentionEntityType;
+  id: string;
+  label: string;
+  meta?: string;
+  completed?: boolean;
+  avatar?: string;
+};
+
 export type MentionToken = {
   type: MentionEntityType;
   label: string;

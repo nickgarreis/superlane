@@ -16,23 +16,15 @@ import {
   setCursorAtOffset,
 } from "./mentions/mentionDom";
 import {
-  parseMentionToken,
   valueToHTML,
 } from "./mentions/mentionParser";
-import { type MentionEntityType } from "./mentions/types";
+import { type MentionEntityType, type MentionItem } from "./mentions/types";
+import { resolveMentionTrigger } from "./mentions/detectMention";
+import { handleMentionClick } from "./mentions/handleMentionClick";
 import { useDropdownPosition } from "./mentions/useDropdownPosition";
 import { MentionDropdown } from "./mentions/MentionDropdown";
 import { renderCommentContent } from "./mentions/renderCommentContent";
 import { useMentionDropdownState } from "./mentions/useMentionDropdownState";
-
-export interface MentionItem {
-  type: MentionEntityType;
-  id: string;
-  label: string;
-  meta?: string;
-  completed?: boolean;
-  avatar?: string;
-}
 
 interface MentionTextareaProps {
   value: string;
@@ -84,27 +76,11 @@ export const MentionTextarea = forwardRef<
 
   const handleEditorClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (!onMentionClick) {
-        return;
-      }
-
-      let target = event.target as HTMLElement | null;
-      while (target && target !== editorRef.current) {
-        if (target.dataset?.mention) {
-          const token = parseMentionToken(target.dataset.mention);
-          if (token) {
-            event.preventDefault();
-            event.stopPropagation();
-            target.classList.remove("mention-badge-pulse");
-            void target.offsetWidth;
-            target.classList.add("mention-badge-pulse");
-            onMentionClick(token.type, token.label);
-          }
-          return;
-        }
-
-        target = target.parentElement;
-      }
+      handleMentionClick({
+        event,
+        rootElement: editorRef.current,
+        onMentionClick,
+      });
     },
     [onMentionClick],
   );
@@ -172,28 +148,6 @@ export const MentionTextarea = forwardRef<
     showDropdown && filteredItems.length > 0,
   );
 
-  const detectMention = useCallback((text: string, cursorPos: number) => {
-    const textBeforeCursor = text.slice(0, cursorPos);
-    const atIndex = textBeforeCursor.lastIndexOf("@");
-
-    if (atIndex === -1 || (atIndex > 0 && !/\s/.test(textBeforeCursor[atIndex - 1]))) {
-      setShowDropdown(false);
-      setMentionStartPos(null);
-      return;
-    }
-
-    const query = textBeforeCursor.slice(atIndex + 1);
-    if (query.includes("\n")) {
-      setShowDropdown(false);
-      setMentionStartPos(null);
-      return;
-    }
-
-    setMentionQuery(query);
-    setMentionStartPos(atIndex);
-    setShowDropdown(true);
-  }, []);
-
   const handleInput = useCallback(() => {
     const editorElement = editorRef.current;
     if (!editorElement || isComposing.current) {
@@ -205,8 +159,17 @@ export const MentionTextarea = forwardRef<
     onChange(text);
 
     const cursorOffset = getCursorOffset(editorElement);
-    detectMention(text, cursorOffset);
-  }, [detectMention, onChange]);
+    const trigger = resolveMentionTrigger(text, cursorOffset);
+    if (!trigger) {
+      setShowDropdown(false);
+      setMentionStartPos(null);
+      return;
+    }
+
+    setMentionQuery(trigger.query);
+    setMentionStartPos(trigger.start);
+    setShowDropdown(true);
+  }, [onChange]);
 
   const handleSelect = useCallback((item: MentionItem) => {
     if (mentionStartPos == null) {
@@ -380,3 +343,4 @@ export const MentionTextarea = forwardRef<
   );
 });
 export { renderCommentContent };
+export type { MentionItem };

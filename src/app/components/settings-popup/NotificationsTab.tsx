@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "../../../lib/utils";
+import { reportUiError } from "../../lib/errors";
 import type { NotificationSettingsData } from "./types";
 
 type ToggleRowProps = {
@@ -64,7 +65,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
       await onSave(state);
       toast.success("Notification preferences updated");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.notifications.save", error, { showToast: false });
       toast.error("Failed to update notification preferences");
     } finally {
       setSaving(false);

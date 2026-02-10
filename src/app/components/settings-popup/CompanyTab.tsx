@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Camera, Check } from "lucide-react";
 import { toast } from "sonner";
 import type { Workspace } from "../../types";
+import { reportUiError } from "../../lib/errors";
 import type {
   CompanySettingsData,
 } from "./types";
@@ -94,7 +95,7 @@ export function CompanyTab({
         setNameSaveStatus("saved");
         setTimeout(() => setNameSaveStatus("idle"), 1500);
       } catch (error) {
-        console.error(error);
+        reportUiError("settings.company.updateName", error, { showToast: false });
         toast.error("Failed to update workspace name");
         setNameSaveStatus("idle");
       }
@@ -152,7 +153,7 @@ export function CompanyTab({
       await onUploadWorkspaceLogo(file);
       toast.success("Workspace logo updated");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.company.uploadLogo", error, { showToast: false });
       toast.error("Failed to update workspace logo");
     } finally {
       setLogoBusy(false);
@@ -173,7 +174,7 @@ export function CompanyTab({
       await onSoftDeleteWorkspace();
       toast.success("Workspace deleted");
     } catch (error) {
-      console.error(error);
+      reportUiError("settings.company.deleteWorkspace", error, { showToast: false });
       toast.error("Failed to delete workspace");
     } finally {
       setDeletingWorkspace(false);

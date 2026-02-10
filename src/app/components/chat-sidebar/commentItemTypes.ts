@@ -1,6 +1,6 @@
 import type { CSSProperties, FormEvent } from "react";
 import type { CollaborationComment } from "../../types";
-import type { MentionItem as MentionItemType } from "../MentionTextarea";
+import type { MentionItem as MentionItemType } from "../mentions/types";
 
 export interface CommentItemViewProps {
   comment: CollaborationComment;

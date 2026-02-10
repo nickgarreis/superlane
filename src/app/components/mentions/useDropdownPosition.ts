@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 
 type DropdownPosition = {
   top?: number;
@@ -65,6 +66,10 @@ export function useDropdownPosition(
     });
   }, [cancelScheduledMeasure, isOpen, measureNow]);
 
+  const handleViewportChange = useCallback(() => {
+    scheduleMeasure();
+  }, [scheduleMeasure]);
+
   useLayoutEffect(() => {
     if (!isOpen) {
       cancelScheduledMeasure();
@@ -75,20 +80,31 @@ export function useDropdownPosition(
     measureNow();
   }, [cancelScheduledMeasure, isOpen, measureNow]);
 
+  const windowTarget = typeof window === "undefined" ? null : window;
+
+  useGlobalEventListener({
+    target: windowTarget,
+    type: "scroll",
+    listener: handleViewportChange,
+    options: { capture: true, passive: true },
+    enabled: isOpen,
+  });
+
+  useGlobalEventListener({
+    target: windowTarget,
+    type: "resize",
+    listener: handleViewportChange,
+    options: { passive: true },
+    enabled: isOpen,
+  });
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
     scheduleMeasure();
-
-    const handleViewportChange = () => scheduleMeasure();
-    window.addEventListener("scroll", handleViewportChange, true);
-    window.addEventListener("resize", handleViewportChange);
-
     return () => {
-      window.removeEventListener("scroll", handleViewportChange, true);
-      window.removeEventListener("resize", handleViewportChange);
       cancelScheduledMeasure();
     };
   }, [cancelScheduledMeasure, isOpen, scheduleMeasure]);

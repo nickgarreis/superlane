@@ -63,7 +63,7 @@ type DashboardContentProps = {
   openCreateProject: () => void;
 };
 
-export function DashboardContent({
+export const DashboardContent = React.memo(function DashboardContent({
   contentModel,
   handleToggleSidebar,
   isSidebarOpen,
@@ -167,4 +167,6 @@ export function DashboardContent({
       </div>
     </div>
   );
-}
+});
+
+DashboardContent.displayName = "DashboardContent";

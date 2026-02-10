@@ -1,5 +1,6 @@
 import React from "react";
-import { MentionTextarea, MentionItem as MentionItemType } from "../MentionTextarea";
+import { MentionTextarea } from "../MentionTextarea";
+import type { MentionItem as MentionItemType } from "../mentions/types";
 
 type EditComposerProps = {
   commentId: string;

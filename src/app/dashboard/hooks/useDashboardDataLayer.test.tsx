@@ -226,4 +226,15 @@ describe("useDashboardDataLayer", () => {
     });
     expect(useDashboardLifecycleEffectsMock).toHaveBeenCalledTimes(1);
   });
+
+  test("keeps workspace action callbacks stable across rerenders", () => {
+    const { result, rerender } = renderHook(() => useDashboardDataLayer());
+    const initialHandleSwitchWorkspace = result.current.handleSwitchWorkspace;
+    const initialHandleCreateWorkspace = result.current.handleCreateWorkspace;
+
+    rerender();
+
+    expect(result.current.handleSwitchWorkspace).toBe(initialHandleSwitchWorkspace);
+    expect(result.current.handleCreateWorkspace).toBe(initialHandleCreateWorkspace);
+  });
 });
