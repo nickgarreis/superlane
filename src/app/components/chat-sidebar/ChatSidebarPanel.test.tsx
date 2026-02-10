@@ -176,11 +176,19 @@ describe("ChatSidebar reactions", () => {
     );
 
     expect(screen.queryByText("Resolved comment")).toBeNull();
+    const resolvedThreadsToggle = screen.getByRole("button", {
+      name: /expand resolved threads/i,
+    });
+    expect(resolvedThreadsToggle).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.click(screen.getByRole("button", { name: /1 resolved thread/i }));
+    fireEvent.click(resolvedThreadsToggle);
 
     await waitFor(() => {
       expect(screen.getByText("Resolved comment")).toBeInTheDocument();
     });
+
+    expect(
+      screen.getByRole("button", { name: /collapse resolved threads/i }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 });

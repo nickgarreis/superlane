@@ -26,8 +26,8 @@
     "phase4": {
       "description": "Post-remediation stricter frontend coverage gate",
       "thresholds": {
-        "linesPct": 40,
-        "functionsPct": 50
+        "linesPct": 55,
+        "functionsPct": 60
       }
     }
   }

@@ -5,6 +5,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember } from "../../types";
 import type { AppView } from "../../lib/routing";
 import { formatTaskDueDate } from "../../lib/dates";
+import { reportUiError } from "../../lib/errors";
 import {
   MentionItem as MentionItemType,
 } from "../MentionTextarea";
@@ -201,7 +202,7 @@ export function ChatSidebar({
           );
         })
         .catch((error) => {
-          console.error(error);
+          reportUiError("chatSidebar.addComment", error, { showToast: false });
         });
     },
     [inputValue, activeProject.id, createCommentMutation, setInputValue]
@@ -227,7 +228,7 @@ export function ChatSidebar({
           setReplyValue("");
         })
         .catch((error) => {
-          console.error(error);
+          reportUiError("chatSidebar.replyComment", error, { showToast: false });
         });
     },
     [
@@ -243,7 +244,7 @@ export function ChatSidebar({
   const handleResolve = useCallback(
     (commentId: string) => {
       void toggleResolvedMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
-        console.error(error);
+        reportUiError("chatSidebar.toggleResolved", error, { showToast: false });
       });
     },
     [toggleResolvedMutation]
@@ -262,7 +263,7 @@ export function ChatSidebar({
           setEditValue("");
         })
         .catch((error) => {
-          console.error(error);
+          reportUiError("chatSidebar.editComment", error, { showToast: false });
         });
     },
     [editValue, updateCommentMutation, setEditingComment, setEditValue]
@@ -271,7 +272,7 @@ export function ChatSidebar({
   const handleDeleteComment = useCallback(
     (commentId: string) => {
       void removeCommentMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
-        console.error(error);
+        reportUiError("chatSidebar.deleteComment", error, { showToast: false });
       });
     },
     [removeCommentMutation]
@@ -287,7 +288,7 @@ export function ChatSidebar({
           setActiveReactionPicker(null);
         })
         .catch((error) => {
-          console.error(error);
+          reportUiError("chatSidebar.toggleReaction", error, { showToast: false });
         });
     },
     [toggleReactionMutation, setActiveReactionPicker]

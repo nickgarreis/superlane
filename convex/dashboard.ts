@@ -28,6 +28,7 @@ const buildProvisioningSnapshot = (authUser: {
     activeWorkspaceSlug: null,
     projects: [],
     tasks: [],
+    workspaceMembers: [],
   };
 };
 
@@ -36,6 +37,16 @@ const resolveAvatarUrl = async (ctx: any, appUser: any) => {
     return (await ctx.storage.getUrl(appUser.avatarStorageId)) ?? null;
   }
   return appUser.avatarUrl ?? null;
+};
+
+type SnapshotWorkspaceMember = {
+  userId: string;
+  workosUserId: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  role: "owner" | "admin" | "member";
+  isViewer: boolean;
 };
 
 export const getSnapshot = query({
@@ -92,6 +103,45 @@ export const getSnapshot = query({
       : undefined;
 
     const activeWorkspace = desiredWorkspace ?? workspaces[0] ?? null;
+
+    let workspaceMembers: SnapshotWorkspaceMember[] = [];
+    if (activeWorkspace) {
+      const workspaceMemberships = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", activeWorkspace._id))
+        .collect();
+      const activeWorkspaceMemberships = workspaceMemberships.filter(
+        (membership: any) => membership.status === "active",
+      );
+      const members = await Promise.all(
+        activeWorkspaceMemberships.map(async (membership) => {
+          const memberUser = await ctx.db.get(membership.userId);
+          if (!memberUser) {
+            return null;
+          }
+
+          return {
+            userId: String(memberUser._id),
+            workosUserId: memberUser.workosUserId,
+            name: memberUser.name,
+            email: memberUser.email ?? "",
+            avatarUrl: await resolveAvatarUrl(ctx, memberUser),
+            role: membership.role,
+            isViewer: String(memberUser._id) === String(appUser._id),
+          } satisfies SnapshotWorkspaceMember;
+        }),
+      );
+
+      workspaceMembers = members
+        .filter(
+          (member): member is SnapshotWorkspaceMember => member !== null,
+        )
+        .sort((a, b) => {
+          if (a.isViewer && !b.isViewer) return -1;
+          if (!a.isViewer && b.isViewer) return 1;
+          return a.name.localeCompare(b.name);
+        });
+    }
 
     const projects = activeWorkspace
       ? await ctx.db
@@ -168,6 +218,7 @@ export const getSnapshot = query({
       activeWorkspaceSlug: activeWorkspace?.slug ?? null,
       projects: projectsWithCreators,
       tasks: visibleTasks,
+      workspaceMembers,
     };
   },
 });

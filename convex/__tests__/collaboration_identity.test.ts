@@ -244,5 +244,18 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
     expect(snapshot.projects[0].creator.userId).toBe(String(workspace.ownerUserId));
     expect(snapshot.projects[0].creator.name).toBe("Owner User");
     expect(snapshot.projects[0].creator.avatarUrl).toBe("https://example.com/owner-avatar.png");
+    expect(snapshot.workspaceMembers).toHaveLength(3);
+    expect(snapshot.workspaceMembers[0].userId).toBe(String(workspace.ownerUserId));
+    expect(snapshot.workspaceMembers[0].isViewer).toBe(true);
+    const memberNames = snapshot.workspaceMembers.slice(1).map((member: any) => member.name);
+    expect(memberNames).toEqual(["Admin User", "Member User"]);
+    expect(
+      snapshot.workspaceMembers.find((member: any) => member.userId === String(workspace.ownerUserId)),
+    ).toEqual(
+      expect.objectContaining({
+        email: "owner@example.com",
+        role: "owner",
+      }),
+    );
   });
 });

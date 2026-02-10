@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { pathToView, viewToPath } from "../../lib/routing";
 import { scheduleIdlePrefetch } from "../../lib/prefetch";
+import { reportUiError } from "../../lib/errors";
 import type { ProjectData } from "../../types";
 
 type DashboardSnapshotLike = {
@@ -63,7 +64,9 @@ export const useDashboardLifecycleEffects = ({
         setActiveWorkspaceSlug(result.slug);
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.ensureDefaultWorkspace", error, {
+          showToast: false,
+        });
         toast.error("Failed to create your default workspace");
       });
   }, [snapshot, ensureDefaultWorkspace, setActiveWorkspaceSlug]);
@@ -163,7 +166,9 @@ export const useDashboardLifecycleEffects = ({
         }
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.ensureOrganizationLink", error, {
+          showToast: false,
+        });
         toast.error("Failed to link workspace organization");
       });
   }, [

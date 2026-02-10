@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
+import { logError } from "./lib/logging";
 
 const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 
@@ -234,7 +235,10 @@ export const create = mutation({
         isReply: Boolean(args.parentCommentId),
       });
     } catch (error) {
-      console.error("[comments.create] Failed to schedule team activity email notification", error);
+      logError("comments.create", "Failed to schedule team activity email notification", {
+        error,
+        projectPublicId: project.publicId,
+      });
     }
 
     return { commentId };

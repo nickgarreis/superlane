@@ -108,9 +108,13 @@ export const useDashboardData = ({
       : "skip",
   );
 
+  const hasSnapshotWorkspaceMembers = Array.isArray(snapshot?.workspaceMembers);
   const workspaceMembersResult = useQuery(
     api.collaboration.listWorkspaceMembers,
-    isAuthenticated && resolvedWorkspaceSlug
+    isAuthenticated
+      && resolvedWorkspaceSlug
+      && snapshot !== undefined
+      && !hasSnapshotWorkspaceMembers
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
@@ -125,8 +129,13 @@ export const useDashboardData = ({
   }, [snapshot, activeWorkspaceSlug, setActiveWorkspaceSlug]);
 
   const workspaceMembers = useMemo<WorkspaceMember[]>(
-    () => workspaceMembersResult?.members ?? [],
-    [workspaceMembersResult],
+    () => {
+      if (hasSnapshotWorkspaceMembers) {
+        return (snapshot?.workspaceMembers ?? []) as WorkspaceMember[];
+      }
+      return workspaceMembersResult?.members ?? [];
+    },
+    [hasSnapshotWorkspaceMembers, snapshot?.workspaceMembers, workspaceMembersResult],
   );
 
   const viewerMembership = useMemo(

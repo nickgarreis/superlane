@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { requireWorkspaceRole } from "./lib/auth";
+import { logError } from "./lib/logging";
 import { normalizeNotificationEvents } from "./lib/notificationPreferences";
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -158,7 +159,7 @@ const sendForToggle = async (
       queuedRecipients += 1;
     } catch (error) {
       failedRecipients += 1;
-      console.error("[notifications email] failed to enqueue", {
+      logError("notificationsEmail.sendForToggle", "Failed to enqueue email", {
         recipientUserId: recipient.userId,
         toggle: args.toggle,
         error,

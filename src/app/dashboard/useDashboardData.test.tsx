@@ -45,6 +45,7 @@ describe("useDashboardData", () => {
 
   test("maps snapshot data, derives viewer identity, and syncs workspace slug", async () => {
     const args = createBaseArgs();
+    const queryArgs: unknown[] = [];
 
     const snapshot = {
       activeWorkspaceSlug: "alpha",
@@ -57,6 +58,17 @@ describe("useDashboardData", () => {
       },
       workspaces: [
         { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+      ],
+      workspaceMembers: [
+        {
+          userId: "member-1",
+          workosUserId: "workos-member-1",
+          name: "Snapshot Member",
+          email: "member@example.com",
+          avatarUrl: null,
+          role: "owner",
+          isViewer: true,
+        },
       ],
       projects: [
         {
@@ -91,36 +103,29 @@ describe("useDashboardData", () => {
       },
     ];
 
-    const workspaceMembers = {
-      members: [
-        {
-          userId: "member-1",
-          workosUserId: "workos-member-1",
-          name: "Member Viewer",
-          email: "member@example.com",
-          avatarUrl: null,
-          role: "owner",
-          isViewer: true,
-        },
-      ],
-    };
+    const queryResults = [
+      snapshot,
+      workspaceFiles,
+      {},
+      { events: { eventNotifications: true, teamActivities: true, productUpdates: true } },
+      {},
+      undefined,
+    ];
 
-    useQueryMock
-      .mockReturnValueOnce(snapshot)
-      .mockReturnValueOnce(workspaceFiles)
-      .mockReturnValueOnce({})
-      .mockReturnValueOnce({ events: { eventNotifications: true, teamActivities: true, productUpdates: true } })
-      .mockReturnValueOnce({})
-      .mockReturnValueOnce(workspaceMembers);
+    useQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
+      queryArgs.push(queryArg);
+      return queryResults[queryArgs.length - 1];
+    });
 
     const { result } = renderHook(() => useDashboardData(args));
 
     expect(result.current.resolvedWorkspaceSlug).toBe("alpha");
-    expect(result.current.viewerIdentity.name).toBe("Member Viewer");
+    expect(result.current.viewerIdentity.name).toBe("Snapshot Member");
     expect(result.current.activeWorkspace?.slug).toBe("alpha");
     expect(result.current.visibleProjects["project-1"]?.name).toBe("Project One");
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
+    expect(queryArgs[5]).toBe("skip");
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith("alpha");
@@ -153,5 +158,51 @@ describe("useDashboardData", () => {
     renderHook(() => useDashboardData(args));
 
     expect(callArgs[1]).toBe("skip");
+  });
+
+  test("falls back to workspace members query when snapshot has no members payload", () => {
+    const callArgs: unknown[] = [];
+
+    useQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
+      callArgs.push(queryArg);
+      if (callArgs.length === 1) {
+        return {
+          activeWorkspaceSlug: "alpha",
+          viewer: {
+            id: "viewer-1",
+            workosUserId: "workos-1",
+            name: "Snapshot User",
+            email: "snapshot@example.com",
+            avatarUrl: null,
+          },
+          workspaces: [
+            { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+          ],
+          projects: [],
+          tasks: [],
+        };
+      }
+      if (callArgs.length === 6) {
+        return {
+          members: [
+            {
+              userId: "fallback-member",
+              workosUserId: "fallback-workos",
+              name: "Fallback Member",
+              email: "fallback@example.com",
+              avatarUrl: null,
+              role: "owner",
+              isViewer: true,
+            },
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    const { result } = renderHook(() => useDashboardData(createBaseArgs()));
+
+    expect(callArgs[5]).toEqual({ workspaceSlug: "alpha" });
+    expect(result.current.viewerIdentity.name).toBe("Fallback Member");
   });
 });

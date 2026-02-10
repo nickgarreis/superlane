@@ -4,6 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { authKit } from "./auth";
 import { requireAuthUser, requireWorkspaceMember, requireWorkspaceRole } from "./lib/auth";
+import { logError } from "./lib/logging";
 import { hasActiveOrganizationMembershipForWorkspace } from "./lib/workosOrganization";
 
 const workosMembershipStatusValidator = v.union(
@@ -130,7 +131,7 @@ const rollbackOrganizationProvisioning = async (
   try {
     await authKit.workos.organizations.deleteOrganization(organizationId);
   } catch (rollbackError) {
-    console.error("Failed to rollback WorkOS organization provisioning", {
+    logError("workspaces.rollbackOrganizationProvisioning", "Failed to rollback WorkOS organization provisioning", {
       organizationId,
       rollbackError,
       ...context,

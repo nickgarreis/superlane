@@ -11,6 +11,7 @@ import {
   inferFileTypeFromName,
 } from "./lib/filePolicy";
 import { api, internal } from "./_generated/api";
+import { logError, logInfo } from "./lib/logging";
 import { DEFAULT_NOTIFICATION_EVENTS, normalizeNotificationEvents } from "./lib/notificationPreferences";
 
 const TWO_MB_IN_BYTES = 2 * 1024 * 1024;
@@ -979,7 +980,7 @@ export const updateAccountProfile = action({
         email: nextEmail,
       });
     } catch (error) {
-      console.error("Failed to apply local account profile update after WorkOS update", {
+      logError("settings.updateAccountProfile", "Failed to apply local account profile update after WorkOS update", {
         userId: String(authContext.userId),
         workosUserId: authContext.workosUserId,
         error,
@@ -993,7 +994,7 @@ export const updateAccountProfile = action({
           email: previousWorkosProfile.email,
         });
       } catch (rollbackError) {
-        console.error("Failed to rollback WorkOS account profile after local update failure", {
+        logError("settings.updateAccountProfile", "Failed to rollback WorkOS account profile after local update failure", {
           userId: String(authContext.userId),
           workosUserId: authContext.workosUserId,
           rollbackError,
@@ -1157,7 +1158,7 @@ export const removeWorkspaceMember = action({
         userId: removalContext.targetUserId,
       });
     } catch (error) {
-      console.error("Failed to remove workspace member locally after WorkOS membership deletion", {
+      logError("settings.removeWorkspaceMember", "Failed to remove workspace member locally after WorkOS membership deletion", {
         workspaceSlug: removalContext.workspaceSlug,
         targetUserId: String(removalContext.targetUserId),
         organizationMembershipId: removalContext.organizationMembershipId,
@@ -1171,7 +1172,7 @@ export const removeWorkspaceMember = action({
           roleSlug: removalContext.targetRole,
         });
       } catch (rollbackError) {
-        console.error("Failed to rollback WorkOS membership deletion", {
+        logError("settings.removeWorkspaceMember", "Failed to rollback WorkOS membership deletion", {
           workspaceSlug: removalContext.workspaceSlug,
           targetUserId: String(removalContext.targetUserId),
           organizationMembershipId: removalContext.organizationMembershipId,
@@ -1182,12 +1183,12 @@ export const removeWorkspaceMember = action({
           await ctx.scheduler.runAfter(0, api.organizationSync.reconcileWorkspaceOrganizationMemberships, {
             workspaceSlug: removalContext.workspaceSlug,
           });
-          console.error("Enqueued durable organization membership reconciliation job", {
+          logInfo("settings.removeWorkspaceMember", "Enqueued durable organization membership reconciliation job", {
             workspaceSlug: removalContext.workspaceSlug,
             targetUserId: String(removalContext.targetUserId),
           });
         } catch (scheduleError) {
-          console.error("Failed to enqueue organization membership reconciliation job", {
+          logError("settings.removeWorkspaceMember", "Failed to enqueue organization membership reconciliation job", {
             workspaceSlug: removalContext.workspaceSlug,
             targetUserId: String(removalContext.targetUserId),
             scheduleError,

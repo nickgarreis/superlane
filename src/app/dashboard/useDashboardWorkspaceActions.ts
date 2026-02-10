@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
+import { reportUiError } from "../lib/errors";
 import type { AppView } from "../lib/routing";
 import { prepareUpload } from "./lib/uploadPipeline";
 import type {
@@ -97,10 +98,10 @@ export const useDashboardWorkspaceActions = ({
 
       settlements.forEach((settlement, index) => {
         if (settlement.status === "rejected") {
-          console.error(
-            `[workspace settings reconciliation] ${actionLabels[index]} failed`,
-            settlement.reason,
-          );
+          reportUiError("workspace.settings.reconciliation", settlement.reason, {
+            showToast: false,
+            details: { action: actionLabels[index], workspaceSlug },
+          });
         }
       });
     },
@@ -199,7 +200,10 @@ export const useDashboardWorkspaceActions = ({
           try {
             await uploadWorkspaceLogoForSlug(createdWorkspace.slug, payload.logoFile);
           } catch (logoError) {
-            console.error(logoError);
+            reportUiError("workspace.create.logoUpload", logoError, {
+              showToast: false,
+              details: { workspaceSlug: createdWorkspace.slug },
+            });
             toast.error("Workspace created, but logo upload failed");
           }
         }
@@ -209,7 +213,7 @@ export const useDashboardWorkspaceActions = ({
         closeCreateWorkspace();
         toast.success("Workspace created");
       } catch (error) {
-        console.error(error);
+        reportUiError("workspace.create", error, { showToast: false });
         toast.error("Failed to create workspace");
         throw error;
       }
@@ -388,7 +392,10 @@ export const useDashboardWorkspaceActions = ({
       navigateToPath("/tasks");
     } catch (error) {
       setActiveWorkspaceSlug(resolvedWorkspaceSlug);
-      console.error(error);
+      reportUiError("workspace.softDelete", error, {
+        showToast: false,
+        details: { workspaceSlug: resolvedWorkspaceSlug },
+      });
       throw error;
     }
   }, [navigateToPath, resolvedWorkspaceSlug, setActiveWorkspaceSlug, softDeleteWorkspaceMutation]);

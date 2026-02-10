@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "activePhase": "phase1",
+  "phases": {
+    "phase1": {
+      "description": "Initial backend coverage gate",
+      "thresholds": {
+        "linesPct": 70,
+        "functionsPct": 70
+      }
+    }
+  }
+}

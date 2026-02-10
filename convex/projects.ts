@@ -11,6 +11,7 @@ import { ensureUniqueFileName, FILE_RETENTION_MS, inferFileTypeFromName, MAX_FIL
 import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
 import { assertFiniteEpochMs } from "./lib/dateNormalization";
+import { logError } from "./lib/logging";
 
 const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 
@@ -90,7 +91,12 @@ const scheduleProjectLifecycleNotification = async (
       nextStatus: args.nextStatus,
     });
   } catch (error) {
-    console.error("[projects] Failed to schedule lifecycle email notification", error);
+    logError("projects.lifecycleNotification", "Failed to schedule lifecycle email notification", {
+      error,
+      projectPublicId: args.projectPublicId,
+      nextStatus: args.nextStatus,
+      previousStatus: args.previousStatus,
+    });
   }
 };
 

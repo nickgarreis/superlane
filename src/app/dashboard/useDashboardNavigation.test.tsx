@@ -3,7 +3,7 @@
 import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useDashboardNavigation } from "./useDashboardNavigation";
 
 const buildWrapper = (initialEntry: string) => {
@@ -19,7 +19,50 @@ const baseArgs = () => ({
   preloadSettingsPopup: vi.fn(),
 });
 
+const storageState = new Map<string, string>();
+
+const localStorageMock = {
+  getItem: (key: string) => (storageState.has(key) ? storageState.get(key)! : null),
+  setItem: (key: string, value: string) => {
+    storageState.set(key, value);
+  },
+  removeItem: (key: string) => {
+    storageState.delete(key);
+  },
+};
+
+Object.defineProperty(window, "localStorage", {
+  value: localStorageMock,
+  configurable: true,
+});
+
 describe("useDashboardNavigation", () => {
+  beforeEach(() => {
+    storageState.clear();
+  });
+
+  test("initializes active workspace slug from query param before localStorage", () => {
+    window.localStorage.setItem("dashboard.activeWorkspaceSlug", "stored-workspace");
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/tasks?workspace=query-workspace"),
+    });
+
+    expect(result.current.activeWorkspaceSlug).toBe("query-workspace");
+  });
+
+  test("initializes active workspace slug from localStorage when query param is absent", () => {
+    window.localStorage.setItem("dashboard.activeWorkspaceSlug", "stored-workspace");
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/tasks"),
+    });
+
+    expect(result.current.activeWorkspaceSlug).toBe("stored-workspace");
+  });
+
   test("derives currentView/settingsTab from settings route with from param", () => {
     const args = baseArgs();
 

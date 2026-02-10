@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { api } from "../../../../convex/_generated/api";
 import type { ProjectFileTab } from "../../types";
+import { reportUiError } from "../../lib/errors";
 import { prepareUpload } from "../lib/uploadPipeline";
 import type {
   DashboardActionHandler,
@@ -76,7 +77,7 @@ export const useDashboardFileActions = ({
 
       toast.success(`Successfully uploaded ${file.name}`);
     })().catch((error) => {
-      console.error(error);
+      reportUiError("dashboard.file.create", error, { showToast: false });
       toast.error("Failed to upload file");
     });
   }, [
@@ -158,10 +159,9 @@ export const useDashboardFileActions = ({
           draftSessionId,
         });
       } catch (error) {
-        console.error("Failed to discard draft session uploads", {
-          error,
-          draftSessionId,
-          workspaceSlug,
+        reportUiError("dashboard.file.discardDraftSessionUploads", error, {
+          showToast: false,
+          details: { draftSessionId, workspaceSlug },
         });
         toast.error("Failed to discard draft uploads");
       }
@@ -179,7 +179,7 @@ export const useDashboardFileActions = ({
         }
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.file.remove", error, { showToast: false });
         toast.error("Failed to remove file");
       });
   }, [asProjectFileId, removeProjectFileMutation]);
@@ -192,9 +192,9 @@ export const useDashboardFileActions = ({
         .then((result) => {
           const downloadUrl = typeof result?.url === "string" ? result.url.trim() : "";
           if (!downloadUrl || !/^https?:\/\//i.test(downloadUrl)) {
-            console.error("Invalid download URL returned by api.files.getDownloadUrl", {
-              fileId,
-              result,
+            reportUiError("dashboard.file.download.invalidUrl", new Error("Invalid download URL"), {
+              showToast: false,
+              details: { fileId, result },
             });
             toast.error("Failed to download file");
             return;
@@ -202,7 +202,7 @@ export const useDashboardFileActions = ({
           window.open(downloadUrl, "_blank", "noopener,noreferrer");
         })
         .catch((error) => {
-          console.error(error);
+          reportUiError("dashboard.file.download", error, { showToast: false });
           toast.error("Failed to download file");
         });
     },

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
 import type { ViewerIdentity } from "../../types";
+import { reportUiError } from "../../lib/errors";
 import { parseSettingsTab, type PendingHighlight, type SettingsTab } from "../types";
 
 type SearchHighlight = { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string };
@@ -66,7 +67,9 @@ export const useDashboardPopupBindings = ({
     try {
       await signOut();
     } catch (error) {
-      console.error("Failed to sign out", error);
+      reportUiError("dashboard.signOut", error, {
+        userMessage: "Failed to sign out",
+      });
     }
   }, [signOut]);
 

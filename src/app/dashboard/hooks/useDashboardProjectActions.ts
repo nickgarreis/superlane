@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { api } from "../../../../convex/_generated/api";
 import { buildProjectPublicId } from "../../lib/id";
+import { reportUiError } from "../../lib/errors";
 import { parseProjectStatus } from "../../lib/status";
 import type { AppView } from "../../lib/routing";
 import type {
@@ -108,7 +109,7 @@ export const useDashboardProjectActions = ({
         toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project updated");
         return { publicId: updatedPublicId, mode: "update" };
       } catch (error) {
-        console.error(error);
+        reportUiError("dashboard.project.update", error, { showToast: false });
         toast.error("Failed to update project");
         throw error;
       }
@@ -143,7 +144,7 @@ export const useDashboardProjectActions = ({
       toast.success(normalizedStatus === "Draft" ? "Draft saved" : "Project created");
       return { publicId: createdPublicId, mode: "create" };
     } catch (error) {
-      console.error(error);
+      reportUiError("dashboard.project.create", error, { showToast: false });
       toast.error("Failed to create project");
       throw error;
     }
@@ -196,7 +197,7 @@ export const useDashboardProjectActions = ({
         toast.success("Project archived");
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.project.archive", error, { showToast: false });
         toast.error("Failed to archive project");
       });
   }, [archiveProjectMutation, navigateView, setHighlightedArchiveProjectId]);
@@ -210,7 +211,7 @@ export const useDashboardProjectActions = ({
         toast.success("Project unarchived");
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.project.unarchive", error, { showToast: false });
         toast.error("Failed to unarchive project");
       });
   }, [currentView, navigateView, unarchiveProjectMutation]);
@@ -236,7 +237,7 @@ export const useDashboardProjectActions = ({
         toast.success(isDraft ? "Draft deleted" : "Project deleted");
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.project.delete", error, { showToast: false });
         toast.error("Failed to delete project");
       });
   }, [currentView, navigateToPath, navigateView, projects, removeProjectMutation, visibleProjects]);
@@ -254,7 +255,7 @@ export const useDashboardProjectActions = ({
         }
       })
       .catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.project.status", error, { showToast: false });
         toast.error("Failed to update project status");
       });
   }, [setProjectStatusMutation]);
@@ -269,7 +270,7 @@ export const useDashboardProjectActions = ({
         toast.success("Project approved");
         navigateView(`project:${projectId}`);
       } catch (error) {
-        console.error(error);
+        reportUiError("dashboard.project.approveReview", error, { showToast: false });
         const errorMessage =
           error instanceof Error && error.message
             ? `Failed to approve project: ${error.message}`
@@ -300,7 +301,7 @@ export const useDashboardProjectActions = ({
           projectPublicId: id,
           tasks: cleanTasks,
         }).catch((error) => {
-          console.error(error);
+          reportUiError("dashboard.project.replaceTasks", error, { showToast: false });
           toast.error("Failed to update tasks");
         });
       }
@@ -326,7 +327,7 @@ export const useDashboardProjectActions = ({
 
       if (Object.keys(patch).length > 1) {
         void updateProjectMutation(patch).catch((error) => {
-          console.error(error);
+          reportUiError("dashboard.project.patch", error, { showToast: false });
           toast.error("Failed to update project");
         });
       }
@@ -362,7 +363,7 @@ export const useDashboardProjectActions = ({
         workspaceSlug: activeWorkspaceId,
         tasks: cleanTasks,
       }).catch((error) => {
-        console.error(error);
+        reportUiError("dashboard.workspace.replaceTasks", error, { showToast: false });
         toast.error("Failed to update tasks");
       });
     },

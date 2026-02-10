@@ -20,6 +20,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dateNormalization from "../lib/dateNormalization.js";
 import type * as lib_env from "../lib/env.js";
 import type * as lib_filePolicy from "../lib/filePolicy.js";
+import type * as lib_logging from "../lib/logging.js";
 import type * as lib_notificationPreferences from "../lib/notificationPreferences.js";
 import type * as lib_projectAttachments from "../lib/projectAttachments.js";
 import type * as lib_rbac from "../lib/rbac.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "lib/dateNormalization": typeof lib_dateNormalization;
   "lib/env": typeof lib_env;
   "lib/filePolicy": typeof lib_filePolicy;
+  "lib/logging": typeof lib_logging;
   "lib/notificationPreferences": typeof lib_notificationPreferences;
   "lib/projectAttachments": typeof lib_projectAttachments;
   "lib/rbac": typeof lib_rbac;
