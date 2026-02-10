@@ -19,7 +19,8 @@ const IDENTITIES = {
   owner: { subject: "owner-date-normalization-subject" },
 } as const;
 
-const now = () => Date.now();
+const FIXED_NOW_EPOCH_MS = Date.UTC(2026, 0, 15, 12, 0, 0, 0);
+const now = () => FIXED_NOW_EPOCH_MS;
 
 describe("P2.1 date normalization", () => {
   let t: ReturnType<typeof convexTest>;

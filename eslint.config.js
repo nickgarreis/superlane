@@ -47,7 +47,7 @@ export default [
     },
     rules: {
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       "curly": ["error", "multi-line"],
       "eqeqeq": ["error", "always", { null: "ignore" }],
       "no-debugger": "error",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, RotateCcw, X } from "lucide-react";
+import { ChevronDown, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { WorkspaceRole } from "../../types";
 import { cn } from "../../../lib/utils";
@@ -39,6 +39,7 @@ export function CompanyMembersSection({
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [isInviteRoleOpen, setIsInviteRoleOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [openRoleDropdown, setOpenRoleDropdown] = useState<string | null>(null);
   const memberManagementDeniedReason =
     getMemberManagementDeniedReason({
       role: viewerRole,
@@ -186,33 +187,57 @@ export function CompanyMembersSection({
                     </DeniedAction>
                   ) : (
                     <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
-                      <select
-                        value={member.role}
-                        onChange={(event) => {
-                          if (isMemberManagementDenied) {
-                            return;
-                          }
-                          const role = event.target.value as "admin" | "member";
-                          void onChangeMemberRole({ userId: member.userId, role })
-                            .then(() => toast.success("Member role updated"))
-                            .catch((error) => {
-                              console.error(error);
-                              toast.error("Failed to update member role");
-                            });
-                        }}
-                        disabled={isMemberManagementDenied}
-                        className="bg-white/5 border border-white/10 rounded-full px-3 py-1 text-[12px] text-[#E8E8E8] outline-none disabled:opacity-50"
-                      >
-                        <option value="member">member</option>
-                        <option value="admin">admin</option>
-                      </select>
+                      <div className="relative">
+                        {openRoleDropdown === member.userId && (
+                          <div className="fixed inset-0 z-10" onClick={() => setOpenRoleDropdown(null)} />
+                        )}
+                        <button
+                          onClick={() => {
+                            if (isMemberManagementDenied) return;
+                            setOpenRoleDropdown(openRoleDropdown === member.userId ? null : member.userId);
+                          }}
+                          disabled={isMemberManagementDenied}
+                          className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-[#E8E8E8]/70 hover:text-[#E8E8E8] rounded-md hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-transparent"
+                        >
+                          {member.role}
+                          <ChevronDown size={12} className="text-white/30" />
+                        </button>
+                        {openRoleDropdown === member.userId && (
+                          <div className="absolute right-0 top-full mt-1 w-[100px] bg-[#1A1A1C] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                            {(["member", "admin"] as const).map((role) => (
+                              <button
+                                key={role}
+                                onClick={() => {
+                                  setOpenRoleDropdown(null);
+                                  if (role === member.role) return;
+                                  void onChangeMemberRole({ userId: member.userId, role })
+                                    .then(() => toast.success("Member role updated"))
+                                    .catch((error) => {
+                                      console.error(error);
+                                      toast.error("Failed to update member role");
+                                    });
+                                }}
+                                className={cn(
+                                  "w-full px-3 py-1.5 text-left text-[12px] cursor-pointer transition-colors",
+                                  role === member.role
+                                    ? "text-[#E8E8E8] bg-white/5"
+                                    : "text-[#E8E8E8]/60 hover:bg-white/5 hover:text-[#E8E8E8]",
+                                )}
+                              >
+                                {role}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </DeniedAction>
                   )}
 
                   {member.role !== "owner" && (
                     <DeniedAction denied={isMemberManagementDenied} reason={memberManagementDeniedReason} tooltipAlign="right">
                       <button
-                        className="text-[12px] text-red-400/80 hover:text-red-400 transition-colors font-medium cursor-pointer disabled:opacity-50"
+                        title="Remove member"
+                        className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                         disabled={isMemberManagementDenied}
                         onClick={() => {
                           if (isMemberManagementDenied) {
@@ -226,7 +251,7 @@ export function CompanyMembersSection({
                             });
                         }}
                       >
-                        Remove
+                        <Trash2 size={14} />
                       </button>
                     </DeniedAction>
                   )}

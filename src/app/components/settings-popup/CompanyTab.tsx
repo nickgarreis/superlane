@@ -24,7 +24,6 @@ type CompanyTabProps = {
     logoText?: string;
   }) => Promise<void>;
   onUploadWorkspaceLogo: (file: File) => Promise<void>;
-  onRemoveWorkspaceLogo: () => Promise<void>;
   onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
   onChangeMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
   onRemoveMember: (payload: { userId: string }) => Promise<void>;
@@ -41,7 +40,6 @@ export function CompanyTab({
   loading,
   onUpdateWorkspaceGeneral,
   onUploadWorkspaceLogo,
-  onRemoveWorkspaceLogo,
   onInviteMember,
   onChangeMemberRole,
   onRemoveMember,
@@ -164,19 +162,6 @@ export function CompanyTab({
     }
   };
 
-  const handleRemoveLogo = async () => {
-    setLogoBusy(true);
-    try {
-      await onRemoveWorkspaceLogo();
-      toast.success("Workspace logo removed");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to remove workspace logo");
-    } finally {
-      setLogoBusy(false);
-    }
-  };
-
   const handleSoftDeleteWorkspace = async () => {
     const confirmed = window.confirm("Delete this workspace? This will immediately remove access for all members.");
     if (!confirmed) {
@@ -264,33 +249,9 @@ export function CompanyTab({
               />
             </DeniedAction>
           </div>
+
         </div>
 
-        <div className="flex items-center gap-2">
-          <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
-            <button
-              onClick={() => {
-                if (!canManageWorkspaceGeneral) {
-                  return;
-                }
-                logoFileInputRef.current?.click();
-              }}
-              disabled={!canManageWorkspaceGeneral || logoBusy}
-              className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-bg-base rounded-full text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-50"
-            >
-              Upload logo
-            </button>
-          </DeniedAction>
-          <DeniedAction denied={!canManageWorkspaceGeneral} reason={workspaceGeneralDeniedReason} tooltipAlign="left">
-            <button
-              onClick={handleRemoveLogo}
-              disabled={!company?.workspace.logo || !canManageWorkspaceGeneral || logoBusy}
-              className="cursor-pointer px-4 py-2 bg-white/5 text-[#E8E8E8] border border-white/10 rounded-full text-[13px] font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
-            >
-              Remove logo
-            </button>
-          </DeniedAction>
-        </div>
       </div>
 
       <div className="w-full h-px bg-white/5" />

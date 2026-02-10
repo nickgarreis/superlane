@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import type { AppView } from "../lib/routing";
 import type { ProjectData, ProjectDraftData, ProjectFileTab, ReviewComment, Task } from "../types";
 
@@ -20,6 +21,19 @@ export const parseSettingsTab = (value: string | null | undefined): SettingsTab 
   }
   return "Account";
 };
+
+export type DashboardMutationHandler<Ref extends FunctionReference<"mutation">> = (
+  args: FunctionArgs<Ref>,
+) => Promise<FunctionReturnType<Ref>>;
+
+export type DashboardActionHandler<Ref extends FunctionReference<"action">> = (
+  args: FunctionArgs<Ref>,
+) => Promise<FunctionReturnType<Ref>>;
+
+export type DashboardQueryInvoker = <Ref extends FunctionReference<"query">>(
+  query: Ref,
+  args: FunctionArgs<Ref>,
+) => Promise<FunctionReturnType<Ref>>;
 
 export interface MainContentProjectActions {
   archive?: (id: string) => void;

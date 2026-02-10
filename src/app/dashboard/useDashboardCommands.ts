@@ -67,7 +67,8 @@ export const useDashboardCommands = ({
   handleCreateWorkspace,
 }: UseDashboardCommandsArgs): DashboardCommands =>
   useMemo(
-    () => ({
+    () => {
+      const commands = {
       project: {
         createOrUpdateProject: handleCreateProject,
         editProject: handleEditProject,
@@ -97,7 +98,10 @@ export const useDashboardCommands = ({
         switchWorkspace: handleSwitchWorkspace,
         createWorkspace: handleCreateWorkspace,
       },
-    }),
+      } satisfies DashboardCommands;
+
+      return commands;
+    },
     [
       handleArchiveProject,
       handleCloseSettings,

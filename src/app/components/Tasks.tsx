@@ -41,6 +41,14 @@ export function Tasks({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
+  const normalizedSearchQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery],
+  );
+  const selectedProjectIds = useMemo(
+    () => new Set(filterProject),
+    [filterProject],
+  );
 
   const activeProjects = useMemo(
     () =>
@@ -66,22 +74,31 @@ export function Tasks({
   }, [activeProjectIds]);
 
   const filteredTasks = useMemo(
-    () =>
-      allTasks
-        .filter((task) => {
-          const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-          const matchesProject = filterProject.length > 0
-            ? Boolean(task.projectId && filterProject.includes(task.projectId))
-            : true;
+    () => {
+      const next: Task[] = [];
+      const hasProjectFilter = selectedProjectIds.size > 0;
 
-          return matchesSearch && matchesProject;
-        })
-        .sort((a, b) => {
-          if (sortBy === "name") return a.title.localeCompare(b.title);
-          if (sortBy === "status") return Number(a.completed) - Number(b.completed);
-          return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
-        }),
-    [allTasks, filterProject, searchQuery, sortBy],
+      for (const task of allTasks) {
+        const matchesSearch = normalizedSearchQuery.length === 0
+          || task.title.toLowerCase().includes(normalizedSearchQuery);
+        if (!matchesSearch) {
+          continue;
+        }
+
+        if (hasProjectFilter && (!task.projectId || !selectedProjectIds.has(task.projectId))) {
+          continue;
+        }
+
+        next.push(task);
+      }
+
+      return next.sort((a, b) => {
+        if (sortBy === "name") return a.title.localeCompare(b.title);
+        if (sortBy === "status") return Number(a.completed) - Number(b.completed);
+        return compareNullableEpochMsAsc(a.dueDateEpochMs, b.dueDateEpochMs);
+      });
+    },
+    [allTasks, normalizedSearchQuery, selectedProjectIds, sortBy],
   );
 
   const handleUpdateTasks = (newTasks: Task[]) => {

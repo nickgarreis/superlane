@@ -174,7 +174,6 @@ export default function DashboardShell() {
   const updateWorkspaceGeneralMutation = useMutation(api.settings.updateWorkspaceGeneral);
   const generateWorkspaceLogoUploadUrlMutation = useMutation(api.settings.generateWorkspaceLogoUploadUrl);
   const finalizeWorkspaceLogoUploadMutation = useMutation(api.settings.finalizeWorkspaceLogoUpload);
-  const removeWorkspaceLogoMutation = useMutation(api.settings.removeWorkspaceLogo);
   const generateBrandAssetUploadUrlMutation = useMutation(api.settings.generateBrandAssetUploadUrl);
   const finalizeBrandAssetUploadMutation = useMutation(api.settings.finalizeBrandAssetUpload);
   const removeBrandAssetMutation = useMutation(api.settings.removeBrandAsset);
@@ -353,7 +352,6 @@ export default function DashboardShell() {
     handleCreateWorkspaceSubmit,
     handleUpdateWorkspaceGeneral,
     handleUploadWorkspaceLogo,
-    handleRemoveWorkspaceLogo,
     handleInviteWorkspaceMember,
     handleChangeWorkspaceMemberRole,
     handleRemoveWorkspaceMember,
@@ -380,7 +378,6 @@ export default function DashboardShell() {
     updateWorkspaceGeneralMutation,
     generateWorkspaceLogoUploadUrlMutation,
     finalizeWorkspaceLogoUploadMutation,
-    removeWorkspaceLogoMutation,
     inviteWorkspaceMemberAction,
     resendWorkspaceInvitationAction,
     revokeWorkspaceInvitationAction,
@@ -670,7 +667,6 @@ export default function DashboardShell() {
               onSaveNotifications={dashboardCommands.settings.saveNotifications}
               onUpdateWorkspaceGeneral={handleUpdateWorkspaceGeneral}
               onUploadWorkspaceLogo={handleUploadWorkspaceLogo}
-              onRemoveWorkspaceLogo={handleRemoveWorkspaceLogo}
               onInviteMember={handleInviteWorkspaceMember}
               onChangeMemberRole={handleChangeWorkspaceMemberRole}
               onRemoveMember={handleRemoveWorkspaceMember}

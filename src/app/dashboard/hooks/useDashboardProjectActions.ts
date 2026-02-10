@@ -1,9 +1,16 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "../../../../convex/_generated/api";
 import { buildProjectPublicId } from "../../lib/id";
 import { parseProjectStatus } from "../../lib/status";
 import type { AppView } from "../../lib/routing";
-import type { CreateProjectPayload, CreateProjectResult, DashboardProjectActions } from "../types";
+import type {
+  CreateProjectPayload,
+  CreateProjectResult,
+  DashboardMutationHandler,
+  DashboardProjectActions,
+} from "../types";
 import type { ProjectData, ProjectDraftData, ReviewComment, Task, ViewerIdentity } from "../../types";
 
 type UseDashboardProjectActionsArgs = {
@@ -19,16 +26,16 @@ type UseDashboardProjectActionsArgs = {
   openCreateProject: () => void;
   navigateView: (view: AppView) => void;
   navigateToPath: (path: string) => void;
-  createProjectMutation: (args: any) => Promise<any>;
-  updateProjectMutation: (args: any) => Promise<any>;
-  archiveProjectMutation: (args: any) => Promise<any>;
-  unarchiveProjectMutation: (args: any) => Promise<any>;
-  removeProjectMutation: (args: any) => Promise<any>;
-  setProjectStatusMutation: (args: any) => Promise<any>;
-  updateReviewCommentsMutation: (args: any) => Promise<any>;
-  replaceProjectTasksMutation: (args: any) => Promise<any>;
-  replaceWorkspaceTasksMutation: (args: any) => Promise<any>;
-  asPendingUploadId: (value: string) => any;
+  createProjectMutation: DashboardMutationHandler<typeof api.projects.create>;
+  updateProjectMutation: DashboardMutationHandler<typeof api.projects.update>;
+  archiveProjectMutation: DashboardMutationHandler<typeof api.projects.archive>;
+  unarchiveProjectMutation: DashboardMutationHandler<typeof api.projects.unarchive>;
+  removeProjectMutation: DashboardMutationHandler<typeof api.projects.remove>;
+  setProjectStatusMutation: DashboardMutationHandler<typeof api.projects.setStatus>;
+  updateReviewCommentsMutation: DashboardMutationHandler<typeof api.projects.updateReviewComments>;
+  replaceProjectTasksMutation: DashboardMutationHandler<typeof api.tasks.replaceForProject>;
+  replaceWorkspaceTasksMutation: DashboardMutationHandler<typeof api.tasks.replaceForWorkspace>;
+  asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
 };
 

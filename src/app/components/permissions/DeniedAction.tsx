@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import React, { type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { cn } from "../../../lib/utils";
 
 type DeniedActionProps = {

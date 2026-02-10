@@ -1,6 +1,12 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "../../../convex/_generated/api";
 import type { AppView } from "../lib/routing";
+import type {
+  DashboardActionHandler,
+  DashboardMutationHandler,
+} from "./types";
 
 type CreateWorkspacePayload = {
   name: string;
@@ -14,55 +20,31 @@ type UseDashboardWorkspaceActionsArgs = {
   navigateToPath: (path: string) => void;
   navigateView: (view: AppView) => void;
   closeCreateWorkspace: () => void;
-  createWorkspaceMutation: (args: { name: string }) => Promise<{ slug: string }>;
-  reconcileWorkspaceInvitationsAction: (args: { workspaceSlug: string }) => Promise<any>;
-  reconcileWorkspaceOrganizationMembershipsAction: (args: {
-    workspaceSlug: string;
-  }) => Promise<any>;
-  updateAccountProfileAction: (args: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  }) => Promise<any>;
-  generateAvatarUploadUrlMutation: (args: Record<string, never>) => Promise<{ uploadUrl: string }>;
-  finalizeAvatarUploadMutation: (args: any) => Promise<any>;
-  removeAvatarMutation: (args: Record<string, never>) => Promise<any>;
-  saveNotificationPreferencesMutation: (args: {
-    channels: { email: boolean; desktop: boolean };
-    events: { productUpdates: boolean; teamActivity: boolean };
-  }) => Promise<any>;
-  updateWorkspaceGeneralMutation: (args: any) => Promise<any>;
-  generateWorkspaceLogoUploadUrlMutation: (args: {
-    workspaceSlug: string;
-  }) => Promise<{ uploadUrl: string }>;
-  finalizeWorkspaceLogoUploadMutation: (args: any) => Promise<any>;
-  removeWorkspaceLogoMutation: (args: { workspaceSlug: string }) => Promise<any>;
-  inviteWorkspaceMemberAction: (args: {
-    workspaceSlug: string;
-    email: string;
-    role: "admin" | "member";
-  }) => Promise<any>;
-  resendWorkspaceInvitationAction: (args: {
-    workspaceSlug: string;
-    invitationId: string;
-  }) => Promise<any>;
-  revokeWorkspaceInvitationAction: (args: {
-    workspaceSlug: string;
-    invitationId: string;
-  }) => Promise<any>;
-  changeWorkspaceMemberRoleAction: (args: any) => Promise<any>;
-  removeWorkspaceMemberAction: (args: any) => Promise<any>;
-  generateBrandAssetUploadUrlMutation: (args: {
-    workspaceSlug: string;
-  }) => Promise<{ uploadUrl: string }>;
-  finalizeBrandAssetUploadMutation: (args: any) => Promise<any>;
-  removeBrandAssetMutation: (args: any) => Promise<any>;
-  softDeleteWorkspaceMutation: (args: { workspaceSlug: string }) => Promise<any>;
+  createWorkspaceMutation: DashboardActionHandler<typeof api.workspaces.create>;
+  reconcileWorkspaceInvitationsAction: DashboardActionHandler<typeof api.settings.reconcileWorkspaceInvitations>;
+  reconcileWorkspaceOrganizationMembershipsAction: DashboardActionHandler<typeof api.organizationSync.reconcileWorkspaceOrganizationMemberships>;
+  updateAccountProfileAction: DashboardActionHandler<typeof api.settings.updateAccountProfile>;
+  generateAvatarUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateAvatarUploadUrl>;
+  finalizeAvatarUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeAvatarUpload>;
+  removeAvatarMutation: DashboardMutationHandler<typeof api.settings.removeAvatar>;
+  saveNotificationPreferencesMutation: DashboardMutationHandler<typeof api.settings.saveNotificationPreferences>;
+  updateWorkspaceGeneralMutation: DashboardMutationHandler<typeof api.settings.updateWorkspaceGeneral>;
+  generateWorkspaceLogoUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateWorkspaceLogoUploadUrl>;
+  finalizeWorkspaceLogoUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeWorkspaceLogoUpload>;
+  inviteWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.inviteWorkspaceMember>;
+  resendWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.resendWorkspaceInvitation>;
+  revokeWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.revokeWorkspaceInvitation>;
+  changeWorkspaceMemberRoleAction: DashboardActionHandler<typeof api.settings.changeWorkspaceMemberRole>;
+  removeWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.removeWorkspaceMember>;
+  generateBrandAssetUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateBrandAssetUploadUrl>;
+  finalizeBrandAssetUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeBrandAssetUpload>;
+  removeBrandAssetMutation: DashboardMutationHandler<typeof api.settings.removeBrandAsset>;
+  softDeleteWorkspaceMutation: DashboardMutationHandler<typeof api.settings.softDeleteWorkspace>;
   computeFileChecksumSha256: (file: File) => Promise<string>;
   uploadFileToConvexStorage: (uploadUrl: string, file: File) => Promise<string>;
-  asStorageId: (value: string) => any;
-  asUserId: (value: string) => any;
-  asBrandAssetId: (value: string) => any;
+  asStorageId: (value: string) => Id<"_storage">;
+  asUserId: (value: string) => Id<"users">;
+  asBrandAssetId: (value: string) => Id<"workspaceBrandAssets">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
 };
 
@@ -84,7 +66,6 @@ export const useDashboardWorkspaceActions = ({
   updateWorkspaceGeneralMutation,
   generateWorkspaceLogoUploadUrlMutation,
   finalizeWorkspaceLogoUploadMutation,
-  removeWorkspaceLogoMutation,
   inviteWorkspaceMemberAction,
   resendWorkspaceInvitationAction,
   revokeWorkspaceInvitationAction,
@@ -262,15 +243,6 @@ export const useDashboardWorkspaceActions = ({
     [resolvedWorkspaceSlug, uploadWorkspaceLogoForSlug],
   );
 
-  const handleRemoveWorkspaceLogo = useCallback(async () => {
-    if (!resolvedWorkspaceSlug) {
-      throw new Error("No active workspace");
-    }
-    await removeWorkspaceLogoMutation({
-      workspaceSlug: resolvedWorkspaceSlug,
-    });
-  }, [removeWorkspaceLogoMutation, resolvedWorkspaceSlug]);
-
   const handleInviteWorkspaceMember = useCallback(
     async (payload: { email: string; role: "admin" | "member" }) => {
       if (!resolvedWorkspaceSlug) {
@@ -418,7 +390,6 @@ export const useDashboardWorkspaceActions = ({
     handleCreateWorkspaceSubmit,
     handleUpdateWorkspaceGeneral,
     handleUploadWorkspaceLogo,
-    handleRemoveWorkspaceLogo,
     handleInviteWorkspaceMember,
     handleChangeWorkspaceMemberRole,
     handleRemoveWorkspaceMember,

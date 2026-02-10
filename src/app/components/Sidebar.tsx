@@ -34,7 +34,7 @@ const SidebarContext = createContext<{
   projects: Record<string, ProjectData>;
   activeWorkspace?: Workspace;
   workspaces: Workspace[];
-  onSwitchWorkspace: (id: string) => void;
+  onSwitchWorkspace: (workspaceSlug: string) => void;
   onCreateWorkspace: () => void;
   canCreateWorkspace: boolean;
   onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
@@ -50,7 +50,7 @@ const SidebarContext = createContext<{
   onOpenCreateProject: () => {},
   projects: {},
   workspaces: [],
-  onSwitchWorkspace: () => {},
+  onSwitchWorkspace: (_workspaceSlug: string) => {},
   onCreateWorkspace: () => {},
   canCreateWorkspace: false,
   onOpenSettings: () => {},
@@ -110,39 +110,39 @@ function WorkspaceSwitcher() {
         <>
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
             <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5">
-            {workspaces.map(ws => {
-                const wsBgStyle = ws.logoColor && !ws.logoColor.includes('-') 
-                    ? { backgroundColor: ws.logoColor } 
+            {workspaces.map((workspace) => {
+                const wsBgStyle = workspace.logoColor && !workspace.logoColor.includes('-') 
+                    ? { backgroundColor: workspace.logoColor } 
                     : undefined;
-                const wsBgClass = ws.logoColor && ws.logoColor.includes('-')
-                    ? `bg-${ws.logoColor}`
+                const wsBgClass = workspace.logoColor && workspace.logoColor.includes('-')
+                    ? `bg-${workspace.logoColor}`
                     : "bg-[#193cb8]";
 
                 return (
                 <div 
-                    key={ws.id}
+                    key={workspace.slug}
                     onClick={() => {
-                        onSwitchWorkspace(ws.id);
+                        onSwitchWorkspace(workspace.slug);
                         setIsOpen(false);
                     }}
                     className={cn(
                         "px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 transition-all",
-                        activeWorkspace?.id === ws.id ? 'bg-white/5' : 'opacity-60 hover:opacity-100'
+                        activeWorkspace?.slug === workspace.slug ? 'bg-white/5' : 'opacity-60 hover:opacity-100'
                     )}
                 >
                     <div className={cn("size-6 rounded flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden", !wsBgStyle && wsBgClass)} style={wsBgStyle}>
                         <div className="absolute inset-0 shadow-[inset_0px_-5px_6.6px_0px_rgba(0,0,0,0.25)] pointer-events-none rounded"></div>
-                        {ws.logo ? (
-                            <img src={ws.logo} alt={ws.name} className="size-3 object-contain relative z-10" />
+                        {workspace.logo ? (
+                            <img src={workspace.logo} alt={workspace.name} className="size-3 object-contain relative z-10" />
                         ) : (
-                            <span className="text-[10px] font-bold text-white relative z-10">{ws.logoText || ws.name.charAt(0)}</span>
+                            <span className="text-[10px] font-bold text-white relative z-10">{workspace.logoText || workspace.name.charAt(0)}</span>
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[13px] font-medium text-[#E8E8E8] truncate">{ws.name}</span>
-                        <span className="text-[10px] text-white/40 truncate">{ws.plan}</span>
+                        <span className="text-[13px] font-medium text-[#E8E8E8] truncate">{workspace.name}</span>
+                        <span className="text-[10px] text-white/40 truncate">{workspace.plan}</span>
                     </div>
-                    {activeWorkspace?.id === ws.id && (
+                    {activeWorkspace?.slug === workspace.slug && (
                         <div className="ml-auto text-white">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
@@ -476,7 +476,7 @@ export function Sidebar({
     viewerIdentity: ViewerIdentity;
     activeWorkspace?: Workspace;
     workspaces: Workspace[];
-    onSwitchWorkspace: (id: string) => void;
+    onSwitchWorkspace: (workspaceSlug: string) => void;
     onCreateWorkspace: () => void;
     canCreateWorkspace: boolean;
     onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;

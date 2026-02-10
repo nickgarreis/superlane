@@ -1,24 +1,30 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { api } from "../../../../convex/_generated/api";
 import type { ProjectFileTab } from "../../types";
-import type { DashboardFileActions } from "../types";
+import type {
+  DashboardActionHandler,
+  DashboardFileActions,
+  DashboardMutationHandler,
+  DashboardQueryInvoker,
+} from "../types";
 
 type UseDashboardFileActionsArgs = {
   activeWorkspaceId: string | null | undefined;
   resolvedWorkspaceSlug: string | null;
-  convexQuery: (query: any, args: any) => Promise<any>;
-  generateUploadUrlMutation: (args: { workspaceSlug: string }) => Promise<{ uploadUrl: string }>;
-  finalizeProjectUploadAction: (args: any) => Promise<any>;
-  finalizePendingDraftAttachmentUploadAction: (args: any) => Promise<any>;
-  discardPendingUploadMutation: (args: any) => Promise<any>;
-  discardPendingUploadsForSessionMutation: (args: any) => Promise<any>;
-  removeProjectFileMutation: (args: any) => Promise<any>;
+  convexQuery: DashboardQueryInvoker;
+  generateUploadUrlMutation: DashboardMutationHandler<typeof api.files.generateUploadUrl>;
+  finalizeProjectUploadAction: DashboardActionHandler<typeof api.files.finalizeProjectUpload>;
+  finalizePendingDraftAttachmentUploadAction: DashboardActionHandler<typeof api.files.finalizePendingDraftAttachmentUpload>;
+  discardPendingUploadMutation: DashboardMutationHandler<typeof api.files.discardPendingUpload>;
+  discardPendingUploadsForSessionMutation: DashboardMutationHandler<typeof api.files.discardPendingUploadsForSession>;
+  removeProjectFileMutation: DashboardMutationHandler<typeof api.files.remove>;
   computeFileChecksumSha256: (file: File) => Promise<string>;
   uploadFileToConvexStorage: (uploadUrl: string, file: File) => Promise<string>;
-  asStorageId: (value: string) => any;
-  asPendingUploadId: (value: string) => any;
-  asProjectFileId: (value: string) => any;
+  asStorageId: (value: string) => Id<"_storage">;
+  asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
+  asProjectFileId: (value: string) => Id<"projectFiles">;
 };
 
 export const useDashboardFileActions = ({

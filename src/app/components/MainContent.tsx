@@ -386,9 +386,14 @@ export function MainContent({
     [currentFiles, searchQuery, sortBy],
   );
   const shouldOptimizeFileRows = filteredFiles.length > 40;
-  const fileRowStyle = shouldOptimizeFileRows
-    ? ({ contentVisibility: "auto", containIntrinsicSize: "72px" } as const)
-    : undefined;
+  const fileRowStyle = useMemo(
+    () => (
+      shouldOptimizeFileRows
+        ? ({ contentVisibility: "auto", containIntrinsicSize: "72px" } as const)
+        : undefined
+    ),
+    [shouldOptimizeFileRows],
+  );
 
   const renderedFileRows = useMemo(
     () =>
@@ -440,7 +445,7 @@ export function MainContent({
           </div>
         </motion.div>
       )),
-    [filteredFiles, fileActions, handleRemoveFile],
+    [filteredFiles, fileActions, fileRowStyle, handleRemoveFile],
   );
   const canCreateProjectTasks =
     !project.archived && project.status.label === "Active" && !project.completedAt;

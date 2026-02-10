@@ -68,7 +68,6 @@ export function SettingsPopup({
   onSaveNotifications,
   onUpdateWorkspaceGeneral,
   onUploadWorkspaceLogo,
-  onRemoveWorkspaceLogo,
   onInviteMember,
   onChangeMemberRole,
   onRemoveMember,
@@ -94,11 +93,15 @@ export function SettingsPopup({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-['Roboto',sans-serif] text-[#E8E8E8]"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        aria-hidden="true"
+      />
+      <div
+        className="relative w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-['Roboto',sans-serif] text-[#E8E8E8]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="w-[240px] flex flex-col py-6 px-4 shrink-0 bg-bg-base">
@@ -151,7 +154,7 @@ export function SettingsPopup({
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="max-w-[700px] mx-auto py-12 px-8">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 10 }}
@@ -187,7 +190,6 @@ export function SettingsPopup({
                       loading={loadingCompany}
                       onUpdateWorkspaceGeneral={onUpdateWorkspaceGeneral}
                       onUploadWorkspaceLogo={onUploadWorkspaceLogo}
-                      onRemoveWorkspaceLogo={onRemoveWorkspaceLogo}
                       onInviteMember={onInviteMember}
                       onChangeMemberRole={onChangeMemberRole}
                       onRemoveMember={onRemoveMember}

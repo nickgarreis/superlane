@@ -1,8 +1,9 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import { figmaAssetResolverPlugin } from "./config/figmaAssetResolver";
 
 export default defineConfig({
-  plugins: [figmaAssetResolverPlugin()],
+  plugins: [figmaAssetResolverPlugin(), react()],
   test: {
     environment: "node",
     include: ["convex/__tests__/**/*.test.ts", "src/app/**/*.test.{ts,tsx}"],
@@ -19,7 +20,13 @@ export default defineConfig({
       reportsDirectory: "./security-reports/coverage",
       reporter: ["text", "json-summary"],
       include: ["src/app/**/*.{ts,tsx}"],
-      exclude: ["src/app/**/*.test.{ts,tsx}", "src/app/test/**", "src/imports/**"],
+      exclude: [
+        "src/app/**/*.test.{ts,tsx}",
+        "src/app/test/**",
+        "src/app/components/ui/**",
+        "src/app/components/figma/**",
+        "src/imports/**",
+      ],
       thresholds: {
         lines: 1,
         functions: 20,

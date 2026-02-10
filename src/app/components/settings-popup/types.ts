@@ -101,7 +101,6 @@ export interface SettingsPopupProps {
     logoText?: string;
   }) => Promise<void>;
   onUploadWorkspaceLogo: (file: File) => Promise<void>;
-  onRemoveWorkspaceLogo: () => Promise<void>;
   onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
   onChangeMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
   onRemoveMember: (payload: { userId: string }) => Promise<void>;

@@ -1,9 +1,15 @@
 import { useMemo } from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "../../../../convex/_generated/api";
+
+type AccountSettingsResult = FunctionReturnType<typeof api.settings.getAccountSettings> | undefined;
+type NotificationSettingsResult = FunctionReturnType<typeof api.settings.getNotificationPreferences> | undefined;
+type CompanySettingsResult = FunctionReturnType<typeof api.settings.getCompanySettings> | undefined;
 
 type UseDashboardSettingsDataArgs = {
-  accountSettings: any;
-  notificationSettings: any;
-  companySettings: any;
+  accountSettings: AccountSettingsResult;
+  notificationSettings: NotificationSettingsResult;
+  companySettings: CompanySettingsResult;
   user: {
     firstName?: string | null;
     lastName?: string | null;
@@ -56,9 +62,7 @@ export const useDashboardSettingsData = ({
       }
 
       const members = Array.isArray(companySettings.members) ? companySettings.members : [];
-      const pendingInvitations = Array.isArray(companySettings.pendingInvitations)
-        ? companySettings.pendingInvitations
-        : [];
+      const pendingInvitations = Array.isArray(companySettings.pendingInvitations) ? companySettings.pendingInvitations : [];
       const brandAssets = Array.isArray(companySettings.brandAssets) ? companySettings.brandAssets : [];
 
       return {
