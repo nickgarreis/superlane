@@ -54,15 +54,40 @@ type NotificationsTabProps = {
 export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
   const [state, setState] = useState<NotificationSettingsData>(data);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    setState(data);
-  }, [data]);
+    if (isDirty) {
+      return;
+    }
+    setState((current) => {
+      const sameValues =
+        current.events.eventNotifications === data.events.eventNotifications
+        && current.events.teamActivities === data.events.teamActivities
+        && current.events.productUpdates === data.events.productUpdates;
+      if (sameValues) {
+        return current;
+      }
+      return {
+        events: {
+          eventNotifications: data.events.eventNotifications,
+          teamActivities: data.events.teamActivities,
+          productUpdates: data.events.productUpdates,
+        },
+      };
+    });
+  }, [
+    data.events.eventNotifications,
+    data.events.productUpdates,
+    data.events.teamActivities,
+    isDirty,
+  ]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await onSave(state);
+      setIsDirty(false);
       toast.success("Notification preferences updated");
     } catch (error) {
       reportUiError("settings.notifications.save", error, { showToast: false });
@@ -79,34 +104,43 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           label="Event Notifications"
           description="Receive project submitted, review approved, and completed notifications."
           checked={state.events.eventNotifications}
-          onToggle={() => setState((current) => ({
-            ...current,
-            events: {
-              ...current.events,
-              eventNotifications: !current.events.eventNotifications,
-            },
-          }))}
+          onToggle={() => {
+            setIsDirty(true);
+            setState((current) => ({
+              ...current,
+              events: {
+                ...current.events,
+                eventNotifications: !current.events.eventNotifications,
+              },
+            }));
+          }}
         />
         <ToggleRow
           label="Team Activities"
           description="Receive notifications for new comments and replies."
           checked={state.events.teamActivities}
-          onToggle={() => setState((current) => ({
-            ...current,
-            events: {
-              ...current.events,
-              teamActivities: !current.events.teamActivities,
-            },
-          }))}
+          onToggle={() => {
+            setIsDirty(true);
+            setState((current) => ({
+              ...current,
+              events: {
+                ...current.events,
+                teamActivities: !current.events.teamActivities,
+              },
+            }));
+          }}
         />
         <ToggleRow
           label="Product Updates"
           description="Receive announcements and product change notifications."
           checked={state.events.productUpdates}
-          onToggle={() => setState((current) => ({
-            ...current,
-            events: { ...current.events, productUpdates: !current.events.productUpdates },
-          }))}
+          onToggle={() => {
+            setIsDirty(true);
+            setState((current) => ({
+              ...current,
+              events: { ...current.events, productUpdates: !current.events.productUpdates },
+            }));
+          }}
         />
       </div>
 

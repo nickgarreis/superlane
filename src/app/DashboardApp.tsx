@@ -1,9 +1,21 @@
-import DashboardLegacyShell from "./dashboard/DashboardLegacyShell";
-import DashboardShell from "./dashboard/DashboardShell";
+import React, { Suspense } from "react";
 
 const isDashboardRewriteEnabled = import.meta.env.VITE_DASHBOARD_REWRITE !== "false";
+const LazyDashboardLegacyShell = React.lazy(() => import("./dashboard/DashboardLegacyShell"));
+const LazyDashboardShell = React.lazy(() => import("./dashboard/DashboardShell"));
+
+function DashboardShellFallback() {
+  return (
+    <div className="min-h-screen w-full bg-bg-base flex items-center justify-center text-white/60 font-['Roboto',sans-serif]">
+      Loading workspace...
+    </div>
+  );
+}
 
 export default function DashboardApp() {
-  const Component = isDashboardRewriteEnabled ? DashboardShell : DashboardLegacyShell;
-  return <Component />;
+  return (
+    <Suspense fallback={<DashboardShellFallback />}>
+      {isDashboardRewriteEnabled ? <LazyDashboardShell /> : <LazyDashboardLegacyShell />}
+    </Suspense>
+  );
 }

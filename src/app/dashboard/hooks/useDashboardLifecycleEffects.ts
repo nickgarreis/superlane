@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { pathToView, viewToPath } from "../../lib/routing";
 import { scheduleIdlePrefetch } from "../../lib/prefetch";
 import { reportUiError } from "../../lib/errors";
+import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 import type { ProjectData } from "../../types";
 
 type DashboardSnapshotLike = {
@@ -49,6 +50,15 @@ export const useDashboardLifecycleEffects = ({
   const defaultWorkspaceRequestedRef = useRef(false);
   const invalidRouteRef = useRef<string | null>(null);
   const organizationLinkAttemptedWorkspacesRef = useRef<Set<string>>(new Set());
+  const handleSearchShortcut = useCallback((event: Event) => {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      openSearch();
+    }
+  }, [openSearch]);
 
   useEffect(() => {
     if (!snapshot) {
@@ -76,17 +86,11 @@ export const useDashboardLifecycleEffects = ({
     return cancel;
   }, [preloadSearchPopupModule]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        openSearch();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [openSearch]);
+  useGlobalEventListener({
+    target: document,
+    type: "keydown",
+    listener: handleSearchShortcut,
+  });
 
   useEffect(() => {
     if (!snapshot) {

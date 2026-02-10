@@ -5,11 +5,11 @@ import { api } from "../../../convex/_generated/api";
 import { reportUiError } from "../lib/errors";
 import type { AppView } from "../lib/routing";
 import { prepareUpload } from "./lib/uploadPipeline";
+import { useWorkspaceMembershipActions } from "./useWorkspaceMembershipActions";
 import type {
   DashboardActionHandler,
   DashboardMutationHandler,
 } from "./types";
-
 type CreateWorkspacePayload = {
   name: string;
   logoFile?: File | null;
@@ -107,14 +107,12 @@ export const useDashboardWorkspaceActions = ({
     },
     [reconcileWorkspaceInvitationsAction, reconcileWorkspaceOrganizationMembershipsAction],
   );
-
   const handleSaveAccountSettings = useCallback(
     async (payload: { firstName: string; lastName: string; email: string }) => {
       await updateAccountProfileAction(payload);
     },
     [updateAccountProfileAction],
   );
-
   const handleUploadAccountAvatar = useCallback(
     async (file: File) => {
       const { checksumSha256, uploadUrl } = await prepareUpload(
@@ -140,11 +138,9 @@ export const useDashboardWorkspaceActions = ({
       uploadFileToConvexStorage,
     ],
   );
-
   const handleRemoveAccountAvatar = useCallback(async () => {
     await removeAvatarMutation({});
   }, [removeAvatarMutation]);
-
   const handleSaveSettingsNotifications = useCallback(
     async (payload: {
       events: {
@@ -157,7 +153,6 @@ export const useDashboardWorkspaceActions = ({
     },
     [saveNotificationPreferencesMutation],
   );
-
   const uploadWorkspaceLogoForSlug = useCallback(
     async (workspaceSlug: string, file: File) => {
       const { checksumSha256, uploadUrl } = await prepareUpload(
@@ -184,7 +179,6 @@ export const useDashboardWorkspaceActions = ({
       uploadFileToConvexStorage,
     ],
   );
-
   const handleCreateWorkspaceSubmit = useCallback(
     async (payload: CreateWorkspacePayload) => {
       if (!canCreateWorkspace) {
@@ -227,7 +221,6 @@ export const useDashboardWorkspaceActions = ({
       uploadWorkspaceLogoForSlug,
     ],
   );
-
   const handleUpdateWorkspaceGeneral = useCallback(
     async (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -246,7 +239,6 @@ export const useDashboardWorkspaceActions = ({
     },
     [omitUndefined, resolvedWorkspaceSlug, updateWorkspaceGeneralMutation],
   );
-
   const handleUploadWorkspaceLogo = useCallback(
     async (file: File) => {
       if (!resolvedWorkspaceSlug) {
@@ -256,84 +248,22 @@ export const useDashboardWorkspaceActions = ({
     },
     [resolvedWorkspaceSlug, uploadWorkspaceLogoForSlug],
   );
-
-  const handleInviteWorkspaceMember = useCallback(
-    async (payload: { email: string; role: "admin" | "member" }) => {
-      if (!resolvedWorkspaceSlug) {
-        throw new Error("No active workspace");
-      }
-      await inviteWorkspaceMemberAction({
-        workspaceSlug: resolvedWorkspaceSlug,
-        email: payload.email,
-        role: payload.role,
-      });
-      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
-    },
-    [inviteWorkspaceMemberAction, resolvedWorkspaceSlug, runWorkspaceSettingsReconciliation],
-  );
-
-  const handleChangeWorkspaceMemberRole = useCallback(
-    async (payload: { userId: string; role: "admin" | "member" }) => {
-      if (!resolvedWorkspaceSlug) {
-        throw new Error("No active workspace");
-      }
-      await changeWorkspaceMemberRoleAction({
-        workspaceSlug: resolvedWorkspaceSlug,
-        targetUserId: asUserId(payload.userId),
-        role: payload.role,
-      });
-      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
-    },
-    [
-      asUserId,
-      changeWorkspaceMemberRoleAction,
-      resolvedWorkspaceSlug,
-      runWorkspaceSettingsReconciliation,
-    ],
-  );
-
-  const handleRemoveWorkspaceMember = useCallback(
-    async (payload: { userId: string }) => {
-      if (!resolvedWorkspaceSlug) {
-        throw new Error("No active workspace");
-      }
-      await removeWorkspaceMemberAction({
-        workspaceSlug: resolvedWorkspaceSlug,
-        targetUserId: asUserId(payload.userId),
-      });
-      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
-    },
-    [asUserId, removeWorkspaceMemberAction, resolvedWorkspaceSlug, runWorkspaceSettingsReconciliation],
-  );
-
-  const handleResendWorkspaceInvitation = useCallback(
-    async (payload: { invitationId: string }) => {
-      if (!resolvedWorkspaceSlug) {
-        throw new Error("No active workspace");
-      }
-      await resendWorkspaceInvitationAction({
-        workspaceSlug: resolvedWorkspaceSlug,
-        invitationId: payload.invitationId,
-      });
-      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
-    },
-    [resolvedWorkspaceSlug, resendWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
-  );
-
-  const handleRevokeWorkspaceInvitation = useCallback(
-    async (payload: { invitationId: string }) => {
-      if (!resolvedWorkspaceSlug) {
-        throw new Error("No active workspace");
-      }
-      await revokeWorkspaceInvitationAction({
-        workspaceSlug: resolvedWorkspaceSlug,
-        invitationId: payload.invitationId,
-      });
-      await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
-    },
-    [resolvedWorkspaceSlug, revokeWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
-  );
-
+  const {
+    handleInviteWorkspaceMember,
+    handleChangeWorkspaceMemberRole,
+    handleRemoveWorkspaceMember,
+    handleResendWorkspaceInvitation,
+    handleRevokeWorkspaceInvitation,
+  } = useWorkspaceMembershipActions({
+    resolvedWorkspaceSlug,
+    asUserId,
+    runWorkspaceSettingsReconciliation,
+    inviteWorkspaceMemberAction,
+    resendWorkspaceInvitationAction,
+    revokeWorkspaceInvitationAction,
+    changeWorkspaceMemberRoleAction,
+    removeWorkspaceMemberAction,
+  });
   const handleUploadWorkspaceBrandAsset = useCallback(
     async (file: File) => {
       if (!resolvedWorkspaceSlug) {
@@ -365,7 +295,6 @@ export const useDashboardWorkspaceActions = ({
       uploadFileToConvexStorage,
     ],
   );
-
   const handleRemoveWorkspaceBrandAsset = useCallback(
     async (payload: { brandAssetId: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -378,7 +307,6 @@ export const useDashboardWorkspaceActions = ({
     },
     [asBrandAssetId, removeBrandAssetMutation, resolvedWorkspaceSlug],
   );
-
   const handleSoftDeleteWorkspace = useCallback(async () => {
     if (!resolvedWorkspaceSlug) {
       throw new Error("No active workspace");

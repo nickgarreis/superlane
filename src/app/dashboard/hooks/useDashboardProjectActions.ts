@@ -6,6 +6,11 @@ import { buildProjectPublicId } from "../../lib/id";
 import { reportUiError } from "../../lib/errors";
 import { parseProjectStatus } from "../../lib/status";
 import type { AppView } from "../../lib/routing";
+import {
+  categoryToService,
+  toProjectMutationTasks,
+  toWorkspaceMutationTasks,
+} from "./projectActionMappers";
 import type {
   CreateProjectPayload,
   CreateProjectResult,
@@ -38,21 +43,6 @@ type UseDashboardProjectActionsArgs = {
   replaceWorkspaceTasksMutation: DashboardMutationHandler<typeof api.tasks.replaceForWorkspace>;
   asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
-};
-
-const categoryToService = (category: string): string => {
-  const map: Record<string, string> = {
-    webdesign: "Web Design",
-    "web design": "Web Design",
-    automation: "AI Automation",
-    "ai automation": "AI Automation",
-    marketing: "Marketing Campaigns",
-    "marketing campaigns": "Marketing Campaigns",
-    presentation: "Presentation",
-    "ai consulting": "AI Consulting",
-    "creative strategy & concept": "Creative Strategy & Concept",
-  };
-  return map[category.toLowerCase()] || category;
 };
 
 export const useDashboardProjectActions = ({
@@ -159,7 +149,6 @@ export const useDashboardProjectActions = ({
     setEditProjectId,
     updateProjectMutation,
   ]);
-
   const handleEditProject = useCallback((project: ProjectData) => {
     const draftData: ProjectDraftData = project.draftData || {
       selectedService: categoryToService(project.category),
@@ -175,12 +164,10 @@ export const useDashboardProjectActions = ({
     setEditDraftData(draftData);
     openCreateProject();
   }, [openCreateProject, setEditDraftData, setEditProjectId]);
-
   const handleViewReviewProject = useCallback((project: ProjectData) => {
     setReviewProject(project);
     openCreateProject();
   }, [openCreateProject, setReviewProject]);
-
   const handleUpdateComments = useCallback((
     projectId: string,
     comments: ReviewComment[],
@@ -188,7 +175,6 @@ export const useDashboardProjectActions = ({
       publicId: projectId,
       comments,
     }), [updateReviewCommentsMutation]);
-
   const handleArchiveProject = useCallback((id: string) => {
     void archiveProjectMutation({ publicId: id })
       .then(() => {
@@ -201,7 +187,6 @@ export const useDashboardProjectActions = ({
         toast.error("Failed to archive project");
       });
   }, [archiveProjectMutation, navigateView, setHighlightedArchiveProjectId]);
-
   const handleUnarchiveProject = useCallback((id: string) => {
     void unarchiveProjectMutation({ publicId: id })
       .then(() => {
@@ -215,7 +200,6 @@ export const useDashboardProjectActions = ({
         toast.error("Failed to unarchive project");
       });
   }, [currentView, navigateView, unarchiveProjectMutation]);
-
   const handleDeleteProject = useCallback((id: string) => {
     const project = projects[id];
     const isDraft = project?.status?.label === "Draft";
@@ -241,7 +225,6 @@ export const useDashboardProjectActions = ({
         toast.error("Failed to delete project");
       });
   }, [currentView, navigateToPath, navigateView, projects, removeProjectMutation, visibleProjects]);
-
   const handleUpdateProjectStatus = useCallback((id: string, newStatus: string) => {
     const parsedStatus = parseProjectStatus(newStatus);
 
@@ -259,7 +242,6 @@ export const useDashboardProjectActions = ({
         toast.error("Failed to update project status");
       });
   }, [setProjectStatusMutation]);
-
   const handleApproveReviewProject = useCallback(
     async (projectId: string) => {
       try {
@@ -280,22 +262,12 @@ export const useDashboardProjectActions = ({
     },
     [setProjectStatusMutation, navigateView],
   );
-
   const handleUpdateProject = useCallback(
     (id: string, data: Partial<ProjectData>) => {
       const tasks = data.tasks;
 
       if (tasks) {
-        const cleanTasks: Task[] = tasks.map((task) => ({
-          id: String(task.id),
-          title: task.title,
-          assignee: {
-            name: task.assignee?.name || viewerIdentity.name,
-            avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
-          },
-          dueDateEpochMs: task.dueDateEpochMs ?? null,
-          completed: task.completed,
-        }));
+        const cleanTasks: Task[] = toProjectMutationTasks(tasks, viewerIdentity);
 
         void replaceProjectTasksMutation({
           projectPublicId: id,
@@ -335,11 +307,9 @@ export const useDashboardProjectActions = ({
     [
       replaceProjectTasksMutation,
       updateProjectMutation,
-      viewerIdentity.avatarUrl,
-      viewerIdentity.name,
+      viewerIdentity,
     ],
   );
-
   const handleReplaceWorkspaceTasks = useCallback(
     (tasks: Task[]) => {
       if (!activeWorkspaceId) {
@@ -347,17 +317,7 @@ export const useDashboardProjectActions = ({
         return;
       }
 
-      const cleanTasks = tasks.map((task) => ({
-        id: String(task.id),
-        title: task.title,
-        assignee: {
-          name: task.assignee?.name || viewerIdentity.name,
-          avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
-        },
-        dueDateEpochMs: task.dueDateEpochMs ?? null,
-        completed: task.completed,
-        projectPublicId: task.projectId ?? null,
-      }));
+      const cleanTasks = toWorkspaceMutationTasks(tasks, viewerIdentity);
 
       void replaceWorkspaceTasksMutation({
         workspaceSlug: activeWorkspaceId,
@@ -367,7 +327,7 @@ export const useDashboardProjectActions = ({
         toast.error("Failed to update tasks");
       });
     },
-    [activeWorkspaceId, replaceWorkspaceTasksMutation, viewerIdentity.avatarUrl, viewerIdentity.name],
+    [activeWorkspaceId, replaceWorkspaceTasksMutation, viewerIdentity],
   );
 
   return {

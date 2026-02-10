@@ -113,6 +113,22 @@ describe("useDashboardLifecycleEffects", () => {
     expect(args.openSearch).toHaveBeenCalledTimes(1);
   });
 
+  test("registers and cleans up global keydown listener", () => {
+    const addEventListenerSpy = vi.spyOn(document, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
+    const args = createBaseArgs();
+
+    const { unmount } = renderHook(() => useDashboardLifecycleEffects(args));
+
+    const keydownAdds = addEventListenerSpy.mock.calls.filter(([type]) => type === "keydown");
+    expect(keydownAdds.length).toBeGreaterThan(0);
+
+    unmount();
+
+    const keydownRemoves = removeEventListenerSpy.mock.calls.filter(([type]) => type === "keydown");
+    expect(keydownRemoves.length).toBeGreaterThan(0);
+  });
+
   test("redirects invalid project and archive routes", async () => {
     const args = createBaseArgs();
     args.locationPathname = "/project/missing";

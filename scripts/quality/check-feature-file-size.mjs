@@ -15,11 +15,6 @@ const LEGACY_OVERSIZED_ALLOWLIST = new Set([
   "convex/comments.ts",
   "convex/notificationsEmail.ts",
   "src/app/components/chat-sidebar/ChatSidebarPanel.tsx",
-  "src/app/dashboard/useDashboardWorkspaceActions.ts",
-  "src/app/components/project-tasks/ProjectTaskRows.tsx",
-  "src/app/components/create-project-popup/steps/StepDetails.tsx",
-  "src/app/components/MainContent.tsx",
-  "src/app/dashboard/hooks/useDashboardProjectActions.ts",
 ]);
 
 const shouldSkipPath = (relativePath) => {

@@ -36,6 +36,7 @@ export type SnapshotTask = {
   taskId: string;
   title: string;
   assignee: {
+    userId?: string;
     name: string;
     avatar: string;
   };

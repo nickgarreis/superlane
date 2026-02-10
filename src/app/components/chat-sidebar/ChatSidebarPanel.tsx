@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -6,6 +6,7 @@ import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember
 import type { AppView } from "../../lib/routing";
 import { formatTaskDueDate } from "../../lib/dates";
 import { reportUiError } from "../../lib/errors";
+import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 import type { MentionItem as MentionItemType } from "../mentions/types";
 import { CommentItem } from "./CommentItem";
 import { useChatSidebarState } from "./useChatSidebarState";
@@ -64,6 +65,7 @@ export function ChatSidebar({
   } = useChatSidebarState(activeProject.id);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [outsideClickReady, setOutsideClickReady] = useState(false);
   const currentUserName = viewerIdentity.name || "Unknown user";
   const currentUserAvatar = viewerIdentity.avatarUrl || "";
   const currentUserId = viewerIdentity.userId;
@@ -150,38 +152,48 @@ export function ChatSidebar({
     [mentionItemGroups],
   );
 
-  // Close menus on outside click
+  const hasOpenMenu = Boolean(activeReactionPicker || activeMoreMenu);
+  const handleCloseOpenMenus = useCallback(() => {
+    setActiveReactionPicker(null);
+    setActiveMoreMenu(null);
+  }, [setActiveMoreMenu, setActiveReactionPicker]);
+
   useEffect(() => {
-    if (activeReactionPicker || activeMoreMenu) {
-      const handler = () => {
-        setActiveReactionPicker(null);
-        setActiveMoreMenu(null);
-      };
-      const handleScroll = () => {
-        setActiveMoreMenu(null);
-        setActiveReactionPicker(null);
-      };
-      const scrollContainer = scrollRef.current;
-      const timer = setTimeout(() => {
-        document.addEventListener("click", handler);
-      }, 0);
-      window.addEventListener("scroll", handleScroll, { passive: true });
-      scrollContainer?.addEventListener("scroll", handleScroll, {
-        passive: true,
-      });
-      return () => {
-        clearTimeout(timer);
-        document.removeEventListener("click", handler);
-        window.removeEventListener("scroll", handleScroll);
-        scrollContainer?.removeEventListener("scroll", handleScroll);
-      };
+    if (!hasOpenMenu) {
+      setOutsideClickReady(false);
+      return;
     }
-  }, [
-    activeReactionPicker,
-    activeMoreMenu,
-    setActiveMoreMenu,
-    setActiveReactionPicker,
-  ]);
+    const timer = window.setTimeout(() => {
+      setOutsideClickReady(true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      setOutsideClickReady(false);
+    };
+  }, [hasOpenMenu]);
+
+  useGlobalEventListener({
+    target: document,
+    type: "click",
+    listener: handleCloseOpenMenus,
+    enabled: hasOpenMenu && outsideClickReady,
+  });
+
+  useGlobalEventListener({
+    target: window,
+    type: "scroll",
+    listener: handleCloseOpenMenus,
+    enabled: hasOpenMenu,
+    options: { passive: true },
+  });
+
+  useGlobalEventListener({
+    target: scrollRef.current,
+    type: "scroll",
+    listener: handleCloseOpenMenus,
+    enabled: hasOpenMenu,
+    options: { passive: true },
+  });
 
   const handleAddComment = useCallback(
     (e?: React.FormEvent) => {

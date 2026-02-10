@@ -58,6 +58,7 @@ export interface Task {
   title: string;
   projectId?: string;
   assignee: {
+    userId?: string;
     name: string;
     avatar: string;
   };
@@ -135,6 +136,7 @@ export interface DbTaskRecord {
   taskId: string;
   title: string;
   assignee: {
+    userId?: string;
     name: string;
     avatar: string;
   };
