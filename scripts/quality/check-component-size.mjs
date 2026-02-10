@@ -3,8 +3,8 @@ import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..");
 const APP_DIR = path.join(ROOT, "src", "app");
-const MAX_COMPONENT_LINES = 1000;
-const WARN_COMPONENT_LINES = 900;
+const MAX_COMPONENT_LINES = 700;
+const WARN_COMPONENT_LINES = 500;
 
 const shouldSkipPath = (filePath) => {
   const relative = path.relative(ROOT, filePath).replaceAll("\\", "/");

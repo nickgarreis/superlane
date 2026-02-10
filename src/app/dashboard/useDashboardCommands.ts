@@ -3,9 +3,13 @@ import type {
   CreateProjectPayload,
   CreateProjectResult,
   DashboardCommands,
+  ProjectFileTab,
   SettingsTab,
 } from "./types";
 import type { ProjectData } from "../types";
+import { createProjectCommands } from "./commands/createProjectCommands";
+import { createFileCommands } from "./commands/createFileCommands";
+import { createSettingsCommands } from "./commands/createSettingsCommands";
 
 type UseDashboardCommandsArgs = {
   handleCreateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
@@ -15,7 +19,7 @@ type UseDashboardCommandsArgs = {
   handleUnarchiveProject: (projectId: string) => void;
   handleDeleteProject: (projectId: string) => void;
   handleUpdateProjectStatus: (projectId: string, newStatus: string) => void;
-  handleCreateProjectFile: (projectPublicId: string, tab: "Assets" | "Contract" | "Attachments", file: File) => void;
+  handleCreateProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
   handleRemoveProjectFile: (fileId: string) => void;
   handleDownloadProjectFile: (fileId: string) => void;
   handleUploadDraftAttachment: (
@@ -69,63 +73,56 @@ export const useDashboardCommands = ({
   handleSwitchWorkspace,
   handleCreateWorkspace,
 }: UseDashboardCommandsArgs): DashboardCommands =>
-  useMemo(
-    () => {
-      const commands = {
-      project: {
-        createOrUpdateProject: handleCreateProject,
-        editProject: handleEditProject,
-        viewReviewProject: handleViewReviewProject,
-        archiveProject: handleArchiveProject,
-        unarchiveProject: handleUnarchiveProject,
-        deleteProject: handleDeleteProject,
-        updateProjectStatus: handleUpdateProjectStatus,
-      },
-      file: {
-        createProjectFile: handleCreateProjectFile,
-        removeProjectFile: handleRemoveProjectFile,
-        downloadProjectFile: handleDownloadProjectFile,
-        uploadDraftAttachment: handleUploadDraftAttachment,
-        removeDraftAttachment: handleRemoveDraftAttachment,
-        discardDraftSessionUploads: handleDiscardDraftSessionUploads,
-      },
-      settings: {
-        openSettings: handleOpenSettings,
-        closeSettings: handleCloseSettings,
-        saveAccount: handleSaveAccountSettings,
-        uploadAccountAvatar: handleUploadAccountAvatar,
-        removeAccountAvatar: handleRemoveAccountAvatar,
-        saveNotifications: handleSaveSettingsNotifications,
-      },
-      workspace: {
-        switchWorkspace: handleSwitchWorkspace,
-        createWorkspace: handleCreateWorkspace,
-      },
-      } satisfies DashboardCommands;
-
-      return commands;
-    },
-    [
-      handleArchiveProject,
-      handleCloseSettings,
+  useMemo(() => ({
+    project: createProjectCommands({
       handleCreateProject,
-      handleCreateProjectFile,
-      handleCreateWorkspace,
-      handleDeleteProject,
-      handleDiscardDraftSessionUploads,
-      handleDownloadProjectFile,
       handleEditProject,
-      handleOpenSettings,
-      handleRemoveAccountAvatar,
-      handleRemoveDraftAttachment,
-      handleRemoveProjectFile,
-      handleSaveAccountSettings,
-      handleSaveSettingsNotifications,
-      handleSwitchWorkspace,
-      handleUnarchiveProject,
-      handleUpdateProjectStatus,
-      handleUploadAccountAvatar,
-      handleUploadDraftAttachment,
       handleViewReviewProject,
-    ],
-  );
+      handleArchiveProject,
+      handleUnarchiveProject,
+      handleDeleteProject,
+      handleUpdateProjectStatus,
+    }),
+    file: createFileCommands({
+      handleCreateProjectFile,
+      handleRemoveProjectFile,
+      handleDownloadProjectFile,
+      handleUploadDraftAttachment,
+      handleRemoveDraftAttachment,
+      handleDiscardDraftSessionUploads,
+    }),
+    settings: createSettingsCommands({
+      handleOpenSettings,
+      handleCloseSettings,
+      handleSaveAccountSettings,
+      handleUploadAccountAvatar,
+      handleRemoveAccountAvatar,
+      handleSaveSettingsNotifications,
+    }),
+    workspace: {
+      switchWorkspace: handleSwitchWorkspace,
+      createWorkspace: handleCreateWorkspace,
+    },
+  } satisfies DashboardCommands), [
+    handleArchiveProject,
+    handleCloseSettings,
+    handleCreateProject,
+    handleCreateProjectFile,
+    handleCreateWorkspace,
+    handleDeleteProject,
+    handleDiscardDraftSessionUploads,
+    handleDownloadProjectFile,
+    handleEditProject,
+    handleOpenSettings,
+    handleRemoveAccountAvatar,
+    handleRemoveDraftAttachment,
+    handleRemoveProjectFile,
+    handleSaveAccountSettings,
+    handleSaveSettingsNotifications,
+    handleSwitchWorkspace,
+    handleUnarchiveProject,
+    handleUpdateProjectStatus,
+    handleUploadAccountAvatar,
+    handleUploadDraftAttachment,
+    handleViewReviewProject,
+  ]);

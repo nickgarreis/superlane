@@ -6,16 +6,29 @@ import React, {
   useMemo,
   forwardRef,
   useImperativeHandle,
-  useLayoutEffect,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { safeScrollIntoView } from "../lib/dom";
+import {
+  extractValue,
+  getCursorOffset,
+  insertPlainTextAtSelection,
+  setCursorAtOffset,
+} from "./mentions/mentionDom";
+import {
+  parseMentionToken,
+  valueToHTML,
+} from "./mentions/mentionParser";
+import {
+  MENTION_TOKEN_SPLIT_REGEX,
+  type MentionEntityType,
+} from "./mentions/types";
+import { useDropdownPosition } from "./mentions/useDropdownPosition";
 
-// ── Types ─────────────────────────────────────────────────────────
 export interface MentionItem {
-  type: "task" | "file" | "user";
+  type: MentionEntityType;
   id: string;
   label: string;
   meta?: string;
@@ -35,267 +48,9 @@ interface MentionTextareaProps {
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onFocus?: () => void;
   onBlur?: () => void;
-  onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
+  onMentionClick?: (type: MentionEntityType, label: string) => void;
 }
 
-// ── Constants (declared at top-level so Tailwind scanner picks them up) ──
-const BADGE_BASE =
-  "mention-badge inline-flex items-center gap-[4px] mx-[1px] whitespace-nowrap select-none align-baseline leading-[1.5] text-[12.5px]";
-const TASK_BADGE_CLS = `${BADGE_BASE} text-[#E8E8E8]`;
-const FILE_BADGE_CLS = `${BADGE_BASE} text-[#E8E8E8]`;
-const USER_BADGE_CLS = `${BADGE_BASE} text-[#E8E8E8]`;
-
-const TASK_ICON = `<span style="font-size:12px;line-height:1;flex-shrink:0">📋</span>`;
-const FILE_ICON = `<span style="font-size:12px;line-height:1;flex-shrink:0">📂</span>`;
-
-function userInitialsHTML(name: string): string {
-  const initials = name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);font-size:8px;font-weight:600;flex-shrink:0;line-height:1;letter-spacing:0.2px">${initials}</span>`;
-}
-
-// ── HTML helpers ──────────────────────────────────────────────────
-function esc(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function valueToHTML(value: string): string {
-  if (!value) return "";
-  const segments = value.split(/(@\[(?:task|file|user):[^\]]+\])/);
-  return segments
-    .map((seg) => {
-      const m = seg.match(/^@\[(task|file|user):([^\]]+)\]$/);
-      if (m) {
-        const isTask = m[1] === "task";
-        const isFile = m[1] === "file";
-        const isUser = m[1] === "user";
-        const cls = isTask ? TASK_BADGE_CLS : isFile ? FILE_BADGE_CLS : USER_BADGE_CLS;
-        const icon = isTask ? TASK_ICON : isFile ? FILE_ICON : userInitialsHTML(m[2]);
-        return `<span contenteditable="false" data-mention="${esc(seg)}" class="${cls}">${icon}<span style="font-weight:600">${esc(m[2])}</span></span>`;
-      }
-      return esc(seg).replace(/\n/g, "<br>");
-    })
-    .join("");
-}
-
-// ── DOM → plain value extraction ──────────────────────────────────
-function extractValue(el: HTMLElement): string {
-  let text = "";
-  for (const node of Array.from(el.childNodes)) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      text += node.textContent || "";
-    } else if (node.nodeName === "BR") {
-      text += "\n";
-    } else if (
-      node instanceof HTMLElement &&
-      node.dataset.mention
-    ) {
-      text += node.dataset.mention;
-    } else if (node instanceof HTMLElement) {
-      // Browser may wrap lines in <div> on Enter
-      if (text.length > 0 && !text.endsWith("\n")) text += "\n";
-      text += extractValue(node);
-    }
-  }
-  return text;
-}
-
-// ── Cursor offset (character count in value-space) ────────────────
-function getCursorOffset(root: HTMLElement): number {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return 0;
-  const range = sel.getRangeAt(0);
-
-  let offset = 0;
-  let found = false;
-
-  function walk(node: Node) {
-    if (found) return;
-    if (node === range.startContainer) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        offset += range.startOffset;
-      }
-      found = true;
-      return;
-    }
-    if (
-      node instanceof HTMLElement &&
-      node.dataset.mention
-    ) {
-      if (node.contains(range.startContainer)) {
-        offset += (node.dataset.mention || "").length;
-        found = true;
-        return;
-      }
-      offset += (node.dataset.mention || "").length;
-      return;
-    }
-    if (node.nodeType === Node.TEXT_NODE) {
-      offset += (node.textContent || "").length;
-      return;
-    }
-    if (node.nodeName === "BR") {
-      offset += 1;
-      return;
-    }
-    for (const child of Array.from(node.childNodes)) {
-      if (found) return;
-      walk(child);
-    }
-  }
-
-  walk(root);
-  return offset;
-}
-
-function setCursorAtOffset(root: HTMLElement, target: number) {
-  let current = 0;
-  let result: { node: Node; offset: number } | null = null;
-
-  function walk(node: Node) {
-    if (result) return;
-    if (
-      node instanceof HTMLElement &&
-      node.dataset.mention
-    ) {
-      const len = (node.dataset.mention || "").length;
-      if (current + len >= target) {
-        // Place cursor right after this badge in the parent
-        const parent = node.parentNode!;
-        const idx = Array.from(parent.childNodes).indexOf(node as ChildNode);
-        result = { node: parent, offset: idx + 1 };
-        return;
-      }
-      current += len;
-      return;
-    }
-    if (node.nodeType === Node.TEXT_NODE) {
-      const len = (node.textContent || "").length;
-      if (current + len >= target) {
-        result = { node, offset: target - current };
-        return;
-      }
-      current += len;
-      return;
-    }
-    if (node.nodeName === "BR") {
-      if (current + 1 >= target) {
-        const parent = node.parentNode!;
-        const idx = Array.from(parent.childNodes).indexOf(node as ChildNode);
-        result = { node: parent, offset: idx + 1 };
-        return;
-      }
-      current += 1;
-      return;
-    }
-    for (const child of Array.from(node.childNodes)) {
-      if (result) return;
-      walk(child);
-    }
-  }
-
-  walk(root);
-  const resolvedResult = result as { node: Node; offset: number } | null;
-  if (resolvedResult) {
-    const sel = window.getSelection();
-    const range = document.createRange();
-    range.setStart(resolvedResult.node, resolvedResult.offset);
-    range.collapse(true);
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  } else {
-    // Fallback: place at end
-    const sel = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(root);
-    range.collapse(false);
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  }
-}
-
-function insertPlainTextAtSelection(root: HTMLElement, text: string): boolean {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) {
-    return false;
-  }
-
-  const range = selection.getRangeAt(0);
-  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
-    return false;
-  }
-
-  range.deleteContents();
-  const textNode = document.createTextNode(text);
-  range.insertNode(textNode);
-  range.setStartAfter(textNode);
-  range.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(range);
-  return true;
-}
-
-// ── Dropdown position hook ────────────────────────────────────────
-function useDropdownPosition(
-  editorRef: React.RefObject<HTMLElement | null>,
-  dropdownRef: React.RefObject<HTMLDivElement | null>,
-  isOpen: boolean
-) {
-  const [pos, setPos] = useState<{
-    top?: number;
-    bottom?: number;
-    left: number;
-    width: number;
-    placement: "above" | "below";
-  } | null>(null);
-
-  const measure = useCallback(() => {
-    const el = editorRef.current;
-    if (!el || !isOpen) {
-      setPos(null);
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const dh = dropdownRef.current?.offsetHeight ?? 260;
-    const gap = 6;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    if (spaceBelow >= dh + gap) {
-      setPos({ top: rect.bottom + gap, left: rect.left, width: rect.width, placement: "below" });
-    } else if (spaceAbove >= dh + gap) {
-      setPos({ bottom: window.innerHeight - rect.top + gap, left: rect.left, width: rect.width, placement: "above" });
-    } else if (spaceBelow >= spaceAbove) {
-      setPos({ top: rect.bottom + gap, left: rect.left, width: rect.width, placement: "below" });
-    } else {
-      setPos({ bottom: window.innerHeight - rect.top + gap, left: rect.left, width: rect.width, placement: "above" });
-    }
-  }, [editorRef, dropdownRef, isOpen]);
-
-  useLayoutEffect(() => {
-    if (!isOpen) { setPos(null); return; }
-    measure();
-  }, [isOpen, measure]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    requestAnimationFrame(measure);
-    const handler = () => measure();
-    window.addEventListener("scroll", handler, true);
-    window.addEventListener("resize", handler);
-    return () => {
-      window.removeEventListener("scroll", handler, true);
-      window.removeEventListener("resize", handler);
-    };
-  }, [isOpen, measure]);
-
-  return pos;
-}
-
-// ── MentionTextarea ───────────────────────────────────────────────
 export const MentionTextarea = forwardRef<
   HTMLDivElement,
   MentionTextareaProps
@@ -313,7 +68,7 @@ export const MentionTextarea = forwardRef<
     onBlur,
     onMentionClick,
   },
-  ref
+  ref,
 ) {
   const editorRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => editorRef.current!);
@@ -329,49 +84,45 @@ export const MentionTextarea = forwardRef<
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ── Click on badges inside editor ──────────────────────────────
   const handleEditorClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!onMentionClick) return;
-      // Walk up from the click target to find a badge span
-      let target = e.target as HTMLElement | null;
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!onMentionClick) {
+        return;
+      }
+
+      let target = event.target as HTMLElement | null;
       while (target && target !== editorRef.current) {
         if (target.dataset?.mention) {
-          const m = target.dataset.mention.match(
-            /^@\[(task|file|user):([^\]]+)\]$/
-          );
-          if (m) {
-            e.preventDefault();
-            e.stopPropagation();
-            // Pulse animation on the badge span
+          const token = parseMentionToken(target.dataset.mention);
+          if (token) {
+            event.preventDefault();
+            event.stopPropagation();
             target.classList.remove("mention-badge-pulse");
             void target.offsetWidth;
             target.classList.add("mention-badge-pulse");
-            onMentionClick(m[1] as "task" | "file" | "user", m[2]);
+            onMentionClick(token.type, token.label);
           }
           return;
         }
+
         target = target.parentElement;
       }
     },
-    [onMentionClick]
+    [onMentionClick],
   );
 
-  // ── Value → DOM sync (only for external changes) ────────────────
-  const syncDOM = useCallback(
-    (val: string, cursorPos?: number) => {
-      const el = editorRef.current;
-      if (!el) return;
-      const html = valueToHTML(val);
-      el.innerHTML = html;
-      if (cursorPos != null) {
-        setCursorAtOffset(el, cursorPos);
-      }
-    },
-    []
-  );
+  const syncDOM = useCallback((nextValue: string, cursorPos?: number) => {
+    const editorElement = editorRef.current;
+    if (!editorElement) {
+      return;
+    }
 
-  // Initial mount sync (one-time)
+    editorElement.innerHTML = valueToHTML(nextValue);
+    if (cursorPos != null) {
+      setCursorAtOffset(editorElement, cursorPos);
+    }
+  }, []);
+
   useEffect(() => {
     syncDOM(initialValueRef.current);
     lastEmittedValue.current = initialValueRef.current;
@@ -380,211 +131,222 @@ export const MentionTextarea = forwardRef<
       return;
     }
 
-    const el = editorRef.current;
-    if (el) {
-      el.focus();
-      setCursorAtOffset(el, initialValueRef.current.length);
+    const editorElement = editorRef.current;
+    if (!editorElement) {
+      return;
     }
+
+    editorElement.focus();
+    setCursorAtOffset(editorElement, initialValueRef.current.length);
   }, [syncDOM]);
 
-  // Sync when value changes externally
   useEffect(() => {
-    if (lastEmittedValue.current === value) return;
+    if (lastEmittedValue.current === value) {
+      return;
+    }
+
     lastEmittedValue.current = value;
     syncDOM(value);
   }, [value, syncDOM]);
 
-  // ── Mention filtering ──────────────────────────────────────────
   const filteredItems = useMemo(() => {
-    if (!mentionQuery && !showDropdown) return items;
-    const q = mentionQuery.toLowerCase();
-    return items.filter((item) => item.label.toLowerCase().includes(q));
+    if (!mentionQuery && !showDropdown) {
+      return items;
+    }
+
+    const query = mentionQuery.toLowerCase();
+    return items.filter((item) => item.label.toLowerCase().includes(query));
   }, [items, mentionQuery, showDropdown]);
 
-  useEffect(() => { setSelectedIndex(0); }, [filteredItems.length, mentionQuery]);
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filteredItems.length, mentionQuery]);
 
   useEffect(() => {
-    if (!dropdownRef.current) return;
-    const el = dropdownRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-    safeScrollIntoView(el, { block: "nearest" });
+    if (!dropdownRef.current) {
+      return;
+    }
+
+    const selectedElement = dropdownRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+    safeScrollIntoView(selectedElement, { block: "nearest" });
   }, [selectedIndex]);
 
-  const pos = useDropdownPosition(
+  const dropdownPosition = useDropdownPosition(
     editorRef,
     dropdownRef,
-    showDropdown && filteredItems.length > 0
+    showDropdown && filteredItems.length > 0,
   );
 
-  // ── Mention detection ──────────────────────────────────────────
   const detectMention = useCallback((text: string, cursorPos: number) => {
-    const before = text.slice(0, cursorPos);
-    const atIdx = before.lastIndexOf("@");
-    if (atIdx === -1 || (atIdx > 0 && !/\s/.test(before[atIdx - 1]))) {
+    const textBeforeCursor = text.slice(0, cursorPos);
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+
+    if (atIndex === -1 || (atIndex > 0 && !/\s/.test(textBeforeCursor[atIndex - 1]))) {
       setShowDropdown(false);
       setMentionStartPos(null);
       return;
     }
-    const query = before.slice(atIdx + 1);
+
+    const query = textBeforeCursor.slice(atIndex + 1);
     if (query.includes("\n")) {
       setShowDropdown(false);
       setMentionStartPos(null);
       return;
     }
+
     setMentionQuery(query);
-    setMentionStartPos(atIdx);
+    setMentionStartPos(atIndex);
     setShowDropdown(true);
   }, []);
 
-  // ── Input handler ──────────────────────────────────────────────
   const handleInput = useCallback(() => {
-    const el = editorRef.current;
-    if (!el || isComposing.current) return;
-    const text = extractValue(el);
+    const editorElement = editorRef.current;
+    if (!editorElement || isComposing.current) {
+      return;
+    }
+
+    const text = extractValue(editorElement);
     lastEmittedValue.current = text;
     onChange(text);
-    const offset = getCursorOffset(el);
-    detectMention(text, offset);
-  }, [onChange, detectMention]);
 
-  // ── Mention selection ──────────────────────────────────────────
-  const handleSelect = useCallback(
-    (item: MentionItem) => {
-      if (mentionStartPos === null) return;
-      const el = editorRef.current;
-      if (!el) return;
+    const cursorOffset = getCursorOffset(editorElement);
+    detectMention(text, cursorOffset);
+  }, [detectMention, onChange]);
 
-      const text = extractValue(el);
-      const cursorPos = getCursorOffset(el);
-      const before = text.slice(0, mentionStartPos);
-      const after = text.slice(cursorPos);
-      const token =
-        item.type === "task"
-          ? `@[task:${item.label}]`
-          : item.type === "file"
-          ? `@[file:${item.label}]`
-          : `@[user:${item.label}]`;
-      const newValue = before + token + " " + after;
+  const handleSelect = useCallback((item: MentionItem) => {
+    if (mentionStartPos == null) {
+      return;
+    }
 
-      lastEmittedValue.current = newValue;
-      onChange(newValue);
-      syncDOM(newValue, before.length + token.length + 1);
+    const editorElement = editorRef.current;
+    if (!editorElement) {
+      return;
+    }
 
-      setShowDropdown(false);
-      setMentionStartPos(null);
-      setMentionQuery("");
+    const text = extractValue(editorElement);
+    const cursorPos = getCursorOffset(editorElement);
+    const before = text.slice(0, mentionStartPos);
+    const after = text.slice(cursorPos);
+    const token = `@[${item.type}:${item.label}]`;
+    const newValue = `${before}${token} ${after}`;
 
-      requestAnimationFrame(() => el.focus());
-    },
-    [mentionStartPos, onChange, syncDOM]
-  );
+    lastEmittedValue.current = newValue;
+    onChange(newValue);
+    syncDOM(newValue, before.length + token.length + 1);
 
-  // ── Keyboard ───────────────────────────────────────────────────
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (showDropdown && filteredItems.length > 0) {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          setSelectedIndex((p) => (p < filteredItems.length - 1 ? p + 1 : 0));
-          return;
-        }
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          setSelectedIndex((p) => (p > 0 ? p - 1 : filteredItems.length - 1));
-          return;
-        }
-        if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
-          e.preventDefault();
-          handleSelect(filteredItems[selectedIndex]);
-          return;
-        }
-        if (e.key === "Escape") {
-          e.preventDefault();
-          setShowDropdown(false);
-          setMentionStartPos(null);
-          return;
-        }
-        if (e.key === "Tab") {
-          e.preventDefault();
-          handleSelect(filteredItems[selectedIndex]);
-          return;
-        }
-      }
+    setShowDropdown(false);
+    setMentionStartPos(null);
+    setMentionQuery("");
 
-      // Normalize Enter → <br> (prevent browser default <div> wrapping)
-      if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
-        // Let external handler decide first (it may submit)
-        // Only insert linebreak if external handler doesn't prevent default
-      }
+    requestAnimationFrame(() => editorElement.focus());
+  }, [mentionStartPos, onChange, syncDOM]);
 
-      externalOnKeyDown?.(e);
-    },
-    [showDropdown, filteredItems, selectedIndex, handleSelect, externalOnKeyDown]
-  );
-
-  // ── Paste handler (strip HTML) ─────────────────────────────────
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const el = editorRef.current;
-      if (!el) {
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (showDropdown && filteredItems.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : 0));
         return;
       }
 
-      const text = e.clipboardData.getData("text/plain");
-      const inserted = insertPlainTextAtSelection(el, text);
-      if (!inserted) {
-        const cursorPos = getCursorOffset(el);
-        const existing = extractValue(el);
-        const nextValue = `${existing.slice(0, cursorPos)}${text}${existing.slice(cursorPos)}`;
-        lastEmittedValue.current = nextValue;
-        onChange(nextValue);
-        syncDOM(nextValue, cursorPos + text.length);
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredItems.length - 1));
         return;
       }
-      handleInput();
-    },
-    [handleInput, onChange, syncDOM]
-  );
 
-  // ── Close dropdown on outside click ────────────────────────────
+      if (event.key === "Enter" && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        handleSelect(filteredItems[selectedIndex]);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowDropdown(false);
+        setMentionStartPos(null);
+        return;
+      }
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        handleSelect(filteredItems[selectedIndex]);
+        return;
+      }
+    }
+
+    externalOnKeyDown?.(event);
+  }, [externalOnKeyDown, filteredItems, handleSelect, selectedIndex, showDropdown]);
+
+  const handlePaste = useCallback((event: React.ClipboardEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const editorElement = editorRef.current;
+    if (!editorElement) {
+      return;
+    }
+
+    const text = event.clipboardData.getData("text/plain");
+    const inserted = insertPlainTextAtSelection(editorElement, text);
+    if (!inserted) {
+      const cursorPos = getCursorOffset(editorElement);
+      const existing = extractValue(editorElement);
+      const nextValue = `${existing.slice(0, cursorPos)}${text}${existing.slice(cursorPos)}`;
+      lastEmittedValue.current = nextValue;
+      onChange(nextValue);
+      syncDOM(nextValue, cursorPos + text.length);
+      return;
+    }
+
+    handleInput();
+  }, [handleInput, onChange, syncDOM]);
+
   useEffect(() => {
-    if (!showDropdown) return;
-    const handler = (e: MouseEvent) => {
+    if (!showDropdown) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
-        editorRef.current &&
-        !editorRef.current.contains(e.target as Node)
+        dropdownRef.current
+        && !dropdownRef.current.contains(event.target as Node)
+        && editorRef.current
+        && !editorRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, [showDropdown]);
 
-  // ── Build dropdown sections ────────────────────────────────────
-  const taskItems = filteredItems.filter((i) => i.type === "task");
-  const fileItems = filteredItems.filter((i) => i.type === "file");
-  const userItems = filteredItems.filter((i) => i.type === "user");
+  const taskItems = filteredItems.filter((item) => item.type === "task");
+  const fileItems = filteredItems.filter((item) => item.type === "file");
+  const userItems = filteredItems.filter((item) => item.type === "user");
 
   let flatIndex = 0;
   const renderSections: Array<
     | { kind: "header"; label: string }
     | { kind: "item"; item: MentionItem; index: number }
   > = [];
+
   if (taskItems.length > 0) {
     renderSections.push({ kind: "header", label: "Tasks" });
     taskItems.forEach((item) => {
       renderSections.push({ kind: "item", item, index: flatIndex++ });
     });
   }
+
   if (fileItems.length > 0) {
     renderSections.push({ kind: "header", label: "Files" });
     fileItems.forEach((item) => {
       renderSections.push({ kind: "item", item, index: flatIndex++ });
     });
   }
+
   if (userItems.length > 0) {
     renderSections.push({ kind: "header", label: "Users" });
     userItems.forEach((item) => {
@@ -596,19 +358,19 @@ export const MentionTextarea = forwardRef<
 
   const dropdownContent = (
     <AnimatePresence>
-      {dropdownVisible && pos && (
+      {dropdownVisible && dropdownPosition && (
         <motion.div
           ref={dropdownRef}
-          initial={{ opacity: 0, y: pos.placement === "below" ? -4 : 4, scale: 0.97 }}
+          initial={{ opacity: 0, y: dropdownPosition.placement === "below" ? -4 : 4, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: pos.placement === "below" ? -4 : 4, scale: 0.97 }}
+          exit={{ opacity: 0, y: dropdownPosition.placement === "below" ? -4 : 4, scale: 0.97 }}
           transition={{ duration: 0.12 }}
           style={{
             position: "fixed",
-            left: pos.left,
-            width: pos.width,
-            ...(pos.top != null ? { top: pos.top } : {}),
-            ...(pos.bottom != null ? { bottom: pos.bottom } : {}),
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            ...(dropdownPosition.top != null ? { top: dropdownPosition.top } : {}),
+            ...(dropdownPosition.bottom != null ? { bottom: dropdownPosition.bottom } : {}),
             zIndex: 99999,
           }}
           className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
@@ -625,13 +387,14 @@ export const MentionTextarea = forwardRef<
                   </div>
                 );
               }
+
               const { item, index } = section;
               return (
                 <button
                   key={`${item.type}-${item.id}`}
                   data-index={index}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
+                  onMouseDown={(event) => {
+                    event.preventDefault();
                     handleSelect(item);
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
@@ -639,7 +402,7 @@ export const MentionTextarea = forwardRef<
                     "w-full text-left px-3 py-1.5 flex items-center gap-2.5 text-[13px] transition-colors cursor-pointer",
                     index === selectedIndex
                       ? "bg-white/[0.06] text-white"
-                      : "text-[#ccc] hover:bg-white/[0.04]"
+                      : "text-[#ccc] hover:bg-white/[0.04]",
                   )}
                 >
                   {item.type === "task" ? (
@@ -647,8 +410,18 @@ export const MentionTextarea = forwardRef<
                   ) : item.type === "file" ? (
                     <span className="text-[13px] leading-[1] shrink-0">📂</span>
                   ) : (
-                    <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] text-[9px] text-white/60 shrink-0" style={{ fontWeight: 600, lineHeight: 1 }}>
-                      {item.label.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                    <span
+                      className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] text-[9px] text-white/60 shrink-0"
+                      style={{ fontWeight: 600, lineHeight: 1 }}
+                    >
+                      {item.label
+                        .trim()
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .map((word) => word.charAt(0))
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
                     </span>
                   )}
                   <span className="truncate flex-1">{item.label}</span>
@@ -689,8 +462,13 @@ export const MentionTextarea = forwardRef<
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        onCompositionStart={() => { isComposing.current = true; }}
-        onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
+        onCompositionStart={() => {
+          isComposing.current = true;
+        }}
+        onCompositionEnd={() => {
+          isComposing.current = false;
+          handleInput();
+        }}
         onFocus={onFocus}
         onBlur={onBlur}
         className={cn(className, "outline-none text-[13px]")}
@@ -706,12 +484,10 @@ export const MentionTextarea = forwardRef<
         aria-placeholder={placeholder}
         onClick={handleEditorClick}
       />
-      {/* Placeholder */}
       {!value && (
         <div
           className="absolute inset-0 pointer-events-none select-none text-white/20"
           style={{
-            // Inherit the same font/padding from className via matching styles
             fontSize: "inherit",
             lineHeight: "inherit",
             padding: "inherit",
@@ -726,9 +502,15 @@ export const MentionTextarea = forwardRef<
   );
 });
 
-// ── Render comment content with inline mention chips ──────────────
 function UserInitials({ name }: { name: string }) {
-  const initials = name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   return (
     <span
       className="inline-flex items-center justify-center w-[14px] h-[14px] rounded-full bg-white/[0.12] text-[8px] text-white/70 shrink-0"
@@ -744,27 +526,26 @@ function MentionBadge({
   label,
   onClick,
 }: {
-  type: "task" | "file" | "user";
+  type: MentionEntityType;
   label: string;
-  onClick?: (type: "task" | "file" | "user", label: string) => void;
+  onClick?: (type: MentionEntityType, label: string) => void;
 }) {
   const isTask = type === "task";
   const isFile = type === "file";
-  const isUser = type === "user";
-  const clickable = !!onClick;
+  const clickable = Boolean(onClick);
   const badgeRef = useRef<HTMLSpanElement>(null);
 
   const handleClick = clickable
-    ? (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const el = badgeRef.current;
-        if (el) {
-          el.classList.remove("mention-badge-pulse");
-          void el.offsetWidth;
-          el.classList.add("mention-badge-pulse");
-        }
-        onClick(type, label);
+    ? (event: React.MouseEvent) => {
+      event.stopPropagation();
+      const element = badgeRef.current;
+      if (element) {
+        element.classList.remove("mention-badge-pulse");
+        void element.offsetWidth;
+        element.classList.add("mention-badge-pulse");
       }
+      onClick?.(type, label);
+    }
     : undefined;
 
   return (
@@ -774,7 +555,7 @@ function MentionBadge({
         "inline-flex items-center gap-[4px] mx-[1px] whitespace-nowrap text-[12.5px]",
         "align-baseline relative transition-colors",
         clickable ? "cursor-pointer hover:text-white active:scale-[0.97]" : "cursor-default",
-        "text-[#E8E8E8]"
+        "text-[#E8E8E8]",
       )}
       onClick={handleClick}
     >
@@ -792,28 +573,29 @@ function MentionBadge({
 
 export function renderCommentContent(
   content: string,
-  onMentionClick?: (type: "task" | "file" | "user", label: string) => void
+  onMentionClick?: (type: MentionEntityType, label: string) => void,
 ): React.ReactNode {
-  const TOKEN_RE = /(@\[(?:task|file|user):[^\]]+\])/;
-  const segments = content.split(TOKEN_RE);
-  if (segments.length === 1) return content;
+  const segments = content.split(MENTION_TOKEN_SPLIT_REGEX);
+  if (segments.length === 1) {
+    return content;
+  }
 
-  const PARSE_RE = /^@\[(task|file|user):([^\]]+)\]$/;
   return (
     <>
-      {segments.map((seg, i) => {
-        const m = seg.match(PARSE_RE);
-        if (m) {
-          return (
-            <MentionBadge
-              key={`mention-${i}`}
-              type={m[1] as "task" | "file" | "user"}
-              label={m[2]}
-              onClick={onMentionClick}
-            />
-          );
+      {segments.map((segment, index) => {
+        const token = parseMentionToken(segment);
+        if (!token) {
+          return segment || null;
         }
-        return seg || null;
+
+        return (
+          <MentionBadge
+            key={`mention-${index}`}
+            type={token.type}
+            label={token.label}
+            onClick={onMentionClick}
+          />
+        );
       })}
     </>
   );

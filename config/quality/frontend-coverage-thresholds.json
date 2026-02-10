@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "activePhase": "phase2",
+  "activePhase": "phase3",
   "phases": {
     "phase1": {
       "description": "Initial frontend quality baseline",

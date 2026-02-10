@@ -134,46 +134,44 @@ export function ChatSidebar({
     [shouldOptimizeCommentRows],
   );
 
-  // Build mention items from active project data
-  const mentionItems: MentionItemType[] = useMemo(() => {
-    const items: MentionItemType[] = [];
+  const mentionItemGroups = useMemo(() => {
+    const taskItems: MentionItemType[] = (activeProject.tasks ?? []).map((task) => ({
+      type: "task",
+      id: task.id,
+      label: task.title,
+      meta: task.completed ? "Done" : formatTaskDueDate(task.dueDateEpochMs),
+      completed: task.completed,
+    }));
 
-    // Add tasks
-    if (activeProject.tasks) {
-      activeProject.tasks.forEach((task) => {
-        items.push({
-          type: "task",
-          id: task.id,
-          label: task.title,
-          meta: task.completed ? "Done" : formatTaskDueDate(task.dueDateEpochMs),
-          completed: task.completed,
-        });
-      });
-    }
+    const fileItems: MentionItemType[] = (allFiles ?? []).map((file) => ({
+      type: "file",
+      id: String(file.id),
+      label: file.name,
+      meta: file.type,
+    }));
 
-    // Add files from all tabs (assets, contracts, attachments)
-    if (allFiles) {
-      allFiles.forEach((file) => {
-        items.push({
-          type: "file",
-          id: String(file.id),
-          label: file.name,
-          meta: file.type,
-        });
-      });
-    }
+    const userItems: MentionItemType[] = workspaceMembers.map((member) => ({
+      type: "user",
+      id: member.userId,
+      label: member.name,
+      meta: formatRoleLabel(member.role),
+    }));
 
-    workspaceMembers.forEach((member) => {
-      items.push({
-        type: "user",
-        id: member.userId,
-        label: member.name,
-        meta: formatRoleLabel(member.role),
-      });
-    });
-
-    return items;
+    return {
+      taskItems,
+      fileItems,
+      userItems,
+    };
   }, [activeProject.tasks, allFiles, workspaceMembers]);
+
+  const mentionItems: MentionItemType[] = useMemo(
+    () => [
+      ...mentionItemGroups.taskItems,
+      ...mentionItemGroups.fileItems,
+      ...mentionItemGroups.userItems,
+    ],
+    [mentionItemGroups],
+  );
 
   // Close menus on outside click
   useEffect(() => {

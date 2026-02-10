@@ -23,8 +23,6 @@ type DashboardChromeProps = {
   onSwitchWorkspace: (workspaceSlug: string) => void;
   onCreateWorkspace: () => void;
   onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
-  onArchiveProject: (projectId: string) => void;
-  onUnarchiveProject: (projectId: string) => void;
   onUpdateProjectStatus: (projectId: string, newStatus: string) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
@@ -48,8 +46,6 @@ export function DashboardChrome({
   onSwitchWorkspace,
   onCreateWorkspace,
   onOpenSettings,
-  onArchiveProject,
-  onUnarchiveProject,
   onUpdateProjectStatus,
   onEditProject,
   onViewReviewProject,
@@ -112,8 +108,6 @@ export function DashboardChrome({
                 canCreateWorkspace={canCreateWorkspace}
                 onOpenSettings={onOpenSettings}
                 onOpenSettingsIntent={handleSettingsIntent}
-                onArchiveProject={onArchiveProject}
-                onUnarchiveProject={onUnarchiveProject}
                 onUpdateProjectStatus={onUpdateProjectStatus}
                 onEditProject={onEditProject}
                 onViewReviewProject={onViewReviewProject}
