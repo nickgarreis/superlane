@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { api } from "../../../../convex/_generated/api";
 import type { ProjectFileTab } from "../../types";
+import { prepareUpload } from "../lib/uploadPipeline";
 import type {
   DashboardActionHandler,
   DashboardFileActions,
@@ -55,8 +56,12 @@ export const useDashboardFileActions = ({
         throw new Error("No active workspace selected");
       }
 
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
+      const { checksumSha256, uploadUrl } = await prepareUpload(
+        file,
+        workspaceSlug,
+        (slug) => generateUploadUrlMutation({ workspaceSlug: slug }),
+        computeFileChecksumSha256,
+      );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       await finalizeProjectUploadAction({
@@ -96,8 +101,12 @@ export const useDashboardFileActions = ({
         throw new Error("No active workspace selected");
       }
 
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateUploadUrlMutation({ workspaceSlug });
+      const { checksumSha256, uploadUrl } = await prepareUpload(
+        file,
+        workspaceSlug,
+        (slug) => generateUploadUrlMutation({ workspaceSlug: slug }),
+        computeFileChecksumSha256,
+      );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       const result = await finalizePendingDraftAttachmentUploadAction({

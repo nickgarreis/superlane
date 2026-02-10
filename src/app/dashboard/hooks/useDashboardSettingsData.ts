@@ -10,6 +10,7 @@ type UseDashboardSettingsDataArgs = {
   accountSettings: AccountSettingsResult;
   notificationSettings: NotificationSettingsResult;
   companySettings: CompanySettingsResult;
+  fallbackAvatarUrl: string | null;
   user: {
     firstName?: string | null;
     lastName?: string | null;
@@ -22,6 +23,7 @@ export const useDashboardSettingsData = ({
   accountSettings,
   notificationSettings,
   companySettings,
+  fallbackAvatarUrl,
   user,
 }: UseDashboardSettingsDataArgs) => {
   const settingsAccountData = useMemo(
@@ -30,9 +32,16 @@ export const useDashboardSettingsData = ({
         firstName: user?.firstName ?? "",
         lastName: user?.lastName ?? "",
         email: user?.email ?? "",
-        avatarUrl: user?.profilePictureUrl ?? null,
+        avatarUrl: fallbackAvatarUrl ?? user?.profilePictureUrl ?? null,
       },
-    [accountSettings, user?.email, user?.firstName, user?.lastName, user?.profilePictureUrl],
+    [
+      accountSettings,
+      fallbackAvatarUrl,
+      user?.email,
+      user?.firstName,
+      user?.lastName,
+      user?.profilePictureUrl,
+    ],
   );
 
   const settingsNotificationsData = useMemo(

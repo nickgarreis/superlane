@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { Plus, Check, Trash2, Calendar, ArrowUpDown, CornerDownLeft } from "lucide-react";
+import { Plus, ArrowUpDown, CornerDownLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { createClientId } from "../lib/id";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { motion, AnimatePresence } from "motion/react";
-import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import {
   compareNullableEpochMsAsc,
-  formatTaskDueDate,
-  fromUtcNoonEpochMsToDateOnly,
   toUtcNoonEpochMsFromDateOnly,
 } from "../lib/dates";
-import { ProjectLogo } from "./ProjectLogo";
+import { safeScrollIntoView } from "../lib/dom";
+import { ProjectTaskRows } from "./project-tasks/ProjectTaskRows";
 import { DeniedAction } from "./permissions/DeniedAction";
 
 type TaskProjectOption = {
@@ -46,6 +43,9 @@ interface ProjectTasksProps {
   onHighlightDone?: () => void;
   canAddTasks?: boolean;
   addTaskDisabledMessage?: string;
+  canEditTasks?: boolean;
+  canEditTask?: (task: Task) => boolean;
+  editTaskDisabledMessage?: string;
 }
 
 export function ProjectTasks({
@@ -64,6 +64,9 @@ export function ProjectTasks({
   onHighlightDone,
   canAddTasks = true,
   addTaskDisabledMessage = "Tasks can only be created for active projects",
+  canEditTasks = true,
+  canEditTask,
+  editTaskDisabledMessage = "Tasks can only be edited for active projects",
 }: ProjectTasksProps) {
   const [internalIsAdding, setInternalIsAdding] = useState(false);
   
@@ -97,8 +100,20 @@ export function ProjectTasks({
   const taskRowStyle = shouldOptimizeTaskRows
     ? ({ contentVisibility: "auto", containIntrinsicSize: "56px" } as const)
     : undefined;
+  const isTaskEditable = useCallback(
+    (task: Task) => canEditTasks && (canEditTask ? canEditTask(task) : true),
+    [canEditTask, canEditTasks],
+  );
+  const findTaskById = useCallback(
+    (taskId: string) => initialTasks.find((task) => task.id === taskId),
+    [initialTasks],
+  );
 
   const handleToggle = (id: string) => {
+    const task = findTaskById(id);
+    if (!task || !isTaskEditable(task)) {
+      return;
+    }
     const newTasks = initialTasks.map(t => 
       t.id === id ? { ...t, completed: !t.completed } : t
     );
@@ -106,6 +121,10 @@ export function ProjectTasks({
   };
 
   const handleDelete = (id: string) => {
+    const task = findTaskById(id);
+    if (!task || !isTaskEditable(task)) {
+      return;
+    }
     const newTasks = initialTasks.filter(t => t.id !== id);
     onUpdateTasks(newTasks);
   };
@@ -143,6 +162,11 @@ export function ProjectTasks({
 
   const handleDateSelect = (taskId: string, date: Date | undefined) => {
     if (!date) return;
+    const task = findTaskById(taskId);
+    if (!task || !isTaskEditable(task)) {
+      setOpenCalendarTaskId(null);
+      return;
+    }
     const dueDateEpochMs = toUtcNoonEpochMsFromDateOnly(date);
     const newTasks = initialTasks.map(t => 
         t.id === taskId ? { ...t, dueDateEpochMs } : t
@@ -152,6 +176,11 @@ export function ProjectTasks({
   };
 
   const handleAssigneeSelect = (taskId: string, member: WorkspaceMember) => {
+      const task = findTaskById(taskId);
+      if (!task || !isTaskEditable(task)) {
+        setOpenAssigneeTaskId(null);
+        return;
+      }
       const newTasks = initialTasks.map(t => 
           t.id === taskId
             ? {
@@ -168,6 +197,11 @@ export function ProjectTasks({
   };
 
   const handleProjectSelect = (taskId: string, projectId: string) => {
+    const task = findTaskById(taskId);
+    if (!task || !isTaskEditable(task)) {
+      setOpenProjectTaskId(null);
+      return;
+    }
     const newTasks = initialTasks.map((task) =>
       task.id === taskId
         ? {
@@ -188,16 +222,19 @@ export function ProjectTasks({
     }
   };
 
-  const getInitials = (name: string) => {
-      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-  };
-
-  const closeAllDropdowns = () => {
+  const closeAllDropdowns = useCallback(() => {
       setOpenCalendarTaskId(null);
       setCalendarPosition(null);
       setOpenAssigneeTaskId(null);
       setOpenProjectTaskId(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (canEditTasks) {
+      return;
+    }
+    closeAllDropdowns();
+  }, [canEditTasks, closeAllDropdowns]);
 
   useEffect(() => {
     if (!isAdding) {
@@ -247,7 +284,7 @@ export function ProjectTasks({
     if (!highlightedTaskId) return;
     const el = taskRowRefs.current[highlightedTaskId];
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      safeScrollIntoView(el, { behavior: "smooth", block: "center" });
       // Add flash class
       el.classList.add("task-row-flash");
       const timer = setTimeout(() => {
@@ -413,307 +450,33 @@ export function ProjectTasks({
                      </motion.div>
                 )}
             </AnimatePresence>
-
-                <AnimatePresence initial={false}>
-                {sortedTasks.map((task) => {
-                    const hasOpenDropdown =
-                      openCalendarTaskId === task.id ||
-                      openAssigneeTaskId === task.id ||
-                      openProjectTaskId === task.id;
-                    return (
-                    <motion.div
-                        key={task.id}
-                        ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
-                        layout
-                        exit={{ opacity: 0 }}
-                        className={cn(
-                            "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
-                            hasOpenDropdown && "z-50"
-                        )}
-                        style={taskRowStyle}
-                    >
-                        <div 
-                            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
-                            onClick={() => handleToggle(task.id)}
-                        >
-                            <div 
-                                className={cn(
-                                    "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all",
-                                    task.completed 
-                                        ? "bg-[#58AFFF] border-[#58AFFF] text-black" 
-                                        : "border-white/20 group-hover:border-white/40 bg-transparent"
-                                )}
-                            >
-                                {task.completed && <Check size={12} strokeWidth={3} />}
-                            </div>
-                            
-                            <span className={cn(
-                                "text-[14px] font-medium truncate transition-all", 
-                                task.completed ? "text-white/30 line-through" : "text-[#E8E8E8]"
-                            )}>
-                                {task.title}
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0 pl-4 relative">
-                             {/* Project */}
-                             {showProjectColumn && (
-                                <div className="w-[170px] relative">
-                                    <div
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            closeAllDropdowns();
-                                            setOpenProjectTaskId(openProjectTaskId === task.id ? null : task.id);
-                                        }}
-                                        className={cn(
-                                          "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-[rgba(232,232,232,0.08)] w-full",
-                                          task.completed ? "text-white/30 pointer-events-none" : "text-[rgba(232,232,232,0.44)]",
-                                          openProjectTaskId === task.id && "bg-[rgba(232,232,232,0.08)] text-[#E8E8E8]",
-                                        )}
-                                    >
-                                        {projectOptions.some((project) => project.id === task.projectId) ? (
-                                            <ProjectLogo
-                                                size={12}
-                                                category={
-                                                    projectOptions.find((project) => project.id === task.projectId)?.category ?? "General"
-                                                }
-                                            />
-                                        ) : (
-                                            <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
-                                        )}
-                                        <span className="truncate">
-                                            {projectOptions.find((project) => project.id === task.projectId)?.name ?? "No project"}
-                                        </span>
-                                    </div>
-
-                                    <AnimatePresence>
-                                        {openProjectTaskId === task.id && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
-                                                onClick={(event) => event.stopPropagation()}
-                                            >
-                                                <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
-                                                    Move to project
-                                                </div>
-                                                <div
-                                                    onClick={() => {
-                                                        handleProjectSelect(task.id, "");
-                                                        setOpenProjectTaskId(null);
-                                                    }}
-                                                    className={cn(
-                                                      "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                                                      !task.projectId && "bg-[rgba(232,232,232,0.08)]",
-                                                    )}
-                                                >
-                                                    <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
-                                                    <span className={cn(
-                                                      "text-[13px] truncate",
-                                                      !task.projectId ? "text-white font-medium" : "text-[#E8E8E8]",
-                                                    )}>
-                                                        No project
-                                                    </span>
-                                                </div>
-                                                {projectOptions.map((project) => (
-                                                    <div
-                                                        key={project.id}
-                                                        onClick={() => {
-                                                            handleProjectSelect(task.id, project.id);
-                                                            setOpenProjectTaskId(null);
-                                                        }}
-                                                        className={cn(
-                                                          "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                                                          task.projectId === project.id && "bg-[rgba(232,232,232,0.08)]",
-                                                        )}
-                                                    >
-                                                        <ProjectLogo size={12} category={project.category} />
-                                                        <span className={cn(
-                                                          "text-[13px] truncate",
-                                                          task.projectId === project.id ? "text-white font-medium" : "text-[#E8E8E8]",
-                                                        )}>
-                                                            {project.name}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                             )}
-                             {/* Date */}
-                             <div className="relative w-[120px]">
-                                 <div 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (openCalendarTaskId === task.id) {
-                                            closeAllDropdowns();
-                                            return;
-                                        }
-                                        closeAllDropdowns();
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const calH = 310;
-                                        const calW = 250;
-                                        const gap = 8;
-                                        const spaceBelow = window.innerHeight - rect.bottom;
-                                        setCalendarPosition({
-                                            top: spaceBelow >= calH + gap
-                                                ? rect.bottom + gap
-                                                : Math.max(gap, rect.top - calH - gap),
-                                            left: Math.max(gap, Math.min(rect.right - calW, window.innerWidth - calW - gap)),
-                                        });
-                                        setOpenCalendarTaskId(task.id);
-                                    }}
-                                    className={cn(
-                                        "flex items-center gap-1.5 text-[12px] cursor-pointer hover:text-[#E8E8E8] transition-colors py-1 px-2 rounded-md hover:bg-white/5 w-full", 
-                                        task.completed ? "text-white/20 pointer-events-none" : "text-white/40",
-                                        openCalendarTaskId === task.id && "bg-white/5 text-[#E8E8E8]"
-                                    )}
-                                 >
-                                    <Calendar size={12} />
-                                    <span>{formatTaskDueDate(task.dueDateEpochMs)}</span>
-                                 </div>
-                             </div>
-
-                             {/* Assignee */}
-                             <div className="relative w-6">
-                                 <div 
-                                    className={cn(
-                                        "w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0 cursor-pointer transition-transform active:scale-95",
-                                        task.completed && "opacity-50 pointer-events-none"
-                                    )}
-                                    title={task.assignee.name}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        closeAllDropdowns();
-                                        setOpenAssigneeTaskId(openAssigneeTaskId === task.id ? null : task.id);
-                                    }}
-                                 >
-                                     {task.assignee.avatar ? (
-                                        <img src={task.assignee.avatar} className="w-full h-full object-cover" />
-                                     ) : (
-                                        <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
-                                            {getInitials(task.assignee.name)}
-                                        </div>
-                                     )}
-                                 </div>
-
-                                 <AnimatePresence>
-                                    {openAssigneeTaskId === task.id && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[200px] overflow-hidden"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
-                                                Assign to
-                                            </div>
-                                            {assignableMembers.length === 0 && (
-                                                <div className="px-3 py-2 text-[12px] text-[rgba(232,232,232,0.44)]">
-                                                    No active members
-                                                </div>
-                                            )}
-                                            {assignableMembers.map((member) => (
-                                                <div 
-                                                    key={member.userId}
-                                                    onClick={() => handleAssigneeSelect(task.id, member)}
-                                                    className={cn(
-                                                        "flex items-center gap-3 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                                                        task.assignee.name === member.name
-                                                          && (task.assignee.avatar || "") === (member.avatarUrl || "")
-                                                          && "bg-[rgba(232,232,232,0.08)]"
-                                                    )}
-                                                >
-                                                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                                                        {member.avatarUrl ? (
-                                                            <img src={member.avatarUrl} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
-                                                                {getInitials(member.name)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <span className={cn(
-                                                        "text-[13px]",
-                                                        task.assignee.name === member.name
-                                                          && (task.assignee.avatar || "") === (member.avatarUrl || "")
-                                                          ? "text-white font-medium"
-                                                          : "text-[#E8E8E8]"
-                                                    )}>
-                                                        {member.name}
-                                                    </span>
-                                                    {task.assignee.name === member.name
-                                                      && (task.assignee.avatar || "") === (member.avatarUrl || "")
-                                                      && (
-                                                        <Check size={14} className="ml-auto text-[#58AFFF]" />
-                                                      )}
-                                                </div>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                 </AnimatePresence>
-                             </div>
-                            
-                             {/* Delete Action (visible on hover) */}
-                             <div className="w-7 flex items-center justify-center">
-                               <button
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDelete(task.id);
-                                  }}
-                                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                               >
-                                  <Trash2 size={14} />
-                               </button>
-                             </div>
-                        </div>
-                    </motion.div>
-                    );
-                })}
-                </AnimatePresence>
-            
-            {initialTasks.length === 0 && !isAdding && (
-                <div className="py-8 text-center text-[13px] text-white/20 italic">
-                    {showProjectColumn && projectOptions.length === 0
-                      ? "No active projects available. Activate a project to assign tasks."
-                      : "No tasks yet. Click \"Add Task\" to create one."}
-                </div>
-            )}
+            <ProjectTaskRows
+              initialTasks={initialTasks}
+              sortedTasks={sortedTasks}
+              showProjectColumn={showProjectColumn}
+              projectOptions={projectOptions}
+              assignableMembers={assignableMembers}
+              openCalendarTaskId={openCalendarTaskId}
+              setOpenCalendarTaskId={setOpenCalendarTaskId}
+              calendarPosition={calendarPosition}
+              setCalendarPosition={setCalendarPosition}
+              openAssigneeTaskId={openAssigneeTaskId}
+              setOpenAssigneeTaskId={setOpenAssigneeTaskId}
+              openProjectTaskId={openProjectTaskId}
+              setOpenProjectTaskId={setOpenProjectTaskId}
+              closeAllDropdowns={closeAllDropdowns}
+              handleToggle={handleToggle}
+              handleDelete={handleDelete}
+              handleDateSelect={handleDateSelect}
+              handleAssigneeSelect={handleAssigneeSelect}
+              handleProjectSelect={handleProjectSelect}
+              isAdding={isAdding}
+              taskRowRefs={taskRowRefs}
+              taskRowStyle={taskRowStyle}
+              editTaskDisabledMessage={editTaskDisabledMessage}
+              isTaskEditable={isTaskEditable}
+            />
         </div>
-
-        {/* Calendar dropdown – portaled to body to escape overflow containers */}
-        {openCalendarTaskId && calendarPosition && createPortal(
-            <motion.div
-                key={openCalendarTaskId}
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                style={{
-                    position: "fixed",
-                    top: calendarPosition.top,
-                    left: calendarPosition.left,
-                    zIndex: 9999,
-                }}
-                className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <DayPicker
-                    className="rdp-dark-theme"
-                    mode="single"
-                    selected={(() => {
-                        const activeTask = initialTasks.find(tk => tk.id === openCalendarTaskId);
-                        return activeTask ? fromUtcNoonEpochMsToDateOnly(activeTask.dueDateEpochMs) : undefined;
-                    })()}
-                    onSelect={(date) => handleDateSelect(openCalendarTaskId, date)}
-                    showOutsideDays
-                    disabled={{ before: new Date() }}
-                />
-            </motion.div>,
-            document.body,
-        )}
     </div>
   );
 }

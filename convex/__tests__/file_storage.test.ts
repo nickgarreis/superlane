@@ -364,6 +364,81 @@ describe("P0.2 file storage pipeline", () => {
     ).rejects.toThrow("File not found");
   });
 
+  test("archived/completed projects block file mutations but keep download access", async () => {
+    const workspace = await seedWorkspace();
+    const project = await seedProject(workspace);
+    const baselineStored = await storeBlob("baseline", "text/plain");
+
+    const uploaded = await asMember().action(api.files.finalizeProjectUpload, {
+      projectPublicId: project.projectPublicId,
+      tab: "Assets",
+      name: "baseline.txt",
+      mimeType: baselineStored.mimeType,
+      sizeBytes: baselineStored.sizeBytes,
+      checksumSha256: baselineStored.checksumSha256,
+      storageId: baselineStored.storageId,
+    });
+
+    await asOwner().mutation(api.projects.setStatus, {
+      publicId: project.projectPublicId,
+      status: "Completed",
+    });
+
+    const completedBlockedUpload = await storeBlob("completed-blocked", "text/plain");
+    await expect(
+      asMember().action(api.files.finalizeProjectUpload, {
+        projectPublicId: project.projectPublicId,
+        tab: "Assets",
+        name: "completed-blocked.txt",
+        mimeType: completedBlockedUpload.mimeType,
+        sizeBytes: completedBlockedUpload.sizeBytes,
+        checksumSha256: completedBlockedUpload.checksumSha256,
+        storageId: completedBlockedUpload.storageId,
+      }),
+    ).rejects.toThrow("Files can only be modified for active projects");
+    await expect(storageBlobExists(completedBlockedUpload.storageId)).resolves.toBe(false);
+
+    await expect(
+      asMember().mutation(api.files.remove, { fileId: uploaded.fileId }),
+    ).rejects.toThrow("Files can only be modified for active projects");
+
+    const completedDownload = await asMember().query(api.files.getDownloadUrl, {
+      fileId: uploaded.fileId,
+    });
+    expect(completedDownload.url).toContain("http");
+
+    await asOwner().mutation(api.projects.setStatus, {
+      publicId: project.projectPublicId,
+      status: "Active",
+    });
+    await asOwner().mutation(api.projects.archive, {
+      publicId: project.projectPublicId,
+    });
+
+    const archivedBlockedUpload = await storeBlob("archived-blocked", "text/plain");
+    await expect(
+      asMember().action(api.files.finalizeProjectUpload, {
+        projectPublicId: project.projectPublicId,
+        tab: "Assets",
+        name: "archived-blocked.txt",
+        mimeType: archivedBlockedUpload.mimeType,
+        sizeBytes: archivedBlockedUpload.sizeBytes,
+        checksumSha256: archivedBlockedUpload.checksumSha256,
+        storageId: archivedBlockedUpload.storageId,
+      }),
+    ).rejects.toThrow("Files can only be modified for active projects");
+    await expect(storageBlobExists(archivedBlockedUpload.storageId)).resolves.toBe(false);
+
+    await expect(
+      asMember().mutation(api.files.remove, { fileId: uploaded.fileId }),
+    ).rejects.toThrow("Files can only be modified for active projects");
+
+    const archivedDownload = await asMember().query(api.files.getDownloadUrl, {
+      fileId: uploaded.fileId,
+    });
+    expect(archivedDownload.url).toContain("http");
+  });
+
   test("pending draft uploads are consumed on project create and can be discarded", async () => {
     const workspace = await seedWorkspace();
     const pendingStored = await storeBlob("draft-file", "application/pdf");

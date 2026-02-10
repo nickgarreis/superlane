@@ -1,0 +1,175 @@
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { pathToView, viewToPath } from "../../lib/routing";
+import { scheduleIdlePrefetch } from "../../lib/prefetch";
+import type { ProjectData } from "../../types";
+
+type DashboardSnapshotLike = {
+  workspaces: unknown[];
+  activeWorkspaceSlug?: string | null;
+} | null | undefined;
+
+type CompanySettingsLike = {
+  capability?: {
+    hasOrganizationLink?: boolean;
+  };
+  viewerRole?: string | null;
+} | null | undefined;
+
+type UseDashboardLifecycleEffectsArgs = {
+  snapshot: DashboardSnapshotLike;
+  ensureDefaultWorkspace: (args: {}) => Promise<{ slug: string }>;
+  setActiveWorkspaceSlug: (slug: string) => void;
+  preloadSearchPopupModule: () => Promise<unknown>;
+  openSearch: () => void;
+  locationPathname: string;
+  projects: Record<string, ProjectData>;
+  navigateToPath: (path: string, replace?: boolean) => void;
+  resolvedWorkspaceSlug: string | null;
+  companySettings: CompanySettingsLike;
+  ensureOrganizationLinkAction: (args: { workspaceSlug: string }) => Promise<{ alreadyLinked: boolean }>;
+  runWorkspaceSettingsReconciliation: (workspaceSlug: string) => Promise<void>;
+};
+
+export const useDashboardLifecycleEffects = ({
+  snapshot,
+  ensureDefaultWorkspace,
+  setActiveWorkspaceSlug,
+  preloadSearchPopupModule,
+  openSearch,
+  locationPathname,
+  projects,
+  navigateToPath,
+  resolvedWorkspaceSlug,
+  companySettings,
+  ensureOrganizationLinkAction,
+  runWorkspaceSettingsReconciliation,
+}: UseDashboardLifecycleEffectsArgs) => {
+  const defaultWorkspaceRequestedRef = useRef(false);
+  const invalidRouteRef = useRef<string | null>(null);
+  const organizationLinkAttemptedWorkspacesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!snapshot) {
+      return;
+    }
+    if (snapshot.workspaces.length > 0 || defaultWorkspaceRequestedRef.current) {
+      return;
+    }
+
+    defaultWorkspaceRequestedRef.current = true;
+    void ensureDefaultWorkspace({})
+      .then((result) => {
+        setActiveWorkspaceSlug(result.slug);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Failed to create your default workspace");
+      });
+  }, [snapshot, ensureDefaultWorkspace, setActiveWorkspaceSlug]);
+
+  useEffect(() => {
+    const cancel = scheduleIdlePrefetch(() => preloadSearchPopupModule());
+    return cancel;
+  }, [preloadSearchPopupModule]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [openSearch]);
+
+  useEffect(() => {
+    if (!snapshot) {
+      return;
+    }
+
+    const routeView = pathToView(locationPathname);
+    if (!routeView) {
+      invalidRouteRef.current = null;
+      return;
+    }
+
+    if (routeView.startsWith("project:")) {
+      const projectId = routeView.split(":")[1];
+      const project = projects[projectId];
+
+      if (!project) {
+        if (invalidRouteRef.current !== locationPathname) {
+          invalidRouteRef.current = locationPathname;
+          toast.error("Project not found");
+        }
+        navigateToPath("/tasks", true);
+        return;
+      }
+
+      if (project.archived) {
+        navigateToPath(viewToPath(`archive-project:${projectId}`), true);
+        return;
+      }
+
+      invalidRouteRef.current = null;
+      return;
+    }
+
+    if (routeView.startsWith("archive-project:")) {
+      const projectId = routeView.split(":")[1];
+      const project = projects[projectId];
+
+      if (!project) {
+        if (invalidRouteRef.current !== locationPathname) {
+          invalidRouteRef.current = locationPathname;
+          toast.error("Archived project not found");
+        }
+        navigateToPath("/archive", true);
+        return;
+      }
+
+      if (!project.archived) {
+        navigateToPath(viewToPath(`project:${projectId}`), true);
+        return;
+      }
+
+      invalidRouteRef.current = null;
+    }
+  }, [snapshot, locationPathname, projects, navigateToPath]);
+
+  useEffect(() => {
+    if (!resolvedWorkspaceSlug || !companySettings) {
+      return;
+    }
+    if (companySettings.capability?.hasOrganizationLink || companySettings.viewerRole !== "owner") {
+      return;
+    }
+
+    const slug = resolvedWorkspaceSlug;
+    const attempted = organizationLinkAttemptedWorkspacesRef.current;
+    if (attempted.has(slug)) {
+      return;
+    }
+    attempted.add(slug);
+
+    void ensureOrganizationLinkAction({ workspaceSlug: slug })
+      .then(async (result) => {
+        if (!result.alreadyLinked) {
+          await runWorkspaceSettingsReconciliation(slug);
+          toast.success("Workspace linked to WorkOS organization");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Failed to link workspace organization");
+      });
+  }, [
+    resolvedWorkspaceSlug,
+    companySettings,
+    ensureOrganizationLinkAction,
+    runWorkspaceSettingsReconciliation,
+  ]);
+};

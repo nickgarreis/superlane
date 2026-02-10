@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const ACCEPTED_MIME_TYPES = "image/png,image/jpeg,image/gif,image/webp";
@@ -206,11 +206,6 @@ export function CreateWorkspacePopup({ isOpen, onClose, onCreate }: CreateWorksp
                   </div>
                 </div>
 
-                {!logoFile && (
-                  <div className="size-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 shrink-0">
-                    <Camera size={16} />
-                  </div>
-                )}
               </div>
 
               <div className="flex flex-col gap-2">

@@ -102,6 +102,53 @@ describe("CreateProjectPopup", () => {
     expect(projectId).toBe("project-123");
   });
 
+  test("persists review comments when scrollIntoView is unavailable", async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+
+    try {
+      const onCreate = vi.fn().mockResolvedValue({ publicId: "project-456", mode: "create" });
+      const onUpdateComments = vi.fn().mockResolvedValue(undefined);
+
+      render(
+        <CreateProjectPopup
+          isOpen
+          onClose={() => {}}
+          onCreate={onCreate}
+          onUpdateComments={onUpdateComments}
+          user={{ userId: "viewer-1", name: "Nick", avatar: "", role: "owner" }}
+          initialDraftData={STEP_THREE_DRAFT}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Review & submit" }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Your Project is in Review" }),
+        ).toBeInTheDocument();
+      });
+
+      const commentInput = screen.getByPlaceholderText("Add a comment...");
+      fireEvent.change(commentInput, { target: { value: "No crash when scrolling is unavailable." } });
+      fireEvent.keyDown(commentInput, { key: "Enter", code: "Enter" });
+
+      await waitFor(() => {
+        expect(onUpdateComments).toHaveBeenCalledTimes(1);
+      });
+    } finally {
+      Object.defineProperty(Element.prototype, "scrollIntoView", {
+        value: originalScrollIntoView,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
   test("shows locked review approval action for non-owner users", async () => {
     const onApproveReviewProject = vi.fn().mockResolvedValue(undefined);
 

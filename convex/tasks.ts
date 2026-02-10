@@ -4,7 +4,21 @@ import { taskInputValidator, workspaceTaskInputValidator } from "./lib/validator
 import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
 import { assertFiniteEpochMs } from "./lib/dateNormalization";
 
+const projectAllowsTaskMutations = (project: any) =>
+  project.deletedAt == null
+  && project.archived !== true
+  && project.status === "Active"
+  && project.completedAt == null;
+
+const assertProjectAllowsTaskMutations = (project: any) => {
+  if (!projectAllowsTaskMutations(project)) {
+    throw new ConvexError("Tasks can only be modified for active projects");
+  }
+};
+
 const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) => {
+  assertProjectAllowsTaskMutations(project);
+
   const existing = await ctx.db
     .query("tasks")
     .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
@@ -71,15 +85,59 @@ export const replaceForWorkspace = mutation({
       .collect();
     const activeProjectsByPublicId = new Map(
       projects
-        .filter((project: any) => project.deletedAt == null && project.status === "Active")
+        .filter((project: any) => projectAllowsTaskMutations(project))
         .map((project: any) => [project.publicId, project]),
+    );
+    const inactiveProjectPublicIds = new Set(
+      projects
+        .filter((project: any) => project.deletedAt == null && !projectAllowsTaskMutations(project))
+        .map((project: any) => project.publicId),
     );
 
     const existing = await ctx.db
       .query("tasks")
       .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
       .collect();
-    await Promise.all(existing.map((task: any) => ctx.db.delete(task._id)));
+    const preservedInactiveProjectTasks = existing.filter(
+      (task: any) =>
+        typeof task.projectPublicId === "string"
+        && inactiveProjectPublicIds.has(task.projectPublicId),
+    );
+    const preservedInactiveTaskIds = new Set(
+      preservedInactiveProjectTasks.map((task: any) => task.taskId),
+    );
+    const preservedInactiveRowIds = new Set(
+      preservedInactiveProjectTasks.map((task: any) => String(task._id)),
+    );
+
+    for (const task of args.tasks) {
+      const requestedProjectPublicId =
+        typeof task.projectPublicId === "string" && task.projectPublicId.trim().length > 0
+          ? task.projectPublicId.trim()
+          : null;
+      const project = requestedProjectPublicId
+        ? activeProjectsByPublicId.get(requestedProjectPublicId)
+        : null;
+
+      if (requestedProjectPublicId && !project) {
+        if (inactiveProjectPublicIds.has(requestedProjectPublicId)) {
+          throw new ConvexError("Tasks can only be modified for active projects");
+        }
+        throw new ConvexError(
+          `Project not found in workspace or not active: ${requestedProjectPublicId}`,
+        );
+      }
+
+      if (preservedInactiveTaskIds.has(task.id)) {
+        throw new ConvexError("Tasks can only be modified for active projects");
+      }
+    }
+
+    await Promise.all(
+      existing
+        .filter((task: any) => !preservedInactiveRowIds.has(String(task._id)))
+        .map((task: any) => ctx.db.delete(task._id)),
+    );
 
     const now = Date.now();
     await Promise.all(

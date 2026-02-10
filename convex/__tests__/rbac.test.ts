@@ -381,6 +381,24 @@ describe("P0.1 RBAC and soft-delete", () => {
       status: "Completed",
     });
 
+    await expect(
+      asMember().mutation(api.tasks.replaceForProject, {
+        projectPublicId: project.projectPublicId,
+        tasks: [
+          {
+            id: "task-1",
+            title: "Member cannot mutate completed tasks",
+            assignee: {
+              name: "Member User",
+              avatar: "",
+            },
+            dueDateEpochMs: null,
+            completed: false,
+          },
+        ],
+      }),
+    ).rejects.toThrow("Tasks can only be modified for active projects");
+
     await t.run(async (ctx) => {
       const row = await ctx.db.get(project.projectId);
       expect(row?.name).toBe("Member updated name");

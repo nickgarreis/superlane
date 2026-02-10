@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import type { AppView } from "../lib/routing";
+import { prepareUpload } from "./lib/uploadPipeline";
 import type {
   DashboardActionHandler,
   DashboardMutationHandler,
@@ -115,8 +116,12 @@ export const useDashboardWorkspaceActions = ({
 
   const handleUploadAccountAvatar = useCallback(
     async (file: File) => {
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateAvatarUploadUrlMutation({});
+      const { checksumSha256, uploadUrl } = await prepareUpload(
+        file,
+        "",
+        () => generateAvatarUploadUrlMutation({}),
+        computeFileChecksumSha256,
+      );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       await finalizeAvatarUploadMutation({
@@ -151,10 +156,12 @@ export const useDashboardWorkspaceActions = ({
 
   const uploadWorkspaceLogoForSlug = useCallback(
     async (workspaceSlug: string, file: File) => {
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateWorkspaceLogoUploadUrlMutation({
+      const { checksumSha256, uploadUrl } = await prepareUpload(
+        file,
         workspaceSlug,
-      });
+        (slug) => generateWorkspaceLogoUploadUrlMutation({ workspaceSlug: slug }),
+        computeFileChecksumSha256,
+      );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       await finalizeWorkspaceLogoUploadMutation({
@@ -325,10 +332,12 @@ export const useDashboardWorkspaceActions = ({
       if (!resolvedWorkspaceSlug) {
         throw new Error("No active workspace");
       }
-      const checksumSha256 = await computeFileChecksumSha256(file);
-      const { uploadUrl } = await generateBrandAssetUploadUrlMutation({
-        workspaceSlug: resolvedWorkspaceSlug,
-      });
+      const { checksumSha256, uploadUrl } = await prepareUpload(
+        file,
+        resolvedWorkspaceSlug,
+        (slug) => generateBrandAssetUploadUrlMutation({ workspaceSlug: slug }),
+        computeFileChecksumSha256,
+      );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
 
       await finalizeBrandAssetUploadMutation({

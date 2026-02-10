@@ -1,0 +1,219 @@
+import React, { Suspense } from "react";
+import type { AppView } from "../../lib/routing";
+import type { DashboardCommands, SettingsTab } from "../types";
+import type {
+  ProjectData,
+  ProjectDraftData,
+  ProjectFileData,
+  ReviewComment,
+  WorkspaceRole,
+  Workspace,
+} from "../../types";
+import type {
+  AccountSettingsData,
+  CompanySettingsData,
+  NotificationSettingsData,
+} from "../../components/settings-popup/types";
+
+export const loadSearchPopupModule = () => import("../../components/SearchPopup");
+export const loadCreateProjectPopupModule = () => import("../../components/CreateProjectPopup");
+export const loadCreateWorkspacePopupModule = () => import("../../components/CreateWorkspacePopup");
+export const loadSettingsPopupModule = () => import("../../components/SettingsPopup");
+
+const LazySearchPopup = React.lazy(async () => {
+  const module = await loadSearchPopupModule();
+  return { default: module.SearchPopup };
+});
+
+const LazyCreateProjectPopup = React.lazy(async () => {
+  const module = await loadCreateProjectPopupModule();
+  return { default: module.CreateProjectPopup };
+});
+
+const LazyCreateWorkspacePopup = React.lazy(async () => {
+  const module = await loadCreateWorkspacePopupModule();
+  return { default: module.CreateWorkspacePopup };
+});
+
+const LazySettingsPopup = React.lazy(async () => {
+  const module = await loadSettingsPopupModule();
+  return { default: module.SettingsPopup };
+});
+
+const PopupLoadingFallback = (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 backdrop-blur-sm text-[#E8E8E8]/80 font-['Roboto',sans-serif] text-sm">
+    Loading...
+  </div>
+);
+
+type SearchHighlight = {
+  type: "task" | "file";
+  taskId?: string;
+  fileName?: string;
+  fileTab?: string;
+};
+
+type DashboardPopupsProps = {
+  isSearchOpen: boolean;
+  setIsSearchOpen: (value: boolean) => void;
+  projects: Record<string, ProjectData>;
+  allWorkspaceFiles: ProjectFileData[];
+  navigateView: (view: AppView) => void;
+  openCreateProject: () => void;
+  searchPopupOpenSettings: (tab?: string) => void;
+  searchPopupHighlightNavigate: (projectId: string, highlight: SearchHighlight) => void;
+  isCreateProjectOpen: boolean;
+  closeCreateProject: () => void;
+  dashboardCommands: DashboardCommands;
+  createProjectViewer: {
+    userId?: string;
+    name: string;
+    avatar: string;
+    role?: WorkspaceRole;
+  };
+  editProjectId: string | null;
+  editDraftData: ProjectDraftData | null;
+  reviewProject: ProjectData | null;
+  handleUpdateComments: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  handleApproveReviewProject: (projectId: string) => Promise<void>;
+  isCreateWorkspaceOpen: boolean;
+  closeCreateWorkspace: () => void;
+  handleCreateWorkspaceSubmit: (payload: { name: string; logoFile?: File | null }) => Promise<void>;
+  isSettingsOpen: boolean;
+  settingsTab: SettingsTab;
+  activeWorkspace: Workspace | undefined;
+  settingsAccountData: AccountSettingsData | null;
+  settingsNotificationsData: NotificationSettingsData | null;
+  settingsCompanyData: CompanySettingsData | null;
+  resolvedWorkspaceSlug: string | null;
+  companySettings?: unknown;
+  handleUpdateWorkspaceGeneral: (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => Promise<void>;
+  handleUploadWorkspaceLogo: (file: File) => Promise<void>;
+  handleInviteWorkspaceMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
+  handleChangeWorkspaceMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
+  handleRemoveWorkspaceMember: (payload: { userId: string }) => Promise<void>;
+  handleResendWorkspaceInvitation: (payload: { invitationId: string }) => Promise<void>;
+  handleRevokeWorkspaceInvitation: (payload: { invitationId: string }) => Promise<void>;
+  handleUploadWorkspaceBrandAsset: (file: File) => Promise<void>;
+  handleRemoveWorkspaceBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
+  handleSoftDeleteWorkspace: () => Promise<void>;
+};
+
+export function DashboardPopups({
+  isSearchOpen,
+  setIsSearchOpen,
+  projects,
+  allWorkspaceFiles,
+  navigateView,
+  openCreateProject,
+  searchPopupOpenSettings,
+  searchPopupHighlightNavigate,
+  isCreateProjectOpen,
+  closeCreateProject,
+  dashboardCommands,
+  createProjectViewer,
+  editProjectId,
+  editDraftData,
+  reviewProject,
+  handleUpdateComments,
+  handleApproveReviewProject,
+  isCreateWorkspaceOpen,
+  closeCreateWorkspace,
+  handleCreateWorkspaceSubmit,
+  isSettingsOpen,
+  settingsTab,
+  activeWorkspace,
+  settingsAccountData,
+  settingsNotificationsData,
+  settingsCompanyData,
+  resolvedWorkspaceSlug,
+  companySettings,
+  handleUpdateWorkspaceGeneral,
+  handleUploadWorkspaceLogo,
+  handleInviteWorkspaceMember,
+  handleChangeWorkspaceMemberRole,
+  handleRemoveWorkspaceMember,
+  handleResendWorkspaceInvitation,
+  handleRevokeWorkspaceInvitation,
+  handleUploadWorkspaceBrandAsset,
+  handleRemoveWorkspaceBrandAsset,
+  handleSoftDeleteWorkspace,
+}: DashboardPopupsProps) {
+  return (
+    <>
+      {isSearchOpen && (
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazySearchPopup
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            projects={projects}
+            files={allWorkspaceFiles}
+            onNavigate={navigateView}
+            onOpenCreateProject={openCreateProject}
+            onOpenSettings={searchPopupOpenSettings}
+            onHighlightNavigate={searchPopupHighlightNavigate}
+          />
+        </Suspense>
+      )}
+
+      {isCreateProjectOpen && (
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazyCreateProjectPopup
+            isOpen={isCreateProjectOpen}
+            onClose={closeCreateProject}
+            onCreate={dashboardCommands.project.createOrUpdateProject}
+            user={createProjectViewer}
+            editProjectId={editProjectId}
+            initialDraftData={editDraftData}
+            onDeleteDraft={dashboardCommands.project.deleteProject}
+            reviewProject={reviewProject}
+            onUpdateComments={handleUpdateComments}
+            onApproveReviewProject={handleApproveReviewProject}
+            onUploadAttachment={dashboardCommands.file.uploadDraftAttachment}
+            onRemovePendingAttachment={dashboardCommands.file.removeDraftAttachment}
+            onDiscardDraftUploads={dashboardCommands.file.discardDraftSessionUploads}
+          />
+        </Suspense>
+      )}
+
+      {isCreateWorkspaceOpen && (
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazyCreateWorkspacePopup
+            isOpen={isCreateWorkspaceOpen}
+            onClose={closeCreateWorkspace}
+            onCreate={handleCreateWorkspaceSubmit}
+          />
+        </Suspense>
+      )}
+
+      {isSettingsOpen && (
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazySettingsPopup
+            isOpen={isSettingsOpen}
+            onClose={dashboardCommands.settings.closeSettings}
+            initialTab={settingsTab}
+            activeWorkspace={activeWorkspace}
+            account={settingsAccountData}
+            notifications={settingsNotificationsData}
+            company={settingsCompanyData}
+            loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySettings === undefined}
+            onSaveAccount={dashboardCommands.settings.saveAccount}
+            onUploadAvatar={dashboardCommands.settings.uploadAccountAvatar}
+            onRemoveAvatar={dashboardCommands.settings.removeAccountAvatar}
+            onSaveNotifications={dashboardCommands.settings.saveNotifications}
+            onUpdateWorkspaceGeneral={handleUpdateWorkspaceGeneral}
+            onUploadWorkspaceLogo={handleUploadWorkspaceLogo}
+            onInviteMember={handleInviteWorkspaceMember}
+            onChangeMemberRole={handleChangeWorkspaceMemberRole}
+            onRemoveMember={handleRemoveWorkspaceMember}
+            onResendInvitation={handleResendWorkspaceInvitation}
+            onRevokeInvitation={handleRevokeWorkspaceInvitation}
+            onUploadBrandAsset={handleUploadWorkspaceBrandAsset}
+            onRemoveBrandAsset={handleRemoveWorkspaceBrandAsset}
+            onSoftDeleteWorkspace={handleSoftDeleteWorkspace}
+          />
+        </Suspense>
+      )}
+    </>
+  );
+}

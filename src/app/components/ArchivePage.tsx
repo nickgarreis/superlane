@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 import { ProjectData, WorkspaceRole } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
+import { safeScrollIntoView } from "../lib/dom";
 import { DeniedAction } from "./permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
 
@@ -40,7 +41,7 @@ export function ArchivePage({
         const timeout = setTimeout(() => {
             const el = rowRefs.current[highlightedProjectId];
             if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                safeScrollIntoView(el, { behavior: "smooth", block: "center" });
                 el.classList.remove("archive-row-flash");
                 void el.offsetWidth; // force reflow
                 el.classList.add("archive-row-flash");

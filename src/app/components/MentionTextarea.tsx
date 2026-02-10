@@ -11,6 +11,7 @@ import React, {
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { safeScrollIntoView } from "../lib/dom";
 
 // ── Types ─────────────────────────────────────────────────────────
 export interface MentionItem {
@@ -405,7 +406,7 @@ export const MentionTextarea = forwardRef<
   useEffect(() => {
     if (!dropdownRef.current) return;
     const el = dropdownRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-    if (el) el.scrollIntoView({ block: "nearest" });
+    safeScrollIntoView(el, { block: "nearest" });
   }, [selectedIndex]);
 
   const pos = useDropdownPosition(

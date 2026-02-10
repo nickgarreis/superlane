@@ -125,6 +125,18 @@ const collectActiveProjectFiles = async (ctx: any, projectId: any) => {
   return files.filter((file: any) => file.deletedAt == null);
 };
 
+const projectAllowsFileMutations = (project: any) =>
+  project.deletedAt == null
+  && project.archived !== true
+  && project.status !== "Completed"
+  && project.completedAt == null;
+
+const assertProjectAllowsFileMutations = (project: any) => {
+  if (!projectAllowsFileMutations(project)) {
+    throw new ConvexError("Files can only be modified for active projects");
+  }
+};
+
 const finalizeProjectUploadCore = async (
   ctx: any,
   args: {
@@ -140,6 +152,7 @@ const finalizeProjectUploadCore = async (
   },
 ) => {
   const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
+  assertProjectAllowsFileMutations(project);
 
   const normalizedMimeType = normalizeMimeType(args.mimeType);
   const trimmedName = args.name.trim();
@@ -534,6 +547,7 @@ export const remove = mutation({
     }
 
     const { appUser, project } = await requireProjectRoleById(ctx, file.projectId, "member");
+    assertProjectAllowsFileMutations(project);
     if (file.deletedAt != null) {
       return { removed: false };
     }

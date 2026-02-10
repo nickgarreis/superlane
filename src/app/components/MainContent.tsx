@@ -1,12 +1,11 @@
 import React, { Suspense, useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Archive, ArchiveRestore, CheckCircle2, Download, Trash2, Undo2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Download, Trash2, ArrowLeft } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { motion, AnimatePresence } from "motion/react";
-import svgPaths from "../../imports/svg-0erue6fqwq";
+import { motion } from "motion/react";
 import svgPathsStatus from "../../imports/svg-95p4xxlon7";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
-import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember, WorkspaceRole } from "../types";
+import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
 import type {
   MainContentFileActions,
@@ -15,9 +14,10 @@ import type {
   PendingHighlight,
 } from "../dashboard/types";
 import { formatFileDisplayDate, formatProjectDeadlineShort } from "../lib/dates";
+import { safeScrollIntoView } from "../lib/dom";
 import { scheduleIdlePrefetch } from "../lib/prefetch";
-import { DeniedAction } from "./permissions/DeniedAction";
-import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
+import { MenuIcon } from "./main-content/MenuIcon";
+import { FileSection } from "./main-content/FileSection";
 
 // File thumbnails
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
@@ -47,161 +47,6 @@ const LazyChatSidebar = React.lazy(async () => {
   const module = await loadChatSidebarModule();
   return { default: module.ChatSidebar };
 });
-
-function MenuIcon({
-  isArchived,
-  isCompleted,
-  viewerRole,
-  onArchive,
-  onUnarchive,
-  onDelete,
-  onComplete,
-  onUncomplete,
-}: {
-  isArchived?: boolean;
-  isCompleted?: boolean;
-  viewerRole?: WorkspaceRole | null;
-  onArchive?: () => void;
-  onUnarchive?: () => void;
-  onDelete?: () => void;
-  onComplete?: () => void;
-  onUncomplete?: () => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const lifecycleDeniedReason = getProjectLifecycleDeniedReason(viewerRole);
-  const canManageProjectLifecycle = lifecycleDeniedReason == null;
-  
-  return (
-    <div className="relative">
-      <div 
-        className="w-9 h-9 rounded-full bg-[#E8E8E8]/[0.06] flex items-center justify-center border border-transparent backdrop-blur-[6px] shrink-0 cursor-pointer hover:bg-[#E8E8E8]/[0.1] transition-colors"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-          <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
-               <path d={svgPaths.p1100df00} fill="#E8E8E8" />
-          </svg>
-      </div>
-      
-	      {isOpen && (
-	        <>
-	            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
-	            <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
-	                {/* Complete button - for active (non-completed, non-archived) projects only */}
-	                {!isCompleted && !isArchived && onComplete && (
-                    <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
-                      <button
-                        type="button"
-                        className={cn(
-                          "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
-                          canManageProjectLifecycle
-                            ? "hover:bg-[#22c55e]/10 cursor-pointer text-[#22c55e] group"
-                            : "cursor-not-allowed text-[#22c55e]/45 opacity-60",
-                        )}
-                        onClick={() => {
-                          if (!canManageProjectLifecycle) {
-                            return;
-                          }
-                          onComplete();
-                          setIsOpen(false);
-                        }}
-                      >
-                        <CheckCircle2
-                          className={cn(
-                            "w-4 h-4 transition-colors",
-                            canManageProjectLifecycle
-                              ? "text-[#22c55e]/80 group-hover:text-[#22c55e]"
-                              : "text-[#22c55e]/45",
-                          )}
-                        />
-                        <span className="text-[13px] font-medium">Complete</span>
-                      </button>
-                    </DeniedAction>
-	                )}
-
-	                {/* Revert to Active - only for completed projects */}
-	                {!isArchived && isCompleted && onUncomplete && (
-                    <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
-                      <button
-                        type="button"
-                        className={cn(
-                          "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
-                          canManageProjectLifecycle
-                            ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
-                            : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
-                        )}
-                        onClick={() => {
-                          if (!canManageProjectLifecycle) {
-                            return;
-                          }
-                          onUncomplete();
-                          setIsOpen(false);
-                        }}
-                      >
-                        <Undo2
-                          className={cn(
-                            "w-4 h-4 transition-colors",
-                            canManageProjectLifecycle
-                              ? "text-[#E8E8E8]/60 group-hover:text-white"
-                              : "text-[#E8E8E8]/35",
-                          )}
-                        />
-                        <span className="text-[13px] font-medium">Revert to Active</span>
-                      </button>
-                    </DeniedAction>
-	                )}
-
-	                {/* Archive/Unarchive - hide for completed projects */}
-	                {!isCompleted && (
-                  <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
-                    <button
-                      type="button"
-                      className={cn(
-                        "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
-                        canManageProjectLifecycle
-                          ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
-                          : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
-                      )}
-                      onClick={() => {
-                        if (!canManageProjectLifecycle) {
-                          return;
-                        }
-                        if (isArchived) {
-                          if (onUnarchive) onUnarchive();
-                        } else {
-                          if (onArchive) onArchive();
-                        }
-                        setIsOpen(false);
-                      }}
-                    >
-                      {isArchived ? (
-                        <ArchiveRestore
-                          className={cn(
-                            "w-4 h-4 transition-colors",
-                            canManageProjectLifecycle
-                              ? "text-[#E8E8E8]/60 group-hover:text-white"
-                              : "text-[#E8E8E8]/35",
-                          )}
-                        />
-                      ) : (
-                        <Archive
-                          className={cn(
-                            "w-4 h-4 transition-colors",
-                            canManageProjectLifecycle
-                              ? "text-[#E8E8E8]/60 group-hover:text-white"
-                              : "text-[#E8E8E8]/35",
-                          )}
-                        />
-                      )}
-                      <span className="text-[13px] font-medium">{isArchived ? "Unarchive" : "Archive"}</span>
-                    </button>
-                  </DeniedAction>
-	                )}
-	            </div>
-	        </>
-	      )}
-    </div>
-  );
-}
 
 interface MainContentProps {
   onToggleSidebar: () => void;
@@ -312,7 +157,7 @@ export function MainContent({
     const timeout = setTimeout(() => {
       const el = fileRowRefs.current[highlightedFileId];
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        safeScrollIntoView(el, { behavior: "smooth", block: "center" });
         el.classList.remove("file-row-flash");
         void el.offsetWidth;
         el.classList.add("file-row-flash");
@@ -354,24 +199,37 @@ export function MainContent({
   }, [pendingHighlight, project.id, projectFiles, onClearPendingHighlight]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canMutateProjectFiles =
+    !project.archived && project.status.label !== "Completed" && !project.completedAt;
+  const fileMutationDisabledMessage = "Files can only be modified for active projects";
 
   const handleUploadClick = useCallback(() => {
+    if (!canMutateProjectFiles) {
+      return;
+    }
     fileInputRef.current?.click();
-  }, []);
+  }, [canMutateProjectFiles]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (!canMutateProjectFiles) {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
 
       fileActions.create(project.id, activeTab, file);
 
       if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [activeTab, fileActions, project.id]);
+  }, [activeTab, canMutateProjectFiles, fileActions, project.id]);
   
   const handleRemoveFile = useCallback((id: string, e: React.MouseEvent) => {
       e.stopPropagation();
+      if (!canMutateProjectFiles) {
+        return;
+      }
       fileActions.remove(id);
-  }, [fileActions]);
+  }, [canMutateProjectFiles, fileActions]);
 
   const currentFiles = filesByTab[activeTab];
 
@@ -436,16 +294,29 @@ export function MainContent({
               </button>
             )}
             <button
-              title="Remove"
+              title={canMutateProjectFiles ? "Remove" : fileMutationDisabledMessage}
               onClick={(e) => handleRemoveFile(file.id, e)}
-              className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer"
+              disabled={!canMutateProjectFiles}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors",
+                canMutateProjectFiles
+                  ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
+                  : "text-white/10 cursor-not-allowed",
+              )}
             >
               <Trash2 size={14} />
             </button>
           </div>
         </motion.div>
       )),
-    [filteredFiles, fileActions, fileRowStyle, handleRemoveFile],
+    [
+      canMutateProjectFiles,
+      fileActions,
+      fileMutationDisabledMessage,
+      fileRowStyle,
+      filteredFiles,
+      handleRemoveFile,
+    ],
   );
   const canCreateProjectTasks =
     !project.archived && project.status.label === "Active" && !project.completedAt;
@@ -573,148 +444,29 @@ export function MainContent({
                 viewerIdentity={viewerIdentity}
                 canAddTasks={canCreateProjectTasks}
                 addTaskDisabledMessage="Tasks can only be created for active projects"
+                canEditTasks={canCreateProjectTasks}
+                editTaskDisabledMessage="Tasks can only be edited for active projects"
             />
 
-            {/* Tabs & Action */}
-            <div className="flex items-center justify-between mb-8 pt-[45px] pr-[0px] pb-[0px] pl-[0px]">
-            <div className="flex gap-4">
-                <button 
-                    onClick={() => setActiveTab("Assets")}
-                    className={cn(
-                        "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer", 
-                        activeTab === "Assets" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]"
-                    )}
-                >
-                    Assets
-                </button>
-                <button 
-                    onClick={() => setActiveTab("Contract")}
-                    className={cn(
-                        "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer", 
-                        activeTab === "Contract" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]"
-                    )}
-                >
-                    Contract
-                </button>
-                <button 
-                    onClick={() => setActiveTab("Attachments")}
-                    className={cn(
-                        "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer", 
-                        activeTab === "Attachments" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]"
-                    )}
-                >
-                    Attachments
-                </button>
-            </div>
-            
-            <button 
-                onClick={handleUploadClick}
-                className="flex items-center gap-1 pl-[9px] pr-[13px] py-[7.75px] bg-[#E8E8E8] rounded-full hover:bg-white transition-colors cursor-pointer"
-            >
-                <div className="w-4 h-4 shrink-0">
-                    <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                        <path d={svgPaths.p34261000} fill="black" fillOpacity="0.667" />
-                    </svg>
-                </div>
-                <span className="text-[13px] font-medium text-[#141415] leading-[19.5px]">
-                    Add {activeTab === "Assets" ? "asset" : (activeTab === "Contract" ? "contract" : "attachment")}
-                </span>
-            </button>
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
+            <FileSection
+              projectId={project.id}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              handleUploadClick={handleUploadClick}
+              fileInputRef={fileInputRef}
+              handleFileChange={handleFileChange}
+              canMutateProjectFiles={canMutateProjectFiles}
+              fileMutationDisabledMessage={fileMutationDisabledMessage}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              isSortOpen={isSortOpen}
+              setIsSortOpen={setIsSortOpen}
+              shouldOptimizeFileRows={shouldOptimizeFileRows}
+              renderedFileRows={renderedFileRows}
+              filteredFilesLength={filteredFiles.length}
             />
-            </div>
-
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6 z-10 relative">
-                <div className="relative w-[384px] h-[36px]">
-                    <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />
-                    <div className="flex items-center h-full px-3">
-                        <div className="w-4 h-4 shrink-0 mr-2 opacity-40">
-                            <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                                <path d={svgPaths.p3f80a980} fill="#E8E8E8" />
-                            </svg>
-                        </div>
-                        <input 
-                            type="text" 
-                            placeholder="Search content" 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-transparent border-none text-[13.9px] text-[#E8E8E8] placeholder:text-[rgba(232,232,232,0.4)] focus:outline-none"
-                        />
-                    </div>
-                </div>
-                
-                <div className="relative">
-                    <button 
-                        onClick={() => setIsSortOpen(!isSortOpen)}
-                        className="flex items-center gap-2 text-[14px] font-medium text-[rgba(232,232,232,0.6)] hover:text-[#E8E8E8] transition-colors cursor-pointer"
-                    >
-                        {sortBy === "relevance" ? "Relevance" : "Name (A-Z)"}
-                        <div className="w-4 h-4 shrink-0">
-                            <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                                <path d={svgPaths.p7659d00} fill="#E8E8E8" fillOpacity="0.8" />
-                            </svg>
-                        </div>
-                    </button>
-                    
-                    {isSortOpen && (
-                        <>
-                            <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)} />
-                            <div className="absolute right-0 top-full mt-2 w-40 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20">
-                                <button
-                                    onClick={() => {
-                                        setSortBy("relevance");
-                                        setIsSortOpen(false);
-                                    }}
-                                    className={cn(
-                                        "w-full px-4 py-2 text-left text-[13px] hover:bg-white/5 transition-colors",
-                                        sortBy === "relevance" ? "text-white font-medium" : "text-white/60"
-                                    )}
-                                >
-                                    Relevance
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setSortBy("name");
-                                        setIsSortOpen(false);
-                                    }}
-                                    className={cn(
-                                        "w-full px-4 py-2 text-left text-[13px] hover:bg-white/5 transition-colors",
-                                        sortBy === "name" ? "text-white font-medium" : "text-white/60"
-                                    )}
-                                >
-                                    Name (A-Z)
-                                </button>
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* File List */}
-            <div
-              className="flex flex-col gap-2"
-              style={shouldOptimizeFileRows
-                ? ({ contentVisibility: "auto", containIntrinsicSize: "640px" } as const)
-                : undefined}
-            >
-                <AnimatePresence initial={false} key={project.id + '-' + activeTab}>
-                {renderedFileRows}
-                </AnimatePresence>
-                {filteredFiles.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 text-white/40">
-                        <p className="text-sm">
-                          {searchQuery
-                            ? `No files found matching "${searchQuery}"`
-                            : `No ${activeTab === "Assets" ? "assets" : activeTab === "Contract" ? "contracts" : "attachments"} yet`}
-                        </p>
-                    </div>
-                )}
-            </div>
         </div>
 
         <div className="absolute inset-0 z-50 pointer-events-none rounded-[32px] overflow-hidden">

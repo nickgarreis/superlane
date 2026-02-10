@@ -17,6 +17,7 @@ import {
   isAdminOrOwner,
 } from "../../../lib/permissionRules";
 import { createClientId } from "../../../lib/id";
+import { safeScrollIntoView } from "../../../lib/dom";
 import { useDraftAttachments } from "../useDraftAttachments";
 import {
   type CreateProjectWizardState,
@@ -464,7 +465,7 @@ export function useCreateProjectWizardController({
     }
 
     requestAnimationFrame(() => {
-      commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      safeScrollIntoView(commentsEndRef.current, { behavior: "smooth" });
     });
   }, [
     commentInput,

@@ -93,7 +93,7 @@ export const useDashboardData = ({
 
   const accountSettings = useQuery(
     api.settings.getAccountSettings,
-    isAuthenticated && isSettingsOpen ? {} : "skip",
+    isAuthenticated ? {} : "skip",
   );
 
   const notificationSettings = useQuery(
