@@ -50,6 +50,7 @@ export function useGlobalEventListener({
   enabled = true,
 }: UseGlobalEventListenerArgs) {
   const listenerRef = useRef(listener);
+  const optionsRef = useRef(options);
   // Keep effect dependencies primitive so inline option objects do not force needless re-subscriptions.
   // Callers can still memoize `options` for readability if they prefer.
   const optionsKey = getOptionsKey(options);
@@ -59,6 +60,10 @@ export function useGlobalEventListener({
   }, [listener]);
 
   useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  useEffect(() => {
     if (!enabled || !target || typeof target.addEventListener !== "function") {
       return;
     }
@@ -66,11 +71,12 @@ export function useGlobalEventListener({
     const wrappedListener: EventListener = (event) => {
       listenerRef.current(event);
     };
+    const listenerOptions = optionsRef.current;
 
-    target.addEventListener(type, wrappedListener, options);
+    target.addEventListener(type, wrappedListener, listenerOptions);
 
     return () => {
-      target.removeEventListener(type, wrappedListener, options);
+      target.removeEventListener(type, wrappedListener, listenerOptions);
     };
   }, [enabled, optionsKey, target, type]);
 }
