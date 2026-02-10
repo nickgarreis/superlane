@@ -1,4 +1,5 @@
-import type { FileCommands, ProjectFileTab } from "../types";
+import type { ProjectFileTab } from "../../types";
+import type { FileCommands } from "../types";
 
 type CreateFileCommandsArgs = {
   handleCreateProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;

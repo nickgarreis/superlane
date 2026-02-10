@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MentionTextarea, renderCommentContent, type MentionItem } from "./MentionTextarea";
 
 const mentionItems: MentionItem[] = [
@@ -50,6 +50,23 @@ function ControlledMentionTextarea({
 }
 
 describe("MentionTextarea", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    try {
+      const refWarnings = consoleErrorSpy.mock.calls
+        .map((args) => args.map((arg) => String(arg)).join(" "))
+        .filter((message) => message.includes("`ref` is not a prop"));
+      expect(refWarnings).toHaveLength(0);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   test("supports keyboard selection from mention dropdown", async () => {
     render(<ControlledMentionTextarea initialValue="" />);
 

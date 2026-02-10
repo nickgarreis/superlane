@@ -64,6 +64,11 @@ const activeProject: ProjectData = {
 
 describe("ChatSidebar reactions", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "scrollTo", {
+      value: vi.fn(),
+      writable: true,
+      configurable: true,
+    });
     mockUseQuery.mockReset();
     mockUseMutation.mockReset();
   });
@@ -137,6 +142,45 @@ describe("ChatSidebar reactions", () => {
         commentId: "comment-1",
         emoji: "👍",
       });
+    });
+  });
+
+  test("toggles resolved thread visibility", async () => {
+    mockUseQuery.mockReturnValue([
+      {
+        id: "comment-resolved-1",
+        author: {
+          userId: "viewer-user-id",
+          name: "Jordan Viewer",
+          avatar: "",
+        },
+        content: "Resolved comment",
+        timestamp: "now",
+        replies: [],
+        resolved: true,
+        reactions: [],
+      },
+    ]);
+
+    mockUseMutation.mockImplementation(() => vi.fn().mockResolvedValue({}));
+
+    render(
+      <ChatSidebar
+        isOpen
+        onClose={vi.fn()}
+        activeProject={activeProject}
+        allProjects={{ [activeProject.id]: activeProject }}
+        workspaceMembers={workspaceMembers}
+        viewerIdentity={viewerIdentity}
+      />,
+    );
+
+    expect(screen.queryByText("Resolved comment")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /1 resolved thread/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Resolved comment")).toBeInTheDocument();
     });
   });
 });

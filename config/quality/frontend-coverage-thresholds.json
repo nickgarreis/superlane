@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "activePhase": "phase3",
+  "activePhase": "phase4",
   "phases": {
     "phase1": {
       "description": "Initial frontend quality baseline",
@@ -21,6 +21,13 @@
       "thresholds": {
         "linesPct": 30,
         "functionsPct": 45
+      }
+    },
+    "phase4": {
+      "description": "Post-remediation stricter frontend coverage gate",
+      "thresholds": {
+        "linesPct": 40,
+        "functionsPct": 50
       }
     }
   }

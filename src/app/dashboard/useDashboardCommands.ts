@@ -3,10 +3,9 @@ import type {
   CreateProjectPayload,
   CreateProjectResult,
   DashboardCommands,
-  ProjectFileTab,
   SettingsTab,
 } from "./types";
-import type { ProjectData } from "../types";
+import type { ProjectData, ProjectFileTab } from "../types";
 import { createProjectCommands } from "./commands/createProjectCommands";
 import { createFileCommands } from "./commands/createFileCommands";
 import { createSettingsCommands } from "./commands/createSettingsCommands";

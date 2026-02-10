@@ -3,13 +3,11 @@ import React, {
   useRef,
   useEffect,
   useCallback,
-  useMemo,
   forwardRef,
   useImperativeHandle,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
-import { motion, AnimatePresence } from "motion/react";
 import { safeScrollIntoView } from "../lib/dom";
 import {
   extractValue,
@@ -21,11 +19,11 @@ import {
   parseMentionToken,
   valueToHTML,
 } from "./mentions/mentionParser";
-import {
-  MENTION_TOKEN_SPLIT_REGEX,
-  type MentionEntityType,
-} from "./mentions/types";
+import { type MentionEntityType } from "./mentions/types";
 import { useDropdownPosition } from "./mentions/useDropdownPosition";
+import { MentionDropdown } from "./mentions/MentionDropdown";
+import { renderCommentContent } from "./mentions/renderCommentContent";
+import { useMentionDropdownState } from "./mentions/useMentionDropdownState";
 
 export interface MentionItem {
   type: MentionEntityType;
@@ -149,14 +147,11 @@ export const MentionTextarea = forwardRef<
     syncDOM(value);
   }, [value, syncDOM]);
 
-  const filteredItems = useMemo(() => {
-    if (!mentionQuery && !showDropdown) {
-      return items;
-    }
-
-    const query = mentionQuery.toLowerCase();
-    return items.filter((item) => item.label.toLowerCase().includes(query));
-  }, [items, mentionQuery, showDropdown]);
+  const { filteredItems, renderSections } = useMentionDropdownState({
+    items,
+    mentionQuery,
+    showDropdown,
+  });
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -323,135 +318,7 @@ export const MentionTextarea = forwardRef<
     };
   }, [showDropdown]);
 
-  const taskItems = filteredItems.filter((item) => item.type === "task");
-  const fileItems = filteredItems.filter((item) => item.type === "file");
-  const userItems = filteredItems.filter((item) => item.type === "user");
-
-  let flatIndex = 0;
-  const renderSections: Array<
-    | { kind: "header"; label: string }
-    | { kind: "item"; item: MentionItem; index: number }
-  > = [];
-
-  if (taskItems.length > 0) {
-    renderSections.push({ kind: "header", label: "Tasks" });
-    taskItems.forEach((item) => {
-      renderSections.push({ kind: "item", item, index: flatIndex++ });
-    });
-  }
-
-  if (fileItems.length > 0) {
-    renderSections.push({ kind: "header", label: "Files" });
-    fileItems.forEach((item) => {
-      renderSections.push({ kind: "item", item, index: flatIndex++ });
-    });
-  }
-
-  if (userItems.length > 0) {
-    renderSections.push({ kind: "header", label: "Users" });
-    userItems.forEach((item) => {
-      renderSections.push({ kind: "item", item, index: flatIndex++ });
-    });
-  }
-
   const dropdownVisible = showDropdown && filteredItems.length > 0;
-
-  const dropdownContent = (
-    <AnimatePresence>
-      {dropdownVisible && dropdownPosition && (
-        <motion.div
-          ref={dropdownRef}
-          initial={{ opacity: 0, y: dropdownPosition.placement === "below" ? -4 : 4, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: dropdownPosition.placement === "below" ? -4 : 4, scale: 0.97 }}
-          transition={{ duration: 0.12 }}
-          style={{
-            position: "fixed",
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-            ...(dropdownPosition.top != null ? { top: dropdownPosition.top } : {}),
-            ...(dropdownPosition.bottom != null ? { bottom: dropdownPosition.bottom } : {}),
-            zIndex: 99999,
-          }}
-          className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
-        >
-          <div className="max-h-[220px] overflow-y-auto py-1">
-            {renderSections.map((section) => {
-              if (section.kind === "header") {
-                return (
-                  <div
-                    key={`header-${section.label}`}
-                    className="px-3 pt-2 pb-1 text-[10px] text-white/25 uppercase tracking-wider select-none"
-                  >
-                    {section.label}
-                  </div>
-                );
-              }
-
-              const { item, index } = section;
-              return (
-                <button
-                  key={`${item.type}-${item.id}`}
-                  data-index={index}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    handleSelect(item);
-                  }}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  className={cn(
-                    "w-full text-left px-3 py-1.5 flex items-center gap-2.5 text-[13px] transition-colors cursor-pointer",
-                    index === selectedIndex
-                      ? "bg-white/[0.06] text-white"
-                      : "text-[#ccc] hover:bg-white/[0.04]",
-                  )}
-                >
-                  {item.type === "task" ? (
-                    <span className="text-[13px] leading-[1] shrink-0">📋</span>
-                  ) : item.type === "file" ? (
-                    <span className="text-[13px] leading-[1] shrink-0">📂</span>
-                  ) : (
-                    <span
-                      className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] text-[9px] text-white/60 shrink-0"
-                      style={{ fontWeight: 600, lineHeight: 1 }}
-                    >
-                      {item.label
-                        .trim()
-                        .split(/\s+/)
-                        .filter(Boolean)
-                        .map((word) => word.charAt(0))
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </span>
-                  )}
-                  <span className="truncate flex-1">{item.label}</span>
-                  {item.meta && (
-                    <span className="text-[10px] text-white/20 shrink-0">
-                      {item.meta}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div className="border-t border-white/[0.05] px-3 py-1.5 flex items-center gap-3 text-[10px] text-white/15 select-none">
-            <span>
-              <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">↑↓</kbd>{" "}
-              navigate
-            </span>
-            <span>
-              <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">↵</kbd>{" "}
-              select
-            </span>
-            <span>
-              <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">esc</kbd>{" "}
-              dismiss
-            </span>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
 
   return (
     <div className="relative">
@@ -497,106 +364,19 @@ export const MentionTextarea = forwardRef<
           {placeholder}
         </div>
       )}
-      {createPortal(dropdownContent, document.body)}
+      {createPortal(
+        <MentionDropdown
+          dropdownRef={dropdownRef}
+          dropdownPosition={dropdownPosition}
+          isVisible={dropdownVisible}
+          sections={renderSections}
+          selectedIndex={selectedIndex}
+          onSelect={handleSelect}
+          onSelectIndex={setSelectedIndex}
+        />,
+        document.body,
+      )}
     </div>
   );
 });
-
-function UserInitials({ name }: { name: string }) {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <span
-      className="inline-flex items-center justify-center w-[14px] h-[14px] rounded-full bg-white/[0.12] text-[8px] text-white/70 shrink-0"
-      style={{ fontWeight: 600, letterSpacing: "0.2px", lineHeight: 1 }}
-    >
-      {initials}
-    </span>
-  );
-}
-
-function MentionBadge({
-  type,
-  label,
-  onClick,
-}: {
-  type: MentionEntityType;
-  label: string;
-  onClick?: (type: MentionEntityType, label: string) => void;
-}) {
-  const isTask = type === "task";
-  const isFile = type === "file";
-  const clickable = Boolean(onClick);
-  const badgeRef = useRef<HTMLSpanElement>(null);
-
-  const handleClick = clickable
-    ? (event: React.MouseEvent) => {
-      event.stopPropagation();
-      const element = badgeRef.current;
-      if (element) {
-        element.classList.remove("mention-badge-pulse");
-        void element.offsetWidth;
-        element.classList.add("mention-badge-pulse");
-      }
-      onClick?.(type, label);
-    }
-    : undefined;
-
-  return (
-    <span
-      ref={badgeRef}
-      className={cn(
-        "inline-flex items-center gap-[4px] mx-[1px] whitespace-nowrap text-[12.5px]",
-        "align-baseline relative transition-colors",
-        clickable ? "cursor-pointer hover:text-white active:scale-[0.97]" : "cursor-default",
-        "text-[#E8E8E8]",
-      )}
-      onClick={handleClick}
-    >
-      {isTask ? (
-        <span className="text-[12px] leading-[1] shrink-0">📋</span>
-      ) : isFile ? (
-        <span className="text-[12px] leading-[1] shrink-0">📂</span>
-      ) : (
-        <UserInitials name={label} />
-      )}
-      <span style={{ fontWeight: 600 }}>{label}</span>
-    </span>
-  );
-}
-
-export function renderCommentContent(
-  content: string,
-  onMentionClick?: (type: MentionEntityType, label: string) => void,
-): React.ReactNode {
-  const segments = content.split(MENTION_TOKEN_SPLIT_REGEX);
-  if (segments.length === 1) {
-    return content;
-  }
-
-  return (
-    <>
-      {segments.map((segment, index) => {
-        const token = parseMentionToken(segment);
-        if (!token) {
-          return segment || null;
-        }
-
-        return (
-          <MentionBadge
-            key={`mention-${index}`}
-            type={token.type}
-            label={token.label}
-            onClick={onMentionClick}
-          />
-        );
-      })}
-    </>
-  );
-}
+export { renderCommentContent };
