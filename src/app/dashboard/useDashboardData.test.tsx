@@ -148,6 +148,12 @@ describe("useDashboardData", () => {
         loadMore: vi.fn(),
       },
       {
+        ...projectsResult,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
+      {
         ...tasksResult,
         status: "Exhausted",
         isLoading: false,
@@ -172,6 +178,7 @@ describe("useDashboardData", () => {
         isLoading: false,
         loadMore: vi.fn(),
       },
+      { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
       { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
       { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
     ];
@@ -205,16 +212,20 @@ describe("useDashboardData", () => {
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
     expect(result.current.usesWorkspaceTaskFeed).toBe(true);
-    expect(result.current.usesProjectTaskFeed).toBe(false);
+    expect(result.current.usesProjectTaskFeed).toBe(true);
     expect(queryArgs[4]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedQueryArgs[0]).toEqual({
       workspaceSlug: "alpha",
+      includeArchived: false,
+    });
+    expect(paginatedQueryArgs[1]).toEqual({
+      workspaceSlug: "alpha",
       includeArchived: true,
     });
-    expect(paginatedQueryArgs[1]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedQueryArgs[2]).toBe("skip");
-    expect(paginatedQueryArgs[3]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedQueryArgs[4]).toEqual({ projectPublicId: "project-1" });
+    expect(paginatedQueryArgs[2]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[3]).toEqual({ projectPublicId: "project-1" });
+    expect(paginatedQueryArgs[4]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[5]).toEqual({ projectPublicId: "project-1" });
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith("alpha");
@@ -330,12 +341,17 @@ describe("useDashboardData", () => {
       workspaceSlug: "alpha",
       includeArchived: false,
     });
-    expect(paginatedCallArgs[2]).toBe("skip");
+    expect(paginatedCallArgs[1]).toEqual({
+      workspaceSlug: "alpha",
+      includeArchived: true,
+    });
+    expect(paginatedCallArgs[2]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[3]).toBe("skip");
     expect(paginatedCallArgs[4]).toBe("skip");
     expect(paginatedCallArgs[5]).toBe("skip");
     expect(paginatedCallArgs[6]).toBe("skip");
     expect(paginatedCallArgs[7]).toBe("skip");
+    expect(paginatedCallArgs[8]).toBe("skip");
   });
 
   test("keeps project query args stable between tasks and project routes", () => {
@@ -398,7 +414,73 @@ describe("useDashboardData", () => {
 
     expect(projectsQueryArgs).toEqual([
       { workspaceSlug: "alpha", includeArchived: false },
+      { workspaceSlug: "alpha", includeArchived: true },
       { workspaceSlug: "alpha", includeArchived: false },
+      { workspaceSlug: "alpha", includeArchived: true },
+    ]);
+  });
+
+  test("keeps project query args stable when opening completed project popup detail", () => {
+    const projectsQueryArgs: unknown[] = [];
+
+    useQueryMock.mockImplementation((_query: unknown, args: unknown) => {
+      if (args === "skip") {
+        return undefined;
+      }
+      return {
+        activeWorkspaceSlug: "alpha",
+        viewer: null,
+        activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
+        workspaces: [
+          {
+            slug: "alpha",
+            name: "Alpha",
+            plan: "Free",
+            logo: "",
+            logoColor: "",
+            logoText: "A",
+          },
+        ],
+      };
+    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        if (
+          queryArg !== "skip" &&
+          typeof queryArg === "object" &&
+          queryArg !== null &&
+          "includeArchived" in queryArg
+        ) {
+          projectsQueryArgs.push(queryArg);
+        }
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
+
+    const baseArgs = {
+      ...createBaseArgs(),
+      isSearchOpen: false,
+      isSettingsOpen: false,
+      currentView: "tasks" as const,
+    };
+    const { rerender } = renderHook(
+      ({ completedProjectDetailId }: { completedProjectDetailId: string | null }) =>
+        useDashboardData({ ...baseArgs, completedProjectDetailId }),
+      { initialProps: { completedProjectDetailId: null } },
+    );
+
+    rerender({ completedProjectDetailId: "completed-1" });
+
+    expect(projectsQueryArgs).toEqual([
+      { workspaceSlug: "alpha", includeArchived: false },
+      { workspaceSlug: "alpha", includeArchived: true },
+      { workspaceSlug: "alpha", includeArchived: false },
+      { workspaceSlug: "alpha", includeArchived: true },
     ]);
   });
 
@@ -446,9 +528,9 @@ describe("useDashboardData", () => {
       }),
     );
 
-    expect(paginatedCallArgs[1]).toBe("skip");
-    expect(paginatedCallArgs[2]).toEqual({ projectPublicId: "project-1" });
-    expect(result.current.usesWorkspaceTaskFeed).toBe(false);
+    expect(paginatedCallArgs[2]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedCallArgs[3]).toEqual({ projectPublicId: "project-1" });
+    expect(result.current.usesWorkspaceTaskFeed).toBe(true);
     expect(result.current.usesProjectTaskFeed).toBe(true);
   });
 
@@ -497,8 +579,8 @@ describe("useDashboardData", () => {
 
     renderHook(() => useDashboardData(args));
 
-    expect(paginatedCallArgs[3]).toBe("skip");
-    expect(paginatedCallArgs[4]).toEqual({ projectPublicId: "completed-42" });
+    expect(paginatedCallArgs[4]).toBe("skip");
+    expect(paginatedCallArgs[5]).toEqual({ projectPublicId: "completed-42" });
   });
 
   test("loads company settings queries while settings is open even when tab is Account", () => {
@@ -549,9 +631,9 @@ describe("useDashboardData", () => {
     renderHook(() => useDashboardData(args));
 
     expect(queryCallArgs[3]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedCallArgs[5]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[6]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[7]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedCallArgs[8]).toEqual({ workspaceSlug: "alpha" });
   });
 
   test("falls back to workspace members query when snapshot has no members payload", () => {
@@ -617,6 +699,10 @@ describe("useDashboardData", () => {
     expect(queryCallArgs[4]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[0]).toEqual({
       workspaceSlug: "alpha",
+      includeArchived: false,
+    });
+    expect(paginatedCallArgs[1]).toEqual({
+      workspaceSlug: "alpha",
       includeArchived: true,
     });
     expect(result.current.viewerIdentity.name).toBe("Fallback Member");
@@ -652,7 +738,7 @@ describe("useDashboardData", () => {
       };
     });
 
-    const loadMoreSpies = Array.from({ length: 8 }, () => vi.fn());
+    const loadMoreSpies = Array.from({ length: 9 }, () => vi.fn());
     usePaginatedQueryMock.mockImplementation(
       (_: unknown, queryArg: unknown) => {
         const index = usePaginatedQueryMock.mock.calls.length - 1;
@@ -670,5 +756,111 @@ describe("useDashboardData", () => {
     expect(loadMoreSpies.every((spy) => spy.mock.calls.length === 0)).toBe(
       true,
     );
+  });
+
+  test("keeps sidebar active and completed project data stable while archive query reloads", () => {
+    useQueryMock.mockImplementation((_query: unknown, args: unknown) => {
+      if (args === "skip") {
+        return undefined;
+      }
+      return {
+        activeWorkspaceSlug: "alpha",
+        viewer: null,
+        activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
+        workspaces: [
+          {
+            slug: "alpha",
+            name: "Alpha",
+            plan: "Free",
+            logo: "",
+            logoColor: "",
+            logoText: "A",
+          },
+        ],
+      };
+    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        if (
+          queryArg !== "skip" &&
+          typeof queryArg === "object" &&
+          queryArg !== null &&
+          "includeArchived" in queryArg
+        ) {
+          const { includeArchived } = queryArg as {
+            includeArchived?: boolean;
+          };
+          if (includeArchived === false) {
+            return {
+              results: [
+                {
+                  publicId: "active-1",
+                  name: "Active One",
+                  description: "Desc",
+                  category: "Web",
+                  status: "Active",
+                  archived: false,
+                  creator: {
+                    userId: "viewer-1",
+                    name: "Snapshot User",
+                    avatarUrl: "",
+                  },
+                },
+                {
+                  publicId: "completed-1",
+                  name: "Completed One",
+                  description: "Desc",
+                  category: "Web",
+                  status: "Completed",
+                  archived: false,
+                  creator: {
+                    userId: "viewer-1",
+                    name: "Snapshot User",
+                    avatarUrl: "",
+                  },
+                },
+              ],
+              status: "Exhausted",
+              isLoading: false,
+              loadMore: vi.fn(),
+            };
+          }
+          return {
+            results: [],
+            status: "LoadingFirstPage",
+            isLoading: true,
+            loadMore: vi.fn(),
+          };
+        }
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
+
+    const baseArgs = {
+      ...createBaseArgs(),
+      isSearchOpen: false,
+      isSettingsOpen: false,
+      currentView: "tasks" as const,
+    };
+    const { result, rerender } = renderHook(
+      ({ currentView }: { currentView: "tasks" | "archive" }) =>
+        useDashboardData({ ...baseArgs, currentView }),
+      { initialProps: { currentView: "tasks" as const } },
+    );
+
+    expect(result.current.sidebarVisibleProjects["active-1"]).toBeDefined();
+    expect(result.current.sidebarVisibleProjects["completed-1"]).toBeDefined();
+
+    rerender({ currentView: "archive" });
+
+    expect(result.current.sidebarVisibleProjects["active-1"]).toBeDefined();
+    expect(result.current.sidebarVisibleProjects["completed-1"]).toBeDefined();
+    expect(result.current.visibleProjects["active-1"]).toBeUndefined();
+    expect(result.current.visibleProjects["completed-1"]).toBeUndefined();
   });
 });

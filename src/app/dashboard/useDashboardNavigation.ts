@@ -164,9 +164,13 @@ export const useDashboardNavigation = ({
   }, [location.pathname, searchParams, toProtectedFromPath]);
   const navigateView = useCallback(
     (view: AppView) => {
-      navigate(viewToPath(view));
+      const nextPath = viewToPath(view);
+      if (location.pathname === nextPath) {
+        return;
+      }
+      navigate(nextPath);
     },
-    [navigate],
+    [location.pathname, navigate],
   );
   const openSearch = useCallback(() => {
     preloadSearchPopup();
@@ -217,8 +221,12 @@ export const useDashboardNavigation = ({
   );
   const handleCloseSettings = useCallback(() => {
     const fromParam = toProtectedFromPath(searchParams.get("from"));
-    navigate(fromParam ?? "/tasks");
-  }, [navigate, searchParams, toProtectedFromPath]);
+    const destination = fromParam ?? "/tasks";
+    if (location.pathname === destination) {
+      return;
+    }
+    navigate(destination);
+  }, [location.pathname, navigate, searchParams, toProtectedFromPath]);
   return {
     location,
     navigate,

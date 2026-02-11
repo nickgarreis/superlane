@@ -3,7 +3,6 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import { Archive, ArchiveRestore, Trash2, Search } from "lucide-react";
 import HorizontalBorder from "../../imports/HorizontalBorder";
@@ -13,6 +12,7 @@ import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { safeScrollIntoView } from "../lib/dom";
 import { DeniedAction } from "./permissions/DeniedAction";
+import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
 import {
   DASHBOARD_SEARCH_BORDER_CLASS,
@@ -41,7 +41,11 @@ export function ArchivePage({
   highlightedProjectId?: string | null;
   setHighlightedProjectId?: (id: string | null) => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useSessionBackedState(
+    "archive.search",
+    "",
+    (value) => (typeof value === "string" ? value : undefined),
+  );
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const projectLifecycleDeniedReason =
     getProjectLifecycleDeniedReason(viewerRole);

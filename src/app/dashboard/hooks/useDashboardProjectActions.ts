@@ -50,6 +50,7 @@ type UseDashboardProjectActionsArgs = {
     typeof api.projects.updateReviewComments
   >;
   applyTaskDiffMutation: DashboardMutationHandler<typeof api.tasks.applyDiff>;
+  reorderTasksMutation: DashboardMutationHandler<typeof api.tasks.reorder>;
   canReorderWorkspaceTasks: boolean;
   asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
@@ -77,6 +78,7 @@ export const useDashboardProjectActions = ({
   setProjectStatusMutation,
   updateReviewCommentsMutation,
   applyTaskDiffMutation,
+  reorderTasksMutation,
   canReorderWorkspaceTasks,
   asPendingUploadId,
   omitUndefined,
@@ -88,6 +90,7 @@ export const useDashboardProjectActions = ({
     canReorderWorkspaceTasks,
     viewerIdentity,
     applyTaskDiffMutation,
+    reorderTasksMutation,
   });
   const handleCreateProject = useCallback(
     async (projectData: CreateProjectPayload): Promise<CreateProjectResult> => {

@@ -127,6 +127,7 @@ describe("MainContent", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    window.sessionStorage.clear();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
 

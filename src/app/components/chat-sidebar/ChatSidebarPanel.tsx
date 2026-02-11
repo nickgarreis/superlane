@@ -23,6 +23,12 @@ import { useChatSidebarRenderItems } from "./useChatSidebarRenderItems";
 import { useChatSidebarState } from "./useChatSidebarState";
 import { ChatSidebarView } from "./ChatSidebarView";
 
+type ReactionSummaryEntry = {
+  emoji: string;
+  users: string[];
+  userIds: string[];
+};
+
 export function ChatSidebar({
   isOpen,
   onClose,
@@ -233,6 +239,128 @@ export function ChatSidebar({
     },
     [currentCommentsById, loadRepliesForParent, replyParentByReplyId],
   );
+  const applyRepliesCacheUpdate = useCallback(
+    (nextRepliesByParentId: Record<string, CollaborationComment[]>) => {
+      repliesByParentIdRef.current = nextRepliesByParentId;
+      setRepliesByParentId(nextRepliesByParentId);
+    },
+    [],
+  );
+  const patchReplyInCache = useCallback(
+    (
+      commentId: string,
+      patcher: (comment: CollaborationComment) => CollaborationComment,
+    ) => {
+      const current = repliesByParentIdRef.current;
+      for (const [parentId, replies] of Object.entries(current)) {
+        const replyIndex = replies.findIndex((reply) => reply.id === commentId);
+        if (replyIndex === -1) {
+          continue;
+        }
+        const nextReplies = [...replies];
+        nextReplies[replyIndex] = patcher(nextReplies[replyIndex]);
+        applyRepliesCacheUpdate({
+          ...current,
+          [parentId]: nextReplies,
+        });
+        return true;
+      }
+      return false;
+    },
+    [applyRepliesCacheUpdate],
+  );
+  const handleLocalResolveUpdate = useCallback(
+    (args: { commentId: string; resolved?: boolean | undefined }) => {
+      if (typeof args.resolved !== "boolean") {
+        return false;
+      }
+      if (
+        patchReplyInCache(args.commentId, (comment) => ({
+          ...comment,
+          resolved: args.resolved,
+        }))
+      ) {
+        return true;
+      }
+      if (currentCommentsById.has(args.commentId)) {
+        return true;
+      }
+      return false;
+    },
+    [currentCommentsById, patchReplyInCache],
+  );
+  const handleLocalEditUpdate = useCallback(
+    (args: { commentId: string; content: string }) => {
+      if (
+        patchReplyInCache(args.commentId, (comment) => ({
+          ...comment,
+          content: args.content,
+          edited: true,
+        }))
+      ) {
+        return true;
+      }
+      if (currentCommentsById.has(args.commentId)) {
+        return true;
+      }
+      return false;
+    },
+    [currentCommentsById, patchReplyInCache],
+  );
+  const handleLocalDeleteUpdate = useCallback(
+    (args: { removedCommentId: string; parentCommentId: string | null }) => {
+      const current = repliesByParentIdRef.current;
+      const targetParentId =
+        args.parentCommentId ?? replyParentByReplyId.get(args.removedCommentId) ?? null;
+      if (!targetParentId) {
+        if (currentCommentsById.has(args.removedCommentId)) {
+          return true;
+        }
+        return false;
+      }
+
+      const currentReplies = current[targetParentId] ?? [];
+      if (currentReplies.length === 0) {
+        void loadRepliesForParent(targetParentId, true).catch(() => undefined);
+        return true;
+      }
+      const nextReplies = currentReplies.filter(
+        (reply) => reply.id !== args.removedCommentId,
+      );
+      if (nextReplies.length === currentReplies.length) {
+        void loadRepliesForParent(targetParentId, true).catch(() => undefined);
+        return true;
+      }
+      applyRepliesCacheUpdate({
+        ...current,
+        [targetParentId]: nextReplies,
+      });
+      return true;
+    },
+    [
+      applyRepliesCacheUpdate,
+      currentCommentsById,
+      loadRepliesForParent,
+      replyParentByReplyId,
+    ],
+  );
+  const handleLocalReactionUpdate = useCallback(
+    (args: { commentId: string; reactionSummary: ReactionSummaryEntry[] }) => {
+      if (
+        patchReplyInCache(args.commentId, (comment) => ({
+          ...comment,
+          reactions: args.reactionSummary,
+        }))
+      ) {
+        return true;
+      }
+      if (currentCommentsById.has(args.commentId)) {
+        return true;
+      }
+      return false;
+    },
+    [currentCommentsById, patchReplyInCache],
+  );
   const {
     handleCommentsScroll,
     handleAddComment,
@@ -262,6 +390,10 @@ export function ChatSidebar({
     scrollRef,
     loadRepliesForParent,
     refreshRepliesForComment,
+    onCommentResolved: handleLocalResolveUpdate,
+    onCommentEdited: handleLocalEditUpdate,
+    onCommentDeleted: handleLocalDeleteUpdate,
+    onCommentReactionUpdated: handleLocalReactionUpdate,
     createCommentMutation,
     updateCommentMutation,
     removeCommentMutation,

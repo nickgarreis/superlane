@@ -119,6 +119,7 @@ const createApiHandlers = () => ({
   replaceProjectTasksMutation: vi.fn(),
   replaceWorkspaceTasksMutation: vi.fn(),
   applyTaskDiffMutation: vi.fn(),
+  reorderTasksMutation: vi.fn(),
   generateUploadUrlMutation: vi.fn(),
   finalizeProjectUploadAction: vi.fn(),
   finalizePendingDraftAttachmentUploadAction: vi.fn(),

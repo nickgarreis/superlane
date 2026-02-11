@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { compareNullableEpochMsAsc } from "../lib/dates";
+import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
 import type { ProjectData, Task, ViewerIdentity, WorkspaceMember } from "../types";
 import { TasksView } from "./tasks-page/TasksView";
 
@@ -17,6 +18,24 @@ const TASK_SORT_OPTIONS: ReadonlyArray<{ id: TaskSortBy; label: string }> = [
   { id: "name", label: "Name" },
   { id: "status", label: "Status" },
 ];
+const TASKS_UI_SEARCH_KEY = "tasks.search";
+const TASKS_UI_SORT_KEY = "tasks.sort";
+const TASKS_UI_FILTER_PROJECTS_KEY = "tasks.filterProjectIds";
+const EMPTY_PROJECT_FILTER: string[] = [];
+const deserializeString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+const deserializeTaskSortBy = (value: unknown): TaskSortBy | undefined =>
+  value === "dueDate" || value === "name" || value === "status"
+    ? value
+    : undefined;
+const deserializeProjectFilter = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .slice(0, 100);
+};
 
 type TasksProps = {
   onToggleSidebar: () => void;
@@ -43,10 +62,22 @@ export function Tasks({
   workspaceMembers,
   viewerIdentity,
 }: TasksProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
+  const [searchQuery, setSearchQuery] = useSessionBackedState(
+    TASKS_UI_SEARCH_KEY,
+    "",
+    deserializeString,
+  );
+  const [sortBy, setSortBy] = useSessionBackedState<TaskSortBy>(
+    TASKS_UI_SORT_KEY,
+    "dueDate",
+    deserializeTaskSortBy,
+  );
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [filterProject, setFilterProject] = useState<string[]>([]);
+  const [filterProject, setFilterProject] = useSessionBackedState<string[]>(
+    TASKS_UI_FILTER_PROJECTS_KEY,
+    EMPTY_PROJECT_FILTER,
+    deserializeProjectFilter,
+  );
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -74,7 +105,7 @@ export function Tasks({
     setFilterProject((current) =>
       current.filter((projectId) => activeProjectIds.has(projectId)),
     );
-  }, [activeProjectIds]);
+  }, [activeProjectIds, setFilterProject]);
   useEffect(() => {
     if (tasksPaginationStatus !== "LoadingMore") {
       isLoadingMoreRef.current = false;

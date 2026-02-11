@@ -4,6 +4,7 @@ import { requireWorkspaceRole } from "./auth";
 import { reserveTaskPosition } from "./taskPagination";
 import {
   assertTaskProjectMutationAccess,
+  getWorkspaceTaskRowByTaskId,
   getWorkspaceBySlug,
   normalizeOptionalEpochMs,
   normalizeOptionalProjectPublicId,
@@ -66,26 +67,51 @@ type ApplyTaskDiffArgs = {
 const POSITION_STRIDE = 1000;
 
 export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiffArgs) => {
+  const startedAt = Date.now();
   const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
   await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
   const now = Date.now();
   const projectAccessCache = new Map<string, any>();
-  const taskRows = await ctx.db
-    .query("tasks")
-    .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
-      q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
-    )
-    .collect();
-  const taskByTaskId = new Map<string, any>(
-    taskRows.map((task: any) => [String(task.taskId), task]),
+  const processedTaskIds = new Set<string>();
+  let usedFullScan = false;
+  let createdCount = 0;
+  let updatedCount = 0;
+  let removedCount = 0;
+
+  const taskIdsToLoad = Array.from(
+    new Set(
+      [
+        ...args.creates.map((create) => create.id.trim()),
+        ...args.updates.map((update) => update.taskId.trim()),
+        ...args.removes.map((removeTaskId) => removeTaskId.trim()),
+      ].filter(Boolean),
+    ),
   );
+  const existingTaskRows = await Promise.all(
+    taskIdsToLoad.map((taskId) =>
+      getWorkspaceTaskRowByTaskId(ctx, {
+        workspaceId: workspace._id,
+        taskId,
+      }),
+    ),
+  );
+  const taskByTaskId = new Map<string, any>(
+    existingTaskRows
+      .filter((task): task is any => task !== null)
+      .map((task) => [String(task.taskId), task]),
+  );
+  const seenCreateTaskIds = new Set<string>();
 
   for (const create of args.creates) {
     const taskId = create.id.trim();
     if (!taskId) {
       throw new ConvexError("Task id is required");
     }
+    if (seenCreateTaskIds.has(taskId)) {
+      throw new ConvexError(`Duplicate task id in create payload: ${taskId}`);
+    }
+    seenCreateTaskIds.add(taskId);
     if (taskByTaskId.has(taskId)) {
       throw new ConvexError(`Task id already exists in workspace: ${taskId}`);
     }
@@ -114,6 +140,8 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
       createdAt: now,
       updatedAt: now,
     });
+    createdCount += 1;
+    processedTaskIds.add(taskId);
 
     taskByTaskId.set(taskId, {
       _id: taskRowId,
@@ -133,9 +161,13 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
   }
 
   for (const update of args.updates) {
-    const task = taskByTaskId.get(update.taskId);
+    const taskId = update.taskId.trim();
+    if (!taskId) {
+      throw new ConvexError("Task id is required");
+    }
+    const task = taskByTaskId.get(taskId);
     if (!task) {
-      throw new ConvexError(`Task not found: ${update.taskId}`);
+      throw new ConvexError(`Task not found: ${taskId}`);
     }
     await assertTaskProjectMutationAccess(ctx, {
       workspaceId: workspace._id,
@@ -171,7 +203,9 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
     }
 
     await ctx.db.patch(task._id, patch);
-    taskByTaskId.set(update.taskId, {
+    updatedCount += 1;
+    processedTaskIds.add(taskId);
+    taskByTaskId.set(taskId, {
       ...task,
       ...patch,
     });
@@ -193,6 +227,8 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
       projectAccessCache,
     });
     await ctx.db.delete(task._id);
+    removedCount += 1;
+    processedTaskIds.add(normalizedTaskId);
     taskByTaskId.delete(normalizedTaskId);
   }
 
@@ -203,6 +239,8 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
       throw new ConvexError("Duplicate task id in reorder payload");
     }
 
+    // Legacy compatibility path: ordering uses a full active-task scan.
+    usedFullScan = true;
     const freshTaskRows = await ctx.db
       .query("tasks")
       .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
@@ -238,6 +276,7 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
 
     await Promise.all(normalizedOrderedTaskIds.map((taskId, index) => {
       const task = freshTaskById.get(taskId)!;
+      processedTaskIds.add(taskId);
       return ctx.db.patch(task._id, {
         position: reorderOffset + (index * POSITION_STRIDE),
         updatedAt: now,
@@ -246,9 +285,12 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
   }
 
   return {
-    created: args.creates.length,
-    updated: args.updates.length,
-    removed: args.removes.length,
+    created: createdCount,
+    updated: updatedCount,
+    removed: removedCount,
     reordered: normalizedOrderedTaskIds.length,
+    processedTaskIds: processedTaskIds.size,
+    usedFullScan,
+    durationMs: Date.now() - startedAt,
   };
 };

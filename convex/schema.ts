@@ -318,6 +318,11 @@ export default defineSchema({
   })
     .index("by_projectId", ["projectId"])
     .index("by_projectPublicId", ["projectPublicId"])
+    .index("by_projectPublicId_parentCommentId_createdAt", [
+      "projectPublicId",
+      "parentCommentId",
+      "createdAt",
+    ])
     .index("by_parentCommentId", ["parentCommentId"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_authorUserId", ["authorUserId"]),

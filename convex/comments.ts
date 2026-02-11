@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { paginationOptsValidator, type PaginationResult } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -10,10 +10,6 @@ const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 type ProjectCommentDoc = Doc<"projectComments">;
 type CommentReactionDoc = Doc<"commentReactions">;
 type UserDoc = Doc<"users">;
-type PaginationOpts = { numItems: number; cursor: string | null };
-type PaginatableQuery<T> = {
-  paginate: (opts: PaginationOpts) => Promise<PaginationResult<T>>;
-};
 type ReactionUsers = { users: string[]; userIds: string[] };
 type ReactionSummary = { emoji: string; users: string[]; userIds: string[] };
 type ReactionSummarySnapshot = NonNullable<ProjectCommentDoc["reactionSummary"]>;
@@ -51,65 +47,6 @@ const formatRelativeTime = (timestamp: number, now: number) => {
   });
 };
 
-const paginateCommentsWithFilter = async (
-  args: {
-    paginationOpts: PaginationOpts;
-    makeQuery: () => PaginatableQuery<ProjectCommentDoc>;
-    includeComment: (comment: ProjectCommentDoc) => boolean;
-  },
-) => {
-  const requestedCount = Math.max(0, Math.floor(args.paginationOpts.numItems));
-  let cursor = args.paginationOpts.cursor;
-  const collected: ProjectCommentDoc[] = [];
-  let lastPage: PaginationResult<ProjectCommentDoc> | null = null;
-  let iterationCount = 0;
-  let lastCursor: string | null = null;
-
-  while (collected.length < requestedCount) {
-    if (iterationCount > 1000) {
-      break;
-    }
-    if (iterationCount > 0 && cursor === lastCursor) {
-      break;
-    }
-
-    const remaining = requestedCount - collected.length;
-    const page = await args.makeQuery().paginate({
-      ...args.paginationOpts,
-      cursor,
-      numItems: remaining,
-    });
-
-    lastPage = page;
-    for (const comment of page.page) {
-      if (args.includeComment(comment)) {
-        collected.push(comment);
-      }
-    }
-
-    if (page.isDone) {
-      break;
-    }
-
-    lastCursor = cursor;
-    cursor = page.continueCursor;
-    iterationCount += 1;
-  }
-
-  if (!lastPage) {
-    lastPage = await args.makeQuery().paginate({
-      ...args.paginationOpts,
-      cursor: args.paginationOpts.cursor,
-      numItems: requestedCount,
-    });
-  }
-
-  return {
-    ...lastPage,
-    page: collected,
-  };
-};
-
 const buildReactionSummarySnapshot = (
   reactions: CommentReactionDoc[],
 ): ReactionSummarySnapshot => {
@@ -129,6 +66,73 @@ const buildReactionSummarySnapshot = (
         String(left).localeCompare(String(right)),
       ),
     }));
+};
+
+const hydrateReactionSummaryForResponse = async (
+  ctx: QueryCtx | MutationCtx,
+  summarySnapshot: ReactionSummarySnapshot,
+): Promise<ReactionSummary[]> => {
+  if (summarySnapshot.length === 0) {
+    return [];
+  }
+
+  const uniqueUserIds = Array.from(
+    new Set(summarySnapshot.flatMap((entry) => entry.userIds)),
+  );
+  const userRows = await Promise.all(
+    uniqueUserIds.map((userId) => ctx.db.get(userId)),
+  );
+  const userNameById = new Map(
+    userRows
+      .filter((user): user is UserDoc => user !== null)
+      .map((user) => [String(user._id), user.name] as const),
+  );
+
+  return summarySnapshot.map((entry) => ({
+    emoji: entry.emoji,
+    userIds: entry.userIds.map((userId) => String(userId)),
+    users: entry.userIds.map(
+      (userId) => userNameById.get(String(userId)) ?? "Unknown user",
+    ),
+  }));
+};
+
+const incrementParentReplyCount = async (
+  ctx: MutationCtx,
+  parentCommentId: Id<"projectComments">,
+) => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const parent = await ctx.db.get(parentCommentId);
+      if (!parent) {
+        return;
+      }
+      if (typeof parent.replyCount !== "number" || !Number.isFinite(parent.replyCount)) {
+        break;
+      }
+
+      await ctx.db.patch(parent._id, {
+        replyCount: Math.max(0, Math.floor(parent.replyCount)) + 1,
+      });
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+    }
+  }
+
+  const parent = await ctx.db.get(parentCommentId);
+  if (!parent) {
+    return;
+  }
+  const replies = await ctx.db
+    .query("projectComments")
+    .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
+    .collect();
+  await ctx.db.patch(parent._id, {
+    replyCount: replies.length,
+  });
 };
 
 const getReactionAndUserMaps = async (
@@ -289,15 +293,13 @@ export const listThreadsPaginated = query({
   },
   handler: async (ctx, args) => {
     const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
-    const paginated = await paginateCommentsWithFilter({
-      paginationOpts: args.paginationOpts,
-      makeQuery: () =>
-        ctx.db
-          .query("projectComments")
-          .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
-          .order("desc"),
-      includeComment: (comment) => comment.parentCommentId == null,
-    });
+    const paginated = await ctx.db
+      .query("projectComments")
+      .withIndex("by_projectPublicId_parentCommentId_createdAt", (q) =>
+        q.eq("projectPublicId", project.publicId).eq("parentCommentId", undefined),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
 
     const { reactionMap, userMap } = await getReactionAndUserMaps({
       ctx,
@@ -555,15 +557,7 @@ export const create = mutation({
       updatedAt: now,
     });
     if (parent) {
-      // Convex patch values don't support atomic increment operators, so
-      // recompute from children to avoid read-modify-write races on replyCount.
-      const replies = await ctx.db
-        .query("projectComments")
-        .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
-        .collect();
-      await ctx.db.patch(parent._id, {
-        replyCount: replies.length,
-      });
+      await incrementParentReplyCount(ctx, parent._id);
     }
 
     try {
@@ -609,13 +603,14 @@ export const update = mutation({
       throw new ConvexError("Forbidden");
     }
 
+    const updatedAtEpochMs = Date.now();
     await ctx.db.patch(comment._id, {
       content: trimmedContent,
       edited: true,
-      updatedAt: Date.now(),
+      updatedAt: updatedAtEpochMs,
     });
 
-    return { commentId: comment._id };
+    return { commentId: comment._id, updatedAtEpochMs };
   },
 });
 
@@ -695,7 +690,11 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
-      return { removed: false };
+      return {
+        removed: false,
+        removedCommentId: String(args.commentId),
+        parentCommentId: null,
+      };
     }
 
     const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
@@ -728,7 +727,13 @@ export const remove = mutation({
         decrementParentReplyCount(ctx, { parentCommentId, decrementBy }),
       ),
     );
-    return { removed: true };
+    return {
+      removed: true,
+      removedCommentId: String(comment._id),
+      parentCommentId: comment.parentCommentId
+        ? String(comment.parentCommentId)
+        : null,
+    };
   },
 });
 
@@ -784,10 +789,20 @@ export const toggleReaction = mutation({
         .query("commentReactions")
         .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
         .collect();
+      const reactionSummarySnapshot = buildReactionSummarySnapshot(currentReactions);
       await ctx.db.patch(comment._id, {
-        reactionSummary: buildReactionSummarySnapshot(currentReactions),
+        reactionSummary: reactionSummarySnapshot,
       });
-      return { commentId: comment._id, emoji: args.emoji, active: false };
+      const reactionSummary = await hydrateReactionSummaryForResponse(
+        ctx,
+        reactionSummarySnapshot,
+      );
+      return {
+        commentId: comment._id,
+        emoji: args.emoji,
+        active: false,
+        reactionSummary,
+      };
     }
 
     await ctx.db.insert("commentReactions", {
@@ -802,10 +817,19 @@ export const toggleReaction = mutation({
       .query("commentReactions")
       .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
       .collect();
+    const reactionSummarySnapshot = buildReactionSummarySnapshot(currentReactions);
     await ctx.db.patch(comment._id, {
-      reactionSummary: buildReactionSummarySnapshot(currentReactions),
+      reactionSummary: reactionSummarySnapshot,
     });
-
-    return { commentId: comment._id, emoji: args.emoji, active: true };
+    const reactionSummary = await hydrateReactionSummaryForResponse(
+      ctx,
+      reactionSummarySnapshot,
+    );
+    return {
+      commentId: comment._id,
+      emoji: args.emoji,
+      active: true,
+      reactionSummary,
+    };
   },
 });

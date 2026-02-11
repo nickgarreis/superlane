@@ -50,6 +50,7 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     setProjectStatusMutation: apiHandlers.setProjectStatusMutation,
     updateReviewCommentsMutation: apiHandlers.updateReviewCommentsMutation,
     applyTaskDiffMutation: apiHandlers.applyTaskDiffMutation,
+    reorderTasksMutation: apiHandlers.reorderTasksMutation,
     canReorderWorkspaceTasks: data.tasksPaginationStatus === "Exhausted",
     asPendingUploadId,
     omitUndefined,

@@ -278,7 +278,9 @@ export const reorder = mutation({
       }),
     );
 
-    return { updated: updatedCounts.reduce((total, count) => total + count, 0) };
+    return {
+      updated: updatedCounts.reduce<number>((total, count) => total + count, 0),
+    };
   },
 });
 

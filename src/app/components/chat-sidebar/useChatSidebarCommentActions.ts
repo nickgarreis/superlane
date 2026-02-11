@@ -13,7 +13,17 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { reportUiError } from "../../lib/errors";
 import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 
-type MutationFn<TArgs extends Record<string, unknown>> = (args: TArgs) => Promise<unknown>;
+type MutationFn<TArgs extends Record<string, unknown>, TResult = unknown> = (
+  args: TArgs,
+) => Promise<TResult>;
+type ReactionSummaryEntry = {
+  emoji: string;
+  users: string[];
+  userIds: string[];
+};
+type ToggleResolvedMutationResult = {
+  resolved?: boolean;
+};
 
 type UseChatSidebarCommentActionsArgs = {
   activeProjectId: string;
@@ -35,6 +45,20 @@ type UseChatSidebarCommentActionsArgs = {
   scrollRef: RefObject<HTMLDivElement>;
   loadRepliesForParent: (parentCommentId: string, force?: boolean) => Promise<void>;
   refreshRepliesForComment: (commentId: string) => void;
+  onCommentResolved?: (args: { commentId: string; resolved?: boolean | undefined }) => boolean;
+  onCommentEdited?: (args: {
+    commentId: string;
+    content: string;
+    updatedAtEpochMs?: number;
+  }) => boolean;
+  onCommentDeleted?: (args: {
+    removedCommentId: string;
+    parentCommentId: string | null;
+  }) => boolean;
+  onCommentReactionUpdated?: (args: {
+    commentId: string;
+    reactionSummary: ReactionSummaryEntry[];
+  }) => boolean;
   createCommentMutation: MutationFn<{
     projectPublicId: string;
     content: string;
@@ -42,7 +66,10 @@ type UseChatSidebarCommentActionsArgs = {
   }>;
   updateCommentMutation: MutationFn<{ commentId: Id<"projectComments">; content: string }>;
   removeCommentMutation: MutationFn<{ commentId: Id<"projectComments"> }>;
-  toggleResolvedMutation: MutationFn<{ commentId: Id<"projectComments"> }>;
+  toggleResolvedMutation: MutationFn<
+    { commentId: Id<"projectComments"> },
+    ToggleResolvedMutationResult
+  >;
   toggleReactionMutation: MutationFn<{ commentId: Id<"projectComments">; emoji: string }>;
 };
 
@@ -66,6 +93,10 @@ export const useChatSidebarCommentActions = ({
   scrollRef,
   loadRepliesForParent,
   refreshRepliesForComment,
+  onCommentResolved,
+  onCommentEdited,
+  onCommentDeleted,
+  onCommentReactionUpdated,
   createCommentMutation,
   updateCommentMutation,
   removeCommentMutation,
@@ -215,62 +246,124 @@ export const useChatSidebarCommentActions = ({
   const handleResolve = useCallback(
     (commentId: string) => {
       void toggleResolvedMutation({ commentId: commentId as Id<"projectComments"> })
-        .then(() => {
-          refreshRepliesForComment(commentId);
+        .then((result) => {
+          const resolved =
+            typeof result?.resolved === "boolean" ? result.resolved : undefined;
+          const handledLocally =
+            onCommentResolved?.({
+              commentId,
+              ...(resolved === undefined ? {} : { resolved }),
+            }) ?? false;
+          if (!handledLocally) {
+            refreshRepliesForComment(commentId);
+          }
         })
         .catch((error) => {
           reportUiError("chatSidebar.toggleResolved", error, { showToast: false });
         });
     },
-    [refreshRepliesForComment, toggleResolvedMutation],
+    [onCommentResolved, refreshRepliesForComment, toggleResolvedMutation],
   );
 
   const handleEditComment = useCallback(
     (commentId: string) => {
-      if (!editValue.trim()) {
+      const trimmedEditValue = editValue.trim();
+      if (!trimmedEditValue) {
         return;
       }
       void updateCommentMutation({
         commentId: commentId as Id<"projectComments">,
-        content: editValue.trim(),
+        content: trimmedEditValue,
       })
-        .then(() => {
+        .then((result: any) => {
           setEditingComment(null);
           setEditValue("");
-          refreshRepliesForComment(commentId);
+          const handledLocally =
+            onCommentEdited?.({
+              commentId,
+              content: trimmedEditValue,
+              updatedAtEpochMs:
+                typeof result?.updatedAtEpochMs === "number"
+                  ? result.updatedAtEpochMs
+                  : undefined,
+            }) ?? false;
+          if (!handledLocally) {
+            refreshRepliesForComment(commentId);
+          }
         })
         .catch((error) => {
           reportUiError("chatSidebar.editComment", error, { showToast: false });
         });
     },
-    [editValue, refreshRepliesForComment, setEditValue, setEditingComment, updateCommentMutation],
+    [
+      editValue,
+      onCommentEdited,
+      refreshRepliesForComment,
+      setEditValue,
+      setEditingComment,
+      updateCommentMutation,
+    ],
   );
 
   const handleDeleteComment = useCallback(
     (commentId: string) => {
       void removeCommentMutation({ commentId: commentId as Id<"projectComments"> })
-        .then(() => {
-          refreshRepliesForComment(commentId);
+        .then((result: any) => {
+          if (result?.removed === false) {
+            return;
+          }
+          const removedCommentId =
+            typeof result?.removedCommentId === "string"
+              ? result.removedCommentId
+              : commentId;
+          const parentCommentId =
+            typeof result?.parentCommentId === "string"
+              ? result.parentCommentId
+              : null;
+          const handledLocally =
+            onCommentDeleted?.({ removedCommentId, parentCommentId }) ?? false;
+          if (!handledLocally) {
+            refreshRepliesForComment(commentId);
+          }
         })
         .catch((error) => {
           reportUiError("chatSidebar.deleteComment", error, { showToast: false });
         });
     },
-    [refreshRepliesForComment, removeCommentMutation],
+    [onCommentDeleted, refreshRepliesForComment, removeCommentMutation],
   );
 
   const handleToggleReaction = useCallback(
     (commentId: string, emoji: string) => {
       void toggleReactionMutation({ commentId: commentId as Id<"projectComments">, emoji })
-        .then(() => {
+        .then((result: any) => {
           setActiveReactionPicker(null);
-          refreshRepliesForComment(commentId);
+          const reactionSummary = Array.isArray(result?.reactionSummary)
+            ? (result.reactionSummary.filter(
+                (entry: unknown): entry is ReactionSummaryEntry =>
+                  typeof entry === "object" &&
+                  entry !== null &&
+                  typeof (entry as ReactionSummaryEntry).emoji === "string" &&
+                  Array.isArray((entry as ReactionSummaryEntry).users) &&
+                  Array.isArray((entry as ReactionSummaryEntry).userIds),
+              ) as ReactionSummaryEntry[])
+            : [];
+          const handledLocally =
+            onCommentReactionUpdated?.({ commentId, reactionSummary }) ?? false;
+          if (!handledLocally) {
+            refreshRepliesForComment(commentId);
+          }
         })
         .catch((error) => {
           reportUiError("chatSidebar.toggleReaction", error, { showToast: false });
         });
     },
-    [refreshRepliesForComment, setActiveReactionPicker, toggleReactionMutation],
+    [
+      onCommentReactionUpdated,
+      refreshRepliesForComment,
+      setActiveReactionPicker,
+      toggleReactionMutation,
+    ],
   );
 
   const toggleThread = useCallback(

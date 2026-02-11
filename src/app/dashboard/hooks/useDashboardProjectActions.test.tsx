@@ -66,6 +66,7 @@ const createBaseArgs = () => ({
   setProjectStatusMutation: vi.fn().mockResolvedValue({}),
   updateReviewCommentsMutation: vi.fn().mockResolvedValue({}),
   applyTaskDiffMutation: vi.fn().mockResolvedValue({}),
+  reorderTasksMutation: vi.fn().mockResolvedValue({}),
   canReorderWorkspaceTasks: true,
   asPendingUploadId: vi.fn((value: string) => value as any),
   omitUndefined: <T extends Record<string, unknown>>(value: T) => value,
@@ -162,10 +163,13 @@ describe("useDashboardProjectActions", () => {
     expect(args.setEditProjectId).toHaveBeenCalledWith("project-1");
     expect(args.setReviewProject).toHaveBeenCalledWith(baseProject);
     expect(args.applyTaskDiffMutation).toHaveBeenCalledTimes(2);
-    expect(args.applyTaskDiffMutation).toHaveBeenCalledWith(
+    expect(args.reorderTasksMutation).toHaveBeenCalledWith({
+      workspaceSlug: "workspace-1",
+      orderedTaskIds: ["task-1"],
+    });
+    expect(args.applyTaskDiffMutation).toHaveBeenLastCalledWith(
       expect.objectContaining({
         workspaceSlug: "workspace-1",
-        orderedTaskIds: ["task-1"],
       }),
     );
   });

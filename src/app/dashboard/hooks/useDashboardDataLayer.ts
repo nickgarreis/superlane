@@ -123,14 +123,22 @@ export function useDashboardDataLayer() {
     openCreateWorkspace();
   }, [canCreateWorkspace, openCreateWorkspace]);
   const navigateToPath = useCallback(
-    (path: string) => navigate(path),
-    [navigate],
+    (path: string) => {
+      if (location.pathname === path) {
+        return;
+      }
+      navigate(path);
+    },
+    [location.pathname, navigate],
   );
   const navigateToPathWithReplace = useCallback(
     (path: string, replace = false) => {
+      if (location.pathname === path) {
+        return;
+      }
       navigate(path, { replace });
     },
-    [navigate],
+    [location.pathname, navigate],
   );
   const getBrandAssetDownloadUrlQuery = useCallback(
     async (workspaceSlug: string, brandAssetId: string) => {

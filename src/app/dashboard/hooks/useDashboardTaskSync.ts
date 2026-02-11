@@ -56,6 +56,7 @@ type UseDashboardTaskSyncArgs = {
   canReorderWorkspaceTasks: boolean;
   viewerIdentity: ViewerIdentity;
   applyTaskDiffMutation: DashboardMutationHandler<typeof api.tasks.applyDiff>;
+  reorderTasksMutation: DashboardMutationHandler<typeof api.tasks.reorder>;
 };
 export const useDashboardTaskSync = ({
   activeWorkspaceId,
@@ -64,6 +65,7 @@ export const useDashboardTaskSync = ({
   canReorderWorkspaceTasks,
   viewerIdentity,
   applyTaskDiffMutation,
+  reorderTasksMutation,
 }: UseDashboardTaskSyncArgs) => {
   const syncProjectTasks = useCallback(
     async (projectPublicId: string, nextTasks: Task[]) => {
@@ -181,29 +183,35 @@ export const useDashboardTaskSync = ({
       const orderChanged =
         currentOrder.length !== nextOrder.length ||
         currentOrder.some((taskId, index) => taskId !== nextOrder[index]);
+      const hasContentDiff =
+        creates.length > 0 || updates.length > 0 || removes.length > 0;
       if (
-        creates.length === 0 &&
-        updates.length === 0 &&
-        removes.length === 0 &&
-        !orderChanged
+        !hasContentDiff &&
+        (!canReorderWorkspaceTasks || !orderChanged || nextOrder.length === 0)
       ) {
         return;
       }
-      await applyTaskDiffMutation({
-        workspaceSlug: activeWorkspaceId,
-        creates,
-        updates,
-        removes,
-        orderedTaskIds:
-          canReorderWorkspaceTasks && orderChanged && nextOrder.length > 0
-            ? nextOrder
-            : undefined,
-      });
+      if (hasContentDiff) {
+        await applyTaskDiffMutation({
+          workspaceSlug: activeWorkspaceId,
+          creates,
+          updates,
+          removes,
+        });
+      }
+
+      if (canReorderWorkspaceTasks && orderChanged && nextOrder.length > 0) {
+        await reorderTasksMutation({
+          workspaceSlug: activeWorkspaceId,
+          orderedTaskIds: nextOrder,
+        });
+      }
     },
     [
       activeWorkspaceId,
       applyTaskDiffMutation,
       canReorderWorkspaceTasks,
+      reorderTasksMutation,
       viewerIdentity,
       workspaceTasks,
     ],

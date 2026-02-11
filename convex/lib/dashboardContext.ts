@@ -117,8 +117,15 @@ export const getAccessibleWorkspaceContext = async (
     )
     .collect();
 
+  const uniqueWorkspaceIds = Array.from(
+    new Set(activeMemberships.map((membership) => String(membership.workspaceId))),
+  );
   const workspaceCandidates = (
-    await Promise.all(activeMemberships.map((membership) => ctx.db.get(membership.workspaceId)))
+    await Promise.all(
+      uniqueWorkspaceIds.map((workspaceId) =>
+        ctx.db.get(workspaceId as Id<"workspaces">),
+      ),
+    )
   ).filter((workspace): workspace is WorkspaceDoc => workspace !== null && workspace.deletedAt == null);
 
   const orgMemberships = await ctx.db
@@ -201,21 +208,32 @@ export const hydrateWorkspaceMembers = async (
       (entry): entry is readonly [string, AppUserDoc] => entry !== null,
     ),
   );
+  const avatarUrlByUserId = new Map<string, string | null>();
   const members = await Promise.all(
     args.membershipRows.map(async (membership) => {
       const memberUser = userById.get(String(membership.userId));
       if (!memberUser) {
         return null;
       }
+      const userId = String(memberUser._id);
+      let avatarUrl = membership.avatarUrlSnapshot ?? null;
+      if (avatarUrl === null) {
+        const cachedAvatar = avatarUrlByUserId.get(userId);
+        if (cachedAvatar !== undefined) {
+          avatarUrl = cachedAvatar;
+        } else {
+          const resolvedAvatar = await resolveAvatarUrl(ctx, memberUser);
+          avatarUrlByUserId.set(userId, resolvedAvatar);
+          avatarUrl = resolvedAvatar;
+        }
+      }
 
       return {
-        userId: String(memberUser._id),
+        userId,
         workosUserId: memberUser.workosUserId,
         name: membership.nameSnapshot ?? memberUser.name,
         email: membership.emailSnapshot ?? memberUser.email ?? "",
-        avatarUrl:
-          membership.avatarUrlSnapshot ??
-          (await resolveAvatarUrl(ctx, memberUser)),
+        avatarUrl,
         role: membership.role,
         isViewer: String(memberUser._id) === String(args.viewerUserId),
       } satisfies SnapshotWorkspaceMember;

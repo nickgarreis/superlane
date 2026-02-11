@@ -28,6 +28,21 @@ import { FileSection } from "./main-content/FileSection";
 import { ProjectOverview } from "./main-content/ProjectOverview";
 import { MainContentFileRows } from "./main-content/MainContentFileRows";
 import { useMainContentHighlighting } from "./main-content/useMainContentHighlighting";
+import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
+
+const deserializeProjectFileTab = (
+  value: unknown,
+): ProjectFileTab | undefined =>
+  value === "Assets" || value === "Contract" || value === "Attachments"
+    ? value
+    : undefined;
+const deserializeSortBy = (
+  value: unknown,
+): "relevance" | "name" | undefined =>
+  value === "relevance" || value === "name" ? value : undefined;
+const deserializeSearchQuery = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
 const loadChatSidebarModule = () => import("./ChatSidebar");
 const LazyChatSidebar = React.lazy(async () => {
   const module = await loadChatSidebarModule();
@@ -73,10 +88,23 @@ export function MainContent({
   pendingHighlight,
   onClearPendingHighlight,
 }: MainContentProps) {
-  const [activeTab, setActiveTab] = useState<ProjectFileTab>("Assets");
-  const [searchQuery, setSearchQuery] = useState("");
+  const stateKeyPrefix = `project.${project.id}`;
+  const [activeTab, setActiveTab] = useSessionBackedState<ProjectFileTab>(
+    `${stateKeyPrefix}.activeTab`,
+    "Assets",
+    deserializeProjectFileTab,
+  );
+  const [searchQuery, setSearchQuery] = useSessionBackedState(
+    `${stateKeyPrefix}.search`,
+    "",
+    deserializeSearchQuery,
+  );
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [sortBy, setSortBy] = useState<"relevance" | "name">("relevance");
+  const [sortBy, setSortBy] = useSessionBackedState<"relevance" | "name">(
+    `${stateKeyPrefix}.sort`,
+    "relevance",
+    deserializeSortBy,
+  );
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasLoadedChatSidebar, setHasLoadedChatSidebar] = useState(false);
@@ -138,7 +166,7 @@ export function MainContent({
       }
       contentScrollRef.current.scrollTop = previousScrollTop;
     });
-  }, []);
+  }, [setActiveTab]);
   const canMutateProjectFiles =
     !project.archived &&
     project.status.label !== "Completed" &&
