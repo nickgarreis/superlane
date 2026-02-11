@@ -287,6 +287,11 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_draftSessionId", ["draftSessionId"])
+    .index("by_workspace_uploader_draftSessionId", [
+      "workspaceId",
+      "uploaderUserId",
+      "draftSessionId",
+    ])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_uploaderUserId", ["uploaderUserId"])
     .index("by_createdAt", ["createdAt"]),

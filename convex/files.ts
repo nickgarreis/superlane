@@ -126,11 +126,12 @@ const collectActiveProjectFiles = async (
   ctx: QueryCtx | MutationCtx,
   projectId: Id<"projects">,
 ) => {
-  const files = await ctx.db
+  return ctx.db
     .query("projectFiles")
-    .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+    .withIndex("by_projectId_deletedAt", (q) =>
+      q.eq("projectId", projectId).eq("deletedAt", null),
+    )
     .collect();
-  return files.filter((file) => file.deletedAt == null);
 };
 
 const projectAllowsFileMutations = (project: Doc<"projects">) =>
@@ -488,17 +489,16 @@ export const discardPendingUploadsForSession = mutation({
 
     const pendingUploads = await ctx.db
       .query("pendingFileUploads")
-      .withIndex("by_draftSessionId", (q) => q.eq("draftSessionId", args.draftSessionId))
+      .withIndex("by_workspace_uploader_draftSessionId", (q) =>
+        q
+          .eq("workspaceId", workspace._id)
+          .eq("uploaderUserId", appUser._id)
+          .eq("draftSessionId", args.draftSessionId),
+      )
       .collect();
 
-    const scoped = pendingUploads.filter(
-      (row: any) =>
-        String(row.workspaceId) === String(workspace._id) &&
-        String(row.uploaderUserId) === String(appUser._id),
-    );
-
     let removedCount = 0;
-    for (const row of scoped) {
+    for (const row of pendingUploads) {
       try {
         await ctx.storage.delete(row.storageId);
       } catch {

@@ -14,6 +14,9 @@ import {
   useProjectTaskHandlers,
   type TaskProjectOption,
 } from "./project-tasks/useProjectTaskHandlers";
+
+const EMPTY_PROJECT_OPTIONS: TaskProjectOption[] = [];
+
 interface ProjectTasksProps {
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
@@ -39,7 +42,7 @@ export function ProjectTasks({
   onUpdateTasks,
   assignableMembers,
   viewerIdentity,
-  projectOptions = [],
+  projectOptions = EMPTY_PROJECT_OPTIONS,
   showProjectColumn = false,
   defaultProjectId = null,
   disableInternalSort = false,

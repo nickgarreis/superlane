@@ -42,6 +42,9 @@ type UseDashboardDataResult = {
     typeof useQuery<typeof api.dashboard.getWorkspaceBootstrap>
   >;
   resolvedWorkspaceSlug: string | null;
+  projectsPaginationStatus: ReturnType<
+    typeof usePaginatedQuery<typeof api.projects.listForWorkspace>
+  >["status"];
   tasksPaginationStatus: ReturnType<
     typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>
   >["status"];
@@ -82,6 +85,8 @@ type UseDashboardDataResult = {
     typeof useQuery<typeof api.collaboration.listWorkspaceMembers>
   >;
   workspaceMembers: WorkspaceMember[];
+  usesWorkspaceTaskFeed: boolean;
+  usesProjectTaskFeed: boolean;
   viewerIdentity: ViewerIdentity;
   projectsById: Record<string, ProjectData>;
   tasksByProject: Record<string, Task[]>;
@@ -129,8 +134,10 @@ export const useDashboardData = ({
     snapshot === undefined
       ? (activeWorkspaceSlug ?? null)
       : (snapshot.activeWorkspaceSlug ?? null);
+  const isArchiveView =
+    currentView === "archive" || currentView.startsWith("archive-project:");
   const shouldIncludeArchivedProjects =
-    currentView !== "tasks" || isSearchOpen || completedProjectDetailId != null;
+    isArchiveView || isSearchOpen || completedProjectDetailId != null;
   const projectsResult = usePaginatedQuery(
     api.projects.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
@@ -141,13 +148,7 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PROJECTS_PAGE_SIZE },
   );
-  const workspaceTasksResult = usePaginatedQuery(
-    api.tasks.listForWorkspace,
-    isAuthenticated && resolvedWorkspaceSlug
-      ? { workspaceSlug: resolvedWorkspaceSlug }
-      : "skip",
-    { initialNumItems: TASKS_PAGE_SIZE },
-  );
+  const isTaskBoardView = currentView === "tasks";
   const routeProjectPublicId = currentView.startsWith("project:")
     ? currentView.slice("project:".length)
     : currentView.startsWith("archive-project:")
@@ -158,6 +159,23 @@ export const useDashboardData = ({
     routeProjectPublicId != null ||
     completedProjectDetailId != null;
   const activeProjectPublicId = routeProjectPublicId ?? completedProjectDetailId;
+  const shouldLoadWorkspaceTasks = isTaskBoardView || isSearchOpen;
+  const shouldLoadProjectTasks =
+    !shouldLoadWorkspaceTasks && activeProjectPublicId != null;
+  const workspaceTasksResult = usePaginatedQuery(
+    api.tasks.listForWorkspace,
+    isAuthenticated && resolvedWorkspaceSlug && shouldLoadWorkspaceTasks
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: TASKS_PAGE_SIZE },
+  );
+  const projectTasksResult = usePaginatedQuery(
+    api.tasks.listForProject,
+    isAuthenticated && shouldLoadProjectTasks && activeProjectPublicId
+      ? { projectPublicId: activeProjectPublicId }
+      : "skip",
+    { initialNumItems: TASKS_PAGE_SIZE },
+  );
   const workspaceFiles = usePaginatedQuery(
     api.files.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug && isSearchOpen
@@ -172,12 +190,16 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PROJECT_FILES_PAGE_SIZE },
   );
-  const { results: paginatedProjects } = projectsResult;
+  const {
+    results: paginatedProjects,
+    status: projectsPaginationStatus,
+  } = projectsResult;
   const {
     results: paginatedWorkspaceTasks,
     status: tasksPaginationStatus,
     loadMore: loadMoreWorkspaceTasks,
   } = workspaceTasksResult;
+  const { results: paginatedProjectTasks } = projectTasksResult;
   const {
     results: paginatedWorkspaceFiles,
     status: filesPaginationStatus,
@@ -305,12 +327,18 @@ export const useDashboardData = ({
     [paginatedProjects, snapshot?.activeWorkspaceSlug],
   );
   const workspaceTasks = useMemo(
-    () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
-    [paginatedWorkspaceTasks],
+    () =>
+      shouldLoadWorkspaceTasks
+        ? mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[])
+        : [],
+    [paginatedWorkspaceTasks, shouldLoadWorkspaceTasks],
   );
+  const tasksForProjectMapping = shouldLoadWorkspaceTasks
+    ? paginatedWorkspaceTasks
+    : paginatedProjectTasks;
   const tasksByProject = useMemo(
-    () => mapTasksByProjectToUi(paginatedWorkspaceTasks as SnapshotTask[]),
-    [paginatedWorkspaceTasks],
+    () => mapTasksByProjectToUi(tasksForProjectMapping as SnapshotTask[]),
+    [tasksForProjectMapping],
   );
   const activeWorkspace = useMemo<Workspace | undefined>(() => {
     const targetWorkspaceSlug =
@@ -374,6 +402,7 @@ export const useDashboardData = ({
   return {
     snapshot,
     resolvedWorkspaceSlug,
+    projectsPaginationStatus,
     tasksPaginationStatus,
     loadMoreWorkspaceTasks,
     workspaceFilesPaginationStatus: filesPaginationStatus,
@@ -388,6 +417,8 @@ export const useDashboardData = ({
     companyBrandAssetsResult,
     workspaceMembersResult,
     workspaceMembers,
+    usesWorkspaceTaskFeed: shouldLoadWorkspaceTasks,
+    usesProjectTaskFeed: shouldLoadProjectTasks,
     viewerIdentity,
     projectsById: projects,
     tasksByProject,

@@ -49,6 +49,7 @@ const buildProject = (id: string, archived: boolean): ProjectData => ({
 
 const createBaseArgs = () => ({
   snapshot: { workspaces: [{}], activeWorkspaceSlug: "workspace-1" },
+  projectsPaginationStatus: "Exhausted" as const,
   ensureDefaultWorkspace: vi
     .fn()
     .mockResolvedValue({ slug: "workspace-created" }),
@@ -175,6 +176,31 @@ describe("useDashboardLifecycleEffects", () => {
         viewToPath("archive-project:project-1"),
         true,
       );
+    });
+  });
+
+  test("waits for projects to load before declaring a project route invalid", async () => {
+    const args = createBaseArgs();
+    args.locationPathname = "/project/missing";
+    args.projectsPaginationStatus = "LoadingFirstPage";
+
+    const { rerender } = renderHook(
+      (props: ReturnType<typeof createBaseArgs>) =>
+        useDashboardLifecycleEffects(props),
+      { initialProps: args },
+    );
+
+    expect(toastMock.error).not.toHaveBeenCalled();
+    expect(args.navigateToPath).not.toHaveBeenCalled();
+
+    rerender({
+      ...args,
+      projectsPaginationStatus: "Exhausted",
+    });
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith("Project not found");
+      expect(args.navigateToPath).toHaveBeenCalledWith("/tasks", true);
     });
   });
 

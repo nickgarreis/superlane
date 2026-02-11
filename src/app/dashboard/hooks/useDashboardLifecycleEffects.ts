@@ -18,6 +18,11 @@ type CompanySettingsLike =
   | undefined;
 type UseDashboardLifecycleEffectsArgs = {
   snapshot: DashboardSnapshotLike;
+  projectsPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   ensureDefaultWorkspace: (args: {}) => Promise<{ slug: string }>;
   setActiveWorkspaceSlug: (slug: string) => void;
   preloadSearchPopupModule: () => Promise<unknown>;
@@ -34,6 +39,7 @@ type UseDashboardLifecycleEffectsArgs = {
 };
 export const useDashboardLifecycleEffects = ({
   snapshot,
+  projectsPaginationStatus,
   ensureDefaultWorkspace,
   setActiveWorkspaceSlug,
   preloadSearchPopupModule,
@@ -101,8 +107,15 @@ export const useDashboardLifecycleEffects = ({
       invalidRouteRef.current = null;
       return;
     }
+    const projectRouteLoading =
+      (routeView.startsWith("project:") ||
+        routeView.startsWith("archive-project:")) &&
+      projectsPaginationStatus === "LoadingFirstPage";
+    if (projectRouteLoading) {
+      return;
+    }
     if (routeView.startsWith("project:")) {
-      const projectId = routeView.split(":")[1];
+      const projectId = routeView.slice("project:".length);
       const project = projects[projectId];
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
@@ -120,7 +133,7 @@ export const useDashboardLifecycleEffects = ({
       return;
     }
     if (routeView.startsWith("archive-project:")) {
-      const projectId = routeView.split(":")[1];
+      const projectId = routeView.slice("archive-project:".length);
       const project = projects[projectId];
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
@@ -136,7 +149,13 @@ export const useDashboardLifecycleEffects = ({
       }
       invalidRouteRef.current = null;
     }
-  }, [snapshot, locationPathname, projects, navigateToPath]);
+  }, [
+    snapshot,
+    locationPathname,
+    projects,
+    navigateToPath,
+    projectsPaginationStatus,
+  ]);
   useEffect(() => {
     if (!resolvedWorkspaceSlug || !companySettings) {
       return;

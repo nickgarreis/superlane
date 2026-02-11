@@ -182,6 +182,7 @@ export function useDashboardDataLayer() {
   });
   useDashboardLifecycleEffects({
     snapshot: data.snapshot,
+    projectsPaginationStatus: data.projectsPaginationStatus,
     ensureDefaultWorkspace: ensureDefaultWorkspaceAction,
     setActiveWorkspaceSlug,
     preloadSearchPopupModule: loadSearchPopupModule,

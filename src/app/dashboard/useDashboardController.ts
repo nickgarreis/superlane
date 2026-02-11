@@ -26,7 +26,7 @@ export const useDashboardController = ({
       return { kind: "archive" };
     }
     if (currentView.startsWith("archive-project:")) {
-      const projectId = currentView.split(":")[1];
+      const projectId = currentView.slice("archive-project:".length);
       const project = projects[projectId];
       if (project && project.archived) {
         return {
@@ -38,7 +38,7 @@ export const useDashboardController = ({
       }
     }
     if (currentView.startsWith("project:")) {
-      const projectId = currentView.split(":")[1];
+      const projectId = currentView.slice("project:".length);
       const project = projects[projectId];
       if (project && !project.archived) {
         return { kind: "main", project };

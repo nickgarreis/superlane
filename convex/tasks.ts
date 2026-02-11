@@ -239,19 +239,21 @@ export const reorder = mutation({
       throw new ConvexError("Duplicate task id in reorder payload");
     }
 
-    const workspaceTasks = await ctx.db
-      .query("tasks")
-      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
-        q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
-      )
-      .collect();
-    const taskById = new Map(workspaceTasks.map((task: any) => [String(task.taskId), task]));
+    const taskRows = await Promise.all(
+      orderedTaskIds.map((taskId) =>
+        ctx.db
+          .query("tasks")
+          .withIndex("by_workspace_taskId", (q: any) =>
+            q.eq("workspaceId", workspace._id).eq("taskId", taskId),
+          )
+          .unique(),
+      ),
+    );
     const projectAccessCache = new Map<string, any>();
 
-    const tasksToReorder = orderedTaskIds.map((taskId) => {
-      const task = taskById.get(taskId);
-      if (!task) {
-        throw new ConvexError(`Task not found: ${taskId}`);
+    const tasksToReorder = taskRows.map((task, index) => {
+      if (!task || task.projectDeletedAt != null) {
+        throw new ConvexError(`Task not found: ${orderedTaskIds[index]}`);
       }
       return task;
     });
@@ -263,15 +265,20 @@ export const reorder = mutation({
     })));
 
     const now = Date.now();
-    await Promise.all(orderedTaskIds.map((taskId, index) => {
-      const task = taskById.get(taskId)!;
-      return ctx.db.patch(task._id, {
-        position: index,
-        updatedAt: now,
-      });
-    }));
+    const updatedCounts = await Promise.all(
+      tasksToReorder.map(async (task: any, index) => {
+        if (task.position === index) {
+          return 0;
+        }
+        await ctx.db.patch(task._id, {
+          position: index,
+          updatedAt: now,
+        });
+        return 1;
+      }),
+    );
 
-    return { updated: orderedTaskIds.length };
+    return { updated: updatedCounts.reduce((total, count) => total + count, 0) };
   },
 });
 

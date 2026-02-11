@@ -294,9 +294,11 @@ const consumePendingUploadsForProject = async (
   const activeFiles = (
     await ctx.db
       .query("projectFiles")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", args.project._id))
+      .withIndex("by_projectId_deletedAt", (q: any) =>
+        q.eq("projectId", args.project._id).eq("deletedAt", null),
+      )
       .collect()
-  ).filter((file: any) => file.deletedAt == null);
+  );
 
   if (activeFiles.length + args.pendingUploadIds.length > MAX_FILES_PER_PROJECT) {
     throw new ConvexError("File limit reached for this project");
@@ -608,20 +610,20 @@ export const remove = mutation({
 
     const activeProjectFiles = await ctx.db
       .query("projectFiles")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .withIndex("by_projectId_deletedAt", (q: any) =>
+        q.eq("projectId", project._id).eq("deletedAt", null),
+      )
       .collect();
     await Promise.all(
-      activeProjectFiles
-        .filter((file: any) => file.deletedAt == null)
-        .map((file: any) =>
-          ctx.db.patch(file._id, {
-            projectDeletedAt: now,
-            deletedAt: now,
-            deletedByUserId: appUser._id,
-            purgeAfterAt: now + FILE_RETENTION_MS,
-            updatedAt: now,
-          }),
-        ),
+      activeProjectFiles.map((file: any) =>
+        ctx.db.patch(file._id, {
+          projectDeletedAt: now,
+          deletedAt: now,
+          deletedByUserId: appUser._id,
+          purgeAfterAt: now + FILE_RETENTION_MS,
+          updatedAt: now,
+        }),
+      ),
     );
 
     await ctx.db.patch(project._id, {
