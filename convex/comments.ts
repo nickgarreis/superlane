@@ -16,6 +16,7 @@ type PaginatableQuery<T> = {
 };
 type ReactionUsers = { users: string[]; userIds: string[] };
 type ReactionSummary = { emoji: string; users: string[]; userIds: string[] };
+type ReactionSummarySnapshot = NonNullable<ProjectCommentDoc["reactionSummary"]>;
 type LegacyCommentNode = {
   id: string;
   author: { userId: string; name: string; avatar: string };
@@ -109,51 +110,34 @@ const paginateCommentsWithFilter = async (
   };
 };
 
-const collectReactionsForComments = async (args: {
-  ctx: QueryCtx;
-  projectPublicId: string;
-  comments: ProjectCommentDoc[];
-}) => {
-  const { ctx, comments, projectPublicId } = args;
-  if (comments.length === 0) {
-    return [] as CommentReactionDoc[];
+const buildReactionSummarySnapshot = (
+  reactions: CommentReactionDoc[],
+): ReactionSummarySnapshot => {
+  const userIdsByEmoji = new Map<string, Set<Id<"users">>>();
+  for (const reaction of reactions) {
+    if (!userIdsByEmoji.has(reaction.emoji)) {
+      userIdsByEmoji.set(reaction.emoji, new Set<Id<"users">>());
+    }
+    userIdsByEmoji.get(reaction.emoji)!.add(reaction.userId);
   }
 
-  const targetCommentIds = new Set(comments.map((comment) => String(comment._id)));
-
-  // TODO: Replace this with aggregated reaction materialization to avoid loading
-  // all project reactions when the project is very large.
-  const projectScopedReactions = await ctx.db
-    .query("commentReactions")
-    .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", projectPublicId))
-    .collect();
-  if (projectScopedReactions.length > 0) {
-    return projectScopedReactions.filter((reaction) =>
-      targetCommentIds.has(String(reaction.commentId)),
-    );
-  }
-
-  // Legacy fallback for rows that predate reaction project denormalization.
-  return (
-    await Promise.all(
-      comments.map((comment) =>
-        ctx.db
-          .query("commentReactions")
-          .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
-          .collect(),
+  return Array.from(userIdsByEmoji.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([emoji, userIds]) => ({
+      emoji,
+      userIds: Array.from(userIds).sort((left, right) =>
+        String(left).localeCompare(String(right)),
       ),
-    )
-  ).flat();
+    }));
 };
 
 const getReactionAndUserMaps = async (
   args: {
     ctx: QueryCtx;
-    projectPublicId: string;
     comments: ProjectCommentDoc[];
   },
 ) => {
-  const { ctx, comments, projectPublicId } = args;
+  const { ctx, comments } = args;
   if (comments.length === 0) {
     return {
       reactionMap: new Map<string, Map<string, ReactionUsers>>(),
@@ -161,13 +145,34 @@ const getReactionAndUserMaps = async (
     };
   }
 
-  const reactionRows = await collectReactionsForComments({
-    ctx,
-    projectPublicId,
-    comments,
-  });
+  const commentsMissingSnapshot = comments.filter(
+    (comment) => comment.reactionSummary === undefined,
+  );
+  const fallbackReactionsByCommentId = new Map<string, CommentReactionDoc[]>(
+    await Promise.all(
+      commentsMissingSnapshot.map(async (comment) => [
+        String(comment._id),
+        await ctx.db
+          .query("commentReactions")
+          .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+          .collect(),
+      ] as const),
+    ),
+  );
+
   const userIds = new Set(comments.map((comment) => comment.authorUserId));
-  reactionRows.forEach((reaction) => userIds.add(reaction.userId));
+  for (const comment of comments) {
+    if (comment.reactionSummary !== undefined) {
+      comment.reactionSummary.forEach((summary) => {
+        summary.userIds.forEach((userId) => userIds.add(userId));
+      });
+      continue;
+    }
+
+    const fallbackReactions = fallbackReactionsByCommentId.get(String(comment._id)) ?? [];
+    fallbackReactions.forEach((reaction) => userIds.add(reaction.userId));
+  }
+
   const users = await Promise.all(Array.from(userIds).map((userId) => ctx.db.get(userId)));
   const userMap = new Map(
     users
@@ -176,23 +181,33 @@ const getReactionAndUserMaps = async (
   );
 
   const reactionMap = new Map<string, Map<string, ReactionUsers>>();
-  reactionRows.forEach((reaction) => {
-    const user = userMap.get(reaction.userId);
-    const userName = user?.name ?? "Unknown user";
-    const userId = String(reaction.userId);
-    const key = String(reaction.commentId);
-    if (!reactionMap.has(key)) {
-      reactionMap.set(key, new Map());
+  for (const comment of comments) {
+    const reactionsForComment = new Map<string, ReactionUsers>();
+    if (comment.reactionSummary !== undefined) {
+      for (const reaction of comment.reactionSummary) {
+        reactionsForComment.set(reaction.emoji, {
+          users: reaction.userIds.map(
+            (userId) => userMap.get(userId)?.name ?? "Unknown user",
+          ),
+          userIds: reaction.userIds.map((userId) => String(userId)),
+        });
+      }
+    } else {
+      const fallbackReactions = fallbackReactionsByCommentId.get(String(comment._id)) ?? [];
+      for (const reaction of fallbackReactions) {
+        if (!reactionsForComment.has(reaction.emoji)) {
+          reactionsForComment.set(reaction.emoji, { users: [], userIds: [] });
+        }
+        const entry = reactionsForComment.get(reaction.emoji)!;
+        entry.users.push(userMap.get(reaction.userId)?.name ?? "Unknown user");
+        entry.userIds.push(String(reaction.userId));
+      }
     }
 
-    const emojiUsers = reactionMap.get(key)!;
-    if (!emojiUsers.has(reaction.emoji)) {
-      emojiUsers.set(reaction.emoji, { users: [], userIds: [] });
+    if (reactionsForComment.size > 0) {
+      reactionMap.set(String(comment._id), reactionsForComment);
     }
-    const entry = emojiUsers.get(reaction.emoji)!;
-    entry.users.push(userName);
-    entry.userIds.push(userId);
-  });
+  }
 
   return { reactionMap, userMap };
 };
@@ -286,7 +301,6 @@ export const listThreadsPaginated = query({
 
     const { reactionMap, userMap } = await getReactionAndUserMaps({
       ctx,
-      projectPublicId: project.publicId,
       comments: paginated.page,
     });
     const replyCounts = await getReplyCountMapForParents(ctx, paginated.page);
@@ -323,7 +337,6 @@ export const listReplies = query({
       .paginate(args.paginationOpts);
     const { reactionMap, userMap } = await getReactionAndUserMaps({
       ctx,
-      projectPublicId: parent.projectPublicId,
       comments: paginated.page,
     });
     const replyCounts = await getReplyCountMapForParents(ctx, paginated.page);
@@ -535,6 +548,7 @@ export const create = mutation({
       authorSnapshotAvatarUrl: appUser.avatarUrl ?? undefined,
       content: trimmedContent,
       replyCount: 0,
+      reactionSummary: [],
       resolved: false,
       edited: false,
       createdAt: now,
@@ -766,6 +780,13 @@ export const toggleReaction = mutation({
 
     if (existing) {
       await ctx.db.delete(existing._id);
+      const currentReactions = await ctx.db
+        .query("commentReactions")
+        .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+        .collect();
+      await ctx.db.patch(comment._id, {
+        reactionSummary: buildReactionSummarySnapshot(currentReactions),
+      });
       return { commentId: comment._id, emoji: args.emoji, active: false };
     }
 
@@ -776,6 +797,13 @@ export const toggleReaction = mutation({
       emoji: args.emoji,
       userId: appUser._id,
       createdAt: Date.now(),
+    });
+    const currentReactions = await ctx.db
+      .query("commentReactions")
+      .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+      .collect();
+    await ctx.db.patch(comment._id, {
+      reactionSummary: buildReactionSummarySnapshot(currentReactions),
     });
 
     return { commentId: comment._id, emoji: args.emoji, active: true };

@@ -20,6 +20,24 @@ const resolveUserAvatarForBackfill = async (ctx: any, user: any) => {
   return "";
 };
 
+const buildReactionSummaryFromReactions = (reactions: any[]) => {
+  const userIdsByEmoji = new Map<string, Set<any>>();
+  for (const reaction of reactions) {
+    if (!userIdsByEmoji.has(reaction.emoji)) {
+      userIdsByEmoji.set(reaction.emoji, new Set());
+    }
+    userIdsByEmoji.get(reaction.emoji)!.add(reaction.userId);
+  }
+  return Array.from(userIdsByEmoji.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([emoji, userIds]) => ({
+      emoji,
+      userIds: Array.from(userIds).sort((left, right) =>
+        String(left).localeCompare(String(right)),
+      ),
+    }));
+};
+
 export const backfillWorkspaceDenormalizedFields = mutation({
   args: {
     workspaceSlug: v.string(),
@@ -356,6 +374,57 @@ export const backfillProjectCommentReplyCounts = mutation({
       }
       await ctx.db.patch(comment._id, {
         replyCount: replyCountByParentId.get(String(comment._id)) ?? 0,
+      });
+      patchedComments += 1;
+      remaining -= 1;
+    }
+
+    return {
+      workspaceSlug: workspace.slug,
+      maxPatches,
+      patchedComments,
+      exhaustedLimit: remaining === 0,
+    };
+  },
+});
+
+export const backfillProjectCommentReactionSummary = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
+      .unique();
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    await requireWorkspaceRole(ctx, workspace._id, "owner", { workspace });
+    const maxPatches = clampLimit(args.limit);
+    let remaining = maxPatches;
+
+    const comments = await ctx.db
+      .query("projectComments")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    let patchedComments = 0;
+    for (const comment of comments) {
+      if (remaining <= 0) {
+        break;
+      }
+      if (comment.reactionSummary !== undefined) {
+        continue;
+      }
+      const reactions = await ctx.db
+        .query("commentReactions")
+        .withIndex("by_commentId", (q: any) => q.eq("commentId", comment._id))
+        .collect();
+      await ctx.db.patch(comment._id, {
+        reactionSummary: buildReactionSummaryFromReactions(reactions),
       });
       patchedComments += 1;
       remaining -= 1;

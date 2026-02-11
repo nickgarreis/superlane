@@ -101,7 +101,11 @@ type UseDashboardDataResult = {
     typeof useDashboardController
   >["clearPendingHighlight"];
 };
-const PAGINATION_PAGE_SIZE = 100;
+const PROJECTS_PAGE_SIZE = 50;
+const TASKS_PAGE_SIZE = 50;
+const WORKSPACE_FILES_PAGE_SIZE = 40;
+const PROJECT_FILES_PAGE_SIZE = 40;
+const SETTINGS_PAGE_SIZE = 100;
 export const useDashboardData = ({
   isAuthenticated,
   activeWorkspaceSlug,
@@ -125,19 +129,24 @@ export const useDashboardData = ({
     snapshot === undefined
       ? (activeWorkspaceSlug ?? null)
       : (snapshot.activeWorkspaceSlug ?? null);
+  const shouldIncludeArchivedProjects =
+    currentView !== "tasks" || isSearchOpen || completedProjectDetailId != null;
   const projectsResult = usePaginatedQuery(
     api.projects.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
-      ? { workspaceSlug: resolvedWorkspaceSlug, includeArchived: true }
+      ? {
+          workspaceSlug: resolvedWorkspaceSlug,
+          includeArchived: shouldIncludeArchivedProjects,
+        }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: PROJECTS_PAGE_SIZE },
   );
   const workspaceTasksResult = usePaginatedQuery(
     api.tasks.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: TASKS_PAGE_SIZE },
   );
   const routeProjectPublicId = currentView.startsWith("project:")
     ? currentView.slice("project:".length)
@@ -154,14 +163,14 @@ export const useDashboardData = ({
     isAuthenticated && resolvedWorkspaceSlug && isSearchOpen
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: WORKSPACE_FILES_PAGE_SIZE },
   );
   const projectFiles = usePaginatedQuery(
     api.files.listForProjectPaginated,
     isAuthenticated && shouldLoadWorkspaceFiles && activeProjectPublicId
       ? { projectPublicId: activeProjectPublicId }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: PROJECT_FILES_PAGE_SIZE },
   );
   const { results: paginatedProjects } = projectsResult;
   const {
@@ -200,21 +209,21 @@ export const useDashboardData = ({
     shouldLoadCompanySettings
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: SETTINGS_PAGE_SIZE },
   );
   const companyPendingInvitationsResult = usePaginatedQuery(
     api.settings.listPendingInvitations,
     shouldLoadCompanySettings
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: SETTINGS_PAGE_SIZE },
   );
   const companyBrandAssetsResult = usePaginatedQuery(
     api.settings.listBrandAssets,
     shouldLoadCompanySettings
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
-    { initialNumItems: PAGINATION_PAGE_SIZE },
+    { initialNumItems: SETTINGS_PAGE_SIZE },
   );
   const workspaceMembersResult = useQuery(
     api.collaboration.listWorkspaceMembers,

@@ -42,7 +42,38 @@ type ProjectTaskRowProps = {
   taskRowStyle?: React.CSSProperties;
   disableLayoutAnimation?: boolean;
 };
-export function ProjectTaskRow({
+const areProjectTaskRowPropsEqual = (
+  prev: ProjectTaskRowProps,
+  next: ProjectTaskRowProps,
+) => {
+  if (prev.task !== next.task) return false;
+  if (prev.taskIsEditable !== next.taskIsEditable) return false;
+  if (prev.hasOpenDropdown !== next.hasOpenDropdown) return false;
+  if (prev.showProjectColumn !== next.showProjectColumn) return false;
+  if (prev.projectOptions !== next.projectOptions) return false;
+  if (prev.projectById !== next.projectById) return false;
+  if (prev.assignableMembers !== next.assignableMembers) return false;
+  if (prev.editTaskDisabledMessage !== next.editTaskDisabledMessage) return false;
+  if (prev.taskRowStyle !== next.taskRowStyle) return false;
+  if (prev.disableLayoutAnimation !== next.disableLayoutAnimation) return false;
+
+  const taskId = prev.task.id;
+  const prevCalendarOpen = prev.openCalendarTaskId === taskId;
+  const nextCalendarOpen = next.openCalendarTaskId === taskId;
+  if (prevCalendarOpen !== nextCalendarOpen) return false;
+
+  const prevAssigneeOpen = prev.openAssigneeTaskId === taskId;
+  const nextAssigneeOpen = next.openAssigneeTaskId === taskId;
+  if (prevAssigneeOpen !== nextAssigneeOpen) return false;
+
+  const prevProjectOpen = prev.openProjectTaskId === taskId;
+  const nextProjectOpen = next.openProjectTaskId === taskId;
+  if (prevProjectOpen !== nextProjectOpen) return false;
+
+  return true;
+};
+
+function ProjectTaskRowComponent({
   task,
   taskIsEditable,
   hasOpenDropdown,
@@ -409,3 +440,10 @@ export function ProjectTaskRow({
     </motion.div>
   );
 }
+
+export const ProjectTaskRow = React.memo(
+  ProjectTaskRowComponent,
+  areProjectTaskRowPropsEqual,
+);
+
+ProjectTaskRow.displayName = "ProjectTaskRow";

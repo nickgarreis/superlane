@@ -68,6 +68,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
+    .index("by_userId_status", ["userId", "status"])
     .index("by_status", ["status"])
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_status_joinedAt", ["workspaceId", "status", "joinedAt"])
@@ -249,6 +250,16 @@ export default defineSchema({
     .index("by_workspace_deletedAt_displayDateEpochMs", ["workspaceId", "deletedAt", "displayDateEpochMs"])
     .index("by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs", ["workspaceId", "projectDeletedAt", "deletedAt", "displayDateEpochMs"])
     .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
+    .index(
+      "by_workspace_projectPublicId_active_displayDateEpochMs",
+      [
+        "workspaceId",
+        "projectPublicId",
+        "projectDeletedAt",
+        "deletedAt",
+        "displayDateEpochMs",
+      ],
+    )
     .index("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", [
       "workspaceId",
       "projectPublicId",
@@ -289,6 +300,10 @@ export default defineSchema({
     authorSnapshotName: v.optional(v.string()),
     authorSnapshotAvatarUrl: v.optional(v.string()),
     replyCount: v.optional(v.number()),
+    reactionSummary: v.optional(v.array(v.object({
+      emoji: v.string(),
+      userIds: v.array(v.id("users")),
+    }))),
     resolvedByUserId: v.optional(v.id("users")),
     content: v.string(),
     resolved: v.boolean(),

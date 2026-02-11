@@ -321,6 +321,10 @@ describe("useDashboardData", () => {
 
     renderHook(() => useDashboardData(args));
 
+    expect(paginatedCallArgs[0]).toEqual({
+      workspaceSlug: "alpha",
+      includeArchived: false,
+    });
     expect(paginatedCallArgs[2]).toBe("skip");
     expect(paginatedCallArgs[3]).toBe("skip");
     expect(paginatedCallArgs[4]).toBe("skip");

@@ -369,6 +369,165 @@ describe("P0.2 file storage pipeline", () => {
     ).rejects.toThrow("File not found");
   });
 
+  test("project-scoped pagination keeps cursor stability with mixed visibility rows", async () => {
+    const workspace = await seedWorkspace();
+    const project = await seedProject(workspace);
+    const secondProject = await t.run(async (ctx) => {
+      const createdAt = now();
+      const projectPublicId = "project-storage-secondary";
+      const projectId = await ctx.db.insert("projects", {
+        publicId: projectPublicId,
+        workspaceId: workspace.workspaceId,
+        creatorUserId: workspace.ownerUserId,
+        name: "Storage Project Secondary",
+        description: "Storage testing project secondary",
+        category: "General",
+        status: "Active",
+        previousStatus: null,
+        archived: false,
+        archivedAt: null,
+        completedAt: null,
+        deletedAt: null,
+        attachments: [],
+        createdAt,
+        updatedAt: createdAt,
+      });
+      return { projectId, projectPublicId };
+    });
+
+    const fileA = await storeBlob("page-file-a", "text/plain");
+    const fileB = await storeBlob("page-file-b", "text/plain");
+    const fileC = await storeBlob("page-file-c", "text/plain");
+    const fileD = await storeBlob("page-file-d", "text/plain");
+    const fileOther = await storeBlob("page-file-other", "text/plain");
+    const createdAt = now();
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("projectFiles", {
+        workspaceId: workspace.workspaceId,
+        projectId: project.projectId,
+        projectPublicId: project.projectPublicId,
+        projectDeletedAt: null,
+        tab: "Assets",
+        name: "visible-newest.txt",
+        type: "TXT",
+        storageId: fileA.storageId,
+        mimeType: fileA.mimeType,
+        sizeBytes: fileA.sizeBytes,
+        checksumSha256: fileA.checksumSha256,
+        displayDateEpochMs: createdAt + 30,
+        deletedAt: null,
+        purgeAfterAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("projectFiles", {
+        workspaceId: workspace.workspaceId,
+        projectId: project.projectId,
+        projectPublicId: project.projectPublicId,
+        projectDeletedAt: null,
+        tab: "Assets",
+        name: "visible-older.txt",
+        type: "TXT",
+        storageId: fileD.storageId,
+        mimeType: fileD.mimeType,
+        sizeBytes: fileD.sizeBytes,
+        checksumSha256: fileD.checksumSha256,
+        displayDateEpochMs: createdAt + 2,
+        deletedAt: null,
+        purgeAfterAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("projectFiles", {
+        workspaceId: workspace.workspaceId,
+        projectId: project.projectId,
+        projectPublicId: project.projectPublicId,
+        projectDeletedAt: null,
+        tab: "Assets",
+        name: "deleted-row.txt",
+        type: "TXT",
+        storageId: fileB.storageId,
+        mimeType: fileB.mimeType,
+        sizeBytes: fileB.sizeBytes,
+        checksumSha256: fileB.checksumSha256,
+        displayDateEpochMs: createdAt + 20,
+        deletedAt: createdAt + 20,
+        purgeAfterAt: createdAt + 25,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("projectFiles", {
+        workspaceId: workspace.workspaceId,
+        projectId: project.projectId,
+        projectPublicId: project.projectPublicId,
+        projectDeletedAt: createdAt + 5,
+        tab: "Assets",
+        name: "project-deleted-row.txt",
+        type: "TXT",
+        storageId: fileC.storageId,
+        mimeType: fileC.mimeType,
+        sizeBytes: fileC.sizeBytes,
+        checksumSha256: fileC.checksumSha256,
+        displayDateEpochMs: createdAt + 10,
+        deletedAt: null,
+        purgeAfterAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("projectFiles", {
+        workspaceId: workspace.workspaceId,
+        projectId: secondProject.projectId,
+        projectPublicId: secondProject.projectPublicId,
+        projectDeletedAt: null,
+        tab: "Assets",
+        name: "other-project-row.txt",
+        type: "TXT",
+        storageId: fileOther.storageId,
+        mimeType: fileOther.mimeType,
+        sizeBytes: fileOther.sizeBytes,
+        checksumSha256: fileOther.checksumSha256,
+        displayDateEpochMs: createdAt + 15,
+        deletedAt: null,
+        purgeAfterAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+    });
+
+    const firstPage = await asMember().query(api.files.listForProjectPaginated, {
+      projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 1 },
+    });
+    expect(firstPage.page).toHaveLength(1);
+    expect(firstPage.page[0].name).toBe("visible-newest.txt");
+    expect(firstPage.isDone).toBe(false);
+
+    const secondPage = await asMember().query(api.files.listForProjectPaginated, {
+      projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: firstPage.continueCursor, numItems: 1 },
+    });
+    expect(secondPage.page).toHaveLength(1);
+    expect(secondPage.page[0].name).toBe("visible-older.txt");
+
+    const thirdPage = await asMember().query(api.files.listForProjectPaginated, {
+      projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: secondPage.continueCursor, numItems: 1 },
+    });
+    expect(thirdPage.page).toHaveLength(0);
+    expect(thirdPage.isDone).toBe(true);
+
+    const workspaceList = await asMember().query(api.files.listForWorkspace, {
+      workspaceSlug: workspace.workspaceSlug,
+      projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(workspaceList.page.map((file: any) => file.name)).toEqual([
+      "visible-newest.txt",
+      "visible-older.txt",
+    ]);
+  });
+
   test("archived/completed projects block file mutations but keep download access", async () => {
     const workspace = await seedWorkspace();
     const project = await seedProject(workspace);

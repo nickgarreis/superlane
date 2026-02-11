@@ -192,12 +192,91 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
     expect(reaction).toBeDefined();
     expect(reaction?.userIds ?? []).toEqual([String(seeded.memberTwoUserId)]);
 
+    await t.run(async (ctx) => {
+      const updatedComment = await ctx.db.get(seeded.commentId);
+      expect(updatedComment?.reactionSummary).toEqual([
+        { emoji: "🔥", userIds: [seeded.memberTwoUserId] },
+      ]);
+    });
+
     await expect(
       asOutsider().mutation(api.comments.toggleReaction, {
         commentId: seeded.commentId,
         emoji: "🔥",
       }),
     ).rejects.toThrow("Forbidden");
+  });
+
+  test("listThreadsPaginated resolves reactions from summary snapshots and legacy fallback rows", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    const summaryCommentId = await t.run(async (ctx) => {
+      const project = await ((ctx.db
+        .query("projects") as any)
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", seeded.projectPublicId))
+        .unique());
+      if (!project) {
+        throw new Error("Project not found for summary/fallback test");
+      }
+      const createdAt = Date.now() + 100;
+      const inserted = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Summary-backed comment",
+        resolved: false,
+        edited: false,
+        reactionSummary: [{ emoji: "✅", userIds: [seeded.memberTwoUserId] }],
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      await ctx.db.insert("commentReactions", {
+        commentId: seeded.commentId,
+        projectPublicId: seeded.projectPublicId,
+        workspaceId: seeded.workspaceId,
+        emoji: "👀",
+        userId: seeded.ownerUserId,
+        createdAt: createdAt + 1,
+      });
+      return inserted;
+    });
+
+    const threads = await asMember().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 20 },
+    });
+    const summaryComment = threads.page.find(
+      (comment: any) => comment.id === String(summaryCommentId),
+    );
+    expect(summaryComment).toBeDefined();
+    if (!summaryComment) {
+      throw new Error("Expected summary-backed comment");
+    }
+    expect(summaryComment.reactions).toEqual([
+      {
+        emoji: "✅",
+        users: ["Member Two User"],
+        userIds: [String(seeded.memberTwoUserId)],
+      },
+    ]);
+
+    const legacyFallbackComment = threads.page.find(
+      (comment: any) => comment.id === String(seeded.commentId),
+    );
+    expect(legacyFallbackComment).toBeDefined();
+    if (!legacyFallbackComment) {
+      throw new Error("Expected legacy fallback comment");
+    }
+    expect(legacyFallbackComment.reactions).toEqual([
+      {
+        emoji: "👀",
+        users: ["Owner User"],
+        userIds: [String(seeded.ownerUserId)],
+      },
+    ]);
   });
 
   test("listThreadsPaginated and listReplies return ordered thread/reply payloads", async () => {
@@ -408,6 +487,37 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
     await t.run(async (ctx) => {
       const parent = await ctx.db.get(seeded.commentId);
       expect(parent?.replyCount).toBe(2);
+    });
+  });
+
+  test("backfillProjectCommentReactionSummary populates missing reactionSummary fields", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("commentReactions", {
+        commentId: seeded.commentId,
+        projectPublicId: seeded.projectPublicId,
+        workspaceId: seeded.workspaceId,
+        emoji: "🎯",
+        userId: seeded.ownerUserId,
+        createdAt: Date.now() + 10,
+      });
+    });
+
+    const backfillResult = await asOwner().mutation(
+      api.performanceBackfills.backfillProjectCommentReactionSummary,
+      {
+        workspaceSlug: seeded.workspaceSlug,
+        limit: 100,
+      },
+    );
+    expect(backfillResult.patchedComments).toBeGreaterThan(0);
+
+    await t.run(async (ctx) => {
+      const comment = await ctx.db.get(seeded.commentId);
+      expect(comment?.reactionSummary).toEqual([
+        { emoji: "🎯", userIds: [seeded.ownerUserId] },
+      ]);
     });
   });
 

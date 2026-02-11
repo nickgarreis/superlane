@@ -1,6 +1,4 @@
 import React from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { DashboardChrome } from "./components/DashboardChrome";
 import { DashboardContent } from "./components/DashboardContent";
 import { DashboardPopups } from "./components/DashboardPopups";
@@ -16,12 +14,10 @@ export default function DashboardShell() {
     );
   }
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="flex h-screen w-full bg-bg-base overflow-hidden font-app antialiased txt-tone-primary">
-        <DashboardPopups {...popupsProps} />
-        <DashboardChrome {...chromeProps} />
-        <DashboardContent {...contentProps} />
-      </div>
-    </DndProvider>
+    <div className="flex h-screen w-full bg-bg-base overflow-hidden font-app antialiased txt-tone-primary">
+      <DashboardPopups {...popupsProps} />
+      <DashboardChrome {...chromeProps} />
+      <DashboardContent {...contentProps} />
+    </div>
   );
 }

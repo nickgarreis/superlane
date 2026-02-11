@@ -1,9 +1,12 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster } from "sonner";
-import { Sidebar } from "../../components/Sidebar";
 import type { AppView } from "../../lib/routing";
 import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
+
+const LazyDashboardSidebarDndBoundary = React.lazy(
+  () => import("./DashboardSidebarDndBoundary"),
+);
 type DashboardChromeProps = {
   isSidebarOpen: boolean;
   navigateView: (view: AppView) => void;
@@ -79,27 +82,29 @@ export const DashboardChrome = React.memo(function DashboardChrome({
             className="h-full shrink-0 overflow-hidden"
           >
             <div className="w-[260px] h-full">
-              <Sidebar
-                onNavigate={navigateView}
-                onSearch={openSearch}
-                onSearchIntent={handleSearchIntent}
-                currentView={currentView}
-                onOpenCreateProject={openCreateProject}
-                onOpenCreateProjectIntent={handleCreateProjectIntent}
-                projects={visibleProjects}
-                viewerIdentity={viewerIdentity}
-                activeWorkspace={activeWorkspace}
-                workspaces={workspaces}
-                onSwitchWorkspace={onSwitchWorkspace}
-                onCreateWorkspace={onCreateWorkspace}
-                canCreateWorkspace={canCreateWorkspace}
-                onOpenSettings={onOpenSettings}
-                onOpenSettingsIntent={handleSettingsIntent}
-                onEditProject={onEditProject}
-                onViewReviewProject={onViewReviewProject}
-                onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
-                onLogout={handleSignOut}
-              />
+              <Suspense fallback={<div className="h-full w-full" />}>
+                <LazyDashboardSidebarDndBoundary
+                  onNavigate={navigateView}
+                  onSearch={openSearch}
+                  onSearchIntent={handleSearchIntent}
+                  currentView={currentView}
+                  onOpenCreateProject={openCreateProject}
+                  onOpenCreateProjectIntent={handleCreateProjectIntent}
+                  projects={visibleProjects}
+                  viewerIdentity={viewerIdentity}
+                  activeWorkspace={activeWorkspace}
+                  workspaces={workspaces}
+                  onSwitchWorkspace={onSwitchWorkspace}
+                  onCreateWorkspace={onCreateWorkspace}
+                  canCreateWorkspace={canCreateWorkspace}
+                  onOpenSettings={onOpenSettings}
+                  onOpenSettingsIntent={handleSettingsIntent}
+                  onEditProject={onEditProject}
+                  onViewReviewProject={onViewReviewProject}
+                  onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+                  onLogout={handleSignOut}
+                />
+              </Suspense>
             </div>
           </motion.div>
         )}

@@ -263,65 +263,6 @@ const getWorkspaceBySlug = async (
   return workspace;
 };
 
-const paginateProjectFilesWithFilter = async (
-  args: {
-    paginationOpts: { numItems: number; cursor: string | null };
-    makeQuery: () => any;
-    includeFile: (file: any) => boolean;
-  },
-) => {
-  const requestedCount = Math.max(0, Math.floor(args.paginationOpts.numItems));
-  let cursor = args.paginationOpts.cursor;
-  const collected: any[] = [];
-  let lastPage: any = null;
-  let iterationCount = 0;
-  let lastCursor: string | null = null;
-
-  while (collected.length < requestedCount) {
-    if (iterationCount > 1000) {
-      break;
-    }
-    if (iterationCount > 0 && cursor === lastCursor) {
-      break;
-    }
-
-    const remaining = requestedCount - collected.length;
-    const page = await args.makeQuery().paginate({
-      ...args.paginationOpts,
-      cursor,
-      numItems: remaining,
-    });
-
-    lastPage = page;
-    for (const file of page.page) {
-      if (args.includeFile(file)) {
-        collected.push(file);
-      }
-    }
-
-    if (page.isDone) {
-      break;
-    }
-
-    lastCursor = cursor;
-    cursor = page.continueCursor;
-    iterationCount += 1;
-  }
-
-  if (!lastPage) {
-    lastPage = await args.makeQuery().paginate({
-      ...args.paginationOpts,
-      cursor: args.paginationOpts.cursor,
-      numItems: requestedCount,
-    });
-  }
-
-  return {
-    ...lastPage,
-    page: collected,
-  };
-};
-
 export const listForWorkspace = query({
   args: {
     workspaceSlug: v.string(),
@@ -336,30 +277,31 @@ export const listForWorkspace = query({
       ? args.projectPublicId.trim()
       : "";
     const paginated = normalizedProjectPublicId.length > 0
-      ? await paginateProjectFilesWithFilter({
-          paginationOpts: args.paginationOpts,
-          makeQuery: () =>
-            ctx.db
-              .query("projectFiles")
-              .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q) =>
-                q.eq("workspaceId", workspace._id)
-                  .eq("projectPublicId", normalizedProjectPublicId)
-                  .eq("deletedAt", null))
-              .order("desc"),
-          includeFile: (file: any) =>
-            file.projectDeletedAt == null && file.storageId != null,
-        })
-      : await paginateProjectFilesWithFilter({
-          paginationOpts: args.paginationOpts,
-          makeQuery: () =>
-            ctx.db
-              .query("projectFiles")
-              .withIndex("by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs", (q) =>
-                q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null).eq("deletedAt", null))
-              .order("desc"),
-          includeFile: (file: any) =>
-            file.storageId != null,
-        });
+      ? await ctx.db
+          .query("projectFiles")
+          .withIndex(
+            "by_workspace_projectPublicId_active_displayDateEpochMs",
+            (q) =>
+              q
+                .eq("workspaceId", workspace._id)
+                .eq("projectPublicId", normalizedProjectPublicId)
+                .eq("projectDeletedAt", null)
+                .eq("deletedAt", null),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query("projectFiles")
+          .withIndex(
+            "by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs",
+            (q) =>
+              q
+                .eq("workspaceId", workspace._id)
+                .eq("projectDeletedAt", null)
+                .eq("deletedAt", null),
+          )
+          .order("desc")
+          .paginate(args.paginationOpts);
 
     return {
       ...paginated,
@@ -375,19 +317,19 @@ export const listForProjectPaginated = query({
   },
   handler: async (ctx, args) => {
     const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
-    const paginated = await paginateProjectFilesWithFilter({
-      paginationOpts: args.paginationOpts,
-      makeQuery: () =>
-        ctx.db
-          .query("projectFiles")
-          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q) =>
-            q.eq("workspaceId", project.workspaceId)
-              .eq("projectPublicId", project.publicId)
-              .eq("deletedAt", null))
-          .order("desc"),
-      includeFile: (file: any) =>
-        file.projectDeletedAt == null && file.deletedAt == null && file.storageId != null,
-    });
+    const paginated = await ctx.db
+      .query("projectFiles")
+      .withIndex(
+        "by_workspace_projectPublicId_active_displayDateEpochMs",
+        (q) =>
+          q
+            .eq("workspaceId", project.workspaceId)
+            .eq("projectPublicId", project.publicId)
+            .eq("projectDeletedAt", null)
+            .eq("deletedAt", null),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
 
     return {
       ...paginated,

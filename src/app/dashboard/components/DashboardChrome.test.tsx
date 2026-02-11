@@ -10,8 +10,8 @@ vi.mock("sonner", () => ({
   Toaster: () => <div data-testid="toaster" />,
 }));
 
-vi.mock("../../components/Sidebar", () => ({
-  Sidebar: (props: {
+vi.mock("./DashboardSidebarDndBoundary", () => ({
+  default: (props: {
     onSearchIntent: () => void;
     onOpenCreateProjectIntent: () => void;
     onOpenSettingsIntent: () => void;
@@ -109,13 +109,13 @@ const baseProps = () => ({
 });
 
 describe("DashboardChrome", () => {
-  test("renders sidebar and wires sidebar callbacks", () => {
+  test("renders sidebar and wires sidebar callbacks", async () => {
     const props = baseProps();
 
     render(<DashboardChrome {...props} />);
 
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
-    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+    expect(await screen.findByTestId("sidebar")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "search-intent" }));
     fireEvent.click(

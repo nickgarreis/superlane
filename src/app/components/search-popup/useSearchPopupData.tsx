@@ -6,6 +6,11 @@ import type { QuickAction, SearchResult } from "./types";
 import type { AppView } from "../../lib/routing";
 import type { ProjectData, ProjectFileData, Task } from "../../types";
 import { buildSearchIndex, groupSearchResults } from "./searchIndex";
+
+const MAX_PROJECT_RESULTS = 30;
+const MAX_TASK_RESULTS = 40;
+const MAX_FILE_RESULTS = 40;
+const MAX_ACTION_RESULTS = 8;
 type UseSearchPopupDataArgs = {
   projects: Record<string, ProjectData>;
   workspaceTasks?: Task[];
@@ -83,7 +88,10 @@ export const useSearchPopupData = ({
     }
     return flattened;
   }, [projectsList, workspaceTasks]);
-  const normalizedDeferredQuery = deferredQuery.toLowerCase().trim();
+  const normalizedDeferredQuery = useMemo(
+    () => deferredQuery.toLowerCase().trim(),
+    [deferredQuery],
+  );
   const trimmedQuery = query.trim();
   const firstActiveProjectId = useMemo(() => {
     const active = projectsList.find(
@@ -100,41 +108,103 @@ export const useSearchPopupData = ({
       }),
     [effectiveWorkspaceTasks, files, projectsList],
   );
-  const results = useMemo(() => {
-    const items: SearchResult[] = [];
-    if (!normalizedDeferredQuery) return items;
+  const matchedEntries = useMemo(() => {
+    if (!normalizedDeferredQuery) {
+      return {
+        projectEntries: [] as typeof searchIndex.projectIndex,
+        taskEntries: [] as typeof searchIndex.taskIndex,
+        fileEntries: [] as typeof searchIndex.fileIndex,
+        actionEntries: [] as QuickAction[],
+      };
+    }
+
+    const projectEntries: typeof searchIndex.projectIndex = [];
     for (const projectEntry of searchIndex.projectIndex) {
-      const { project, searchable } = projectEntry;
-      if (searchable.includes(normalizedDeferredQuery)) {
-        items.push({
-          id: `project-${project.id}`,
-          type: "project",
-          title: project.name,
-          subtitle: project.archived
-            ? "Archived"
-            : project.status.label === "Completed"
-              ? "Completed"
-              : `${project.category} · ${project.status.label}`,
-          icon: <ProjectLogo size={18} category={project.category} />,
-          category: project.category,
-          status: project.status,
-          projectId: project.id,
-          action: () => {
-            if (project.archived) {
-              onClose();
-              onNavigate(`archive-project:${project.id}`);
-            } else {
-              onClose();
-              onNavigate(`project:${project.id}`);
-            }
-          },
-        });
+      if (!projectEntry.searchable.includes(normalizedDeferredQuery)) {
+        continue;
+      }
+      projectEntries.push(projectEntry);
+      if (projectEntries.length >= MAX_PROJECT_RESULTS) {
+        break;
       }
     }
+
+    const taskEntries: typeof searchIndex.taskIndex = [];
     for (const taskEntry of searchIndex.taskIndex) {
       if (!taskEntry.searchable.includes(normalizedDeferredQuery)) {
         continue;
       }
+      taskEntries.push(taskEntry);
+      if (taskEntries.length >= MAX_TASK_RESULTS) {
+        break;
+      }
+    }
+
+    const fileEntries: typeof searchIndex.fileIndex = [];
+    for (const fileEntry of searchIndex.fileIndex) {
+      if (!fileEntry.searchable.includes(normalizedDeferredQuery)) {
+        continue;
+      }
+      fileEntries.push(fileEntry);
+      if (fileEntries.length >= MAX_FILE_RESULTS) {
+        break;
+      }
+    }
+
+    const actionEntries: QuickAction[] = [];
+    for (const action of quickActions) {
+      if (
+        action.label.toLowerCase().includes(normalizedDeferredQuery) ||
+        action.keyword.toLowerCase().includes(normalizedDeferredQuery)
+      ) {
+        actionEntries.push(action);
+        if (actionEntries.length >= MAX_ACTION_RESULTS) {
+          break;
+        }
+      }
+    }
+
+    return {
+      projectEntries,
+      taskEntries,
+      fileEntries,
+      actionEntries,
+    };
+  }, [normalizedDeferredQuery, quickActions, searchIndex]);
+
+  const results = useMemo(() => {
+    if (!normalizedDeferredQuery) {
+      return [] as SearchResult[];
+    }
+
+    const items: SearchResult[] = [];
+    for (const { project } of matchedEntries.projectEntries) {
+      items.push({
+        id: `project-${project.id}`,
+        type: "project",
+        title: project.name,
+        subtitle: project.archived
+          ? "Archived"
+          : project.status.label === "Completed"
+            ? "Completed"
+            : `${project.category} · ${project.status.label}`,
+        icon: <ProjectLogo size={18} category={project.category} />,
+        category: project.category,
+        status: project.status,
+        projectId: project.id,
+        action: () => {
+          if (project.archived) {
+            onClose();
+            onNavigate(`archive-project:${project.id}`);
+          } else {
+            onClose();
+            onNavigate(`project:${project.id}`);
+          }
+        },
+      });
+    }
+
+    for (const taskEntry of matchedEntries.taskEntries) {
       items.push({
         id: `task-${taskEntry.projectId}-${taskEntry.taskId}`,
         type: "task",
@@ -155,10 +225,8 @@ export const useSearchPopupData = ({
         },
       });
     }
-    for (const fileEntry of searchIndex.fileIndex) {
-      if (!fileEntry.searchable.includes(normalizedDeferredQuery)) {
-        continue;
-      }
+
+    for (const fileEntry of matchedEntries.fileEntries) {
       const targetProject = fileEntry.projectId || firstActiveProjectId;
       if (!targetProject) {
         continue;
@@ -192,36 +260,32 @@ export const useSearchPopupData = ({
         },
       });
     }
-    quickActions.forEach((act) => {
-      const action = actionHandlers[act.id];
+
+    for (const actionEntry of matchedEntries.actionEntries) {
+      const action = actionHandlers[actionEntry.id];
       if (typeof action !== "function") {
-        return;
+        continue;
       }
-      if (
-        act.label.toLowerCase().includes(normalizedDeferredQuery) ||
-        act.keyword.toLowerCase().includes(normalizedDeferredQuery)
-      ) {
-        items.push({
-          id: act.id,
-          type: "action",
-          title: act.label,
-          subtitle: "Quick Action",
-          icon: act.icon,
-          action,
-        });
-      }
-    });
+      items.push({
+        id: actionEntry.id,
+        type: "action",
+        title: actionEntry.label,
+        subtitle: "Quick Action",
+        icon: actionEntry.icon,
+        action,
+      });
+    }
+
     return items;
   }, [
     actionHandlers,
     firstActiveProjectId,
+    matchedEntries,
     normalizedDeferredQuery,
     onClose,
     onHighlightNavigate,
     onNavigate,
     projects,
-    quickActions,
-    searchIndex,
   ]);
   const grouped = useMemo(() => groupSearchResults(results), [results]);
   const flatResults = useMemo(() => {

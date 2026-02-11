@@ -110,11 +110,12 @@ export const getAccessibleWorkspaceContext = async (
     throw error;
   }
 
-  const memberships = await ctx.db
+  const activeMemberships = await ctx.db
     .query("workspaceMembers")
-    .withIndex("by_userId", (q) => q.eq("userId", appUser._id))
+    .withIndex("by_userId_status", (q) =>
+      q.eq("userId", appUser._id).eq("status", "active"),
+    )
     .collect();
-  const activeMemberships = memberships.filter((membership) => membership.status === "active");
 
   const workspaceCandidates = (
     await Promise.all(activeMemberships.map((membership) => ctx.db.get(membership.workspaceId)))
