@@ -46,6 +46,8 @@ type DashboardContentProps = {
   isSidebarOpen: boolean;
   visibleProjects: Record<string, ProjectData>;
   workspaceTasks: Task[];
+  tasksPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMoreWorkspaceTasks: (numItems: number) => void;
   handleReplaceWorkspaceTasks: (tasks: Task[]) => void;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
@@ -55,6 +57,8 @@ type DashboardContentProps = {
   highlightedArchiveProjectId: string | null;
   setHighlightedArchiveProjectId: (id: string | null) => void;
   projectFilesByProject: Record<string, ProjectFileData[]>;
+  projectFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMoreProjectFiles: (numItems: number) => void;
   mainContentFileActions: MainContentFileActions;
   createMainContentProjectActions: (projectId: string) => MainContentProjectActions;
   baseMainContentNavigationActions: MainContentNavigationActions;
@@ -69,6 +73,8 @@ export const DashboardContent = React.memo(function DashboardContent({
   isSidebarOpen,
   visibleProjects,
   workspaceTasks,
+  tasksPaginationStatus,
+  loadMoreWorkspaceTasks,
   handleReplaceWorkspaceTasks,
   workspaceMembers,
   viewerIdentity,
@@ -78,6 +84,8 @@ export const DashboardContent = React.memo(function DashboardContent({
   highlightedArchiveProjectId,
   setHighlightedArchiveProjectId,
   projectFilesByProject,
+  projectFilesPaginationStatus,
+  loadMoreProjectFiles,
   mainContentFileActions,
   createMainContentProjectActions,
   baseMainContentNavigationActions,
@@ -93,6 +101,8 @@ export const DashboardContent = React.memo(function DashboardContent({
           isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
           workspaceTasks={workspaceTasks}
+          tasksPaginationStatus={tasksPaginationStatus}
+          loadMoreWorkspaceTasks={loadMoreWorkspaceTasks}
           onUpdateWorkspaceTasks={handleReplaceWorkspaceTasks}
           workspaceMembers={workspaceMembers}
           viewerIdentity={viewerIdentity}
@@ -136,6 +146,8 @@ export const DashboardContent = React.memo(function DashboardContent({
           isSidebarOpen={isSidebarOpen}
           project={project}
           projectFiles={projectFilesByProject[project.id] ?? []}
+          projectFilesPaginationStatus={projectFilesPaginationStatus}
+          loadMoreProjectFiles={loadMoreProjectFiles}
           workspaceMembers={workspaceMembers}
           viewerIdentity={viewerIdentity}
           fileActions={mainContentFileActions}

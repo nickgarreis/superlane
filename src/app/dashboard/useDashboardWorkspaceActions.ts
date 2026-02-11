@@ -14,7 +14,6 @@ type CreateWorkspacePayload = {
   name: string;
   logoFile?: File | null;
 };
-
 type UseDashboardWorkspaceActionsArgs = {
   canCreateWorkspace: boolean;
   resolvedWorkspaceSlug: string | null;
@@ -42,6 +41,7 @@ type UseDashboardWorkspaceActionsArgs = {
   finalizeBrandAssetUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeBrandAssetUpload>;
   removeBrandAssetMutation: DashboardMutationHandler<typeof api.settings.removeBrandAsset>;
   softDeleteWorkspaceMutation: DashboardMutationHandler<typeof api.settings.softDeleteWorkspace>;
+  getBrandAssetDownloadUrlQuery: (workspaceSlug: string, brandAssetId: string) => Promise<string | null>;
   computeFileChecksumSha256: (file: File) => Promise<string>;
   uploadFileToConvexStorage: (uploadUrl: string, file: File) => Promise<string>;
   asStorageId: (value: string) => Id<"_storage">;
@@ -49,7 +49,6 @@ type UseDashboardWorkspaceActionsArgs = {
   asBrandAssetId: (value: string) => Id<"workspaceBrandAssets">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
 };
-
 export const useDashboardWorkspaceActions = ({
   canCreateWorkspace,
   resolvedWorkspaceSlug,
@@ -77,6 +76,7 @@ export const useDashboardWorkspaceActions = ({
   finalizeBrandAssetUploadMutation,
   removeBrandAssetMutation,
   softDeleteWorkspaceMutation,
+  getBrandAssetDownloadUrlQuery,
   computeFileChecksumSha256,
   uploadFileToConvexStorage,
   asStorageId,
@@ -90,12 +90,10 @@ export const useDashboardWorkspaceActions = ({
         reconcileWorkspaceInvitationsAction({ workspaceSlug }),
         reconcileWorkspaceOrganizationMembershipsAction({ workspaceSlug }),
       ]);
-
       const actionLabels = [
         "reconcileWorkspaceInvitationsAction",
         "reconcileWorkspaceOrganizationMembershipsAction",
       ] as const;
-
       settlements.forEach((settlement, index) => {
         if (settlement.status === "rejected") {
           reportUiError("workspace.settings.reconciliation", settlement.reason, {
@@ -122,7 +120,6 @@ export const useDashboardWorkspaceActions = ({
         computeFileChecksumSha256,
       );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
       await finalizeAvatarUploadMutation({
         storageId: asStorageId(storageId),
         mimeType: file.type || "application/octet-stream",
@@ -162,7 +159,6 @@ export const useDashboardWorkspaceActions = ({
         computeFileChecksumSha256,
       );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
       await finalizeWorkspaceLogoUploadMutation({
         workspaceSlug,
         storageId: asStorageId(storageId),
@@ -184,12 +180,10 @@ export const useDashboardWorkspaceActions = ({
       if (!canCreateWorkspace) {
         throw new Error("Only workspace owners can create workspaces");
       }
-
       try {
         const createdWorkspace = await createWorkspaceMutation({
           name: payload.name,
         });
-
         if (payload.logoFile) {
           try {
             await uploadWorkspaceLogoForSlug(createdWorkspace.slug, payload.logoFile);
@@ -201,7 +195,6 @@ export const useDashboardWorkspaceActions = ({
             toast.error("Workspace created, but logo upload failed");
           }
         }
-
         setActiveWorkspaceSlug(createdWorkspace.slug);
         navigateView("tasks");
         closeCreateWorkspace();
@@ -226,7 +219,6 @@ export const useDashboardWorkspaceActions = ({
       if (!resolvedWorkspaceSlug) {
         throw new Error("No active workspace");
       }
-
       await updateWorkspaceGeneralMutation(
         omitUndefined({
           workspaceSlug: resolvedWorkspaceSlug,
@@ -307,11 +299,19 @@ export const useDashboardWorkspaceActions = ({
     },
     [asBrandAssetId, removeBrandAssetMutation, resolvedWorkspaceSlug],
   );
+  const handleGetWorkspaceBrandAssetDownloadUrl = useCallback(
+    async (payload: { brandAssetId: string }) => {
+      if (!resolvedWorkspaceSlug) {
+        throw new Error("No active workspace");
+      }
+      return getBrandAssetDownloadUrlQuery(resolvedWorkspaceSlug, payload.brandAssetId);
+    },
+    [getBrandAssetDownloadUrlQuery, resolvedWorkspaceSlug],
+  );
   const handleSoftDeleteWorkspace = useCallback(async () => {
     if (!resolvedWorkspaceSlug) {
       throw new Error("No active workspace");
     }
-
     setActiveWorkspaceSlug(null);
     try {
       await softDeleteWorkspaceMutation({
@@ -327,7 +327,6 @@ export const useDashboardWorkspaceActions = ({
       throw error;
     }
   }, [navigateToPath, resolvedWorkspaceSlug, setActiveWorkspaceSlug, softDeleteWorkspaceMutation]);
-
   return {
     runWorkspaceSettingsReconciliation,
     handleSaveAccountSettings,
@@ -344,6 +343,7 @@ export const useDashboardWorkspaceActions = ({
     handleRevokeWorkspaceInvitation,
     handleUploadWorkspaceBrandAsset,
     handleRemoveWorkspaceBrandAsset,
+    handleGetWorkspaceBrandAssetDownloadUrl,
     handleSoftDeleteWorkspace,
   };
 };

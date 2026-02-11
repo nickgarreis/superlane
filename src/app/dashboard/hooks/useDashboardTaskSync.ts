@@ -60,22 +60,18 @@ type UseDashboardTaskSyncArgs = {
   activeWorkspaceId: string | null | undefined;
   projects: Record<string, ProjectData>;
   workspaceTasks: Task[];
+  canReorderWorkspaceTasks: boolean;
   viewerIdentity: ViewerIdentity;
-  createTaskMutation: DashboardMutationHandler<typeof api.tasks.create>;
-  updateTaskMutation: DashboardMutationHandler<typeof api.tasks.update>;
-  removeTaskMutation: DashboardMutationHandler<typeof api.tasks.remove>;
-  reorderTasksMutation: DashboardMutationHandler<typeof api.tasks.reorder>;
+  applyTaskDiffMutation: DashboardMutationHandler<typeof api.tasks.applyDiff>;
 };
 
 export const useDashboardTaskSync = ({
   activeWorkspaceId,
   projects,
   workspaceTasks,
+  canReorderWorkspaceTasks,
   viewerIdentity,
-  createTaskMutation,
-  updateTaskMutation,
-  removeTaskMutation,
-  reorderTasksMutation,
+  applyTaskDiffMutation,
 }: UseDashboardTaskSyncArgs) => {
   const syncProjectTasks = useCallback(async (
     projectPublicId: string,
@@ -93,46 +89,44 @@ export const useDashboardTaskSync = ({
     const previousById = new Map(previous.map((task) => [task.id, task]));
     const nextById = new Map(next.map((task) => [task.id, task]));
 
-    const creates = next.filter((task) => !previousById.has(task.id));
-    const updates = next.filter((task) => {
-      const previousTask = previousById.get(task.id);
-      if (!previousTask) {
-        return false;
-      }
-      return !areComparableTasksEqual(previousTask, task);
-    });
-    const removes = previous.filter((task) => !nextById.has(task.id));
-
-    await Promise.all(creates.map((task) => createTaskMutation({
-      workspaceSlug: activeWorkspaceId,
+    const creates = next.filter((task) => !previousById.has(task.id)).map((task) => ({
       id: task.id,
       title: task.title,
       assignee: task.assignee,
       dueDateEpochMs: task.dueDateEpochMs,
       completed: task.completed,
       projectPublicId,
-    })));
-
-    await Promise.all(updates.map((task) => updateTaskMutation({
-      workspaceSlug: activeWorkspaceId,
+    }));
+    const updates = next.filter((task) => {
+      const previousTask = previousById.get(task.id);
+      if (!previousTask) {
+        return false;
+      }
+      return !areComparableTasksEqual(previousTask, task);
+    }).map((task) => ({
       taskId: task.id,
       title: task.title,
       assignee: task.assignee,
       dueDateEpochMs: task.dueDateEpochMs,
       completed: task.completed,
       projectPublicId,
-    })));
+    }));
+    const removes = previous.filter((task) => !nextById.has(task.id)).map((task) => task.id);
 
-    await Promise.all(removes.map((task) => removeTaskMutation({
+    if (creates.length === 0 && updates.length === 0 && removes.length === 0) {
+      return;
+    }
+
+    await applyTaskDiffMutation({
       workspaceSlug: activeWorkspaceId,
-      taskId: task.id,
-    })));
+      creates,
+      updates,
+      removes,
+    });
   }, [
     activeWorkspaceId,
-    createTaskMutation,
+    applyTaskDiffMutation,
     projects,
-    removeTaskMutation,
-    updateTaskMutation,
     viewerIdentity,
   ]);
 
@@ -155,40 +149,29 @@ export const useDashboardTaskSync = ({
     const previousById = new Map(previous.map((task) => [task.id, task]));
     const nextById = new Map(next.map((task) => [task.id, task]));
 
-    const creates = next.filter((task) => !previousById.has(task.id));
-    const updates = next.filter((task) => {
-      const previousTask = previousById.get(task.id);
-      if (!previousTask) {
-        return false;
-      }
-      return !areComparableTasksEqual(previousTask, task);
-    });
-    const removes = previous.filter((task) => !nextById.has(task.id));
-
-    await Promise.all(creates.map((task) => createTaskMutation({
-      workspaceSlug: activeWorkspaceId,
+    const creates = next.filter((task) => !previousById.has(task.id)).map((task) => ({
       id: task.id,
       title: task.title,
       assignee: task.assignee,
       dueDateEpochMs: task.dueDateEpochMs,
       completed: task.completed,
       projectPublicId: task.projectPublicId,
-    })));
-
-    await Promise.all(updates.map((task) => updateTaskMutation({
-      workspaceSlug: activeWorkspaceId,
+    }));
+    const updates = next.filter((task) => {
+      const previousTask = previousById.get(task.id);
+      if (!previousTask) {
+        return false;
+      }
+      return !areComparableTasksEqual(previousTask, task);
+    }).map((task) => ({
       taskId: task.id,
       title: task.title,
       assignee: task.assignee,
       dueDateEpochMs: task.dueDateEpochMs,
       completed: task.completed,
       projectPublicId: task.projectPublicId,
-    })));
-
-    await Promise.all(removes.map((task) => removeTaskMutation({
-      workspaceSlug: activeWorkspaceId,
-      taskId: task.id,
-    })));
+    }));
+    const removes = previous.filter((task) => !nextById.has(task.id)).map((task) => task.id);
 
     const currentOrder = previous.map((task) => task.id);
     const nextOrder = next.map((task) => task.id);
@@ -196,18 +179,23 @@ export const useDashboardTaskSync = ({
       currentOrder.length !== nextOrder.length
       || currentOrder.some((taskId, index) => taskId !== nextOrder[index]);
 
-    if (orderChanged && nextOrder.length > 0) {
-      await reorderTasksMutation({
-        workspaceSlug: activeWorkspaceId,
-        orderedTaskIds: nextOrder,
-      });
+    if (creates.length === 0 && updates.length === 0 && removes.length === 0 && !orderChanged) {
+      return;
     }
+
+    await applyTaskDiffMutation({
+      workspaceSlug: activeWorkspaceId,
+      creates,
+      updates,
+      removes,
+      orderedTaskIds: canReorderWorkspaceTasks && orderChanged && nextOrder.length > 0
+        ? nextOrder
+        : undefined,
+    });
   }, [
     activeWorkspaceId,
-    createTaskMutation,
-    removeTaskMutation,
-    reorderTasksMutation,
-    updateTaskMutation,
+    applyTaskDiffMutation,
+    canReorderWorkspaceTasks,
     viewerIdentity,
     workspaceTasks,
   ]);

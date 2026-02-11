@@ -25,6 +25,7 @@ import type * as lib_logging from "../lib/logging.js";
 import type * as lib_notificationPreferences from "../lib/notificationPreferences.js";
 import type * as lib_projectAttachments from "../lib/projectAttachments.js";
 import type * as lib_rbac from "../lib/rbac.js";
+import type * as lib_taskDiffMutation from "../lib/taskDiffMutation.js";
 import type * as lib_taskMutations from "../lib/taskMutations.js";
 import type * as lib_taskPagination from "../lib/taskPagination.js";
 import type * as lib_validators from "../lib/validators.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/notificationPreferences": typeof lib_notificationPreferences;
   "lib/projectAttachments": typeof lib_projectAttachments;
   "lib/rbac": typeof lib_rbac;
+  "lib/taskDiffMutation": typeof lib_taskDiffMutation;
   "lib/taskMutations": typeof lib_taskMutations;
   "lib/taskPagination": typeof lib_taskPagination;
   "lib/validators": typeof lib_validators;

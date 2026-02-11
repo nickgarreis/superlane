@@ -239,20 +239,85 @@ describe("P1.1 settings backendization", () => {
       storageId: stored.storageId,
     });
 
-    const company = await asMember().query(api.settings.getCompanySettings, {
+    const listed = await asMember().query(api.settings.listBrandAssets, {
       workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 10 },
     });
-    expect(company.brandAssets).toHaveLength(1);
+    expect(listed.page).toHaveLength(1);
+    expect(listed.page[0]?.downloadUrl).toBeNull();
+    expect(listed.page[0]?.id).toBe(String(uploaded.id));
+
+    const resolvedDownloadUrl = await asMember().query(api.settings.getBrandAssetDownloadUrl, {
+      workspaceSlug: workspace.workspaceSlug,
+      brandAssetId: uploaded.id as Id<"workspaceBrandAssets">,
+    });
+    expect(resolvedDownloadUrl.downloadUrl).toContain("http");
 
     await asAdmin().mutation(api.settings.removeBrandAsset, {
       workspaceSlug: workspace.workspaceSlug,
       brandAssetId: uploaded.id as Id<"workspaceBrandAssets">,
     });
 
-    const afterRemove = await asMember().query(api.settings.getCompanySettings, {
+    const afterRemove = await asMember().query(api.settings.listBrandAssets, {
+      workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(afterRemove.page).toHaveLength(0);
+  });
+
+  test("split company settings queries return paginated members and invitations", async () => {
+    const workspace = await seedWorkspace();
+    const createdAt = now();
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("workspaceInvitations", {
+        workspaceId: workspace.workspaceId,
+        workosOrganizationId: "org_settings",
+        invitationId: "inv-pending-1",
+        email: "pending@example.com",
+        state: "pending",
+        requestedRole: "member",
+        expiresAt: new Date(createdAt + 24 * 60 * 60 * 1000).toISOString(),
+        inviterWorkosUserId: IDENTITIES.owner.subject,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.insert("workspaceInvitations", {
+        workspaceId: workspace.workspaceId,
+        workosOrganizationId: "org_settings",
+        invitationId: "inv-revoked-1",
+        email: "revoked@example.com",
+        state: "revoked",
+        requestedRole: "admin",
+        expiresAt: new Date(createdAt + 24 * 60 * 60 * 1000).toISOString(),
+        inviterWorkosUserId: IDENTITIES.owner.subject,
+        createdAt: createdAt + 1,
+        updatedAt: createdAt + 1,
+      });
+    });
+
+    const summary = await asMember().query(api.settings.getCompanySettingsSummary, {
       workspaceSlug: workspace.workspaceSlug,
     });
-    expect(afterRemove.brandAssets).toHaveLength(0);
+    expect(summary.workspace.slug).toBe(workspace.workspaceSlug);
+    expect(summary.capability.canManageMembers).toBe(false);
+    expect(summary.viewerRole).toBe("member");
+
+    const membersPage = await asMember().query(api.settings.listCompanyMembers, {
+      workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 2 },
+    });
+    expect(membersPage.page).toHaveLength(2);
+    expect(membersPage.isDone).toBe(false);
+    expect(membersPage.page.every((member: any) => member.status === "active")).toBe(true);
+
+    const invitations = await asMember().query(api.settings.listPendingInvitations, {
+      workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(invitations.page).toHaveLength(1);
+    expect(invitations.page[0]?.invitationId).toBe("inv-pending-1");
+    expect(invitations.page[0]?.state).toBe("pending");
   });
 
   test("workspace soft delete removes visibility and access", async () => {
@@ -269,7 +334,7 @@ describe("P1.1 settings backendization", () => {
     expect(snapshot.workspaces.find((entry: any) => entry.slug === workspace.workspaceSlug)).toBeUndefined();
 
     await expect(
-      asOwner().query(api.settings.getCompanySettings, {
+      asOwner().query(api.settings.getCompanySettingsSummary, {
         workspaceSlug: workspace.workspaceSlug,
       }),
     ).rejects.toThrow("Workspace not found");

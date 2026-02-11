@@ -1,4 +1,4 @@
-import type React from "react";
+import { useState, type ChangeEvent } from "react";
 import { Download, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { WorkspaceRole } from "../../types";
@@ -13,6 +13,7 @@ type CompanyBrandAssetsSectionProps = {
   viewerRole?: WorkspaceRole;
   onUploadBrandAsset: (file: File) => Promise<void>;
   onRemoveBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
+  onGetBrandAssetDownloadUrl: (payload: { brandAssetId: string }) => Promise<string | null>;
 };
 
 export function CompanyBrandAssetsSection({
@@ -21,9 +22,11 @@ export function CompanyBrandAssetsSection({
   viewerRole,
   onUploadBrandAsset,
   onRemoveBrandAsset,
+  onGetBrandAssetDownloadUrl,
 }: CompanyBrandAssetsSectionProps) {
+  const [downloadUrlByAssetId, setDownloadUrlByAssetId] = useState<Record<string, string>>({});
   const brandAssetsDeniedReason = getBrandAssetDeniedReason(viewerRole);
-  const handleUploadBrandAsset = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadBrandAsset = async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!file) {
@@ -72,7 +75,7 @@ export function CompanyBrandAssetsSection({
           <div key={asset.id} className="group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 relative">
             <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
               <img
-                src={getAssetPreviewSrc(asset)}
+                src={downloadUrlByAssetId[asset.id] || getAssetPreviewSrc(asset)}
                 alt=""
                 className="w-full h-full object-cover"
               />
@@ -86,12 +89,26 @@ export function CompanyBrandAssetsSection({
             <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 className="text-[12px] text-[#58AFFF] hover:text-[#7fc0ff] transition-colors disabled:opacity-50 cursor-pointer"
-                disabled={!asset.downloadUrl}
                 onClick={() => {
-                  if (!asset.downloadUrl) {
+                  const cachedUrl = downloadUrlByAssetId[asset.id] || asset.downloadUrl;
+                  if (cachedUrl) {
+                    window.open(cachedUrl, "_blank", "noopener,noreferrer");
                     return;
                   }
-                  window.open(asset.downloadUrl, "_blank", "noopener,noreferrer");
+
+                  void onGetBrandAssetDownloadUrl({ brandAssetId: asset.id })
+                    .then((downloadUrl) => {
+                      if (!downloadUrl) {
+                        toast.error("Download link unavailable");
+                        return;
+                      }
+                      setDownloadUrlByAssetId((prev) => ({ ...prev, [asset.id]: downloadUrl }));
+                      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+                    })
+                    .catch((error) => {
+                      reportUiError("settings.brandAssets.downloadUrl", error, { showToast: false });
+                      toast.error("Failed to resolve download link");
+                    });
                 }}
               >
                 <Download size={14} />

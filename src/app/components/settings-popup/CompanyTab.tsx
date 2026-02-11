@@ -32,6 +32,7 @@ type CompanyTabProps = {
   onRevokeInvitation: (payload: { invitationId: string }) => Promise<void>;
   onUploadBrandAsset: (file: File) => Promise<void>;
   onRemoveBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
+  onGetBrandAssetDownloadUrl: (payload: { brandAssetId: string }) => Promise<string | null>;
   onSoftDeleteWorkspace: () => Promise<void>;
 };
 
@@ -48,6 +49,7 @@ export function CompanyTab({
   onRevokeInvitation,
   onUploadBrandAsset,
   onRemoveBrandAsset,
+  onGetBrandAssetDownloadUrl,
   onSoftDeleteWorkspace,
 }: CompanyTabProps) {
   const workspaceName = company?.workspace.name ?? activeWorkspace?.name ?? "Workspace";
@@ -278,6 +280,7 @@ export function CompanyTab({
         viewerRole={viewerRole}
         onUploadBrandAsset={onUploadBrandAsset}
         onRemoveBrandAsset={onRemoveBrandAsset}
+        onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
       />
 
       <div className="w-full h-px bg-white/5" />

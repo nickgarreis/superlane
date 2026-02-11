@@ -47,7 +47,7 @@ export function MenuIcon({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
+          <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
             {!isCompleted && !isArchived && onComplete && (
               <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
                 <button

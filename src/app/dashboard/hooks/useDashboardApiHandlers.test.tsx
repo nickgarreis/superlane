@@ -26,11 +26,12 @@ describe("useDashboardApiHandlers", () => {
 
     expect(useActionMock).toHaveBeenCalled();
     expect(useMutationMock).toHaveBeenCalled();
-    expect(Object.keys(result.current)).toHaveLength(41);
+    expect(Object.keys(result.current)).toHaveLength(42);
     expect(result.current.ensureDefaultWorkspaceAction).toMatchObject({ kind: "action" });
     expect(result.current.createProjectMutation).toMatchObject({ kind: "mutation" });
     expect(result.current.createTaskMutation).toMatchObject({ kind: "mutation" });
     expect(result.current.reorderTasksMutation).toMatchObject({ kind: "mutation" });
+    expect(result.current.applyTaskDiffMutation).toMatchObject({ kind: "mutation" });
     expect(result.current.ensureOrganizationLinkAction).toMatchObject({ kind: "action" });
     expect(result.current.softDeleteWorkspaceMutation).toMatchObject({ kind: "mutation" });
   });

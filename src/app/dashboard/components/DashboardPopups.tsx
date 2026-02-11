@@ -58,6 +58,8 @@ type DashboardPopupsProps = {
   setIsSearchOpen: (value: boolean) => void;
   projects: Record<string, ProjectData>;
   allWorkspaceFiles: ProjectFileData[];
+  workspaceFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMoreWorkspaceFiles: (numItems: number) => void;
   navigateView: (view: AppView) => void;
   openCreateProject: () => void;
   searchPopupOpenSettings: (tab?: string) => void;
@@ -86,7 +88,7 @@ type DashboardPopupsProps = {
   settingsNotificationsData: NotificationSettingsData | null;
   settingsCompanyData: CompanySettingsData | null;
   resolvedWorkspaceSlug: string | null;
-  companySettings?: unknown;
+  companySummary?: unknown;
   handleUpdateWorkspaceGeneral: (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => Promise<void>;
   handleUploadWorkspaceLogo: (file: File) => Promise<void>;
   handleInviteWorkspaceMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
@@ -96,6 +98,7 @@ type DashboardPopupsProps = {
   handleRevokeWorkspaceInvitation: (payload: { invitationId: string }) => Promise<void>;
   handleUploadWorkspaceBrandAsset: (file: File) => Promise<void>;
   handleRemoveWorkspaceBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
+  handleGetWorkspaceBrandAssetDownloadUrl: (payload: { brandAssetId: string }) => Promise<string | null>;
   handleSoftDeleteWorkspace: () => Promise<void>;
 };
 
@@ -104,6 +107,8 @@ export function DashboardPopups({
   setIsSearchOpen,
   projects,
   allWorkspaceFiles,
+  workspaceFilesPaginationStatus,
+  loadMoreWorkspaceFiles,
   navigateView,
   openCreateProject,
   searchPopupOpenSettings,
@@ -127,7 +132,7 @@ export function DashboardPopups({
   settingsNotificationsData,
   settingsCompanyData,
   resolvedWorkspaceSlug,
-  companySettings,
+  companySummary,
   handleUpdateWorkspaceGeneral,
   handleUploadWorkspaceLogo,
   handleInviteWorkspaceMember,
@@ -137,6 +142,7 @@ export function DashboardPopups({
   handleRevokeWorkspaceInvitation,
   handleUploadWorkspaceBrandAsset,
   handleRemoveWorkspaceBrandAsset,
+  handleGetWorkspaceBrandAssetDownloadUrl,
   handleSoftDeleteWorkspace,
 }: DashboardPopupsProps) {
   return (
@@ -148,6 +154,8 @@ export function DashboardPopups({
             onClose={() => setIsSearchOpen(false)}
             projects={projects}
             files={allWorkspaceFiles}
+            workspaceFilesPaginationStatus={workspaceFilesPaginationStatus}
+            loadMoreWorkspaceFiles={loadMoreWorkspaceFiles}
             onNavigate={navigateView}
             onOpenCreateProject={openCreateProject}
             onOpenSettings={searchPopupOpenSettings}
@@ -196,7 +204,7 @@ export function DashboardPopups({
             account={settingsAccountData}
             notifications={settingsNotificationsData}
             company={settingsCompanyData}
-            loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySettings === undefined}
+            loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySummary === undefined}
             onSaveAccount={dashboardCommands.settings.saveAccount}
             onUploadAvatar={dashboardCommands.settings.uploadAccountAvatar}
             onRemoveAvatar={dashboardCommands.settings.removeAccountAvatar}
@@ -210,6 +218,7 @@ export function DashboardPopups({
             onRevokeInvitation={handleRevokeWorkspaceInvitation}
             onUploadBrandAsset={handleUploadWorkspaceBrandAsset}
             onRemoveBrandAsset={handleRemoveWorkspaceBrandAsset}
+            onGetBrandAssetDownloadUrl={handleGetWorkspaceBrandAssetDownloadUrl}
             onSoftDeleteWorkspace={handleSoftDeleteWorkspace}
           />
         </Suspense>

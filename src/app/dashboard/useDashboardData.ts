@@ -13,7 +13,7 @@ import {
 } from "../lib/mappers";
 import type { AppView } from "../lib/routing";
 import { useDashboardController } from "./useDashboardController";
-import type { PendingHighlight } from "./types";
+import type { PendingHighlight, SettingsTab } from "./types";
 import type {
   ProjectData,
   ProjectFileData,
@@ -28,6 +28,7 @@ type UseDashboardDataArgs = {
   activeWorkspaceSlug: string | null;
   setActiveWorkspaceSlug: (slug: string | null) => void;
   isSettingsOpen: boolean;
+  settingsTab: SettingsTab;
   isSearchOpen: boolean;
   currentView: AppView;
   viewerFallback: {
@@ -41,11 +42,20 @@ type UseDashboardDataArgs = {
 };
 
 type UseDashboardDataResult = {
-  snapshot: ReturnType<typeof useQuery<typeof api.dashboard.getWorkspaceContext>>;
+  snapshot: ReturnType<typeof useQuery<typeof api.dashboard.getWorkspaceBootstrap>>;
   resolvedWorkspaceSlug: string | null;
+  tasksPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>>["status"];
+  loadMoreWorkspaceTasks: ReturnType<typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>>["loadMore"];
+  workspaceFilesPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.files.listForWorkspace>>["status"];
+  loadMoreWorkspaceFiles: ReturnType<typeof usePaginatedQuery<typeof api.files.listForWorkspace>>["loadMore"];
+  projectFilesPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>>["status"];
+  loadMoreProjectFiles: ReturnType<typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>>["loadMore"];
   accountSettings: ReturnType<typeof useQuery<typeof api.settings.getAccountSettings>>;
   notificationSettings: ReturnType<typeof useQuery<typeof api.settings.getNotificationPreferences>>;
-  companySettings: ReturnType<typeof useQuery<typeof api.settings.getCompanySettings>>;
+  companySummary: ReturnType<typeof useQuery<typeof api.settings.getCompanySettingsSummary>>;
+  companyMembersResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listCompanyMembers>>;
+  companyPendingInvitationsResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listPendingInvitations>>;
+  companyBrandAssetsResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listBrandAssets>>;
   workspaceMembersResult: ReturnType<typeof useQuery<typeof api.collaboration.listWorkspaceMembers>>;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
@@ -76,11 +86,13 @@ export const useDashboardData = ({
   navigateView,
 }: UseDashboardDataArgs): UseDashboardDataResult => {
   const snapshot = useQuery(
-    api.dashboard.getWorkspaceContext,
+    api.dashboard.getWorkspaceBootstrap,
     isAuthenticated ? { activeWorkspaceSlug: activeWorkspaceSlug ?? undefined } : "skip",
   );
 
-  const resolvedWorkspaceSlug = snapshot?.activeWorkspaceSlug ?? activeWorkspaceSlug ?? null;
+  const resolvedWorkspaceSlug = snapshot === undefined
+    ? activeWorkspaceSlug ?? null
+    : snapshot.activeWorkspaceSlug ?? null;
   const projectsResult = usePaginatedQuery(
     api.projects.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
@@ -103,15 +115,25 @@ export const useDashboardData = ({
 
   const workspaceFiles = usePaginatedQuery(
     api.files.listForWorkspace,
-    isAuthenticated && resolvedWorkspaceSlug && shouldLoadWorkspaceFiles
+    isAuthenticated && resolvedWorkspaceSlug && isSearchOpen
       ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
+  );
+  const activeProjectPublicId = currentView.startsWith("project:")
+    ? currentView.slice("project:".length)
+    : currentView.startsWith("archive-project:")
+      ? currentView.slice("archive-project:".length)
+      : null;
+  const projectFiles = usePaginatedQuery(
+    api.files.listForProjectPaginated,
+    isAuthenticated && shouldLoadWorkspaceFiles && activeProjectPublicId
+      ? { projectPublicId: activeProjectPublicId }
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
   const {
     results: paginatedProjects,
-    status: projectsPaginationStatus,
-    loadMore: loadMoreProjects,
   } = projectsResult;
   const {
     results: paginatedWorkspaceTasks,
@@ -123,6 +145,11 @@ export const useDashboardData = ({
     status: filesPaginationStatus,
     loadMore: loadMoreWorkspaceFiles,
   } = workspaceFiles;
+  const {
+    results: paginatedProjectFiles,
+    status: projectFilesPaginationStatus,
+    loadMore: loadMoreProjectFiles,
+  } = projectFiles;
 
   const accountSettings = useQuery(
     api.settings.getAccountSettings,
@@ -134,11 +161,34 @@ export const useDashboardData = ({
     isAuthenticated && isSettingsOpen ? {} : "skip",
   );
 
-  const companySettings = useQuery(
-    api.settings.getCompanySettings,
-    isAuthenticated && resolvedWorkspaceSlug && isSettingsOpen
+  const shouldLoadCompanySettings = isAuthenticated && resolvedWorkspaceSlug && isSettingsOpen;
+
+  const companySummary = useQuery(
+    api.settings.getCompanySettingsSummary,
+    shouldLoadCompanySettings
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
+  );
+  const companyMembersResult = usePaginatedQuery(
+    api.settings.listCompanyMembers,
+    shouldLoadCompanySettings
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
+  );
+  const companyPendingInvitationsResult = usePaginatedQuery(
+    api.settings.listPendingInvitations,
+    shouldLoadCompanySettings
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
+  );
+  const companyBrandAssetsResult = usePaginatedQuery(
+    api.settings.listBrandAssets,
+    shouldLoadCompanySettings
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
   );
 
   const workspaceMembersResult = useQuery(
@@ -151,31 +201,15 @@ export const useDashboardData = ({
   );
 
   useEffect(() => {
-    if (!snapshot) {
+    if (snapshot === undefined) {
       return;
     }
-    if (snapshot.activeWorkspaceSlug && snapshot.activeWorkspaceSlug !== activeWorkspaceSlug) {
-      setActiveWorkspaceSlug(snapshot.activeWorkspaceSlug);
+
+    const nextWorkspaceSlug = snapshot.activeWorkspaceSlug ?? null;
+    if (nextWorkspaceSlug !== activeWorkspaceSlug) {
+      setActiveWorkspaceSlug(nextWorkspaceSlug);
     }
   }, [snapshot, activeWorkspaceSlug, setActiveWorkspaceSlug]);
-
-  useEffect(() => {
-    if (projectsPaginationStatus === "CanLoadMore") {
-      loadMoreProjects(PAGINATION_PAGE_SIZE);
-    }
-  }, [loadMoreProjects, projectsPaginationStatus]);
-
-  useEffect(() => {
-    if (tasksPaginationStatus === "CanLoadMore") {
-      loadMoreWorkspaceTasks(PAGINATION_PAGE_SIZE);
-    }
-  }, [loadMoreWorkspaceTasks, tasksPaginationStatus]);
-
-  useEffect(() => {
-    if (filesPaginationStatus === "CanLoadMore") {
-      loadMoreWorkspaceFiles(PAGINATION_PAGE_SIZE);
-    }
-  }, [filesPaginationStatus, loadMoreWorkspaceFiles]);
 
   const workspaceMembers = useMemo<WorkspaceMember[]>(
     () => workspaceMembersResult?.members ?? [],
@@ -260,23 +294,37 @@ export const useDashboardData = ({
   );
 
   const projectFilesByProject = useMemo(
-    () =>
-      allWorkspaceFiles.reduce<Record<string, ProjectFileData[]>>((acc, file) => {
-        if (!acc[file.projectPublicId]) {
-          acc[file.projectPublicId] = [];
+    () => {
+      const grouped: Record<string, ProjectFileData[]> = {};
+      const mappedProjectFiles = mapWorkspaceFilesToUi(
+        paginatedProjectFiles as SnapshotWorkspaceFile[],
+      );
+      mappedProjectFiles.forEach((file) => {
+        if (!grouped[file.projectPublicId]) {
+          grouped[file.projectPublicId] = [];
         }
-        acc[file.projectPublicId].push(file);
-        return acc;
-      }, {}),
-    [allWorkspaceFiles],
+        grouped[file.projectPublicId].push(file);
+      });
+      return grouped;
+    },
+    [paginatedProjectFiles],
   );
 
   return {
     snapshot,
     resolvedWorkspaceSlug,
+    tasksPaginationStatus,
+    loadMoreWorkspaceTasks,
+    workspaceFilesPaginationStatus: filesPaginationStatus,
+    loadMoreWorkspaceFiles,
+    projectFilesPaginationStatus,
+    loadMoreProjectFiles,
     accountSettings,
     notificationSettings,
-    companySettings,
+    companySummary,
+    companyMembersResult,
+    companyPendingInvitationsResult,
+    companyBrandAssetsResult,
     workspaceMembersResult,
     workspaceMembers,
     viewerIdentity,

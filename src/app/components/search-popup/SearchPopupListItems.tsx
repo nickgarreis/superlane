@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import type { QuickAction, SearchResult } from "./types";
+import { StatusBadgeIcon } from "../status/StatusBadgeIcon";
 
 const FILE_TYPE_COLORS: Record<string, string> = {
   SVG: "#f472b6",
@@ -88,10 +89,10 @@ export function SearchPopupResultItem({
 
       {item.type === "project" && item.status && (
         <div
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] shrink-0"
-          style={{ backgroundColor: item.status.bgColor, color: item.status.color }}
+          className="inline-flex items-center gap-[6px] px-0 py-[4px] rounded-[16777200px] text-[10px] shrink-0"
+          style={{ color: "#29FD7D" }}
         >
-          <span className="size-1.5 rounded-full" style={{ backgroundColor: item.status.dotColor }} />
+          <StatusBadgeIcon statusLabel={item.status.label} className="size-3.5 shrink-0" color="#29FD7D" />
           {item.status.label}
         </div>
       )}

@@ -104,7 +104,7 @@ export function SidebarProfileMenu({
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
               <div
-                className="absolute bottom-full left-0 right-0 mb-2 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5"
+                className="absolute bottom-full left-0 right-0 mb-2 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5"
                 role="menu"
                 aria-label={`Profile actions for ${viewerName}`}
                 onKeyDown={(event) => {

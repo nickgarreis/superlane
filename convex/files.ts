@@ -193,6 +193,7 @@ const finalizeProjectUploadCore = async (
       workspaceId: project.workspaceId,
       projectId: project._id,
       projectPublicId: project.publicId,
+      projectDeletedAt: project.deletedAt ?? null,
       tab: args.tab,
       name: finalName,
       type: inferFileTypeFromName(finalName),
@@ -320,24 +321,9 @@ export const listForWorkspace = query({
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
-    const activeProjects = projects.filter((project: any) => project.deletedAt == null);
-    const activeProjectIds = new Set(
-      activeProjects.map((project: any) => String(project._id)),
-    );
-    const activeProjectByPublicId = new Map(
-      activeProjects.map((project: any) => [project.publicId, project]),
-    );
-
     const normalizedProjectPublicId = typeof args.projectPublicId === "string"
       ? args.projectPublicId.trim()
       : "";
-    const activeProjectForPublicId = normalizedProjectPublicId.length > 0
-      ? activeProjectByPublicId.get(normalizedProjectPublicId) ?? null
-      : null;
     const paginated = normalizedProjectPublicId.length > 0
       ? await paginateProjectFilesWithFilter({
           paginationOpts: args.paginationOpts,
@@ -350,24 +336,47 @@ export const listForWorkspace = query({
                   .eq("deletedAt", null))
               .order("desc"),
           includeFile: (file: any) =>
-            Boolean(
-              activeProjectForPublicId
-              && activeProjectIds.has(String(file.projectId))
-              && String(file.projectId) === String(activeProjectForPublicId._id)
-              && file.storageId != null,
-            ),
+            file.projectDeletedAt == null && file.storageId != null,
         })
       : await paginateProjectFilesWithFilter({
           paginationOpts: args.paginationOpts,
           makeQuery: () =>
             ctx.db
               .query("projectFiles")
-              .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
-                q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+              .withIndex("by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs", (q: any) =>
+                q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null).eq("deletedAt", null))
               .order("desc"),
           includeFile: (file: any) =>
-            activeProjectIds.has(String(file.projectId)) && file.storageId != null,
+            file.storageId != null,
         });
+
+    return {
+      ...paginated,
+      page: paginated.page.map(mapProjectFile),
+    };
+  },
+});
+
+export const listForProjectPaginated = query({
+  args: {
+    projectPublicId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
+    const paginated = await paginateProjectFilesWithFilter({
+      paginationOpts: args.paginationOpts,
+      makeQuery: () =>
+        ctx.db
+          .query("projectFiles")
+          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
+            q.eq("workspaceId", project.workspaceId)
+              .eq("projectPublicId", project.publicId)
+              .eq("deletedAt", null))
+          .order("desc"),
+      includeFile: (file: any) =>
+        file.projectDeletedAt == null && file.deletedAt == null && file.storageId != null,
+    });
 
     return {
       ...paginated,
@@ -382,15 +391,24 @@ export const listForProject = query({
   },
   handler: async (ctx, args) => {
     const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
-    const files = await ctx.db
-      .query("projectFiles")
-      .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
-      .collect();
+    const files = await paginateProjectFilesWithFilter({
+      paginationOpts: {
+        cursor: null,
+        numItems: 5000,
+      },
+      makeQuery: () =>
+        ctx.db
+          .query("projectFiles")
+          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
+            q.eq("workspaceId", project.workspaceId)
+              .eq("projectPublicId", project.publicId)
+              .eq("deletedAt", null))
+          .order("desc"),
+      includeFile: (file: any) =>
+        file.projectDeletedAt == null && file.deletedAt == null && file.storageId != null,
+    });
 
-    return files
-      .filter((file: any) => file.deletedAt == null && file.storageId != null)
-      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt))
-      .map(mapProjectFile);
+    return files.page.map(mapProjectFile);
   },
 });
 
@@ -664,13 +682,39 @@ export const runLegacyMetadataCleanup = internalMutation({
   args: {
     dryRun: v.boolean(),
     batchSize: v.optional(v.number()),
+    confirmToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const batchSize = Math.max(1, Math.min(args.batchSize ?? 500, 2000));
-    const files = await ctx.db.query("projectFiles").collect();
-    const targets = files
-      .filter((file: any) => file.storageId == null)
-      .slice(0, batchSize);
+    if (!args.dryRun && args.confirmToken !== "I_KNOW_WHAT_I_AM_DOING") {
+      throw new ConvexError("confirmToken must be I_KNOW_WHAT_I_AM_DOING for non-dry-run cleanup");
+    }
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 100, 200));
+    const targetsById = new Map<string, any>();
+
+    const missingStorageIdRows = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_storageId", (q: any) => q.eq("storageId", undefined))
+      .take(batchSize);
+    for (const file of missingStorageIdRows) {
+      if (file.storageId == null) {
+        targetsById.set(String(file._id), file);
+      }
+    }
+
+    if (targetsById.size < batchSize) {
+      const remaining = batchSize - targetsById.size;
+      const explicitNullStorageRows = await ctx.db
+        .query("projectFiles")
+        .filter((q: any) => q.eq(q.field("storageId"), null))
+        .take(remaining);
+      for (const file of explicitNullStorageRows) {
+        if (file.storageId == null) {
+          targetsById.set(String(file._id), file);
+        }
+      }
+    }
+
+    const targets = Array.from(targetsById.values()).slice(0, batchSize);
 
     const affectedAttachmentProjects = new Set<string>();
     let deletedCount = 0;
@@ -696,7 +740,7 @@ export const runLegacyMetadataCleanup = internalMutation({
 
     return {
       dryRun: args.dryRun,
-      scannedCount: files.length,
+      scannedCount: targets.length,
       targetCount: targets.length,
       deletedCount,
     };
@@ -707,15 +751,19 @@ export const internalPurgeDeletedFiles = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-
-    const allFiles = await ctx.db.query("projectFiles").collect();
-    const filesToPurge = allFiles.filter(
-      (file: any) => file.deletedAt != null && file.purgeAfterAt != null && file.purgeAfterAt <= now,
-    );
+    const batchSize = 500;
+    const filesToPurge = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_purgeAfterAt", (q: any) => q.lte("purgeAfterAt", now))
+      .order("asc")
+      .take(batchSize);
 
     const affectedAttachmentProjectPublicIds = new Set<string>();
     let purgedFileCount = 0;
     for (const file of filesToPurge) {
+      if (file.deletedAt == null || file.purgeAfterAt == null || file.purgeAfterAt > now) {
+        continue;
+      }
       if (file.storageId) {
         try {
           await ctx.storage.delete(file.storageId);
@@ -740,11 +788,12 @@ export const internalPurgeDeletedFiles = internalMutation({
       }
     }
 
-    const pendingUploads = await ctx.db.query("pendingFileUploads").collect();
     const staleCutoff = now - STALE_PENDING_UPLOAD_MS;
-    const stalePendingUploads = pendingUploads.filter(
-      (upload: any) => upload.createdAt <= staleCutoff,
-    );
+    const stalePendingUploads = await ctx.db
+      .query("pendingFileUploads")
+      .withIndex("by_createdAt", (q: any) => q.lte("createdAt", staleCutoff))
+      .order("asc")
+      .take(batchSize);
 
     let stalePendingDeletedCount = 0;
     for (const upload of stalePendingUploads) {

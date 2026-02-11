@@ -80,6 +80,7 @@ const createNavigation = () => ({
   activeWorkspaceSlug: "workspace-1",
   setActiveWorkspaceSlug: vi.fn(),
   isSettingsOpen: false,
+  settingsTab: "Account",
   isSearchOpen: false,
   currentView: "tasks" as const,
   setIsSidebarOpen: vi.fn(),
@@ -104,6 +105,7 @@ const createApiHandlers = () => ({
   updateReviewCommentsMutation: vi.fn(),
   replaceProjectTasksMutation: vi.fn(),
   replaceWorkspaceTasksMutation: vi.fn(),
+  applyTaskDiffMutation: vi.fn(),
   generateUploadUrlMutation: vi.fn(),
   finalizeProjectUploadAction: vi.fn(),
   finalizePendingDraftAttachmentUploadAction: vi.fn(),
@@ -151,7 +153,7 @@ describe("useDashboardDataLayer", () => {
     useDashboardDataMock.mockReturnValue({
       snapshot: { workspaces: [{}], activeWorkspaceSlug: "workspace-1" },
       projects: {},
-      companySettings: null,
+      companySummary: null,
       resolvedWorkspaceSlug: "workspace-1",
       viewerIdentity: { role: "owner" },
     });
@@ -195,7 +197,7 @@ describe("useDashboardDataLayer", () => {
     useDashboardDataMock.mockReturnValueOnce({
       snapshot: { workspaces: [{}], activeWorkspaceSlug: "workspace-1" },
       projects: {},
-      companySettings: null,
+      companySummary: null,
       resolvedWorkspaceSlug: "workspace-1",
       viewerIdentity: { role: "member" },
     });

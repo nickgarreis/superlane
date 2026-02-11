@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import svgPaths from "../../imports/svg-0erue6fqwq";
 import HorizontalBorder from "../../imports/HorizontalBorder";
@@ -21,6 +21,8 @@ export function Tasks({
     isSidebarOpen,
     projects,
     workspaceTasks,
+    tasksPaginationStatus = "Exhausted",
+    loadMoreWorkspaceTasks,
     onUpdateWorkspaceTasks,
     workspaceMembers,
     viewerIdentity,
@@ -29,6 +31,8 @@ export function Tasks({
     isSidebarOpen: boolean,
     projects: Record<string, ProjectData>,
     workspaceTasks: Task[];
+    tasksPaginationStatus?: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+    loadMoreWorkspaceTasks?: (numItems: number) => void;
     onUpdateWorkspaceTasks: (tasks: Task[]) => void;
     workspaceMembers: WorkspaceMember[];
     viewerIdentity: ViewerIdentity;
@@ -41,6 +45,8 @@ export function Tasks({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
+  const isLoadingMoreRef = useRef(false);
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const normalizedSearchQuery = useMemo(
     () => searchQuery.trim().toLowerCase(),
     [searchQuery],
@@ -72,6 +78,12 @@ export function Tasks({
   useEffect(() => {
     setFilterProject((current) => current.filter((projectId) => activeProjectIds.has(projectId)));
   }, [activeProjectIds]);
+
+  useEffect(() => {
+      if (tasksPaginationStatus !== "LoadingMore") {
+          isLoadingMoreRef.current = false;
+      }
+  }, [tasksPaginationStatus]);
 
   const filteredTasks = useMemo(
     () => {
@@ -135,6 +147,19 @@ export function Tasks({
       onUpdateWorkspaceTasks(normalized);
   };
 
+  const handleTasksScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+      if (isLoadingMoreRef.current || tasksPaginationStatus !== "CanLoadMore" || !loadMoreWorkspaceTasks) {
+          return;
+      }
+
+      const element = event.currentTarget;
+      const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
+      if (remaining <= 240) {
+          isLoadingMoreRef.current = true;
+          loadMoreWorkspaceTasks(100);
+      }
+  }, [loadMoreWorkspaceTasks, tasksPaginationStatus]);
+
   return (
     <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
       <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
@@ -145,7 +170,11 @@ export function Tasks({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-[80px] py-[40px]">
+        <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto px-[80px] py-[40px]"
+            onScroll={handleTasksScroll}
+        >
             {/* Header Section */}
             <div className="flex gap-6 mb-10 items-center">
                 <div className="flex-1">
@@ -201,7 +230,7 @@ export function Tasks({
                         {isFilterOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setIsFilterOpen(false)} />
-                                <div className="absolute right-0 top-full mt-2 w-60 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="absolute right-0 top-full mt-2 w-60 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-20 animate-in fade-in zoom-in-95 duration-100">
                                     <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                                         Filter by Project
                                     </div>
@@ -265,7 +294,7 @@ export function Tasks({
                         {isSortOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)} />
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-20 animate-in fade-in zoom-in-95 duration-100">
                                     <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                                         Sort by
                                     </div>

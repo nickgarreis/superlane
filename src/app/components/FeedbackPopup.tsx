@@ -76,7 +76,7 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[480px] mx-4 bg-[#1A1A1C] border border-[#262626] rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-[480px] mx-4 bg-[#181818] border border-[#262626] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
           >
             {/* Header */}

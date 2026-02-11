@@ -9,7 +9,10 @@ describe("useDashboardSettingsData", () => {
     const { result } = renderHook(() => useDashboardSettingsData({
       accountSettings: undefined,
       notificationSettings: undefined,
-      companySettings: undefined,
+      companySummary: undefined,
+      companyMembersResult: undefined,
+      companyPendingInvitationsResult: undefined,
+      companyBrandAssetsResult: undefined,
       fallbackAvatarUrl: "https://cdn.test/fallback.png",
       user: {
         firstName: "Nick",
@@ -50,39 +53,59 @@ describe("useDashboardSettingsData", () => {
           productUpdates: false,
         },
       },
-      companySettings: {
-        name: "Company",
-        logo: null,
-        logoColor: null,
-        logoText: null,
-        members: [
-          null,
+      companySummary: {
+        workspace: {
+          id: "workspace-1",
+          slug: "workspace-1",
+          name: "Company",
+          plan: "free",
+          logo: null,
+          logoColor: null,
+          logoText: null,
+          workosOrganizationId: null,
+        },
+        capability: {
+          hasOrganizationLink: true,
+          canManageWorkspaceGeneral: true,
+          canManageMembers: true,
+          canManageBrandAssets: true,
+          canDeleteWorkspace: true,
+        },
+        viewerRole: "owner",
+      },
+      companyMembersResult: {
+        results: [
           {
             userId: "user-1",
             name: "Jane",
             email: "jane@example.com",
             avatarUrl: null,
             role: "owner",
-            isViewer: true,
+            status: "active",
           },
         ],
-        pendingInvitations: [
-          null,
+      },
+      companyPendingInvitationsResult: {
+        results: [
           {
             invitationId: "inv-1",
             email: "member@example.com",
-            role: "member",
-            invitedAt: Date.now(),
-            expiresAt: Date.now() + 1000,
+            state: "pending",
+            requestedRole: "member",
+            expiresAt: new Date(Date.now() + 1000).toISOString(),
           },
         ],
-        brandAssets: [
-          null,
+      },
+      companyBrandAssetsResult: {
+        results: [
           {
             id: "asset-1",
             name: "Brand Asset",
-            fileType: "PNG",
-            uploadedAt: Date.now(),
+            type: "PNG",
+            mimeType: "image/png",
+            sizeBytes: 1024,
+            displayDateEpochMs: Date.now(),
+            downloadUrl: null,
           },
         ],
       },

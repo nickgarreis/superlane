@@ -3,7 +3,12 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { taskInputValidator, workspaceTaskInputValidator, taskAssigneeValidator } from "./lib/validators";
 import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
-import { paginateWorkspaceTasksWithFilter, reserveTaskPosition } from "./lib/taskPagination";
+import { reserveTaskPosition } from "./lib/taskPagination";
+import {
+  applyTaskDiffHandler,
+  taskCreateDiffValidator,
+  taskUpdateDiffValidator,
+} from "./lib/taskDiffMutation";
 import {
   assertTaskProjectMutationAccess,
   getWorkspaceBySlug,
@@ -27,24 +32,12 @@ export const listForWorkspace = query({
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
-    const activeProjectIds = new Set(
-      projects
-        .filter((project: any) => project.deletedAt == null)
-        .map((project: any) => String(project._id)),
-    );
-    const paginated = await paginateWorkspaceTasksWithFilter({
-      paginationOpts: args.paginationOpts,
-      makeQuery: () =>
-        ctx.db
-          .query("tasks")
-          .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", workspace._id)),
-      includeTask: (task: any) =>
-        task.projectId == null || activeProjectIds.has(String(task.projectId)),
-    });
+    const paginated = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
+      )
+      .paginate(args.paginationOpts);
 
     return {
       ...paginated,
@@ -119,6 +112,7 @@ export const create = mutation({
       workspaceId: workspace._id,
       projectId: targetProject?._id ?? null,
       projectPublicId: targetProject?.publicId ?? null,
+      projectDeletedAt: targetProject?.deletedAt ?? null,
       taskId,
       title: normalizeTaskTitle(args.title),
       assignee: normalizeTaskAssignee(args.assignee),
@@ -184,6 +178,7 @@ export const update = mutation({
       });
       patch.projectId = targetProject?._id ?? null;
       patch.projectPublicId = targetProject?.publicId ?? null;
+      patch.projectDeletedAt = targetProject?.deletedAt ?? null;
     }
 
     await ctx.db.patch(task._id, patch);
@@ -218,6 +213,17 @@ export const remove = mutation({
   },
 });
 
+export const applyDiff = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    creates: v.array(taskCreateDiffValidator),
+    updates: v.array(taskUpdateDiffValidator),
+    removes: v.array(v.string()),
+    orderedTaskIds: v.optional(v.array(v.string())),
+  },
+  handler: applyTaskDiffHandler,
+});
+
 export const reorder = mutation({
   args: {
     workspaceSlug: v.string(),
@@ -235,7 +241,9 @@ export const reorder = mutation({
 
     const workspaceTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", workspace._id))
+      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
+      )
       .collect();
     const taskById = new Map(workspaceTasks.map((task: any) => [String(task.taskId), task]));
     const projectAccessCache = new Map<string, any>();

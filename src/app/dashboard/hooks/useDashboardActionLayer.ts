@@ -43,10 +43,8 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     removeProjectMutation: apiHandlers.removeProjectMutation,
     setProjectStatusMutation: apiHandlers.setProjectStatusMutation,
     updateReviewCommentsMutation: apiHandlers.updateReviewCommentsMutation,
-    createTaskMutation: apiHandlers.createTaskMutation,
-    updateTaskMutation: apiHandlers.updateTaskMutation,
-    removeTaskMutation: apiHandlers.removeTaskMutation,
-    reorderTasksMutation: apiHandlers.reorderTasksMutation,
+    applyTaskDiffMutation: apiHandlers.applyTaskDiffMutation,
+    canReorderWorkspaceTasks: data.tasksPaginationStatus === "Exhausted",
     asPendingUploadId,
     omitUndefined,
   });

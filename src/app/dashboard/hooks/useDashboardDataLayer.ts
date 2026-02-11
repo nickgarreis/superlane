@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useConvex, useConvexAuth } from "convex/react";
 import { useAuth } from "@workos-inc/authkit-react";
 import { toast } from "sonner";
+import { api } from "../../../../convex/_generated/api";
 import {
   loadCreateProjectPopupModule,
   loadCreateWorkspacePopupModule,
@@ -45,6 +46,7 @@ export function useDashboardDataLayer() {
     activeWorkspaceSlug,
     setActiveWorkspaceSlug,
     isSettingsOpen,
+    settingsTab,
     isSearchOpen,
     currentView,
     setIsSidebarOpen,
@@ -100,6 +102,7 @@ export function useDashboardDataLayer() {
     activeWorkspaceSlug,
     setActiveWorkspaceSlug,
     isSettingsOpen,
+    settingsTab,
     isSearchOpen,
     currentView,
     viewerFallback,
@@ -133,6 +136,19 @@ export function useDashboardDataLayer() {
     },
     [navigate],
   );
+  const getBrandAssetDownloadUrlQuery = useCallback(
+    async (workspaceSlug: string, brandAssetId: string) => {
+      const result = await convex.query(api.settings.getBrandAssetDownloadUrl, {
+        workspaceSlug,
+        brandAssetId: asBrandAssetId(brandAssetId),
+      });
+      if (!result) {
+        return null;
+      }
+      return result.downloadUrl ?? null;
+    },
+    [convex],
+  );
 
   const workspaceActions = useDashboardWorkspaceActions({
     canCreateWorkspace,
@@ -161,6 +177,7 @@ export function useDashboardDataLayer() {
     finalizeBrandAssetUploadMutation,
     removeBrandAssetMutation,
     softDeleteWorkspaceMutation,
+    getBrandAssetDownloadUrlQuery,
     computeFileChecksumSha256,
     uploadFileToConvexStorage,
     asStorageId,
@@ -179,7 +196,7 @@ export function useDashboardDataLayer() {
     projects: data.projects,
     navigateToPath: navigateToPathWithReplace,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
-    companySettings: data.companySettings,
+    companySettings: data.companySummary,
     ensureOrganizationLinkAction,
     runWorkspaceSettingsReconciliation: workspaceActions.runWorkspaceSettingsReconciliation,
   });

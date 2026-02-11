@@ -18,6 +18,7 @@ export const useDashboardApiHandlers = () => {
   const updateTaskMutation = useMutation(api.tasks.update);
   const removeTaskMutation = useMutation(api.tasks.remove);
   const reorderTasksMutation = useMutation(api.tasks.reorder);
+  const applyTaskDiffMutation = useMutation(api.tasks.applyDiff);
   const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
   const finalizeProjectUploadAction = useAction(api.files.finalizeProjectUpload);
   const finalizePendingDraftAttachmentUploadAction = useAction(api.files.finalizePendingDraftAttachmentUpload);
@@ -64,6 +65,7 @@ export const useDashboardApiHandlers = () => {
       updateTaskMutation,
       removeTaskMutation,
       reorderTasksMutation,
+      applyTaskDiffMutation,
       generateUploadUrlMutation,
       finalizeProjectUploadAction,
       finalizePendingDraftAttachmentUploadAction,
@@ -96,6 +98,7 @@ export const useDashboardApiHandlers = () => {
       changeWorkspaceMemberRoleAction,
       createProjectMutation,
       createTaskMutation,
+      applyTaskDiffMutation,
       createWorkspaceMutation,
       discardPendingUploadMutation,
       discardPendingUploadsForSessionMutation,

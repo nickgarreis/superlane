@@ -93,7 +93,9 @@ export const reserveTaskPosition = async (
   if (nextTaskPosition === null) {
     const lastTask = await ctx.db
       .query("tasks")
-      .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", args.workspaceId))
+      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("projectDeletedAt", null),
+      )
       .order("desc")
       .first();
     nextTaskPosition = typeof lastTask?.position === "number" ? lastTask.position + 1 : 0;

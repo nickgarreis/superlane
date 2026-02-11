@@ -4,12 +4,18 @@ import type { api } from "../../../../convex/_generated/api";
 
 type AccountSettingsResult = FunctionReturnType<typeof api.settings.getAccountSettings> | undefined;
 type NotificationSettingsResult = FunctionReturnType<typeof api.settings.getNotificationPreferences> | undefined;
-type CompanySettingsResult = FunctionReturnType<typeof api.settings.getCompanySettings> | undefined;
+type CompanySummaryResult = FunctionReturnType<typeof api.settings.getCompanySettingsSummary> | undefined;
+type CompanyMemberRow = FunctionReturnType<typeof api.settings.listCompanyMembers>["page"][number];
+type CompanyPendingInvitationRow = FunctionReturnType<typeof api.settings.listPendingInvitations>["page"][number];
+type CompanyBrandAssetRow = FunctionReturnType<typeof api.settings.listBrandAssets>["page"][number];
 
 type UseDashboardSettingsDataArgs = {
   accountSettings: AccountSettingsResult;
   notificationSettings: NotificationSettingsResult;
-  companySettings: CompanySettingsResult;
+  companySummary: CompanySummaryResult;
+  companyMembersResult: { results: CompanyMemberRow[] } | undefined;
+  companyPendingInvitationsResult: { results: CompanyPendingInvitationRow[] } | undefined;
+  companyBrandAssetsResult: { results: CompanyBrandAssetRow[] } | undefined;
   fallbackAvatarUrl: string | null;
   user: {
     firstName?: string | null;
@@ -22,7 +28,10 @@ type UseDashboardSettingsDataArgs = {
 export const useDashboardSettingsData = ({
   accountSettings,
   notificationSettings,
-  companySettings,
+  companySummary,
+  companyMembersResult,
+  companyPendingInvitationsResult,
+  companyBrandAssetsResult,
   fallbackAvatarUrl,
   user,
 }: UseDashboardSettingsDataArgs) => {
@@ -62,16 +71,18 @@ export const useDashboardSettingsData = ({
 
   const settingsCompanyData = useMemo(
     () => {
-      if (!companySettings) {
+      if (!companySummary) {
         return null;
       }
 
-      const members = Array.isArray(companySettings.members) ? companySettings.members : [];
-      const pendingInvitations = Array.isArray(companySettings.pendingInvitations) ? companySettings.pendingInvitations : [];
-      const brandAssets = Array.isArray(companySettings.brandAssets) ? companySettings.brandAssets : [];
+      const members = Array.isArray(companyMembersResult?.results) ? companyMembersResult.results : [];
+      const pendingInvitations = Array.isArray(companyPendingInvitationsResult?.results)
+        ? companyPendingInvitationsResult.results
+        : [];
+      const brandAssets = Array.isArray(companyBrandAssetsResult?.results) ? companyBrandAssetsResult.results : [];
 
       return {
-        ...companySettings,
+        ...companySummary,
         members: members.filter(
           (member: unknown): member is NonNullable<(typeof members)[number]> => member !== null,
         ),
@@ -84,7 +95,12 @@ export const useDashboardSettingsData = ({
         ),
       };
     },
-    [companySettings],
+    [
+      companyBrandAssetsResult?.results,
+      companyMembersResult?.results,
+      companyPendingInvitationsResult?.results,
+      companySummary,
+    ],
   );
 
   return {

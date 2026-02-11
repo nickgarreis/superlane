@@ -90,7 +90,7 @@ export function InviteMemberForm({
               id={inviteRoleListboxId}
               role="listbox"
               aria-label="Invite role"
-              className="absolute right-0 top-full mt-1 w-[120px] bg-[#1A1A1C] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 top-full mt-1 w-[120px] bg-[#181818] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100"
             >
               {(["member", "admin"] as const).map((role) => (
                 <button

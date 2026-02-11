@@ -243,7 +243,7 @@ export function CreateWorkspacePopup({ isOpen, onClose, onCreate }: CreateWorksp
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className="cursor-pointer px-4 py-2 rounded-full bg-[#E8E8E8] text-[#141515] text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="cursor-pointer px-4 py-2 rounded-full bg-[#E8E8E8] text-[#141414] text-[13px] font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "Creating..." : "Create Workspace"}
                 </button>

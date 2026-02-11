@@ -32,10 +32,8 @@ type UseDashboardProjectActionsArgs = {
   removeProjectMutation: DashboardMutationHandler<typeof api.projects.remove>;
   setProjectStatusMutation: DashboardMutationHandler<typeof api.projects.setStatus>;
   updateReviewCommentsMutation: DashboardMutationHandler<typeof api.projects.updateReviewComments>;
-  createTaskMutation: DashboardMutationHandler<typeof api.tasks.create>;
-  updateTaskMutation: DashboardMutationHandler<typeof api.tasks.update>;
-  removeTaskMutation: DashboardMutationHandler<typeof api.tasks.remove>;
-  reorderTasksMutation: DashboardMutationHandler<typeof api.tasks.reorder>;
+  applyTaskDiffMutation: DashboardMutationHandler<typeof api.tasks.applyDiff>;
+  canReorderWorkspaceTasks: boolean;
   asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
 };
@@ -61,10 +59,8 @@ export const useDashboardProjectActions = ({
   removeProjectMutation,
   setProjectStatusMutation,
   updateReviewCommentsMutation,
-  createTaskMutation,
-  updateTaskMutation,
-  removeTaskMutation,
-  reorderTasksMutation,
+  applyTaskDiffMutation,
+  canReorderWorkspaceTasks,
   asPendingUploadId,
   omitUndefined,
 }: UseDashboardProjectActionsArgs): DashboardProjectActions => {
@@ -72,11 +68,9 @@ export const useDashboardProjectActions = ({
     activeWorkspaceId,
     projects,
     workspaceTasks,
+    canReorderWorkspaceTasks,
     viewerIdentity,
-    createTaskMutation,
-    updateTaskMutation,
-    removeTaskMutation,
-    reorderTasksMutation,
+    applyTaskDiffMutation,
   });
 
   const handleCreateProject = useCallback(async (

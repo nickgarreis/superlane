@@ -85,7 +85,7 @@ export function SidebarWorkspaceSwitcher({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5">
             {workspaces.map((workspace) => (
               <div
                 key={workspace.slug}

@@ -9,7 +9,7 @@ import type {
 } from "../../dashboard/types";
 import type { ProjectData, ViewerIdentity } from "../../types";
 import { formatProjectDeadlineShort } from "../../lib/dates";
-import svgPathsStatus from "../../../imports/svg-95p4xxlon7";
+import { StatusBadgeIcon } from "../status/StatusBadgeIcon";
 
 type ProjectOverviewProps = {
   project: ProjectData;
@@ -86,20 +86,16 @@ export function ProjectOverview({
           <div className="text-[12px] font-medium text-white/40 uppercase tracking-wide">Status</div>
           <div
             className={cn(
-              "flex gap-[6px] items-center relative shrink-0 px-3 py-1 rounded-full self-start select-none",
-              project.archived ? "opacity-80" : "",
+              "inline-flex items-center gap-[6px] relative shrink-0 px-0 py-[4px] rounded-[16777200px] self-start select-none",
             )}
-            style={{ backgroundColor: project.archived ? "rgba(156, 163, 175, 0.1)" : project.status.bgColor }}
           >
-            <div className="relative shrink-0 size-[16px]">
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                <g>
-                  <path d={svgPathsStatus.p2d5480} fill={project.archived ? "#9CA3AF" : project.status.color} />
-                  <path d={svgPathsStatus.pc8d3c00} fill={project.archived ? "#9CA3AF" : project.status.color} />
-                </g>
-              </svg>
-            </div>
-            <span className="text-[13px] leading-[20px] font-medium" style={{ color: project.archived ? "#9CA3AF" : project.status.color }}>
+            <StatusBadgeIcon
+              statusLabel={project.status.label}
+              archived={project.archived}
+              className="size-4 shrink-0"
+              color={project.archived ? "#9CA3AF" : "#29FD7D"}
+            />
+            <span className="text-[13px] leading-[20px] font-medium" style={{ color: project.archived ? "#9CA3AF" : "#29FD7D" }}>
               {project.archived ? "Archived" : project.status.label}
             </span>
           </div>

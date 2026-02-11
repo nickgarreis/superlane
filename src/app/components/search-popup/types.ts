@@ -48,6 +48,8 @@ export interface SearchPopupProps {
   onClose: () => void;
   projects: Record<string, ProjectData>;
   files: ProjectFileData[];
+  workspaceFilesPaginationStatus?: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMoreWorkspaceFiles?: (numItems: number) => void;
   onNavigate: (view: AppView) => void;
   onOpenCreateProject: () => void;
   onOpenSettings: (tab?: string) => void;

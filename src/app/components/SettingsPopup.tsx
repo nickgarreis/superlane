@@ -75,6 +75,7 @@ export function SettingsPopup({
   onRevokeInvitation,
   onUploadBrandAsset,
   onRemoveBrandAsset,
+  onGetBrandAssetDownloadUrl,
   onSoftDeleteWorkspace,
 }: SettingsPopupProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
@@ -197,6 +198,7 @@ export function SettingsPopup({
                       onRevokeInvitation={onRevokeInvitation}
                       onUploadBrandAsset={onUploadBrandAsset}
                       onRemoveBrandAsset={onRemoveBrandAsset}
+                      onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
                       onSoftDeleteWorkspace={onSoftDeleteWorkspace}
                     />
                   )}

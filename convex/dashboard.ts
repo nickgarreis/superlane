@@ -77,30 +77,39 @@ const hydrateProjectCreators = async (ctx: any, activeProjects: any[]) => {
   }));
 };
 
+const workspaceBootstrapHandler = async (ctx: any, args: { activeWorkspaceSlug?: string }) => {
+  const access = await getAccessibleWorkspaceContext(ctx, args);
+
+  if (!access.provisioned) {
+    return buildProvisioningContext(access.authUser);
+  }
+
+  return {
+    viewer: {
+      id: access.appUser._id,
+      workosUserId: access.appUser.workosUserId,
+      name: access.appUser.name,
+      email: access.appUser.email ?? null,
+      avatarUrl: await resolveAvatarUrl(ctx, access.appUser),
+    },
+    workspaces: access.workspaces,
+    activeWorkspace: access.activeWorkspace,
+    activeWorkspaceSlug: access.activeWorkspace?.slug ?? null,
+  };
+};
+
+export const getWorkspaceBootstrap = query({
+  args: {
+    activeWorkspaceSlug: v.optional(v.string()),
+  },
+  handler: workspaceBootstrapHandler,
+});
+
 export const getWorkspaceContext = query({
   args: {
     activeWorkspaceSlug: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const access = await getAccessibleWorkspaceContext(ctx, args);
-
-    if (!access.provisioned) {
-      return buildProvisioningContext(access.authUser);
-    }
-
-    return {
-      viewer: {
-        id: access.appUser._id,
-        workosUserId: access.appUser.workosUserId,
-        name: access.appUser.name,
-        email: access.appUser.email ?? null,
-        avatarUrl: await resolveAvatarUrl(ctx, access.appUser),
-      },
-      workspaces: access.workspaces,
-      activeWorkspace: access.activeWorkspace,
-      activeWorkspaceSlug: access.activeWorkspace?.slug ?? null,
-    };
-  },
+  handler: workspaceBootstrapHandler,
 });
 
 export const getActiveWorkspaceSummary = query({

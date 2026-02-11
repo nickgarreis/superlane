@@ -21,6 +21,7 @@ type SearchPopupResultsProps = {
   resultsRef: RefObject<HTMLDivElement>;
   longListStyle?: CSSProperties;
   itemPerformanceStyle?: CSSProperties;
+  onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   hasSearchQuery: boolean;
   hasResults: boolean;
   query: string;
@@ -43,6 +44,7 @@ export function SearchPopupResults({
   resultsRef,
   longListStyle,
   itemPerformanceStyle,
+  onScroll,
   hasSearchQuery,
   hasResults,
   query,
@@ -78,6 +80,7 @@ export function SearchPopupResults({
       ref={resultsRef}
       className="flex-1 overflow-y-auto overflow-x-hidden py-1.5 scrollbar-hide"
       style={longListStyle}
+      onScroll={onScroll}
     >
       {hasSearchQuery ? (
         hasResults ? (

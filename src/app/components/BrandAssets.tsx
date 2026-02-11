@@ -112,7 +112,7 @@ export function BrandAssets({ onToggleSidebar, isSidebarOpen }: { onToggleSideba
                                 <path d={svgPaths.p34261000} fill="black" fillOpacity="0.667" />
                             </svg>
                         </div>
-                        <span className="text-[13px] font-medium text-[#141415] leading-[19.5px]">
+                        <span className="text-[13px] font-medium text-[#141414] leading-[19.5px]">
                             Upload asset
                         </span>
                     </button>
@@ -139,7 +139,7 @@ export function BrandAssets({ onToggleSidebar, isSidebarOpen }: { onToggleSideba
                         {isSortOpen && (
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)} />
-                                <div className="absolute right-0 top-full mt-2 w-40 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20">
+                                <div className="absolute right-0 top-full mt-2 w-40 bg-[#181818] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20">
                                     <button
                                         onClick={() => {
                                             setSortBy("relevance");

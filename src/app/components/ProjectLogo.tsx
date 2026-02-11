@@ -3,7 +3,7 @@ import projectSvgPaths from "../../imports/svg-0erue6fqwq";
 import { imgGroup } from "../../imports/svg-p2kdi";
 
 // ── Service icon image imports ────────────────────────────────────
-import imgWebDesign from "figma:asset/820413fdaa936753e0f9da0659b241aa9b517efb.png";
+import imgWebDesign from "../../assets/web-design-service.avif";
 
 // ── Category → icon mapping ───────────────────────────────────────
 // Maps category strings (case-insensitive) to an image URL.

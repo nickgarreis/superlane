@@ -43,6 +43,17 @@ export const backfillWorkspaceDenormalizedFields = mutation({
       .query("projects")
       .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
       .collect();
+    const projectByPublicId = new Map(
+      projects.map((project: any) => [project.publicId, project]),
+    );
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const files = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
     const comments = await ctx.db
       .query("projectComments")
       .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
@@ -126,6 +137,46 @@ export const backfillWorkspaceDenormalizedFields = mutation({
       }
     }
 
+    let patchedTasks = 0;
+    for (const task of tasks) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const targetProject = typeof task.projectPublicId === "string"
+        ? projectByPublicId.get(task.projectPublicId) ?? null
+        : null;
+      const targetProjectDeletedAt = targetProject?.deletedAt ?? null;
+      if (task.projectDeletedAt === targetProjectDeletedAt) {
+        continue;
+      }
+
+      await ctx.db.patch(task._id, {
+        projectDeletedAt: targetProjectDeletedAt,
+      });
+      patchedTasks += 1;
+      remaining -= 1;
+    }
+
+    let patchedFiles = 0;
+    for (const file of files) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const targetProject = projectByPublicId.get(file.projectPublicId) ?? null;
+      const targetProjectDeletedAt = targetProject?.deletedAt ?? null;
+      if (file.projectDeletedAt === targetProjectDeletedAt) {
+        continue;
+      }
+
+      await ctx.db.patch(file._id, {
+        projectDeletedAt: targetProjectDeletedAt,
+      });
+      patchedFiles += 1;
+      remaining -= 1;
+    }
+
     const commentsById = new Map(
       comments.map((comment: any) => [String(comment._id), comment]),
     );
@@ -168,9 +219,11 @@ export const backfillWorkspaceDenormalizedFields = mutation({
     return {
       workspaceSlug: workspace.slug,
       maxPatches,
-      applied: patchedProjects + patchedComments + patchedReactions,
+      applied: patchedProjects + patchedComments + patchedTasks + patchedFiles + patchedReactions,
       patchedProjects,
       patchedComments,
+      patchedTasks,
+      patchedFiles,
       patchedReactions,
       exhaustedLimit: remaining === 0,
     };

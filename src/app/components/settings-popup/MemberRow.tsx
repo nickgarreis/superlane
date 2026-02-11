@@ -81,7 +81,7 @@ export function MemberRow({
                 <ChevronDown size={12} className="text-white/30" />
               </button>
               {isRoleDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1 w-[100px] bg-[#1A1A1C] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-1 w-[100px] bg-[#181818] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
                   {(["member", "admin"] as const).map((role) => (
                     <button
                       key={role}

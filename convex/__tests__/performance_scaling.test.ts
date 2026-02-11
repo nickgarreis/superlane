@@ -95,6 +95,7 @@ describe("performance scaling query contracts", () => {
             workspaceId,
             projectId: project.id,
             projectPublicId: project.publicId,
+            projectDeletedAt: null,
             taskId: `perf-task-${taskPosition + 1}`,
             title: `Perf task ${taskPosition + 1}`,
             assignee: { userId: String(ownerUserId), name: "Performance Owner", avatar: "" },
@@ -119,6 +120,7 @@ describe("performance scaling query contracts", () => {
             workspaceId,
             projectId: project.id,
             projectPublicId: project.publicId,
+            projectDeletedAt: null,
             tab: "Assets",
             name: `perf-file-${project.publicId}-${fileIndex}.png`,
             type: "PNG",
@@ -171,7 +173,7 @@ describe("performance scaling query contracts", () => {
   test("serves 5k-task scale with scoped payload contracts", async () => {
     const seeded = await seedLargeWorkspace();
 
-    const workspaceContext = await asOwner().query(api.dashboard.getWorkspaceContext, {
+    const workspaceContext = await asOwner().query(api.dashboard.getWorkspaceBootstrap, {
       activeWorkspaceSlug: seeded.workspaceSlug,
     });
     expect(workspaceContext.activeWorkspaceSlug).toBe(seeded.workspaceSlug);
@@ -186,21 +188,34 @@ describe("performance scaling query contracts", () => {
     expect(projectsPage.page).toHaveLength(PROJECT_COUNT);
     expect(projectsPage.isDone).toBe(true);
 
-    const tasksPage = await asOwner().query(api.tasks.listForWorkspace, {
+    const tasksFirstPage = await asOwner().query(api.tasks.listForWorkspace, {
       workspaceSlug: seeded.workspaceSlug,
-      paginationOpts: { cursor: null, numItems: 6000 },
+      paginationOpts: { cursor: null, numItems: 300 },
     });
-    expect(tasksPage.page).toHaveLength(PROJECT_COUNT * TASKS_PER_PROJECT);
-    expect(tasksPage.page[0]?.position).toBe(0);
-    expect(tasksPage.page[tasksPage.page.length - 1]?.position).toBe((PROJECT_COUNT * TASKS_PER_PROJECT) - 1);
-    expect(tasksPage.isDone).toBe(true);
+    expect(tasksFirstPage.page).toHaveLength(300);
+    expect(tasksFirstPage.page[0]?.position).toBe(0);
+    expect(tasksFirstPage.isDone).toBe(false);
+    expect(tasksFirstPage.continueCursor).toBeTypeOf("string");
 
-    const filesPage = await asOwner().query(api.files.listForWorkspace, {
+    const tasksSecondPage = await asOwner().query(api.tasks.listForWorkspace, {
       workspaceSlug: seeded.workspaceSlug,
-      paginationOpts: { cursor: null, numItems: 2500 },
+      paginationOpts: { cursor: tasksFirstPage.continueCursor, numItems: 300 },
     });
-    expect(filesPage.page).toHaveLength(PROJECT_COUNT * FILES_PER_PROJECT);
-    expect(filesPage.isDone).toBe(true);
+    expect(tasksSecondPage.page).toHaveLength(300);
+    expect(tasksSecondPage.page[0]?.position).toBe(300);
+
+    const filesFirstPage = await asOwner().query(api.files.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 250 },
+    });
+    expect(filesFirstPage.page).toHaveLength(250);
+    expect(filesFirstPage.isDone).toBe(false);
+
+    const filesSecondPage = await asOwner().query(api.files.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: filesFirstPage.continueCursor, numItems: 250 },
+    });
+    expect(filesSecondPage.page).toHaveLength(250);
 
     const comments = await asOwner().query(api.comments.listForProject, {
       projectPublicId: seeded.projectPublicIds[0],

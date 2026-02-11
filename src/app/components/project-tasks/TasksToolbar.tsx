@@ -75,7 +75,7 @@ export function TasksToolbar({
           </button>
 
           {isSortOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#1A1A1C] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-full mt-2 w-48 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
                 Sort by
               </div>

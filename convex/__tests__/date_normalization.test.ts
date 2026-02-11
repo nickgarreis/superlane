@@ -104,6 +104,7 @@ describe("P2.1 date normalization", () => {
         workspaceId,
         projectId,
         projectPublicId: "project-date-normalization",
+        projectDeletedAt: null,
         taskId: "task-1",
         title: "Task 1",
         assignee: {
@@ -212,6 +213,7 @@ describe("P2.1 date normalization", () => {
         workspaceId,
         projectId,
         projectPublicId: "project-date-normalization-legacy",
+        projectDeletedAt: null,
         taskId: "legacy-task",
         title: "Legacy Task",
         assignee: {
@@ -229,6 +231,7 @@ describe("P2.1 date normalization", () => {
         workspaceId,
         projectId,
         projectPublicId: "project-date-normalization-legacy",
+        projectDeletedAt: null,
         tab: "Assets",
         name: "legacy.fig",
         type: "fig",

@@ -160,6 +160,7 @@ describe("P0.1 RBAC and soft-delete", () => {
         workspaceId: workspace.workspaceId,
         projectId,
         projectPublicId,
+        projectDeletedAt: null,
         taskId: "task-1",
         title: "Task 1",
         assignee: {
@@ -177,6 +178,7 @@ describe("P0.1 RBAC and soft-delete", () => {
         workspaceId: workspace.workspaceId,
         projectId,
         projectPublicId,
+        projectDeletedAt: null,
         tab: "Assets",
         name: "file.txt",
         type: "TXT",

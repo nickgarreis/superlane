@@ -282,7 +282,7 @@ const enforceReviewCommentOwnership = (args: {
 const consumePendingUploadsForProject = async (
   ctx: any,
   args: {
-    project: { _id: any; workspaceId: any; publicId: string };
+    project: { _id: any; workspaceId: any; publicId: string; deletedAt?: number | null };
     appUserId: any;
     pendingUploadIds: any[];
   },
@@ -329,6 +329,7 @@ const consumePendingUploadsForProject = async (
       workspaceId: args.project.workspaceId,
       projectId: args.project._id,
       projectPublicId: args.project.publicId,
+      projectDeletedAt: args.project.deletedAt ?? null,
       tab: "Attachments",
       name: finalName,
       type: inferFileTypeFromName(finalName),
@@ -413,7 +414,7 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    const projectRef = { _id: projectId, workspaceId: workspace._id, publicId };
+    const projectRef = { _id: projectId, workspaceId: workspace._id, publicId, deletedAt: null };
     await consumePendingUploadsForProject(ctx, {
       project: projectRef,
       appUserId: appUser._id,
@@ -614,6 +615,7 @@ export const remove = mutation({
         .filter((file: any) => file.deletedAt == null)
         .map((file: any) =>
           ctx.db.patch(file._id, {
+            projectDeletedAt: now,
             deletedAt: now,
             deletedByUserId: appUser._id,
             purgeAfterAt: now + FILE_RETENTION_MS,
@@ -628,6 +630,19 @@ export const remove = mutation({
       deletedByUserId: appUser._id,
       updatedAt: now,
     });
+
+    const projectTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
+      .collect();
+
+    await Promise.all(
+      projectTasks.map((task: any) =>
+        ctx.db.patch(task._id, {
+          projectDeletedAt: now,
+          updatedAt: now,
+        })),
+    );
 
     return { publicId: args.publicId };
   },

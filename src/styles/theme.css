@@ -117,8 +117,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-bg-base: #121215;
-  --color-bg-surface: #181819;
+  --color-bg-base: #141414;
+  --color-bg-surface: #181818;
 }
 
 @layer base {
@@ -376,7 +376,7 @@
 }
 
 [data-sonner-toaster][data-theme="dark"] [data-sonner-toast] {
-  --normal-bg: #1A1A1C !important;
+  --normal-bg: #181818 !important;
   --normal-border: rgba(255,255,255,0.08) !important;
   --normal-text: #E8E8E8 !important;
 }

@@ -76,6 +76,8 @@ const baseProps = () => ({
   setIsSearchOpen: vi.fn(),
   projects: { [PROJECT.id]: PROJECT },
   allWorkspaceFiles: [],
+  workspaceFilesPaginationStatus: "Exhausted" as const,
+  loadMoreWorkspaceFiles: vi.fn(),
   navigateView: vi.fn(),
   openCreateProject: vi.fn(),
   searchPopupOpenSettings: vi.fn(),
@@ -121,7 +123,7 @@ const baseProps = () => ({
   settingsNotificationsData: null,
   settingsCompanyData: null,
   resolvedWorkspaceSlug: "primary",
-  companySettings: {},
+  companySummary: {},
   handleUpdateWorkspaceGeneral: vi.fn(),
   handleUploadWorkspaceLogo: vi.fn(),
   handleInviteWorkspaceMember: vi.fn(),
@@ -131,6 +133,7 @@ const baseProps = () => ({
   handleRevokeWorkspaceInvitation: vi.fn(),
   handleUploadWorkspaceBrandAsset: vi.fn(),
   handleRemoveWorkspaceBrandAsset: vi.fn(),
+  handleGetWorkspaceBrandAssetDownloadUrl: vi.fn(),
   handleSoftDeleteWorkspace: vi.fn(),
 });
 

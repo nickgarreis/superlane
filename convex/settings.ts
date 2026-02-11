@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { authKit } from "./auth";
 import { requireAuthUser, requireWorkspaceRole } from "./lib/auth";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
@@ -94,6 +95,73 @@ const getResolvedAvatarUrl = async (ctx: any, user: any): Promise<string | null>
 };
 
 const workspaceRoleValidator = v.union(v.literal("admin"), v.literal("member"));
+
+const resolveCompanySettingsAccess = async (
+  ctx: any,
+  workspaceSlug: string,
+) => {
+  const workspace = await getWorkspaceBySlug(ctx, workspaceSlug);
+  const access = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+  return { workspace, access };
+};
+
+const mapCompanySummary = (workspace: any, role: "owner" | "admin" | "member") => ({
+  workspace: {
+    id: String(workspace._id),
+    slug: workspace.slug,
+    name: workspace.name,
+    plan: workspace.plan,
+    logo: workspace.logo ?? null,
+    logoColor: workspace.logoColor ?? null,
+    logoText: workspace.logoText ?? null,
+    workosOrganizationId: workspace.workosOrganizationId ?? null,
+  },
+  capability: {
+    hasOrganizationLink: Boolean(workspace.workosOrganizationId),
+    canManageWorkspaceGeneral: hasRequiredWorkspaceRole(role, "admin"),
+    canManageMembers: hasRequiredWorkspaceRole(role, "admin"),
+    canManageBrandAssets: hasRequiredWorkspaceRole(role, "admin"),
+    canDeleteWorkspace: role === "owner",
+  },
+  viewerRole: role,
+});
+
+const mapMembershipRowsToMembers = async (ctx: any, membershipRows: any[]) => {
+  const uniqueUserIds = Array.from(new Set(membershipRows.map((membership: any) => String(membership.userId))));
+  const userRows = await Promise.all(uniqueUserIds.map(async (userId) => {
+    const sampleMembership = membershipRows.find((membership: any) => String(membership.userId) === userId);
+    if (!sampleMembership) {
+      return null;
+    }
+    const user = await ctx.db.get(sampleMembership.userId);
+    if (!user) {
+      return null;
+    }
+    return [userId, user] as const;
+  }));
+  const userById = new Map(userRows.filter((entry): entry is readonly [string, any] => entry !== null));
+  const avatarByUserId = new Map<string, string | null>(
+    await Promise.all(Array.from(userById.entries()).map(async ([userId, user]) => [
+      userId,
+      await getResolvedAvatarUrl(ctx, user),
+    ] as const)),
+  );
+
+  return membershipRows.map((membership: any) => {
+    const user = userById.get(String(membership.userId));
+    if (!user) {
+      return null;
+    }
+    return {
+      userId: String(user._id),
+      name: user.name,
+      email: user.email ?? "",
+      role: membership.role,
+      status: membership.status,
+      avatarUrl: avatarByUserId.get(String(membership.userId)) ?? null,
+    };
+  }).filter((member: any) => member !== null);
+};
 
 export const getAccountSettings = query({
   args: {},
@@ -258,39 +326,21 @@ export const getCompanySettings = query({
     workspaceSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    const access = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const { workspace, access } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
 
     const membershipRows = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .withIndex("by_workspace_status_joinedAt", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("status", "active"))
       .collect();
-
-    const activeMemberships = membershipRows
-      .filter((membership: any) => membership.status === "active")
-      .sort((a: any, b: any) => a.createdAt - b.createdAt);
-
-    const members = await Promise.all(activeMemberships.map(async (membership: any) => {
-      const user: any = await ctx.db.get(membership.userId);
-      if (!user) {
-        return null;
-      }
-
-      return {
-        userId: String(user._id),
-        name: user.name,
-        email: user.email ?? "",
-        role: membership.role,
-        status: membership.status,
-        avatarUrl: await getResolvedAvatarUrl(ctx, user),
-      };
-    }));
+    const members = await mapMembershipRowsToMembers(ctx, membershipRows);
 
     const pendingInvitations = (await ctx.db
       .query("workspaceInvitations")
-      .withIndex("by_workspace_state", (q: any) => q.eq("workspaceId", workspace._id).eq("state", "pending"))
+      .withIndex("by_workspace_state_createdAt", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("state", "pending"))
+      .order("desc")
       .collect())
-      .sort((a: any, b: any) => b.createdAt - a.createdAt)
       .map((invitation: any) => ({
         invitationId: invitation.invitationId,
         email: invitation.email,
@@ -301,42 +351,130 @@ export const getCompanySettings = query({
 
     const brandAssets = (await ctx.db
       .query("workspaceBrandAssets")
-      .withIndex("by_workspace_deletedAt", (q: any) => q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+      .order("desc")
       .collect())
-      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt));
-
-    const mappedBrandAssets = await Promise.all(brandAssets.map(async (asset: any) => ({
+      .map((asset: any) => ({
       id: String(asset._id),
       name: asset.name,
       type: asset.type,
       displayDateEpochMs: asset.displayDateEpochMs,
       sizeBytes: asset.sizeBytes,
       mimeType: asset.mimeType,
-      downloadUrl: (await ctx.storage.getUrl(asset.storageId)) ?? null,
-    })));
+      downloadUrl: null,
+    }));
 
     return {
-      workspace: {
-        id: String(workspace._id),
-        slug: workspace.slug,
-        name: workspace.name,
-        plan: workspace.plan,
-        logo: workspace.logo ?? null,
-        logoColor: workspace.logoColor ?? null,
-        logoText: workspace.logoText ?? null,
-        workosOrganizationId: workspace.workosOrganizationId ?? null,
-      },
-      capability: {
-        hasOrganizationLink: Boolean(workspace.workosOrganizationId),
-        canManageWorkspaceGeneral: hasRequiredWorkspaceRole(access.membership.role, "admin"),
-        canManageMembers: hasRequiredWorkspaceRole(access.membership.role, "admin"),
-        canManageBrandAssets: hasRequiredWorkspaceRole(access.membership.role, "admin"),
-        canDeleteWorkspace: access.membership.role === "owner",
-      },
-      members: members.filter(Boolean),
+      ...mapCompanySummary(workspace, access.membership.role),
+      members,
       pendingInvitations,
-      brandAssets: mappedBrandAssets,
-      viewerRole: access.membership.role,
+      brandAssets,
+    };
+  },
+});
+
+export const getCompanySettingsSummary = query({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { workspace, access } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
+    return mapCompanySummary(workspace, access.membership.role);
+  },
+});
+
+export const listCompanyMembers = query({
+  args: {
+    workspaceSlug: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
+    const paginated = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_status_joinedAt", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("status", "active"))
+      .paginate(args.paginationOpts);
+
+    const members = await mapMembershipRowsToMembers(ctx, paginated.page);
+    return {
+      ...paginated,
+      page: members,
+    };
+  },
+});
+
+export const listPendingInvitations = query({
+  args: {
+    workspaceSlug: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
+    const paginated = await ctx.db
+      .query("workspaceInvitations")
+      .withIndex("by_workspace_state_createdAt", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("state", "pending"))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    return {
+      ...paginated,
+      page: paginated.page.map((invitation: any) => ({
+        invitationId: invitation.invitationId,
+        email: invitation.email,
+        state: invitation.state,
+        requestedRole: invitation.requestedRole ?? "member",
+        expiresAt: invitation.expiresAt,
+      })),
+    };
+  },
+});
+
+export const listBrandAssets = query({
+  args: {
+    workspaceSlug: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
+    const paginated = await ctx.db
+      .query("workspaceBrandAssets")
+      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    return {
+      ...paginated,
+      page: paginated.page.map((asset: any) => ({
+        id: String(asset._id),
+        name: asset.name,
+        type: asset.type,
+        displayDateEpochMs: asset.displayDateEpochMs,
+        sizeBytes: asset.sizeBytes,
+        mimeType: asset.mimeType,
+        downloadUrl: null,
+      })),
+    };
+  },
+});
+
+export const getBrandAssetDownloadUrl = query({
+  args: {
+    workspaceSlug: v.string(),
+    brandAssetId: v.id("workspaceBrandAssets"),
+  },
+  handler: async (ctx, args) => {
+    const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
+    const asset = await ctx.db.get(args.brandAssetId);
+    if (!asset || String(asset.workspaceId) !== String(workspace._id) || asset.deletedAt != null) {
+      throw new ConvexError("Brand asset not found");
+    }
+
+    return {
+      downloadUrl: (await ctx.storage.getUrl(asset.storageId)) ?? null,
     };
   },
 });

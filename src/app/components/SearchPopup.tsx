@@ -39,6 +39,8 @@ export function SearchPopup({
   onClose,
   projects,
   files,
+  workspaceFilesPaginationStatus = "Exhausted",
+  loadMoreWorkspaceFiles,
   onNavigate,
   onOpenCreateProject,
   onOpenSettings,
@@ -46,6 +48,7 @@ export function SearchPopup({
 }: SearchPopupProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef<boolean>(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -90,6 +93,7 @@ export function SearchPopup({
 
   useEffect(() => {
     if (!isOpen) {
+      isLoadingRef.current = false;
       return;
     }
     setQuery("");
@@ -154,6 +158,12 @@ export function SearchPopup({
   });
 
   useEffect(() => {
+    if (workspaceFilesPaginationStatus !== "LoadingMore") {
+      isLoadingRef.current = false;
+    }
+  }, [workspaceFilesPaginationStatus]);
+
+  useEffect(() => {
     if (!resultsRef.current) {
       return;
     }
@@ -172,6 +182,27 @@ export function SearchPopup({
   }, [hasSearchQuery, trackRecent, trackRecentSearch, trimmedQuery]);
 
   const hasResults = flatResults.length > 0;
+  const handleResultsScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    if (
+      isLoadingRef.current
+      || !hasSearchQuery
+      || workspaceFilesPaginationStatus !== "CanLoadMore"
+      || !loadMoreWorkspaceFiles
+    ) {
+      return;
+    }
+
+    const element = event.currentTarget;
+    const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
+    if (remaining <= 220) {
+      isLoadingRef.current = true;
+      loadMoreWorkspaceFiles(100);
+    }
+  }, [
+    hasSearchQuery,
+    loadMoreWorkspaceFiles,
+    workspaceFilesPaginationStatus,
+  ]);
 
   return (
     <AnimatePresence>
@@ -197,6 +228,7 @@ export function SearchPopup({
               resultsRef={resultsRef}
               longListStyle={longListStyle}
               itemPerformanceStyle={itemPerformanceStyle}
+              onScroll={handleResultsScroll}
               hasSearchQuery={hasSearchQuery}
               hasResults={hasResults}
               query={query}

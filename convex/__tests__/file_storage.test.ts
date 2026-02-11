@@ -305,6 +305,7 @@ describe("P0.2 file storage pipeline", () => {
           workspaceId: workspace.workspaceId,
           projectId: project.projectId,
           projectPublicId: project.projectPublicId,
+          projectDeletedAt: null,
           tab: "Assets",
           name: `seed-${i}.pdf`,
           type: "PDF",
@@ -515,6 +516,7 @@ describe("P0.2 file storage pipeline", () => {
         workspaceId: workspace.workspaceId,
         projectId: project.projectId,
         projectPublicId: project.projectPublicId,
+        projectDeletedAt: null,
         tab: "Assets",
         name: "expired.pdf",
         type: "PDF",
@@ -547,6 +549,7 @@ describe("P0.2 file storage pipeline", () => {
         workspaceId: workspace.workspaceId,
         projectId: project.projectId,
         projectPublicId: project.projectPublicId,
+        projectDeletedAt: null,
         tab: "Assets",
         name: "legacy.txt",
         type: "TXT",
@@ -577,6 +580,7 @@ describe("P0.2 file storage pipeline", () => {
     const execute = await asOwner().mutation(internal.files.runLegacyMetadataCleanup, {
       dryRun: false,
       batchSize: 10,
+      confirmToken: "I_KNOW_WHAT_I_AM_DOING",
     });
     expect(execute.deletedCount).toBe(1);
 

@@ -33,6 +33,8 @@ interface MainContentProps {
   isSidebarOpen: boolean;
   project: ProjectData;
   projectFiles: ProjectFileData[];
+  projectFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMoreProjectFiles: (numItems: number) => void;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
   fileActions: MainContentFileActions;
@@ -48,6 +50,8 @@ export function MainContent({
   isSidebarOpen,
   project,
   projectFiles,
+  projectFilesPaginationStatus,
+  loadMoreProjectFiles,
   workspaceMembers,
   viewerIdentity,
   fileActions,
@@ -114,6 +118,7 @@ export function MainContent({
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const canMutateProjectFiles =
     !project.archived && project.status.label !== "Completed" && !project.completedAt;
   const fileMutationDisabledMessage = "Files can only be modified for active projects";
@@ -172,6 +177,18 @@ export function MainContent({
   const canCreateProjectTasks =
     !project.archived && project.status.label === "Active" && !project.completedAt;
 
+  const handleMainContentScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    if (projectFilesPaginationStatus !== "CanLoadMore") {
+      return;
+    }
+
+    const element = event.currentTarget;
+    const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
+    if (remaining <= 240) {
+      loadMoreProjectFiles(100);
+    }
+  }, [loadMoreProjectFiles, projectFilesPaginationStatus]);
+
   return (
     <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
       <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
@@ -180,7 +197,11 @@ export function MainContent({
           <HorizontalBorder onToggleSidebar={onToggleSidebar} onToggleChat={handleOpenChat} />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-[80px] py-[40px]">
+        <div
+          ref={contentScrollRef}
+          className="flex-1 overflow-y-auto px-[80px] py-[40px]"
+          onScroll={handleMainContentScroll}
+        >
           <ProjectOverview
             project={project}
             viewerIdentity={viewerIdentity}

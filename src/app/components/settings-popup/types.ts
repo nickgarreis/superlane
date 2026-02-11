@@ -106,6 +106,7 @@ export interface SettingsPopupProps {
 
   onUploadBrandAsset: (file: File) => Promise<void>;
   onRemoveBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
+  onGetBrandAssetDownloadUrl: (payload: { brandAssetId: string }) => Promise<string | null>;
   onSoftDeleteWorkspace: () => Promise<void>;
 }
 
