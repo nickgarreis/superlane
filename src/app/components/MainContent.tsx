@@ -121,6 +121,19 @@ export function MainContent({
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const handleSetActiveTab = useCallback((tab: ProjectFileTab) => {
+    const previousScrollTop = contentScrollRef.current?.scrollTop;
+    setActiveTab(tab);
+    if (previousScrollTop == null) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      if (!contentScrollRef.current) {
+        return;
+      }
+      contentScrollRef.current.scrollTop = previousScrollTop;
+    });
+  }, []);
   const canMutateProjectFiles =
     !project.archived &&
     project.status.label !== "Completed" &&
@@ -197,7 +210,7 @@ export function MainContent({
   );
   return (
     <div className="flex-1 h-full bg-bg-base txt-tone-primary overflow-hidden font-app flex flex-col relative">
-      <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
+      <div className="relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         <div className="w-full h-[57px] shrink-0">
           <HorizontalBorder
             onToggleSidebar={onToggleSidebar}
@@ -231,9 +244,8 @@ export function MainContent({
             editTaskDisabledMessage="Tasks can only be edited for active projects"
           />
           <FileSection
-            projectId={project.id}
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleSetActiveTab}
             handleUploadClick={handleUploadClick}
             fileInputRef={fileInputRef}
             handleFileChange={handleFileChange}
@@ -260,7 +272,7 @@ export function MainContent({
             filteredFilesLength={filteredFiles.length}
           />
         </div>
-        <div className="absolute inset-0 z-50 pointer-events-none rounded-[32px] overflow-hidden">
+        <div className="absolute inset-0 z-50 pointer-events-none rounded-none overflow-hidden">
           {(hasLoadedChatSidebar || isChatOpen) && (
             <Suspense fallback={null}>
               <LazyChatSidebar

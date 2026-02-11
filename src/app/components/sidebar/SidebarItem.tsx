@@ -60,11 +60,11 @@ export const SidebarItem = React.memo(function SidebarItem({
       ref={ref}
       style={{ opacity: isDragging ? 0.5 : 1 }}
       className={cn(
-        "h-[34px] flex items-center px-3 rounded-lg cursor-pointer transition-all duration-150 group select-none relative shrink-0",
+        "h-[34px] flex items-center px-3 rounded-[999px] cursor-pointer transition-all duration-150 group select-none relative shrink-0",
         className,
         isActive
-          ? "bg-white/[0.08] txt-tone-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-          : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/[0.04]",
+          ? "bg-[#E8E8E8]/[0.08] txt-tone-primary"
+          : "txt-tone-subtle hover:txt-tone-primary hover:bg-[#E8E8E8]/[0.08]",
       )}
       onClick={onClick}
       onMouseEnter={onIntent}
@@ -94,12 +94,12 @@ export const SidebarItem = React.memo(function SidebarItem({
         </span>
       )}
       {isDraft && (
-        <span className="flex items-center txt-role-kbd font-medium txt-tone-accent bg-[#58AFFF]/10 px-2 py-0.5 rounded-full ml-2 shrink-0 whitespace-nowrap">
-          Continue
+        <span className="inline-flex h-[19px] items-center py-[2px] txt-role-kbd font-medium txt-tone-accent ml-2 shrink-0 whitespace-nowrap">
+          Draft
         </span>
       )}
       {isReview && (
-        <span className="flex items-center txt-role-kbd font-medium txt-tone-muted bg-[#f97316]/10 px-2 py-0.5 rounded-full ml-2 shrink-0 whitespace-nowrap">
+        <span className="inline-flex h-[19px] items-center py-[2px] txt-role-kbd font-medium txt-tone-muted ml-2 shrink-0 whitespace-nowrap">
           In Review
         </span>
       )}

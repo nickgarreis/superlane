@@ -39,7 +39,7 @@ export function SidebarPrimaryActions({
         label="Create Project"
         onClick={onOpenCreateProject}
         onIntent={onOpenCreateProjectIntent}
-        className="txt-tone-accent hover:txt-tone-accent hover:bg-[#58AFFF]/10 mt-1"
+        className="txt-tone-accent hover:txt-tone-accent mt-1"
       />
     </div>
   );

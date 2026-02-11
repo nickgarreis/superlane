@@ -91,9 +91,9 @@ export function StepReview({
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="size-[36px] rounded-full bg-[#f97316]/10 flex items-center justify-center shrink-0"
+            className="size-[36px] rounded-full bg-review-loading-soft flex items-center justify-center shrink-0"
           >
-            <Loading03 className="size-[18px] animate-spin [animation-duration:4s] [--stroke-0:#f97316]" />
+            <Loading03 className="size-[18px] animate-spin [animation-duration:4s] [--stroke-0:var(--review-loading)]" />
           </motion.div>
           <motion.div
             initial={{ y: 6, opacity: 0 }}
@@ -111,7 +111,7 @@ export function StepReview({
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25, duration: 0.35 }}
-          className="w-full rounded-[16px] bg-[rgba(232,232,232,0.03)] border border-[rgba(232,232,232,0.06)] p-[20px] mb-[28px]"
+          className="w-full rounded-[16px] bg-popup-surface-softer border border-popup-border-subtle p-[20px] mb-[28px]"
         >
           <div className="grid grid-cols-2 gap-y-[16px] gap-x-[24px]">
             <div className="flex flex-col gap-[4px]">
@@ -175,7 +175,7 @@ export function StepReview({
           </p>
           <div className="flex items-start gap-[10px] mb-[16px]">
             <div className="shrink-0 pt-[3px]">
-              <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
+              <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
                 {user?.avatar && (
                   <img
                     src={user.avatar}
@@ -202,14 +202,14 @@ export function StepReview({
               <button
                 onClick={onAddComment}
                 disabled={!commentInput.trim()}
-                className="shrink-0 size-[32px] rounded-full bg-[#e8e8e8] hover:bg-white flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="shrink-0 size-[32px] rounded-full bg-text-tone-primary hover:bg-white flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <svg
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#131314"
+                  stroke="var(--color-bg-surface)"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -228,7 +228,7 @@ export function StepReview({
                   className="group/comment flex items-start gap-[10px] py-[10px] px-[2px] rounded-xl"
                 >
                   <div className="shrink-0 pt-[1px]">
-                    <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
+                    <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
                       {comment.author.avatar && (
                         <img
                           src={comment.author.avatar}
@@ -282,8 +282,8 @@ export function StepReview({
                         fill="none"
                         stroke={
                           user?.userId && comment.author.userId === user.userId
-                            ? "rgba(232,232,232,0.35)"
-                            : "rgba(232,232,232,0.2)"
+                            ? "var(--popup-icon-stroke-active)"
+                            : "var(--popup-icon-stroke-muted)"
                         }
                         strokeWidth="2"
                         strokeLinecap="round"
@@ -311,7 +311,7 @@ export function StepReview({
             Here&#39;s what happens next:
           </p>
           <div className="flex flex-col relative">
-            <div className="absolute left-[11px] top-[24px] bottom-[24px] w-px bg-[rgba(232,232,232,0.06)]" />
+            <div className="absolute left-[11px] top-[24px] bottom-[24px] w-px bg-popup-border-subtle" />
             {NEXT_STEPS.map((item, idx) => (
               <motion.div
                 key={item.num}
@@ -320,7 +320,7 @@ export function StepReview({
                 transition={{ delay: 0.5 + idx * 0.08, duration: 0.3 }}
                 className={`flex gap-[12px] ${idx < NEXT_STEPS.length - 1 ? "pb-[20px]" : ""}`}
               >
-                <div className="size-[22px] rounded-full bg-[rgba(232,232,232,0.06)] flex items-center justify-center shrink-0 z-10">
+                <div className="size-[22px] rounded-full bg-popup-border-subtle flex items-center justify-center shrink-0 z-10">
                   <span className="txt-role-meta txt-tone-subtle font-medium">
                     {item.num}
                   </span>
@@ -343,7 +343,7 @@ export function StepReview({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.85, duration: 0.3 }}
-        className="shrink-0 px-[33px] py-[20px] border-t border-[rgba(232,232,232,0.06)] flex justify-between items-center"
+        className="shrink-0 px-[33px] py-[20px] border-t border-popup-border-subtle flex justify-between items-center"
       >
         <DeniedAction
           denied={!canDeleteReviewProject}
@@ -352,7 +352,7 @@ export function StepReview({
         >
           <button
             onClick={onRequestDeleteProject}
-            className={`content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-[rgba(255,59,48,0.06)] transition-all ${canDeleteReviewProject ? "opacity-80 hover:opacity-100 cursor-pointer" : "opacity-45 cursor-not-allowed"}`}
+            className={`content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-popup-danger-soft transition-all ${canDeleteReviewProject ? "opacity-80 hover:opacity-100 cursor-pointer" : "opacity-45 cursor-not-allowed"}`}
           >
             <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-tone-danger txt-role-body-lg text-center whitespace-nowrap">
               <p className="txt-leading-body">Delete project</p>
@@ -369,7 +369,7 @@ export function StepReview({
               <button
                 onClick={onApproveReview}
                 disabled={isApprovingReview}
-                className={`h-[36px] px-[20px] txt-tone-inverse rounded-full txt-role-body-lg font-medium transition-all ${canApproveReviewProject ? "bg-[#e8e8e8] hover:bg-white disabled:bg-[#e8e8e8]/50 disabled:txt-tone-inverse disabled:cursor-not-allowed cursor-pointer" : "bg-[#e8e8e8]/45 txt-tone-inverse cursor-not-allowed"}`}
+                className={`h-[36px] px-[20px] txt-tone-inverse rounded-full txt-role-body-lg font-medium transition-all ${canApproveReviewProject ? "bg-text-tone-primary hover:bg-white disabled:bg-popup-primary-disabled disabled:txt-tone-inverse disabled:cursor-not-allowed cursor-pointer" : "bg-popup-primary-disabled-45 txt-tone-inverse cursor-not-allowed"}`}
               >
                 {isApprovingReview ? "Approving..." : "Approve"}
               </button>
@@ -377,7 +377,7 @@ export function StepReview({
           )}
           <button
             onClick={onClose}
-            className={`h-[36px] px-[20px] rounded-full txt-role-body-lg font-medium transition-all cursor-pointer ${canRenderReviewApprovalAction ? "border border-[rgba(232,232,232,0.2)] txt-tone-primary hover:bg-white/5" : "bg-[#e8e8e8] hover:bg-white txt-tone-inverse"}`}
+            className={`h-[36px] px-[20px] rounded-full txt-role-body-lg font-medium transition-all cursor-pointer ${canRenderReviewApprovalAction ? "border border-popup-border-stronger txt-tone-primary hover:bg-white/5" : "bg-text-tone-primary hover:bg-white txt-tone-inverse"}`}
           >
             Close
           </button>

@@ -232,7 +232,7 @@ export function CommentActions({
                   top: menuPos.top,
                   left: menuPos.left,
                 }}
-                className="bg-[#1E1F20] border border-white/10 rounded-lg shadow-xl shadow-black/40 overflow-hidden py-1 z-[9999] w-[120px]"
+                className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-[9999] w-[140px]"
                 onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                   event.stopPropagation()
                 }
@@ -243,18 +243,24 @@ export function CommentActions({
                     onSetEditValue(comment.content);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full px-3 py-1.5 text-left txt-role-body-sm text-white/70 hover:bg-white/5 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer txt-tone-muted"
                 >
-                  <Pencil className="w-3 h-3" /> Edit
+                  <Pencil className="w-3.5 h-3.5 shrink-0 text-white/60" />
+                  <span className="group-hover:text-white transition-colors">
+                    Edit
+                  </span>
                 </button>
                 <button
                   onClick={() => {
                     onDeleteComment(comment.id);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full px-3 py-1.5 text-left txt-role-body-sm text-red-400/70 hover:bg-red-500/10 hover:text-red-400 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer text-red-400/75"
                 >
-                  <Trash2 className="w-3 h-3" /> Delete
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="group-hover:text-red-300 transition-colors">
+                    Delete
+                  </span>
                 </button>
               </motion.div>
             )}

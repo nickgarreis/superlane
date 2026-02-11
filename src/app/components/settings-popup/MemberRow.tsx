@@ -1,4 +1,4 @@
-import { ChevronDown, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { WorkspaceRole } from "../../types";
@@ -95,46 +95,65 @@ export function MemberRow({
                   setIsRoleDropdownOpen((current) => !current);
                 }}
                 disabled={isMemberManagementDenied}
-                className="flex items-center gap-1.5 px-2 py-1 txt-role-body-sm txt-tone-muted hover:txt-tone-primary rounded-md hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-transparent"
+                className="flex items-center gap-1.5 px-2 py-1 txt-role-body-sm txt-tone-muted rounded-md transition-colors cursor-pointer hover:bg-white/[0.04] disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 {member.role}
-                <ChevronDown size={12} className="text-white/30" />
+                <ChevronDown
+                  size={12}
+                  className={cn(
+                    "text-white/30 transition-transform duration-200",
+                    isRoleDropdownOpen && "rotate-180",
+                  )}
+                />
               </button>
               {isRoleDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1 w-[100px] bg-[#181818] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
-                  {(["member", "admin"] as const).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={async () => {
-                        setIsRoleDropdownOpen(false);
-                        if (role === member.role) {
-                          return;
-                        }
-                        try {
-                          await onChangeMemberRole({
-                            userId: member.userId,
-                            role,
-                          });
-                        } catch (error) {
-                          reportUiError(
-                            "settings.members.changeRole.memberRow",
-                            error,
-                            { showToast: false },
-                          );
-                          toast.error("Failed to update member role");
-                        }
-                      }}
-                      className={cn(
-                        "w-full px-3 py-1.5 text-left txt-role-body-sm cursor-pointer transition-colors",
-                        role === member.role
-                          ? "txt-tone-primary bg-white/5"
-                          : "txt-tone-subtle hover:bg-white/5 hover:txt-tone-primary",
-                      )}
-                    >
-                      {role}
-                    </button>
-                  ))}
+                <div className="absolute right-0 top-full mt-1 w-[140px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="py-1">
+                    {(["member", "admin"] as const).map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={async () => {
+                          setIsRoleDropdownOpen(false);
+                          if (role === member.role) {
+                            return;
+                          }
+                          try {
+                            await onChangeMemberRole({
+                              userId: member.userId,
+                              role,
+                            });
+                          } catch (error) {
+                            reportUiError(
+                              "settings.members.changeRole.memberRow",
+                              error,
+                              { showToast: false },
+                            );
+                            toast.error("Failed to update member role");
+                          }
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                          role === member.role
+                            ? "text-white bg-white/[0.04]"
+                            : "txt-tone-muted",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "truncate",
+                            role !== member.role &&
+                              "group-hover:text-white transition-colors",
+                          )}
+                        >
+                          {role}
+                        </span>
+                        {role === member.role && (
+                          <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-auto" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

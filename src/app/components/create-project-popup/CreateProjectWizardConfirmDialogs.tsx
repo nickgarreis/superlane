@@ -134,7 +134,7 @@ export function CreateProjectWizardConfirmDialogs({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
+              className="bg-bg-popup rounded-[24px] p-[24px] w-full max-w-[340px] shadow-popup-dialog border border-popup-border-subtle"
               onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                 e.stopPropagation()
               }
@@ -159,14 +159,14 @@ export function CreateProjectWizardConfirmDialogs({
                 <button
                   type="button"
                   onClick={handleConfirmCancel}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full border border-popup-border-soft txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmSave}
-                  className="h-[36px] px-[17px] rounded-full bg-[#e8e8e8] hover:bg-white txt-tone-inverse txt-role-body-lg font-medium transition-all cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full bg-text-tone-primary hover:bg-white txt-tone-inverse txt-role-body-lg font-medium transition-all cursor-pointer"
                 >
                   {editProjectId ? "Save progress" : "Save draft"}
                 </button>
@@ -190,7 +190,7 @@ export function CreateProjectWizardConfirmDialogs({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
+              className="bg-bg-popup rounded-[24px] p-[24px] w-full max-w-[340px] shadow-popup-dialog border border-popup-border-subtle"
               onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                 e.stopPropagation()
               }
@@ -205,13 +205,13 @@ export function CreateProjectWizardConfirmDialogs({
               <div className="flex gap-[10px] justify-end">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full border border-popup-border-soft txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDelete}
-                  className="h-[36px] px-[17px] rounded-full bg-[rgba(255,59,48,0.12)] hover:bg-[rgba(255,59,48,0.2)] txt-tone-danger txt-role-body-lg font-medium transition-all cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full bg-popup-danger-soft-strong hover:bg-popup-danger-soft-hover txt-tone-danger txt-role-body-lg font-medium transition-all cursor-pointer"
                 >
                   Delete draft
                 </button>
@@ -235,7 +235,7 @@ export function CreateProjectWizardConfirmDialogs({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="bg-[#1e1f20] rounded-[24px] p-[24px] w-full max-w-[340px] shadow-[0px_12px_40px_0px_rgba(0,0,0,0.3)] border border-[rgba(232,232,232,0.06)]"
+              className="bg-bg-popup rounded-[24px] p-[24px] w-full max-w-[340px] shadow-popup-dialog border border-popup-border-subtle"
               onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                 e.stopPropagation()
               }
@@ -250,13 +250,13 @@ export function CreateProjectWizardConfirmDialogs({
               <div className="flex gap-[10px] justify-end">
                 <button
                   onClick={() => setShowDeleteProjectConfirm(false)}
-                  className="h-[36px] px-[17px] rounded-full border border-[rgba(232,232,232,0.1)] txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full border border-popup-border-soft txt-role-body-lg font-medium txt-tone-primary hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDeleteProject}
-                  className="h-[36px] px-[17px] rounded-full bg-[rgba(255,59,48,0.12)] hover:bg-[rgba(255,59,48,0.2)] txt-tone-danger txt-role-body-lg font-medium transition-all cursor-pointer"
+                  className="h-[36px] px-[17px] rounded-full bg-popup-danger-soft-strong hover:bg-popup-danger-soft-hover txt-tone-danger txt-role-body-lg font-medium transition-all cursor-pointer"
                 >
                   Delete project
                 </button>

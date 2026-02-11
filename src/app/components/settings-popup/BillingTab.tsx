@@ -24,7 +24,7 @@ export function BillingTab() {
           </button>
         </div>
         <div className="flex items-center gap-4 py-4 border-b border-white/5">
-          <div className="w-12 h-8 bg-[#2A2A2C] rounded border border-white/10 flex items-center justify-center shrink-0" />
+          <div className="w-12 h-8 bg-bg-muted-surface rounded border border-white/10 flex items-center justify-center shrink-0" />
           <div className="flex flex-col flex-1">
             <span className="txt-role-body-lg font-medium txt-tone-primary">
               No active payment method

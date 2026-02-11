@@ -1,5 +1,6 @@
 import React from "react";
 import svgPaths from "../../../imports/svg-v61uoamt04";
+import { POPUP_CLOSE_BUTTON_CLASS } from "../popup/popupChrome";
 type WizardCloseButtonProps = {
   className?: string;
   onClick: () => void;
@@ -15,7 +16,7 @@ export function WizardCloseButton({
       type="button"
       aria-label={ariaLabel ?? "Close"}
       onClick={onClick}
-      className={`backdrop-blur-[6px] bg-[rgba(232,232,232,0.06)] content-stretch flex items-center justify-center p-px relative rounded-full shrink-0 size-[36px] hover:bg-[rgba(232,232,232,0.1)] transition-colors cursor-pointer ${className}`}
+      className={`${POPUP_CLOSE_BUTTON_CLASS} content-stretch p-px relative shrink-0 size-[36px] ${className}`}
     >
       <div className="relative shrink-0 size-[20px]">
         <svg
@@ -24,7 +25,7 @@ export function WizardCloseButton({
           preserveAspectRatio="none"
           viewBox="0 0 20 20"
         >
-          <path d={svgPaths.p369d2cf0} fill="var(--fill-0, #E8E8E8)" />
+          <path d={svgPaths.p369d2cf0} fill="var(--text-tone-primary)" />
         </svg>
       </div>
     </button>

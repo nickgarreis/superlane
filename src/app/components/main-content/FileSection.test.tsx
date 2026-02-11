@@ -12,7 +12,6 @@ type FileSectionProps = React.ComponentProps<typeof FileSection>;
 const buildProps = (
   overrides: Partial<FileSectionProps> = {},
 ): FileSectionProps => ({
-  projectId: "project-1",
   activeTab: "Assets",
   setActiveTab: vi.fn(),
   handleUploadClick: vi.fn(),

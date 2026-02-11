@@ -8,6 +8,7 @@ import {
   Settings,
 } from "lucide-react";
 import type { SidebarProfileMenuProps } from "./types";
+import { cn } from "../../../lib/utils";
 import { SidebarItem } from "./SidebarItem";
 import { FeedbackPopup } from "../FeedbackPopup";
 export function SidebarProfileMenu({
@@ -70,7 +71,7 @@ export function SidebarProfileMenu({
         <div className="relative mt-3">
           <div
             ref={profileTriggerRef}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+            className="flex items-center gap-2.5 txt-tone-primary hover:bg-[#E8E8E8]/[0.08] px-2 py-1.5 rounded-[999px] transition-colors cursor-pointer group"
             onClick={() => setIsProfileOpen((prev) => !prev)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
@@ -105,9 +106,12 @@ export function SidebarProfileMenu({
                 {viewerEmail}
               </span>
             </div>
-            <div className="ml-auto p-1 text-white/40 group-hover:text-white/80 transition-colors">
-              <ChevronDown size={16} />
-            </div>
+            <ChevronDown
+              className={cn(
+                "ml-auto w-4 h-4 opacity-40 transition-transform duration-200",
+                isProfileOpen && "rotate-180",
+              )}
+            />
           </div>
           {isProfileOpen && (
             <>
@@ -116,7 +120,7 @@ export function SidebarProfileMenu({
                 onClick={() => setIsProfileOpen(false)}
               />
               <div
-                className="absolute bottom-full left-0 right-0 mb-2 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-50 flex flex-col gap-0.5"
+                className="absolute bottom-full left-0 right-0 mb-1 bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50"
                 role="menu"
                 aria-label={`Profile actions for ${viewerName}`}
                 onKeyDown={(event) => {
@@ -129,7 +133,7 @@ export function SidebarProfileMenu({
                 <button
                   ref={firstMenuItemRef}
                   type="button"
-                  className="w-full px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 txt-tone-primary transition-colors group text-left bg-transparent border-0"
+                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
                   onClick={() => {
                     setIsProfileOpen(false);
                     setFeedbackType("feature");
@@ -138,15 +142,15 @@ export function SidebarProfileMenu({
                 >
                   <Lightbulb
                     size={14}
-                    className="text-white/60 group-hover:text-white transition-colors"
+                    className="text-white/60 shrink-0"
                   />
-                  <span className="txt-role-body-md font-medium">
+                  <span className="group-hover:text-white transition-colors">
                     Request a feature
                   </span>
                 </button>
                 <button
                   type="button"
-                  className="w-full px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 txt-tone-primary transition-colors group text-left bg-transparent border-0"
+                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
                   onClick={() => {
                     setIsProfileOpen(false);
                     setFeedbackType("bug");
@@ -155,16 +159,16 @@ export function SidebarProfileMenu({
                 >
                   <Bug
                     size={14}
-                    className="text-white/60 group-hover:text-white transition-colors"
+                    className="text-white/60 shrink-0"
                   />
-                  <span className="txt-role-body-md font-medium">
+                  <span className="group-hover:text-white transition-colors">
                     Report a bug
                   </span>
                 </button>
-                <div className="h-px bg-white/5 my-0.5 mx-2" />
+                <div className="h-px bg-white/5 mx-2" />
                 <button
                   type="button"
-                  className="w-full px-2 py-1.5 hover:bg-white/5 cursor-pointer flex items-center gap-3 rounded-lg mx-1 txt-tone-primary transition-colors group text-left bg-transparent border-0"
+                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
                   onClick={() => {
                     setIsProfileOpen(false);
                     onLogout();
@@ -173,9 +177,11 @@ export function SidebarProfileMenu({
                 >
                   <LogOut
                     size={14}
-                    className="text-white/60 group-hover:text-white transition-colors"
+                    className="text-white/60 shrink-0"
                   />
-                  <span className="txt-role-body-md font-medium">Log out</span>
+                  <span className="group-hover:text-white transition-colors">
+                    Log out
+                  </span>
                 </button>
               </div>
             </>

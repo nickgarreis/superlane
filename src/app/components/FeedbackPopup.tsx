@@ -2,6 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Lightbulb, Bug, Send } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "../../lib/utils";
+import {
+  POPUP_CLOSE_BUTTON_CLASS,
+  POPUP_OVERLAY_CENTER_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "./popup/popupChrome";
 type FeedbackType = "feature" | "bug";
 interface FeedbackPopupProps {
   isOpen: boolean;
@@ -43,47 +50,41 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
     onClose();
   };
   const isFeature = type === "feature";
-  const accentColor = isFeature ? "#A78BFA" : "#F87171";
-  const accentBg = isFeature
-    ? "rgba(167,139,250,0.08)"
-    : "rgba(248,113,113,0.08)";
+  const canSubmit = title.trim().length > 0 && !isSubmitting;
   return (
     <AnimatePresence>
       {isOpen && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center"
+        <motion.div
+          className={`${POPUP_OVERLAY_CENTER_CLASS} z-[200]`}
           onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[480px] mx-4 bg-[#181818] border border-[#262626] rounded-2xl shadow-2xl overflow-hidden"
+            className={`${POPUP_SHELL_CLASS} max-w-[480px]`}
             onClick={(e: React.MouseEvent<HTMLDivElement>) =>
               e.stopPropagation()
             }
           >
-            {/* Header */}
+            <div aria-hidden className={POPUP_SHELL_BORDER_CLASS} />
             <div className="flex items-center justify-between px-6 pt-5 pb-0">
               <div className="flex items-center gap-3">
                 <div
-                  className="size-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: accentBg }}
+                  className={cn(
+                    "size-8 rounded-lg flex items-center justify-center",
+                    isFeature ? "bg-feedback-feature-soft" : "bg-feedback-bug-soft",
+                  )}
                 >
                   {isFeature ? (
-                    <Lightbulb size={16} style={{ color: accentColor }} />
+                    <Lightbulb size={16} className="text-feedback-feature" />
                   ) : (
-                    <Bug size={16} style={{ color: accentColor }} />
+                    <Bug size={16} className="text-feedback-bug" />
                   )}
                 </div>
                 <h2 className="txt-role-body-lg font-medium txt-tone-primary">
@@ -92,14 +93,12 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
               </div>
               <button
                 onClick={onClose}
-                className="size-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-all cursor-pointer"
+                className={`${POPUP_CLOSE_BUTTON_CLASS} size-8 text-white/30 hover:text-white/60`}
               >
                 <X size={16} />
               </button>
             </div>
-            {/* Body */}
             <div className="px-6 pt-5 pb-6 flex flex-col gap-4">
-              {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="txt-role-meta font-medium text-white/35 uppercase tracking-wider">
                   Title
@@ -124,7 +123,6 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
                   }}
                 />
               </div>
-              {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <label className="txt-role-meta font-medium text-white/35 uppercase tracking-wider">
                   Description
@@ -146,7 +144,6 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
                 />
               </div>
             </div>
-            {/* Footer */}
             <div className="flex items-center justify-end gap-2.5 px-6 pb-5">
               <button
                 onClick={onClose}
@@ -156,18 +153,15 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!title.trim() || isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 txt-role-body-md font-medium rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor:
-                    title.trim() && !isSubmitting
-                      ? accentColor
-                      : "rgba(255,255,255,0.06)",
-                  color:
-                    title.trim() && !isSubmitting
-                      ? "#0F0F10"
-                      : "rgba(255,255,255,0.3)",
-                }}
+                disabled={!canSubmit}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 txt-role-body-md font-medium rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed",
+                  canSubmit
+                    ? isFeature
+                      ? "bg-feedback-feature text-text-inverse-strong"
+                      : "bg-feedback-bug text-text-inverse-strong"
+                    : "bg-popup-control text-white/30",
+                )}
               >
                 {isSubmitting ? (
                   <div
@@ -184,7 +178,7 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

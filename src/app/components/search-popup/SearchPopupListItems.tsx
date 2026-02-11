@@ -3,14 +3,24 @@ import { ArrowRight } from "lucide-react";
 import type { QuickAction, SearchResult } from "./types";
 import { StatusBadgeIcon } from "../status/StatusBadgeIcon";
 const FILE_TYPE_COLORS: Record<string, string> = {
-  SVG: "#f472b6",
-  PNG: "#60a5fa",
-  PDF: "#f87171",
-  ZIP: "#a78bfa",
-  FIG: "#34d399",
-  DOCX: "#38bdf8",
-  XLSX: "#4ade80",
-  FILE: "#9ca3af",
+  SVG: "var(--file-type-svg)",
+  PNG: "var(--file-type-png)",
+  PDF: "var(--file-type-pdf)",
+  ZIP: "var(--file-type-zip)",
+  FIG: "var(--file-type-fig)",
+  DOCX: "var(--file-type-docx)",
+  XLSX: "var(--file-type-xlsx)",
+  FILE: "var(--file-type-default)",
+};
+const FILE_TYPE_BADGE_BACKGROUNDS: Record<string, string> = {
+  SVG: "var(--file-type-svg-soft)",
+  PNG: "var(--file-type-png-soft)",
+  PDF: "var(--file-type-pdf-soft)",
+  ZIP: "var(--file-type-zip-soft)",
+  FIG: "var(--file-type-fig-soft)",
+  DOCX: "var(--file-type-docx-soft)",
+  XLSX: "var(--file-type-xlsx-soft)",
+  FILE: "var(--file-type-default-soft)",
 };
 export function SectionLabel({
   label,
@@ -62,7 +72,7 @@ export function SearchPopupResultItem({
       onMouseEnter={() => setActiveIndex(index)}
     >
       <div
-        className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${item.type === "project" ? "bg-white/[0.06]" : item.type === "task" ? "bg-white/[0.04]" : item.type === "file" ? "bg-white/[0.04]" : "bg-[#58AFFF]/10"}`}
+        className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${item.type === "project" ? "bg-white/[0.06]" : item.type === "task" ? "bg-white/[0.04]" : item.type === "file" ? "bg-white/[0.04]" : "bg-text-tone-accent-soft"}`}
       >
         {item.type === "action" ? (
           <span className="txt-tone-accent">{item.icon}</span>
@@ -98,12 +108,12 @@ export function SearchPopupResultItem({
       {item.type === "project" && item.status && (
         <div
           className="inline-flex items-center gap-[6px] px-0 py-[4px] rounded-[16777200px] txt-role-kbd shrink-0"
-          style={{ color: "#29FD7D" }}
+          style={{ color: "var(--status-review)" }}
         >
           <StatusBadgeIcon
             statusLabel={item.status.label}
             className="size-3.5 shrink-0"
-            color="#29FD7D"
+            color="var(--status-review)"
           />
           {item.status.label}
         </div>
@@ -113,7 +123,9 @@ export function SearchPopupResultItem({
           className="txt-role-micro px-1.5 py-0.5 rounded font-medium shrink-0 uppercase tracking-wide"
           style={{
             color: FILE_TYPE_COLORS[item.fileType] || FILE_TYPE_COLORS.FILE,
-            backgroundColor: `${FILE_TYPE_COLORS[item.fileType] || FILE_TYPE_COLORS.FILE}15`,
+            backgroundColor:
+              FILE_TYPE_BADGE_BACKGROUNDS[item.fileType] ||
+              FILE_TYPE_BADGE_BACKGROUNDS.FILE,
           }}
         >
           {item.fileType}
@@ -152,7 +164,7 @@ export function SearchPopupQuickActionItem({
       onClick={onClick}
       onMouseEnter={() => setActiveIndex(globalIndex)}
     >
-      <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-[#58AFFF]/10">
+      <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-text-tone-accent-soft">
         <span className="txt-tone-accent">{action.icon}</span>
       </div>
       <span
@@ -176,7 +188,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="txt-tone-accent bg-[#58AFFF]/10 rounded-sm px-0.5 -mx-0.5">
+      <span className="txt-tone-accent bg-text-tone-accent-soft rounded-sm px-0.5 -mx-0.5">
         {text.slice(idx, idx + q.length)}
       </span>
       {text.slice(idx + q.length)}

@@ -96,7 +96,7 @@ export function AccountTab({
           onChange={handleAvatarFile}
         />
         <div
-          className="w-[100px] h-[100px] rounded-full overflow-hidden border border-white/10 shrink-0 group relative cursor-pointer bg-[#2A2A2C]"
+          className="w-[100px] h-[100px] rounded-full overflow-hidden border border-white/10 shrink-0 group relative cursor-pointer bg-bg-muted-surface"
           onClick={() => fileInputRef.current?.click()}
           onKeyDown={handleAvatarKeyDown}
           tabIndex={0}
@@ -128,7 +128,7 @@ export function AccountTab({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarBusy}
-              className="cursor-pointer px-4 py-2 bg-[#E8E8E8] text-bg-base rounded-full txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-60"
+              className="cursor-pointer px-4 py-2 bg-text-tone-primary text-bg-base rounded-full txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-60"
             >
               Upload new
             </button>
@@ -198,7 +198,7 @@ export function AccountTab({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className="cursor-pointer px-6 py-2.5 bg-text-tone-primary hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

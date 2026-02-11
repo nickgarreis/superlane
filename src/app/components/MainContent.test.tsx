@@ -274,4 +274,49 @@ describe("MainContent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back to Archive" }));
     expect(back).toHaveBeenCalledTimes(1);
   });
+
+  test("preserves project detail scroll position when switching file tabs", () => {
+    const rafSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    const { container } = renderMainContent({
+      projectFiles: [
+        {
+          id: "file-1",
+          projectPublicId: "project-1",
+          tab: "Assets",
+          name: "brand-guide.pdf",
+          type: "PDF",
+          displayDateEpochMs: 1700000000000,
+        },
+        {
+          id: "file-2",
+          projectPublicId: "project-1",
+          tab: "Contract",
+          name: "agreement.pdf",
+          type: "PDF",
+          displayDateEpochMs: 1700000000000,
+        },
+      ],
+    });
+
+    const scrollContainer = container.querySelector(
+      ".overflow-y-auto",
+    ) as HTMLDivElement | null;
+    expect(scrollContainer).not.toBeNull();
+    if (!scrollContainer) {
+      rafSpy.mockRestore();
+      return;
+    }
+
+    scrollContainer.scrollTop = 420;
+    fireEvent.click(screen.getByRole("button", { name: "Contract" }));
+
+    expect(scrollContainer.scrollTop).toBe(420);
+    rafSpy.mockRestore();
+  });
 });

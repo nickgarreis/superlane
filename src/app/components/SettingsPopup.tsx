@@ -7,6 +7,12 @@ import { BillingTab } from "./settings-popup/BillingTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
 import { NotificationsTab } from "./settings-popup/NotificationsTab";
 import type { SettingsPopupProps, SettingsTab } from "./settings-popup/types";
+import {
+  POPUP_CLOSE_BUTTON_CLASS,
+  POPUP_OVERLAY_CENTER_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "./popup/popupChrome";
 const SETTINGS_TABS: Array<{
   id: SettingsTab;
   icon: typeof User;
@@ -89,18 +95,15 @@ export function SettingsPopup({
   const tabMeta = tabMetaById[activeTab];
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className={`${POPUP_OVERLAY_CENTER_CLASS} z-[100]`}
       onClick={onClose}
     >
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-        aria-hidden="true"
-      />
-      <div
-        className="relative w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-app txt-tone-primary"
+        className={`${POPUP_SHELL_CLASS} max-w-[980px] h-[680px] flex font-app txt-tone-primary`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="w-[240px] flex flex-col py-6 px-4 shrink-0 bg-bg-base">
+        <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
+        <div className="w-[240px] flex flex-col py-6 px-4 shrink-0">
           <div className="px-2 mb-6 mt-2">
             <span className="txt-role-panel-title txt-tone-primary">
               Settings
@@ -140,11 +143,11 @@ export function SettingsPopup({
             ))}
           </div>
         </div>
-        <div className="flex-1 bg-bg-surface m-2 rounded-[20px] border border-white/5 flex flex-col overflow-hidden relative">
+        <div className="flex-1 bg-bg-surface rounded-none flex flex-col overflow-hidden relative">
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors outline-none cursor-pointer"
+              className={`${POPUP_CLOSE_BUTTON_CLASS} p-2 text-white/40 hover:text-white outline-none`}
             >
               <X size={20} />
             </button>

@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  POPUP_CLOSE_BUTTON_CLASS,
+  POPUP_OVERLAY_CENTER_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "../popup/popupChrome";
 const ACCEPTED_MIME_TYPES = "image/png,image/jpeg,image/gif,image/webp";
 type CreateWorkspacePopupProps = {
   isOpen: boolean;
@@ -115,7 +121,7 @@ export function CreateWorkspacePopup({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className={POPUP_OVERLAY_CENTER_CLASS}
           onClick={handleClose}
         >
           <motion.form
@@ -127,12 +133,9 @@ export function CreateWorkspacePopup({
             onClick={(event: React.MouseEvent<HTMLFormElement>) =>
               event.stopPropagation()
             }
-            className="bg-[#1e1f20] relative rounded-[32px] w-full max-w-[520px] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.04),0px_12px_32px_0px_rgba(0,0,0,0.08)] overflow-hidden"
+            className={`${POPUP_SHELL_CLASS} max-w-[520px]`}
           >
-            <div
-              aria-hidden="true"
-              className="absolute border border-[#131314] border-solid inset-0 pointer-events-none rounded-[32px]"
-            />
+            <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
             <div className="px-[28px] py-[22px] border-b border-white/5 flex items-center justify-between gap-3">
               <div>
                 <p className="txt-role-panel-title txt-leading-title txt-tone-primary">
@@ -147,7 +150,7 @@ export function CreateWorkspacePopup({
                 type="button"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="backdrop-blur-[6px] bg-[rgba(232,232,232,0.06)] rounded-full size-[34px] flex items-center justify-center txt-tone-primary hover:bg-[rgba(232,232,232,0.1)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className={`${POPUP_CLOSE_BUTTON_CLASS} size-[34px]`}
                 aria-label="Close create workspace popup"
               >
                 <X size={16} />
@@ -162,7 +165,7 @@ export function CreateWorkspacePopup({
                 onChange={handleSelectLogo}
               />
               <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex items-center gap-4">
-                <div className="size-[72px] rounded-2xl border border-white/10 bg-[#193cb8] overflow-hidden flex items-center justify-center text-white txt-role-display-badge font-semibold shrink-0">
+                <div className="size-[72px] rounded-2xl border border-white/10 bg-brand-avatar overflow-hidden flex items-center justify-center text-white txt-role-display-badge font-semibold shrink-0">
                   {logoPreviewUrl ? (
                     <img
                       src={logoPreviewUrl}
@@ -240,7 +243,7 @@ export function CreateWorkspacePopup({
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className="cursor-pointer px-4 py-2 rounded-full bg-[#E8E8E8] txt-tone-inverse txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="cursor-pointer px-4 py-2 rounded-full bg-text-tone-primary txt-tone-inverse txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "Creating..." : "Create Workspace"}
                 </button>

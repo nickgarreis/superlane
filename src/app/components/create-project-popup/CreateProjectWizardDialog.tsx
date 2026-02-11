@@ -1,6 +1,11 @@
 import { motion } from "motion/react";
 import createProjectBgFallbackPng from "../../../assets/optimized/create-project-bg-fallback.png";
 import createProjectBgWebp from "../../../assets/optimized/create-project-bg.webp";
+import {
+  POPUP_OVERLAY_CENTER_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "../popup/popupChrome";
 import { CreateProjectWizardConfirmDialogs } from "./CreateProjectWizardConfirmDialogs";
 import { WizardCloseButton } from "./WizardCloseButton";
 import {
@@ -72,17 +77,14 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
   }
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className={POPUP_OVERLAY_CENTER_CLASS}
       onClick={handleCloseClick}
     >
       <div
-        className="bg-[#1e1f20] relative rounded-[40px] w-full max-w-[514px] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.04),0px_12px_32px_0px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-300 max-h-[90vh] flex flex-col"
+        className={`${POPUP_SHELL_CLASS} max-w-[514px] transition-all duration-300 max-h-[90vh] flex flex-col`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div
-          aria-hidden="true"
-          className="absolute border border-[#131314] border-solid inset-0 pointer-events-none rounded-[40px] z-20"
-        />
+        <div aria-hidden="true" className={`${POPUP_SHELL_BORDER_CLASS} z-20`} />
         <div
           className={`flex flex-col items-start w-full relative rounded-[inherit] ${step === 4 ? "flex-1 overflow-hidden" : "overflow-y-auto custom-scrollbar"}`}
         >
@@ -197,7 +199,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 {step > 1 && (
                   <button
                     onClick={() => setStep(step - 1)}
-                    className="backdrop-blur-[6px] content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 border border-[rgba(232,232,232,0.1)] hover:bg-white/5 transition-colors cursor-pointer"
+                    className="backdrop-blur-[6px] content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 border border-popup-border-soft hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-tone-primary txt-role-body-lg text-center whitespace-nowrap">
                       <p className="txt-leading-body">Previous</p>
@@ -208,7 +210,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                   {editProjectId && (
                     <button
                       onClick={handleDeleteDraft}
-                      className="content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-[rgba(255,59,48,0.06)] opacity-80 hover:opacity-100 transition-all cursor-pointer"
+                      className="content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-popup-danger-soft opacity-80 hover:opacity-100 transition-all cursor-pointer"
                     >
                       <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-tone-danger txt-role-body-lg text-center whitespace-nowrap">
                         <p className="txt-leading-body">Delete draft</p>
@@ -218,7 +220,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                   <button
                     onClick={handleNext}
                     disabled={isNextDisabled}
-                    className={` content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer ${isNextDisabled ? "bg-[#e8e8e8]/50 cursor-not-allowed txt-tone-inverse" : "bg-[#e8e8e8] hover:bg-white txt-tone-inverse"} `}
+                    className={` content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer ${isNextDisabled ? "bg-popup-primary-disabled cursor-not-allowed txt-tone-inverse" : "bg-text-tone-primary hover:bg-white txt-tone-inverse"} `}
                   >
                     <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-role-body-lg text-center whitespace-nowrap">
                       <p className="txt-leading-body">

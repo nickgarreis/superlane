@@ -62,7 +62,7 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
               Project name
             </label>
           </div>
-          <div className="w-full border-b border-[rgba(232,232,232,0.1)] pb-[5px]">
+          <div className="w-full border-b border-popup-border-soft pb-[5px]">
             <input
               id={PROJECT_NAME_INPUT_ID}
               type="text"
@@ -97,7 +97,7 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
                 onKeyDown={(event: KeyboardEvent) =>
                   handleKeyDown(event, () => onSelectJob(job))
                 }
-                className={` backdrop-blur-[6px] bg-[rgba(232,232,232,0.04)] content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-[rgba(232,232,232,0.04)] hover:bg-white/5 txt-tone-primary"} `}
+                className={` backdrop-blur-[6px] bg-popup-surface-soft content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-popup-surface-soft hover:bg-white/5 txt-tone-primary"} `}
               >
                 <p className="font-medium txt-role-body-lg txt-leading-body whitespace-nowrap">
                   {jobIcons?.[job] && (

@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { safeScrollIntoView } from "../lib/dom";
+import {
+  POPUP_OVERLAY_BASE_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "./popup/popupChrome";
 import { useSearchPopupData } from "./search-popup/useSearchPopupData";
 import type {
   QuickAction,
@@ -231,7 +236,7 @@ export function SearchPopup({
     <AnimatePresence>
       {isOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-start justify-center pt-[min(20vh,180px)] bg-black/60 backdrop-blur-sm"
+          className={`${POPUP_OVERLAY_BASE_CLASS} z-[100] flex items-start justify-center pt-[min(20vh,180px)]`}
           onClick={onClose}
         >
           <motion.div
@@ -239,11 +244,12 @@ export function SearchPopup({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -8 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="w-full max-w-[560px] bg-[#1C1D1E] border border-white/[0.06] rounded-2xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col max-h-[min(70vh,520px)]"
+            className={`${POPUP_SHELL_CLASS} max-w-[560px] flex flex-col max-h-[min(70vh,520px)]`}
             onClick={(event: React.MouseEvent<HTMLDivElement>) =>
               event.stopPropagation()
             }
           >
+            <div aria-hidden className={POPUP_SHELL_BORDER_CLASS} />
             <SearchPopupInput
               inputRef={inputRef}
               query={query}

@@ -67,7 +67,7 @@ export function CompanyBrandAssetsSection({
           tooltipAlign="right"
         >
           <label
-            className={`inline-flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-full text-bg-base txt-role-body-md font-medium ${canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"}`}
+            className={`inline-flex items-center gap-2 px-3 py-2 bg-text-tone-primary rounded-full text-bg-base txt-role-body-md font-medium ${canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"}`}
             aria-disabled={!canManageBrandAssets}
             tabIndex={canManageBrandAssets ? 0 : -1}
           >

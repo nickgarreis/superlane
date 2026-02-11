@@ -69,7 +69,7 @@ export function MentionDropdown({
         zIndex: 99999,
         pointerEvents: isVisible ? "auto" : "none",
       }}
-      className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
+      className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
       role="listbox"
       aria-label="Mentions"
       aria-hidden={!isVisible}
@@ -105,10 +105,10 @@ export function MentionDropdown({
               }}
               onMouseEnter={() => onSelectIndex(index)}
               className={cn(
-                "w-full text-left px-3 py-1.5 flex items-center gap-2.5 txt-role-body-md transition-colors cursor-pointer",
+                "w-full text-left px-3 py-2 flex items-center gap-2.5 txt-role-body-md transition-colors group cursor-pointer",
                 index === selectedIndex
-                  ? "bg-white/[0.06] text-white"
-                  : "txt-tone-muted hover:bg-white/[0.04]",
+                  ? "bg-white/[0.04] text-white"
+                  : "txt-tone-muted hover:bg-white/5",
               )}
             >
               {item.type === "task" ? (
@@ -131,7 +131,15 @@ export function MentionDropdown({
                     .toUpperCase()}
                 </span>
               )}
-              <span className="truncate flex-1">{item.label}</span>
+              <span
+                className={cn(
+                  "truncate flex-1",
+                  index !== selectedIndex &&
+                    "group-hover:text-white transition-colors",
+                )}
+              >
+                {item.label}
+              </span>
               {item.meta && (
                 <span className="txt-role-kbd text-white/20 shrink-0">
                   {item.meta}

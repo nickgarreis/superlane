@@ -42,7 +42,7 @@ export function SidebarHelpActions() {
       {activePopup && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="fixed inset-0" onClick={() => setActivePopup(null)} />
-          <div className="w-full max-w-[400px] bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative z-10">
+          <div className="w-full max-w-[400px] bg-[#131314] border border-[#262626] rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative z-10">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
               <h3 className="txt-role-body-lg font-medium text-white">
                 {activePopup === "feedback" ? "Send Feedback" : "Report a Bug"}

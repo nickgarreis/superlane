@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "../../../lib/utils";
 import { DeniedAction } from "../permissions/DeniedAction";
 type InviteMemberFormProps = {
   inviteEmail: string;
@@ -84,10 +85,21 @@ export function InviteMemberForm({
                 setIsInviteRoleOpen((current) => !current);
               }}
               disabled={inviting}
-              className={`h-[42px] px-3 bg-transparent border-b border-white/10 rounded-none txt-role-body-md font-medium txt-tone-primary flex items-center gap-2 hover:border-white/40 transition-colors min-w-[100px] justify-between relative z-20 disabled:opacity-50 disabled:cursor-not-allowed ${isMemberManagementDenied ? "opacity-50 cursor-not-allowed hover:border-white/10" : "cursor-pointer"}`}
+              className={cn(
+                "h-[42px] px-3 bg-transparent txt-role-body-md font-medium flex items-center gap-2 min-w-[100px] justify-between rounded-lg transition-colors relative z-20 disabled:opacity-50 disabled:cursor-not-allowed",
+                isMemberManagementDenied
+                  ? "opacity-50 cursor-not-allowed txt-tone-faint"
+                  : "cursor-pointer txt-tone-primary hover:bg-white/[0.04]",
+              )}
             >
               {inviteRole}
-              <ChevronDown size={14} className="text-white/40" />
+              <ChevronDown
+                size={14}
+                className={cn(
+                  "text-white/40 transition-transform duration-200",
+                  isInviteRoleOpen && "rotate-180",
+                )}
+              />
             </button>
           </DeniedAction>
           {isInviteRoleOpen && (
@@ -95,23 +107,41 @@ export function InviteMemberForm({
               id={inviteRoleListboxId}
               role="listbox"
               aria-label="Invite role"
-              className="absolute right-0 top-full mt-1 w-[120px] bg-[#181818] border border-[#262626] rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 top-full mt-1 w-[140px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-100"
             >
-              {(["member", "admin"] as const).map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  role="option"
-                  aria-selected={inviteRole === role}
-                  onClick={() => {
-                    onInviteRoleChange(role);
-                    setIsInviteRoleOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left txt-role-body-md hover:bg-white/5 cursor-pointer txt-tone-primary"
-                >
-                  {role}
-                </button>
-              ))}
+              <div className="py-1">
+                {(["member", "admin"] as const).map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    role="option"
+                    aria-selected={inviteRole === role}
+                    onClick={() => {
+                      onInviteRoleChange(role);
+                      setIsInviteRoleOpen(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                      inviteRole === role
+                        ? "text-white bg-white/[0.04]"
+                        : "txt-tone-muted",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "truncate",
+                        inviteRole !== role &&
+                          "group-hover:text-white transition-colors",
+                      )}
+                    >
+                      {role}
+                    </span>
+                    {inviteRole === role && (
+                      <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-auto" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -123,7 +153,7 @@ export function InviteMemberForm({
           <button
             onClick={onInvite}
             disabled={!inviteEmail || isMemberManagementDenied || inviting}
-            className="h-[42px] px-5 bg-[#E8E8E8] text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg txt-role-body-md font-medium transition-colors cursor-pointer"
+            className="h-[42px] px-5 bg-text-tone-primary text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg txt-role-body-md font-medium transition-colors cursor-pointer"
           >
             {inviting ? "Inviting..." : "Invite"}
           </button>

@@ -14,6 +14,12 @@ import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { DeniedAction } from "./permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
+import {
+  POPUP_CLOSE_BUTTON_CLASS,
+  POPUP_OVERLAY_CENTER_CLASS,
+  POPUP_SHELL_BORDER_CLASS,
+  POPUP_SHELL_CLASS,
+} from "./popup/popupChrome";
 type SortField = "name" | "category" | "completedAt";
 type SortDir = "asc" | "desc";
 export function CompletedProjectsPopup({
@@ -102,14 +108,15 @@ export function CompletedProjectsPopup({
   };
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Backdrop */}
+    <div
+      className={`${POPUP_OVERLAY_CENTER_CLASS} z-[9999]`}
+      onClick={onClose}
+    >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      {/* Modal */}
-      <div className="relative w-[720px] max-h-[80vh] bg-bg-surface border border-white/[0.08] rounded-2xl shadow-2xl flex flex-col overflow-hidden font-app">
+        className={`${POPUP_SHELL_CLASS} max-w-[720px] max-h-[80vh] flex flex-col font-app`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div aria-hidden className={POPUP_SHELL_BORDER_CLASS} />
         {/* Header */}
         <div className="flex items-center justify-between px-8 pt-7 pb-1">
           <div>
@@ -123,15 +130,15 @@ export function CompletedProjectsPopup({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center transition-colors cursor-pointer"
+            className={`${POPUP_CLOSE_BUTTON_CLASS} size-8`}
           >
-            <X size={16} className="text-white/60" />
+            <X size={16} className="txt-tone-subtle" />
           </button>
         </div>
         {/* Search Bar */}
         <div className="px-8 pt-5 pb-4">
           <div className="relative w-full h-[36px]">
-            <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />
+            <div className="absolute inset-0 rounded-[18px] border border-popup-border-emphasis pointer-events-none" />
             <div className="flex items-center h-full px-3">
               <Search
                 size={16}

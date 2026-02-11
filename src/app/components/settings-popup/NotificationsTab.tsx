@@ -30,13 +30,13 @@ function ToggleRow({ label, description, checked, onToggle }: ToggleRowProps) {
         aria-labelledby={labelId}
         className={cn(
           "w-[44px] h-[24px] rounded-full relative transition-colors shrink-0 cursor-pointer",
-          checked ? "bg-[#10b981]" : "bg-white/10",
+          checked ? "bg-toggle-on" : "bg-white/10",
         )}
       >
         <motion.div
           className={cn(
             "absolute top-[2px] w-[20px] h-[20px] rounded-full shadow-sm transition-all",
-            checked ? "bg-white left-[22px]" : "bg-[#E8E8E8] left-[2px]",
+            checked ? "bg-white left-[22px]" : "bg-text-tone-primary left-[2px]",
           )}
           layout
           transition={{ type: "spring", stiffness: 700, damping: 30 }}
@@ -145,7 +145,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className="cursor-pointer px-6 py-2.5 bg-text-tone-primary hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

@@ -62,9 +62,9 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
         <p className="font-medium txt-role-body-lg txt-tone-subtle mb-[8px]">
           Project description
         </p>
-        <div className="bg-[rgba(232,232,232,0.04)] h-[104px] rounded-[18px] w-full border border-[rgba(232,232,232,0.04)] relative">
+        <div className="bg-popup-surface-soft h-[104px] rounded-[18px] w-full border border-popup-surface-soft relative">
           <textarea
-            className="w-full h-full bg-transparent border-none outline-none resize-none p-[16px] txt-tone-primary txt-role-body-lg placeholder-[rgba(232,232,232,0.4)]"
+            className="w-full h-full bg-transparent border-none outline-none resize-none p-[16px] txt-tone-primary txt-role-body-lg placeholder:txt-tone-faint"
             placeholder="Enter workflow description"
             value={description}
             onChange={(event) => onDescriptionChange(event.target.value)}
@@ -82,7 +82,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
         </p>
         <div
           {...getRootProps()}
-          className={` border border-dashed border-[rgba(232,232,232,0.2)] rounded-[18px] w-full min-h-[64px] flex flex-col items-center justify-center cursor-pointer transition-colors relative p-4 ${isDragActive ? "bg-white/10 border-white/40" : "hover:bg-[rgba(232,232,232,0.04)]"} `}
+          className={` border border-dashed border-popup-border-stronger rounded-[18px] w-full min-h-[64px] flex flex-col items-center justify-center cursor-pointer transition-colors relative p-4 ${isDragActive ? "bg-white/10 border-white/40" : "hover:bg-popup-surface-soft"} `}
         >
           <input {...getInputProps()} />
           <div className="flex items-center gap-2 mb-1">
@@ -165,7 +165,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
           ideation, efficiency, volume and quality.
         </p>
         <div
-          className={`${isAIEnabled ? "bg-[#22c55e]" : "bg-[rgba(232,232,232,0.08)]"} flex h-[16px] items-center px-[2px] relative rounded-[16px] w-[26px] cursor-pointer transition-colors`}
+          className={`${isAIEnabled ? "bg-text-tone-success" : "bg-popup-surface-medium"} flex h-[16px] items-center px-[2px] relative rounded-[16px] w-[26px] cursor-pointer transition-colors`}
           onClick={onToggleAIEnabled}
           onKeyDown={(event) => handleKeyDown(event, onToggleAIEnabled)}
           role="switch"
@@ -174,7 +174,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
           tabIndex={0}
         >
           <motion.div
-            className="bg-white rounded-[6px] shadow-[0px_2px_6px_0px_rgba(0,0,0,0.15)] size-[12px]"
+            className="bg-white rounded-[6px] shadow-popup-knob size-[12px]"
             animate={{ x: isAIEnabled ? 10 : 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           />
@@ -194,7 +194,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
         </p>
         <div className="relative w-full" ref={calendarRef}>
           <div
-            className="bg-[rgba(255,255,255,0)] flex items-center h-[36px] rounded-[100px] shadow-[0px_0px_0px_1px_rgba(232,232,232,0.15)] w-full px-[20px] relative cursor-pointer hover:bg-white/5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="bg-transparent border border-popup-border-emphasis flex items-center h-[36px] rounded-[100px] w-full px-[20px] relative cursor-pointer hover:bg-white/5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             onClick={() => onCalendarOpenChange(!isCalendarOpen)}
             onKeyDown={(event) =>
               handleKeyDown(event, () => onCalendarOpenChange(!isCalendarOpen))
@@ -214,7 +214,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
               <svg className="block size-full" fill="none" viewBox="0 0 16 16">
                 <path
                   d={STEP_THREE_PATHS.p7659d00}
-                  fill="var(--fill-0, #E8E8E8)"
+                  fill="var(--text-tone-primary)"
                   fillOpacity="0.8"
                 />
               </svg>
@@ -226,7 +226,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-[calc(100%+8px)] right-0 z-50 p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
+                className="absolute bottom-[calc(100%+8px)] right-0 z-50 p-2 bg-popup-surface-opaque rounded-[14px] shadow-popup-calendar border border-popup-border-medium"
               >
                 <DayPicker
                   className="rdp-dark-theme"

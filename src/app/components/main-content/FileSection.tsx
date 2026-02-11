@@ -4,7 +4,6 @@ import type { ProjectFileTab } from "../../types";
 import svgPaths from "../../../imports/svg-0erue6fqwq";
 import { DeniedAction } from "../permissions/DeniedAction";
 type FileSectionProps = {
-  projectId: string;
   activeTab: ProjectFileTab;
   setActiveTab: (value: ProjectFileTab) => void;
   handleUploadClick: () => void;
@@ -23,7 +22,6 @@ type FileSectionProps = {
   filteredFilesLength: number;
 };
 export const FileSection = React.memo(function FileSection({
-  projectId,
   activeTab,
   setActiveTab,
   handleUploadClick,
@@ -46,6 +44,7 @@ export const FileSection = React.memo(function FileSection({
       <div className="flex items-center justify-between mb-8 pt-[45px] pr-[0px] pb-[0px] pl-[0px]">
         <div className="flex gap-4">
           <button
+            type="button"
             onClick={() => setActiveTab("Assets")}
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
@@ -57,6 +56,7 @@ export const FileSection = React.memo(function FileSection({
             Assets
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("Contract")}
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
@@ -68,6 +68,7 @@ export const FileSection = React.memo(function FileSection({
             Contract
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("Attachments")}
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
@@ -162,7 +163,7 @@ export const FileSection = React.memo(function FileSection({
                 onClick={() => setIsSortOpen(false)}
               />
               <div
-                className="absolute right-0 top-full mt-2 w-40 bg-[#181818] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20"
+                className="absolute right-0 top-full mt-2 w-40 bg-[#131314] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20"
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     setIsSortOpen(false);
@@ -216,7 +217,7 @@ export const FileSection = React.memo(function FileSection({
             : undefined
         }
       >
-        <div key={projectId + "-" + activeTab}> {renderedFileRows} </div>
+        <div>{renderedFileRows}</div>
         {filteredFilesLength === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-white/40">
             <p className="text-sm">

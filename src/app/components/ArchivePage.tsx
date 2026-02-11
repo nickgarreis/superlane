@@ -100,7 +100,7 @@ export function ArchivePage({
 
   return (
     <div className="flex-1 h-full bg-bg-base txt-tone-primary overflow-hidden font-app flex flex-col relative">
-      <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
+      <div className="relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
           <HorizontalBorder onToggleSidebar={onToggleSidebar} />

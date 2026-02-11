@@ -155,61 +155,70 @@ export function ProjectTaskRow({
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
+                  className="absolute right-0 top-full mt-1 z-50 w-[220px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
                   onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                     event.stopPropagation()
                   }
                 >
-                  <div className="px-3 py-2 txt-role-kbd uppercase font-medium txt-tone-faint tracking-wider">
+                  <div className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none">
                     Move to project
                   </div>
-                  <div
+                  <button
+                    type="button"
                     onClick={() => {
                       handleProjectSelect(task.id, "");
                       setOpenProjectTaskId(null);
                     }}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                      !task.projectId && "bg-[rgba(232,232,232,0.08)]",
+                      "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                      !task.projectId
+                        ? "text-white bg-white/[0.04]"
+                        : "txt-tone-muted",
                     )}
                   >
                     <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
                     <span
                       className={cn(
-                        "txt-role-body-md truncate",
-                        !task.projectId
-                          ? "text-white font-medium"
-                          : "txt-tone-primary",
+                        "truncate flex-1",
+                        task.projectId &&
+                          "group-hover:text-white transition-colors",
                       )}
                     >
                       No project
                     </span>
-                  </div>
+                    {!task.projectId && (
+                      <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    )}
+                  </button>
                   {projectOptions.map((project) => (
-                    <div
+                    <button
                       key={project.id}
+                      type="button"
                       onClick={() => {
                         handleProjectSelect(task.id, project.id);
                         setOpenProjectTaskId(null);
                       }}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                        task.projectId === project.id &&
-                          "bg-[rgba(232,232,232,0.08)]",
+                        "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                        task.projectId === project.id
+                          ? "text-white bg-white/[0.04]"
+                          : "txt-tone-muted",
                       )}
                     >
                       <ProjectLogo size={12} category={project.category} />
                       <span
                         className={cn(
-                          "txt-role-body-md truncate",
-                          task.projectId === project.id
-                            ? "text-white font-medium"
-                            : "txt-tone-primary",
+                          "truncate flex-1",
+                          task.projectId !== project.id &&
+                            "group-hover:text-white transition-colors",
                         )}
                       >
                         {project.name}
                       </span>
-                    </div>
+                      {task.projectId === project.id && (
+                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      )}
+                    </button>
                   ))}
                 </motion.div>
               )}
@@ -302,12 +311,12 @@ export function ProjectTaskRow({
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[200px] overflow-hidden"
+                className="absolute right-0 top-full mt-1 z-50 w-[220px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
                 onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                   event.stopPropagation()
                 }
               >
-                <div className="px-3 py-2 txt-role-kbd uppercase font-medium txt-tone-faint tracking-wider">
+                <div className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none">
                   Assign to
                 </div>
                 {assignableMembers.length === 0 && (
@@ -315,48 +324,51 @@ export function ProjectTaskRow({
                     No active members
                   </div>
                 )}
-                {assignableMembers.map((member) => (
-                  <div
-                    key={member.userId}
-                    onClick={() => handleAssigneeSelect(task.id, member)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                      isSelectedAssignee(member) &&
-                        "bg-[rgba(232,232,232,0.08)]",
-                    )}
-                  >
-                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                      {member.avatarUrl ? (
-                        <img
-                          src={member.avatarUrl}
-                          alt={
-                            member.name
-                              ? `${member.name} avatar`
-                              : "Member avatar"
-                          }
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
-                          {getAssigneeInitials(member.name)}
-                        </div>
-                      )}
-                    </div>
-                    <span
+                <div className="max-h-[220px] overflow-y-auto py-1">
+                  {assignableMembers.map((member) => (
+                    <button
+                      key={member.userId}
+                      type="button"
+                      onClick={() => handleAssigneeSelect(task.id, member)}
                       className={cn(
-                        "txt-role-body-md",
+                        "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
                         isSelectedAssignee(member)
-                          ? "text-white font-medium"
-                          : "txt-tone-primary",
+                          ? "text-white bg-white/[0.04]"
+                          : "txt-tone-muted",
                       )}
                     >
-                      {member.name}
-                    </span>
-                    {isSelectedAssignee(member) && (
-                      <Check size={14} className="ml-auto txt-tone-accent" />
-                    )}
-                  </div>
-                ))}
+                      <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt={
+                              member.name
+                                ? `${member.name} avatar`
+                                : "Member avatar"
+                            }
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
+                            {getAssigneeInitials(member.name)}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "truncate flex-1",
+                          !isSelectedAssignee(member) &&
+                            "group-hover:text-white transition-colors",
+                        )}
+                      >
+                        {member.name}
+                      </span>
+                      {isSelectedAssignee(member) && (
+                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

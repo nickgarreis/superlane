@@ -47,7 +47,8 @@ export function MenuIcon({
             className="fixed inset-0 z-20"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
+          <div className="absolute left-full top-0 ml-2 w-[190px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-30">
+            <div className="py-1">
             {!isCompleted && !isArchived && onComplete && (
               <DeniedAction
                 denied={!canManageProjectLifecycle}
@@ -58,10 +59,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
                     canManageProjectLifecycle
-                      ? "hover:bg-[#22c55e]/10 cursor-pointer txt-tone-success group"
-                      : "cursor-not-allowed txt-tone-muted opacity-60",
+                      ? "cursor-pointer hover:bg-white/5"
+                      : "cursor-not-allowed opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -73,13 +74,21 @@ export function MenuIcon({
                 >
                   <CheckCircle2
                     className={cn(
-                      "w-4 h-4 transition-colors",
+                      "w-4 h-4 transition-colors shrink-0",
                       canManageProjectLifecycle
-                        ? "txt-tone-success group-hover:txt-tone-success"
-                        : "txt-tone-muted",
+                        ? "txt-tone-success"
+                        : "text-white/25",
                     )}
                   />
-                  <span className="txt-role-body-md font-medium">Complete</span>
+                  <span
+                    className={cn(
+                      canManageProjectLifecycle
+                        ? "txt-tone-muted group-hover:text-white"
+                        : "text-white/25",
+                    )}
+                  >
+                    Complete
+                  </span>
                 </button>
               </DeniedAction>
             )}
@@ -93,10 +102,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
                     canManageProjectLifecycle
-                      ? "hover:bg-white/5 cursor-pointer txt-tone-primary group"
-                      : "cursor-not-allowed txt-tone-faint opacity-60",
+                      ? "cursor-pointer hover:bg-white/5"
+                      : "cursor-not-allowed opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -108,13 +117,19 @@ export function MenuIcon({
                 >
                   <Undo2
                     className={cn(
-                      "w-4 h-4 transition-colors",
+                      "w-4 h-4 transition-colors shrink-0",
                       canManageProjectLifecycle
-                        ? "txt-tone-subtle group-hover:text-white"
-                        : "txt-tone-faint",
+                        ? "text-white/60"
+                        : "text-white/25",
                     )}
                   />
-                  <span className="txt-role-body-md font-medium">
+                  <span
+                    className={cn(
+                      canManageProjectLifecycle
+                        ? "txt-tone-muted group-hover:text-white"
+                        : "text-white/25",
+                    )}
+                  >
                     Revert to Active
                   </span>
                 </button>
@@ -130,10 +145,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
+                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
                     canManageProjectLifecycle
-                      ? "hover:bg-white/5 cursor-pointer txt-tone-primary group"
-                      : "cursor-not-allowed txt-tone-faint opacity-60",
+                      ? "cursor-pointer hover:bg-white/5"
+                      : "cursor-not-allowed opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -150,28 +165,35 @@ export function MenuIcon({
                   {isArchived ? (
                     <ArchiveRestore
                       className={cn(
-                        "w-4 h-4 transition-colors",
+                        "w-4 h-4 transition-colors shrink-0",
                         canManageProjectLifecycle
-                          ? "txt-tone-subtle group-hover:text-white"
-                          : "txt-tone-faint",
+                          ? "text-white/60"
+                          : "text-white/25",
                       )}
                     />
                   ) : (
                     <Archive
                       className={cn(
-                        "w-4 h-4 transition-colors",
+                        "w-4 h-4 transition-colors shrink-0",
                         canManageProjectLifecycle
-                          ? "txt-tone-subtle group-hover:text-white"
-                          : "txt-tone-faint",
+                          ? "text-white/60"
+                          : "text-white/25",
                       )}
                     />
                   )}
-                  <span className="txt-role-body-md font-medium">
+                  <span
+                    className={cn(
+                      canManageProjectLifecycle
+                        ? "txt-tone-muted group-hover:text-white"
+                        : "text-white/25",
+                    )}
+                  >
                     {isArchived ? "Unarchive" : "Archive"}
                   </span>
                 </button>
               </DeniedAction>
             )}
+            </div>
           </div>
         </>
       )}
