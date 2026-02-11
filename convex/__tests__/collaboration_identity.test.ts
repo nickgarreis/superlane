@@ -226,6 +226,22 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
     ).rejects.toThrow("Forbidden");
   });
 
+  test("getViewerMembership returns the current viewer role for workspace", async () => {
+    const workspace = await seedWorkspace();
+
+    const viewerMembership = await asAdmin().query(
+      api.collaboration.getViewerMembership,
+      {
+        workspaceSlug: workspace.workspaceSlug,
+      },
+    );
+    expect(viewerMembership).toEqual({
+      userId: String(workspace.adminUserId),
+      role: "admin",
+      isViewer: true,
+    });
+  });
+
   test("listWorkspaceMembersLite falls back for legacy rows and prefers snapshots when present", async () => {
     const workspace = await seedWorkspace();
 

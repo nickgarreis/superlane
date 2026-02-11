@@ -288,6 +288,7 @@ export default defineSchema({
     authorUserId: v.id("users"),
     authorSnapshotName: v.optional(v.string()),
     authorSnapshotAvatarUrl: v.optional(v.string()),
+    replyCount: v.optional(v.number()),
     resolvedByUserId: v.optional(v.id("users")),
     content: v.string(),
     resolved: v.boolean(),

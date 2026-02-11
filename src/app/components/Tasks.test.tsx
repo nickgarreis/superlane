@@ -166,7 +166,6 @@ describe("Tasks", () => {
     render(
       <Tasks
         onToggleSidebar={vi.fn()}
-        isSidebarOpen
         projects={projects}
         workspaceTasks={workspaceTasks}
         onUpdateWorkspaceTasks={vi.fn()}
@@ -219,7 +218,6 @@ describe("Tasks", () => {
     render(
       <Tasks
         onToggleSidebar={vi.fn()}
-        isSidebarOpen
         projects={projects}
         workspaceTasks={[
           {

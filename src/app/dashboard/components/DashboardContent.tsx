@@ -103,7 +103,6 @@ export const DashboardContent = React.memo(function DashboardContent({
       <Suspense fallback={ContentLoadingFallback}>
         <LazyTasks
           onToggleSidebar={handleToggleSidebar}
-          isSidebarOpen={isSidebarOpen}
           projects={visibleProjects}
           workspaceTasks={workspaceTasks}
           tasksPaginationStatus={tasksPaginationStatus}

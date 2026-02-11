@@ -22,16 +22,42 @@ export const listWorkspaceMembers = query({
 
     const memberships = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", workspace._id))
+      .withIndex("by_workspace_status_joinedAt", (q) =>
+        q.eq("workspaceId", workspace._id).eq("status", "active"))
       .collect();
-
-    const activeMemberships = memberships.filter((membership) => membership.status === "active");
     const sorted = await hydrateWorkspaceMembers(ctx, {
-      membershipRows: activeMemberships,
+      membershipRows: memberships,
       viewerUserId: appUser._id,
     });
 
     return { members: sorted };
+  },
+});
+
+export const getViewerMembership = query({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q) => q.eq("slug", args.workspaceSlug))
+      .unique();
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const { appUser, membership } = await requireWorkspaceRole(
+      ctx,
+      workspace._id,
+      "member",
+      { workspace },
+    );
+    return {
+      userId: String(appUser._id),
+      role: membership.role,
+      isViewer: true,
+    };
   },
 });
 
@@ -90,6 +116,9 @@ export const listWorkspaceMembersLite = query({
       .withIndex("by_workspace_status_joinedAt", (q) =>
         q.eq("workspaceId", workspace._id).eq("status", "active"))
       .collect();
+    const membershipByUserId = new Map(
+      memberships.map((membership) => [String(membership.userId), membership] as const),
+    );
     const missingSnapshotUserIds = Array.from(
       new Set(
         memberships
@@ -99,9 +128,7 @@ export const listWorkspaceMembersLite = query({
     );
     const userFallbackRows = await Promise.all(
       missingSnapshotUserIds.map(async (userId) => {
-        const membership = memberships.find(
-          (candidate) => String(candidate.userId) === userId,
-        );
+        const membership = membershipByUserId.get(userId);
         if (!membership) {
           return null;
         }

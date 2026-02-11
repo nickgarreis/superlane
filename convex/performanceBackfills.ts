@@ -257,13 +257,14 @@ export const backfillWorkspaceMemberSnapshots = mutation({
     const uniqueUserIds = Array.from(
       new Set(memberships.map((membership: any) => String(membership.userId))),
     );
+    const membershipByUserId = new Map(
+      memberships.map((membership: any) => [String(membership.userId), membership] as const),
+    );
     const usersById = new Map(
       (
         await Promise.all(
           uniqueUserIds.map(async (userId) => {
-            const membership = memberships.find(
-              (candidate: any) => String(candidate.userId) === userId,
-            );
+            const membership = membershipByUserId.get(userId);
             if (!membership) {
               return null;
             }
@@ -309,6 +310,61 @@ export const backfillWorkspaceMemberSnapshots = mutation({
       workspaceSlug: workspace.slug,
       maxPatches,
       patchedMemberships,
+      exhaustedLimit: remaining === 0,
+    };
+  },
+});
+
+export const backfillProjectCommentReplyCounts = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
+      .unique();
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    await requireWorkspaceRole(ctx, workspace._id, "owner", { workspace });
+    const maxPatches = clampLimit(args.limit);
+    let remaining = maxPatches;
+
+    const comments = await ctx.db
+      .query("projectComments")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const replyCountByParentId = new Map<string, number>();
+    comments.forEach((comment: any) => {
+      if (!comment.parentCommentId) {
+        return;
+      }
+      const parentId = String(comment.parentCommentId);
+      replyCountByParentId.set(parentId, (replyCountByParentId.get(parentId) ?? 0) + 1);
+    });
+
+    let patchedComments = 0;
+    for (const comment of comments) {
+      if (remaining <= 0) {
+        break;
+      }
+      if (comment.replyCount !== undefined) {
+        continue;
+      }
+      await ctx.db.patch(comment._id, {
+        replyCount: replyCountByParentId.get(String(comment._id)) ?? 0,
+      });
+      patchedComments += 1;
+      remaining -= 1;
+    }
+
+    return {
+      workspaceSlug: workspace.slug,
+      maxPatches,
+      patchedComments,
       exhaustedLimit: remaining === 0,
     };
   },

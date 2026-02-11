@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:analyze": "ANALYZE=true vite build",
     "dev": "vite",
     "lint:checks": "node scripts/quality/check-suppressions.mjs && node scripts/quality/check-component-size.mjs && node scripts/quality/check-feature-file-size.mjs && node scripts/quality/check-deprecated-convex-endpoints.mjs && node scripts/quality/check-any-usage.mjs && node scripts/quality/check-text-style-tokens.mjs",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"convex/**/*.ts\" \"vite.config.ts\" && npm run lint:checks",
@@ -105,6 +106,7 @@
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "jsdom": "^28.0.0",
+    "rollup-plugin-visualizer": "^5.14.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.3",
     "vite": "6.4.1",

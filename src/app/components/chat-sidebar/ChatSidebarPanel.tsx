@@ -9,38 +9,19 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import type {
-  CollaborationComment,
-  ProjectData,
-  Task,
-  ViewerIdentity,
-  WorkspaceMember,
-} from "../../types";
-import type { AppView } from "../../lib/routing";
+import type { CollaborationComment } from "../../types";
 import { formatTaskDueDate } from "../../lib/dates";
 import type { MentionItem as MentionItemType } from "../mentions/types";
-import { CommentItem } from "./CommentItem";
 import {
   formatRoleLabel,
   mapFeedCommentToUi,
   type CommentFeedRow,
 } from "./commentFeed";
+import type { ChatSidebarProps } from "./chatSidebar.types";
 import { useChatSidebarCommentActions } from "./useChatSidebarCommentActions";
+import { useChatSidebarRenderItems } from "./useChatSidebarRenderItems";
 import { useChatSidebarState } from "./useChatSidebarState";
 import { ChatSidebarView } from "./ChatSidebarView";
-
-interface ChatSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-  activeProject: ProjectData;
-  activeProjectTasks: Task[];
-  allProjects: Record<string, ProjectData>;
-  workspaceMembers: WorkspaceMember[];
-  viewerIdentity: ViewerIdentity;
-  onSwitchProject?: (view: AppView) => void;
-  onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
-  allFiles?: Array<{ id: number | string; name: string; type: string }>;
-}
 
 export function ChatSidebar({
   isOpen,
@@ -80,6 +61,9 @@ export function ChatSidebar({
   } = useChatSidebarState(activeProject.id);
   const scrollRef = useRef<HTMLDivElement>(null);
   const initializedCollapsedThreadsRef = useRef(false);
+  const repliesByParentIdRef = useRef<Record<string, CollaborationComment[]>>(
+    {},
+  );
   const [repliesByParentId, setRepliesByParentId] = useState<
     Record<string, CollaborationComment[]>
   >({});
@@ -110,8 +94,12 @@ export function ChatSidebar({
   );
   useEffect(() => {
     setRepliesByParentId({});
+    repliesByParentIdRef.current = {};
     initializedCollapsedThreadsRef.current = false;
   }, [activeProject.id]);
+  useEffect(() => {
+    repliesByParentIdRef.current = repliesByParentId;
+  }, [repliesByParentId]);
   useEffect(() => {
     if (initializedCollapsedThreadsRef.current || currentComments.length === 0) {
       return;
@@ -197,7 +185,7 @@ export function ChatSidebar({
   );
   const loadRepliesForParent = useCallback(
     async (parentCommentId: string, force = false) => {
-      if (!force && repliesByParentId[parentCommentId]) return;
+      if (!force && repliesByParentIdRef.current[parentCommentId]) return;
       const paginated = await convex.query(api.comments.listReplies, {
         parentCommentId: parentCommentId as Id<"projectComments">,
         paginationOpts: {
@@ -218,7 +206,7 @@ export function ChatSidebar({
         };
       });
     },
-    [convex, repliesByParentId],
+    [convex],
   );
   const currentCommentsById = useMemo(
     () => new Map(currentComments.map((comment) => [comment.id, comment] as const)),
@@ -280,112 +268,38 @@ export function ChatSidebar({
     toggleResolvedMutation,
     toggleReactionMutation,
   });
-  const renderComment = useCallback(
-    (comment: CollaborationComment) => (
-      <CommentItem
-        key={comment.id}
-        comment={comment}
-        isTopLevel
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        currentUserAvatar={currentUserAvatar}
-        mentionItems={mentionItems}
-        onMentionClick={onMentionClick}
-        performanceStyle={commentRowStyle}
-        replyingTo={replyingTo}
-        editingComment={editingComment}
-        editValue={editValue}
-        activeReactionPicker={activeReactionPicker}
-        activeMoreMenu={activeMoreMenu}
-        collapsedThreads={collapsedThreads}
-        onSetReplyingTo={setReplyingTo}
-        onSetReplyValue={setReplyValue}
-        replyValue={replyValue}
-        onSetEditingComment={setEditingComment}
-        onSetEditValue={setEditValue}
-        onSetActiveReactionPicker={setActiveReactionPicker}
-        onSetActiveMoreMenu={setActiveMoreMenu}
-        onReply={handleReply}
-        onEditComment={handleEditComment}
-        onDeleteComment={handleDeleteComment}
-        onResolve={handleResolve}
-        onToggleReaction={handleToggleReaction}
-        onToggleThread={toggleThread}
-      />
-    ),
-    [
-      activeMoreMenu,
-      activeReactionPicker,
-      collapsedThreads,
-      commentRowStyle,
-      currentUserAvatar,
+  const { unresolvedCommentItems, resolvedCommentItems } =
+    useChatSidebarRenderItems({
+      unresolvedComments,
+      resolvedComments,
+      shouldVirtualizeUnresolvedComments,
+      unresolvedCommentVirtualizer,
       currentUserId,
       currentUserName,
-      editValue,
-      editingComment,
-      handleDeleteComment,
-      handleEditComment,
-      handleReply,
-      handleResolve,
-      handleToggleReaction,
+      currentUserAvatar,
       mentionItems,
       onMentionClick,
-      replyValue,
+      commentRowStyle,
       replyingTo,
-      setActiveMoreMenu,
-      setActiveReactionPicker,
-      setEditValue,
-      setEditingComment,
-      setReplyValue,
       setReplyingTo,
+      replyValue,
+      setReplyValue,
+      editingComment,
+      setEditingComment,
+      editValue,
+      setEditValue,
+      activeReactionPicker,
+      setActiveReactionPicker,
+      activeMoreMenu,
+      setActiveMoreMenu,
+      collapsedThreads,
+      handleReply,
+      handleEditComment,
+      handleDeleteComment,
+      handleResolve,
+      handleToggleReaction,
       toggleThread,
-    ],
-  );
-  const unresolvedCommentItems = useMemo(() => {
-    if (!shouldVirtualizeUnresolvedComments) {
-      return unresolvedComments.map(renderComment);
-    }
-    return (
-      <div
-        style={{
-          height: unresolvedCommentVirtualizer.getTotalSize(),
-          position: "relative",
-        }}
-      >
-        {unresolvedCommentVirtualizer.getVirtualItems().map((virtualItem) => {
-          const comment = unresolvedComments[virtualItem.index];
-          if (!comment) {
-            return null;
-          }
-          return (
-            <div
-              key={comment.id}
-              ref={unresolvedCommentVirtualizer.measureElement}
-              data-index={virtualItem.index}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-            >
-              {renderComment(comment)}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }, [
-    renderComment,
-    unresolvedComments,
-    unresolvedCommentVirtualizer,
-    shouldVirtualizeUnresolvedComments,
-  ]);
-  const resolvedCommentItems = useMemo(
-    () => resolvedComments.map(renderComment),
-    [renderComment, resolvedComments],
-  );
+    });
   const sortedProjects = useMemo(
     () =>
       [...Object.values(allProjects)].sort((a, b) => {

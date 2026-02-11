@@ -309,6 +309,108 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
     ).toBe(true);
   });
 
+  test("creating and removing replies keeps parent replyCount accurate", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    const firstReply = await asMemberTwo().mutation(api.comments.create, {
+      projectPublicId: seeded.projectPublicId,
+      parentCommentId: seeded.commentId,
+      content: "First reply",
+    });
+    const secondReply = await asOwner().mutation(api.comments.create, {
+      projectPublicId: seeded.projectPublicId,
+      parentCommentId: seeded.commentId,
+      content: "Second reply",
+    });
+
+    const beforeRemoval = await asMember().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    const parentBeforeRemoval = beforeRemoval.page.find(
+      (comment: any) => comment.id === String(seeded.commentId),
+    );
+    expect(parentBeforeRemoval?.replyCount).toBe(2);
+
+    await asOwner().mutation(api.comments.remove, {
+      commentId: secondReply.commentId,
+    });
+    const afterRemoval = await asMember().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    const parentAfterRemoval = afterRemoval.page.find(
+      (comment: any) => comment.id === String(seeded.commentId),
+    );
+    expect(parentAfterRemoval?.replyCount).toBe(1);
+
+    await asMemberTwo().mutation(api.comments.remove, {
+      commentId: firstReply.commentId,
+    });
+    const afterAllRemoved = await asMember().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    const parentAfterAllRemoved = afterAllRemoved.page.find(
+      (comment: any) => comment.id === String(seeded.commentId),
+    );
+    expect(parentAfterAllRemoved?.replyCount).toBe(0);
+  });
+
+  test("backfillProjectCommentReplyCounts populates missing replyCount fields", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    await t.run(async (ctx) => {
+      const project = await ((ctx.db
+        .query("projects") as any)
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", seeded.projectPublicId))
+        .unique());
+      if (!project) {
+        throw new Error("Project not found");
+      }
+      await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: seeded.commentId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Backfill reply 1",
+        resolved: false,
+        edited: false,
+        createdAt: Date.now() + 1,
+        updatedAt: Date.now() + 1,
+      });
+      await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: seeded.commentId,
+        authorUserId: seeded.memberTwoUserId,
+        authorSnapshotName: "Member Two User",
+        content: "Backfill reply 2",
+        resolved: false,
+        edited: false,
+        createdAt: Date.now() + 2,
+        updatedAt: Date.now() + 2,
+      });
+    });
+
+    const backfillResult = await asOwner().mutation(
+      api.performanceBackfills.backfillProjectCommentReplyCounts,
+      {
+        workspaceSlug: seeded.workspaceSlug,
+        limit: 100,
+      },
+    );
+    expect(backfillResult.patchedComments).toBeGreaterThan(0);
+
+    await t.run(async (ctx) => {
+      const parent = await ctx.db.get(seeded.commentId);
+      expect(parent?.replyCount).toBe(2);
+    });
+  });
+
   test("discardPendingUploadsForSession removes only current uploader rows and is idempotent", async () => {
     const seeded = await seedWorkspaceWithProjectComment();
 

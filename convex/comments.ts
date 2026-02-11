@@ -109,18 +109,32 @@ const paginateCommentsWithFilter = async (
   };
 };
 
-const getReactionAndUserMaps = async (
-  ctx: QueryCtx,
-  comments: ProjectCommentDoc[],
-) => {
+const collectReactionsForComments = async (args: {
+  ctx: QueryCtx;
+  projectPublicId: string;
+  comments: ProjectCommentDoc[];
+}) => {
+  const { ctx, comments, projectPublicId } = args;
   if (comments.length === 0) {
-    return {
-      reactionMap: new Map<string, Map<string, ReactionUsers>>(),
-      userMap: new Map<Id<"users">, UserDoc>(),
-    };
+    return [] as CommentReactionDoc[];
   }
 
-  const reactionRows: CommentReactionDoc[] = (
+  const targetCommentIds = new Set(comments.map((comment) => String(comment._id)));
+
+  // TODO: Replace this with aggregated reaction materialization to avoid loading
+  // all project reactions when the project is very large.
+  const projectScopedReactions = await ctx.db
+    .query("commentReactions")
+    .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", projectPublicId))
+    .collect();
+  if (projectScopedReactions.length > 0) {
+    return projectScopedReactions.filter((reaction) =>
+      targetCommentIds.has(String(reaction.commentId)),
+    );
+  }
+
+  // Legacy fallback for rows that predate reaction project denormalization.
+  return (
     await Promise.all(
       comments.map((comment) =>
         ctx.db
@@ -130,6 +144,28 @@ const getReactionAndUserMaps = async (
       ),
     )
   ).flat();
+};
+
+const getReactionAndUserMaps = async (
+  args: {
+    ctx: QueryCtx;
+    projectPublicId: string;
+    comments: ProjectCommentDoc[];
+  },
+) => {
+  const { ctx, comments, projectPublicId } = args;
+  if (comments.length === 0) {
+    return {
+      reactionMap: new Map<string, Map<string, ReactionUsers>>(),
+      userMap: new Map<Id<"users">, UserDoc>(),
+    };
+  }
+
+  const reactionRows = await collectReactionsForComments({
+    ctx,
+    projectPublicId,
+    comments,
+  });
   const userIds = new Set(comments.map((comment) => comment.authorUserId));
   reactionRows.forEach((reaction) => userIds.add(reaction.userId));
   const users = await Promise.all(Array.from(userIds).map((userId) => ctx.db.get(userId)));
@@ -163,31 +199,37 @@ const getReactionAndUserMaps = async (
 
 const getReplyCountMapForParents = async (
   ctx: QueryCtx,
-  args: { projectPublicId: string; parentIds: string[] },
+  parentComments: ProjectCommentDoc[],
 ) => {
-  const targetParentIds = new Set(args.parentIds);
-  if (targetParentIds.size === 0) {
+  if (parentComments.length === 0) {
     return new Map<string, number>();
   }
 
-  const projectComments = await ctx.db
-    .query("projectComments")
-    .withIndex("by_projectPublicId", (q) =>
-      q.eq("projectPublicId", args.projectPublicId),
-    )
-    .collect();
-
   const counts = new Map<string, number>();
-  for (const comment of projectComments) {
-    if (!comment.parentCommentId) {
+  const parentsMissingSnapshotCount: ProjectCommentDoc[] = [];
+  for (const parent of parentComments) {
+    if (typeof parent.replyCount === "number" && Number.isFinite(parent.replyCount)) {
+      counts.set(String(parent._id), Math.max(0, Math.floor(parent.replyCount)));
       continue;
     }
-    const parentId = String(comment.parentCommentId);
-    if (!targetParentIds.has(parentId)) {
-      continue;
-    }
-    counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
+    parentsMissingSnapshotCount.push(parent);
   }
+  if (parentsMissingSnapshotCount.length === 0) {
+    return counts;
+  }
+
+  const fallbackCounts = await Promise.all(
+    parentsMissingSnapshotCount.map(async (parent) => {
+      const replies = await ctx.db
+        .query("projectComments")
+        .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
+        .collect();
+      return [String(parent._id), replies.length] as const;
+    }),
+  );
+  fallbackCounts.forEach(([parentId, count]) => {
+    counts.set(parentId, count);
+  });
 
   return counts;
 };
@@ -242,11 +284,12 @@ export const listThreadsPaginated = query({
       includeComment: (comment) => comment.parentCommentId == null,
     });
 
-    const { reactionMap, userMap } = await getReactionAndUserMaps(ctx, paginated.page);
-    const replyCounts = await getReplyCountMapForParents(ctx, {
+    const { reactionMap, userMap } = await getReactionAndUserMaps({
+      ctx,
       projectPublicId: project.publicId,
-      parentIds: paginated.page.map((comment) => String(comment._id)),
+      comments: paginated.page,
     });
+    const replyCounts = await getReplyCountMapForParents(ctx, paginated.page);
 
     return {
       ...paginated,
@@ -278,11 +321,12 @@ export const listReplies = query({
       .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
       .order("asc")
       .paginate(args.paginationOpts);
-    const { reactionMap, userMap } = await getReactionAndUserMaps(ctx, paginated.page);
-    const replyCounts = await getReplyCountMapForParents(ctx, {
+    const { reactionMap, userMap } = await getReactionAndUserMaps({
+      ctx,
       projectPublicId: parent.projectPublicId,
-      parentIds: paginated.page.map((comment) => String(comment._id)),
+      comments: paginated.page,
     });
+    const replyCounts = await getReplyCountMapForParents(ctx, paginated.page);
 
     return {
       ...paginated,
@@ -471,8 +515,9 @@ export const create = mutation({
 
     const { appUser, project } = await requireProjectRole(ctx, args.projectPublicId, "member");
 
+    let parent: ProjectCommentDoc | null = null;
     if (args.parentCommentId) {
-      const parent = await ctx.db.get(args.parentCommentId);
+      parent = await ctx.db.get(args.parentCommentId);
       if (!parent || parent.projectId !== project._id) {
         throw new ConvexError("Parent comment not found");
       }
@@ -489,11 +534,23 @@ export const create = mutation({
       authorSnapshotName: appUser.name ?? "Unknown user",
       authorSnapshotAvatarUrl: appUser.avatarUrl ?? undefined,
       content: trimmedContent,
+      replyCount: 0,
       resolved: false,
       edited: false,
       createdAt: now,
       updatedAt: now,
     });
+    if (parent) {
+      // Convex patch values don't support atomic increment operators, so
+      // recompute from children to avoid read-modify-write races on replyCount.
+      const replies = await ctx.db
+        .query("projectComments")
+        .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
+        .collect();
+      await ctx.db.patch(parent._id, {
+        replyCount: replies.length,
+      });
+    }
 
     try {
       await ctx.scheduler.runAfter(NOTIFICATION_DISPATCH_DELAY_MS, internal.notificationsEmail.sendTeamActivityForComment, {
@@ -550,24 +607,71 @@ export const update = mutation({
 
 const deleteCommentThread = async (
   ctx: MutationCtx,
-  commentId: Id<"projectComments">,
-) => {
-  const children = await ctx.db
-    .query("projectComments")
-    .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", commentId))
-    .collect();
+  comment: ProjectCommentDoc,
+): Promise<ProjectCommentDoc[]> => {
+  const commentsToDelete: ProjectCommentDoc[] = [];
+  const stack: ProjectCommentDoc[] = [comment];
 
-  for (const child of children) {
-    await deleteCommentThread(ctx, child._id);
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+
+    commentsToDelete.push(current);
+    const children = await ctx.db
+      .query("projectComments")
+      .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", current._id))
+      .collect();
+    for (const child of children) {
+      stack.push(child);
+    }
   }
 
-  const reactions = await ctx.db
-    .query("commentReactions")
-    .withIndex("by_commentId", (q) => q.eq("commentId", commentId))
-    .collect();
+  return commentsToDelete;
+};
 
-  await Promise.all(reactions.map((reaction) => ctx.db.delete(reaction._id)));
-  await ctx.db.delete(commentId);
+const decrementParentReplyCount = async (
+  ctx: MutationCtx,
+  args: { parentCommentId: Id<"projectComments">; decrementBy: number },
+) => {
+  const parent = await ctx.db.get(args.parentCommentId);
+  if (!parent) {
+    return;
+  }
+
+  if (typeof parent.replyCount === "number" && Number.isFinite(parent.replyCount)) {
+    await ctx.db.patch(parent._id, {
+      replyCount: Math.max(
+        0,
+        Math.floor(parent.replyCount) - Math.max(0, Math.floor(args.decrementBy)),
+      ),
+    });
+    return;
+  }
+
+  const remainingReplies = await ctx.db
+    .query("projectComments")
+    .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
+    .collect();
+  await ctx.db.patch(parent._id, {
+    replyCount: remainingReplies.length,
+  });
+};
+
+const removeCommentsAndReactions = async (
+  ctx: MutationCtx,
+  comments: ProjectCommentDoc[],
+) => {
+  for (const comment of comments) {
+    const reactions = await ctx.db
+      .query("commentReactions")
+      .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+      .collect();
+
+    await Promise.all(reactions.map((reaction) => ctx.db.delete(reaction._id)));
+  }
+  await Promise.all(comments.map((comment) => ctx.db.delete(comment._id)));
 };
 
 export const remove = mutation({
@@ -586,7 +690,30 @@ export const remove = mutation({
       throw new ConvexError("Forbidden");
     }
 
-    await deleteCommentThread(ctx, comment._id);
+    const commentsToDelete = await deleteCommentThread(ctx, comment);
+    const commentsToDeleteById = new Set(
+      commentsToDelete.map((entry) => String(entry._id)),
+    );
+    await removeCommentsAndReactions(ctx, commentsToDelete);
+
+    const parentDecrements = new Map<Id<"projectComments">, number>();
+    commentsToDelete.forEach((entry) => {
+      if (!entry.parentCommentId) {
+        return;
+      }
+      if (commentsToDeleteById.has(String(entry.parentCommentId))) {
+        return;
+      }
+      parentDecrements.set(
+        entry.parentCommentId,
+        (parentDecrements.get(entry.parentCommentId) ?? 0) + 1,
+      );
+    });
+    await Promise.all(
+      Array.from(parentDecrements.entries()).map(([parentCommentId, decrementBy]) =>
+        decrementParentReplyCount(ctx, { parentCommentId, decrementBy }),
+      ),
+    );
     return { removed: true };
   },
 });

@@ -226,8 +226,8 @@ export const useDashboardData = ({
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
-  const workspaceMembersLiteResult = useQuery(
-    api.collaboration.listWorkspaceMembersLite,
+  const viewerMembershipResult = useQuery(
+    api.collaboration.getViewerMembership,
     isAuthenticated && resolvedWorkspaceSlug
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
@@ -245,46 +245,41 @@ export const useDashboardData = ({
     () => workspaceMembersResult?.members ?? [],
     [workspaceMembersResult],
   );
-  const workspaceMembersLite = useMemo(
-    () => workspaceMembersLiteResult?.members ?? [],
-    [workspaceMembersLiteResult],
-  );
-  const viewerMembership = useMemo(
+  const viewerWorkspaceMember = useMemo(
     () => workspaceMembers.find((member) => member.isViewer),
     [workspaceMembers],
-  );
-  const viewerLiteMembership = useMemo(
-    () => workspaceMembersLite.find((member) => member.isViewer),
-    [workspaceMembersLite],
   );
   const viewerIdentity = useMemo<ViewerIdentity>(
     () => ({
       userId: snapshot?.viewer?.id
         ? String(snapshot.viewer.id)
-        : (viewerMembership?.userId ?? null),
+        : (viewerMembershipResult?.userId ?? viewerWorkspaceMember?.userId ?? null),
       workosUserId:
         snapshot?.viewer?.workosUserId ??
-        viewerMembership?.workosUserId ??
+        viewerWorkspaceMember?.workosUserId ??
         null,
       name:
-        viewerMembership?.name ?? snapshot?.viewer?.name ?? viewerFallback.name,
+        viewerWorkspaceMember?.name ??
+        snapshot?.viewer?.name ??
+        viewerFallback.name,
       email:
-        viewerMembership?.email ??
+        viewerWorkspaceMember?.email ??
         snapshot?.viewer?.email ??
         viewerFallback.email,
       avatarUrl:
-        viewerMembership?.avatarUrl ??
+        viewerWorkspaceMember?.avatarUrl ??
         snapshot?.viewer?.avatarUrl ??
         viewerFallback.avatarUrl,
-      role: viewerLiteMembership?.role ?? viewerMembership?.role ?? null,
+      role: viewerMembershipResult?.role ?? viewerWorkspaceMember?.role ?? null,
     }),
     [
       snapshot?.viewer,
       viewerFallback.avatarUrl,
       viewerFallback.email,
       viewerFallback.name,
-      viewerLiteMembership?.role,
-      viewerMembership,
+      viewerMembershipResult?.role,
+      viewerMembershipResult?.userId,
+      viewerWorkspaceMember,
     ],
   );
   const workspaces = useMemo(

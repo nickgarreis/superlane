@@ -182,11 +182,12 @@ export const hydrateWorkspaceMembers = async (
   const uniqueUserIds = Array.from(
     new Set(args.membershipRows.map((membership) => String(membership.userId))),
   );
+  const membershipByUserId = new Map(
+    args.membershipRows.map((membership) => [String(membership.userId), membership] as const),
+  );
   const userRows = await Promise.all(
     uniqueUserIds.map(async (userId) => {
-      const sampleMembership = args.membershipRows.find(
-        (membership) => String(membership.userId) === userId,
-      );
+      const sampleMembership = membershipByUserId.get(userId);
       if (!sampleMembership) {
         return null;
       }

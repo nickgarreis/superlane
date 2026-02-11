@@ -18,7 +18,46 @@ const getInitials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase() || "U";
-export const CommentItem = React.memo(function CommentItem({
+
+const areCommentItemPropsEqual = (
+  prev: CommentItemProps,
+  next: CommentItemProps,
+) => {
+  if (prev.comment !== next.comment) return false;
+  if (prev.currentUserId !== next.currentUserId) return false;
+  if (prev.currentUserName !== next.currentUserName) return false;
+  if (prev.currentUserAvatar !== next.currentUserAvatar) return false;
+  if (prev.isTopLevel !== next.isTopLevel) return false;
+  if (prev.mentionItems !== next.mentionItems) return false;
+  if (prev.onMentionClick !== next.onMentionClick) return false;
+  if (prev.performanceStyle !== next.performanceStyle) return false;
+
+  const prevIsReplying = prev.replyingTo === prev.comment.id;
+  const nextIsReplying = next.replyingTo === next.comment.id;
+  if (prevIsReplying !== nextIsReplying) return false;
+  if (prevIsReplying && prev.replyValue !== next.replyValue) return false;
+
+  const prevIsEditing = prev.editingComment === prev.comment.id;
+  const nextIsEditing = next.editingComment === next.comment.id;
+  if (prevIsEditing !== nextIsEditing) return false;
+  if (prevIsEditing && prev.editValue !== next.editValue) return false;
+
+  const prevReactionMenuOpen = prev.activeReactionPicker === prev.comment.id;
+  const nextReactionMenuOpen = next.activeReactionPicker === next.comment.id;
+  if (prevReactionMenuOpen !== nextReactionMenuOpen) return false;
+
+  const prevMoreMenuOpen = prev.activeMoreMenu === prev.comment.id;
+  const nextMoreMenuOpen = next.activeMoreMenu === next.comment.id;
+  if (prevMoreMenuOpen !== nextMoreMenuOpen) return false;
+
+  const prevIsCollapsed = prev.collapsedThreads.has(prev.comment.id);
+  const nextIsCollapsed = next.collapsedThreads.has(next.comment.id);
+  if (prevIsCollapsed !== nextIsCollapsed) return false;
+
+  return true;
+};
+
+function CommentItemComponent({
   comment,
   currentUserId,
   currentUserName,
@@ -197,4 +236,9 @@ export const CommentItem = React.memo(function CommentItem({
       </CommentThread>
     </div>
   );
-});
+}
+
+export const CommentItem = React.memo(
+  CommentItemComponent,
+  areCommentItemPropsEqual,
+);
