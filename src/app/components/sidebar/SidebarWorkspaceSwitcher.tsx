@@ -4,6 +4,12 @@ import { cn } from "../../../lib/utils";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getCreateWorkspaceDeniedReason } from "../../lib/permissionRules";
 import type { SidebarWorkspaceSectionProps } from "./types";
+import {
+  MENU_CHECK_ICON_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 const DEFAULT_WORKSPACE_BG = "#193cb8";
 const toSafeColor = (value?: string): string | null => {
   if (!value) {
@@ -87,7 +93,12 @@ export function SidebarWorkspaceSwitcher({
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50">
+          <div
+            className={cn(
+              "absolute top-full left-0 right-0 mt-1 z-50",
+              MENU_SURFACE_CLASS,
+            )}
+          >
             <div className="max-h-[240px] overflow-y-auto py-1">
               {workspaces.map((workspace) => (
                 <button
@@ -97,13 +108,13 @@ export function SidebarWorkspaceSwitcher({
                     onSwitchWorkspace(workspace.slug);
                     setIsOpen(false);
                   }}
-                  className={cn(
-                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
-                    activeWorkspace?.slug === workspace.slug
-                      ? "text-white bg-white/[0.04]"
-                      : "txt-tone-muted",
-                  )}
-                >
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      activeWorkspace?.slug === workspace.slug
+                        ? MENU_ITEM_ACTIVE_CLASS
+                        : "txt-tone-muted",
+                    )}
+                  >
                   <div
                     className="size-6 rounded-md flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden"
                     style={getWorkspaceBadgeStyle(workspace.logoColor)}
@@ -136,7 +147,7 @@ export function SidebarWorkspaceSwitcher({
                     </span>
                   </div>
                   {activeWorkspace?.slug === workspace.slug && (
-                    <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <Check className={MENU_CHECK_ICON_CLASS} />
                   )}
                 </button>
               ))}
@@ -158,9 +169,9 @@ export function SidebarWorkspaceSwitcher({
                   setIsOpen(false);
                 }}
                 className={cn(
-                  "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group cursor-pointer",
+                  MENU_ITEM_CLASS,
                   canCreateWorkspace
-                    ? "txt-tone-muted hover:bg-white/5"
+                    ? "txt-tone-muted"
                     : "text-white/25 cursor-not-allowed",
                 )}
               >

@@ -3,6 +3,11 @@ import { cn } from "../../../lib/utils";
 import type { ProjectFileTab } from "../../types";
 import svgPaths from "../../../imports/svg-0erue6fqwq";
 import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 type FileSectionProps = {
   activeTab: ProjectFileTab;
   setActiveTab: (value: ProjectFileTab) => void;
@@ -163,7 +168,10 @@ export const FileSection = React.memo(function FileSection({
                 onClick={() => setIsSortOpen(false)}
               />
               <div
-                className="absolute right-0 top-full mt-2 w-40 bg-[#131314] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20"
+                className={cn(
+                  "absolute right-0 top-full mt-2 w-40 py-1 z-20",
+                  MENU_SURFACE_CLASS,
+                )}
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     setIsSortOpen(false);
@@ -178,9 +186,10 @@ export const FileSection = React.memo(function FileSection({
                     setIsSortOpen(false);
                   }}
                   className={cn(
-                    "w-full px-4 py-2 text-left txt-role-body-md hover:bg-white/5 transition-colors",
+                    MENU_ITEM_CLASS,
+                    "px-4",
                     sortBy === "relevance"
-                      ? "text-white font-medium"
+                      ? cn(MENU_ITEM_ACTIVE_CLASS, "font-medium")
                       : "text-white/60",
                   )}
                 >
@@ -193,9 +202,10 @@ export const FileSection = React.memo(function FileSection({
                     setIsSortOpen(false);
                   }}
                   className={cn(
-                    "w-full px-4 py-2 text-left txt-role-body-md hover:bg-white/5 transition-colors",
+                    MENU_ITEM_CLASS,
+                    "px-4",
                     sortBy === "name"
-                      ? "text-white font-medium"
+                      ? cn(MENU_ITEM_ACTIVE_CLASS, "font-medium")
                       : "text-white/60",
                   )}
                 >

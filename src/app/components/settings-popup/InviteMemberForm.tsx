@@ -2,6 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  MENU_CHECK_ICON_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 type InviteMemberFormProps = {
   inviteEmail: string;
   onInviteEmailChange: (value: string) => void;
@@ -107,7 +113,10 @@ export function InviteMemberForm({
               id={inviteRoleListboxId}
               role="listbox"
               aria-label="Invite role"
-              className="absolute right-0 top-full mt-1 w-[140px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-100"
+              className={cn(
+                "absolute right-0 top-full mt-1 w-[140px] z-20 animate-in fade-in zoom-in-95 duration-100",
+                MENU_SURFACE_CLASS,
+              )}
             >
               <div className="py-1">
                 {(["member", "admin"] as const).map((role) => (
@@ -121,9 +130,9 @@ export function InviteMemberForm({
                       setIsInviteRoleOpen(false);
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                      MENU_ITEM_CLASS,
                       inviteRole === role
-                        ? "text-white bg-white/[0.04]"
+                        ? MENU_ITEM_ACTIVE_CLASS
                         : "txt-tone-muted",
                     )}
                   >
@@ -137,7 +146,7 @@ export function InviteMemberForm({
                       {role}
                     </span>
                     {inviteRole === role && (
-                      <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-auto" />
+                      <Check className={cn(MENU_CHECK_ICON_CLASS, "ml-auto")} />
                     )}
                   </button>
                 ))}

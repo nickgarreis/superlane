@@ -117,7 +117,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                 )}
               >
                 <div className="shrink-0 pt-0.5">
-                  <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
+                  <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
                     {currentUserAvatar ? (
                       <img
                         src={currentUserAvatar}

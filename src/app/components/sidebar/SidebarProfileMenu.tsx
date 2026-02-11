@@ -11,6 +11,10 @@ import type { SidebarProfileMenuProps } from "./types";
 import { cn } from "../../../lib/utils";
 import { SidebarItem } from "./SidebarItem";
 import { FeedbackPopup } from "../FeedbackPopup";
+import {
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 export function SidebarProfileMenu({
   viewerIdentity,
   onOpenSettings,
@@ -120,7 +124,10 @@ export function SidebarProfileMenu({
                 onClick={() => setIsProfileOpen(false)}
               />
               <div
-                className="absolute bottom-full left-0 right-0 mb-1 bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50"
+                className={cn(
+                  "absolute bottom-full left-0 right-0 mb-1 z-50",
+                  MENU_SURFACE_CLASS,
+                )}
                 role="menu"
                 aria-label={`Profile actions for ${viewerName}`}
                 onKeyDown={(event) => {
@@ -133,7 +140,10 @@ export function SidebarProfileMenu({
                 <button
                   ref={firstMenuItemRef}
                   type="button"
-                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "bg-transparent border-0 txt-tone-muted",
+                  )}
                   onClick={() => {
                     setIsProfileOpen(false);
                     setFeedbackType("feature");
@@ -150,7 +160,10 @@ export function SidebarProfileMenu({
                 </button>
                 <button
                   type="button"
-                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "bg-transparent border-0 txt-tone-muted",
+                  )}
                   onClick={() => {
                     setIsProfileOpen(false);
                     setFeedbackType("bug");
@@ -168,7 +181,10 @@ export function SidebarProfileMenu({
                 <div className="h-px bg-white/5 mx-2" />
                 <button
                   type="button"
-                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer bg-transparent border-0 txt-tone-muted"
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "bg-transparent border-0 txt-tone-muted",
+                  )}
                   onClick={() => {
                     setIsProfileOpen(false);
                     onLogout();

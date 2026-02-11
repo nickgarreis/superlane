@@ -25,6 +25,9 @@ export function ProjectOverview({
   const backToLabel = navigationActions?.backTo
     ? `${navigationActions.backTo.charAt(0).toUpperCase()}${navigationActions.backTo.slice(1)}`
     : "Archive";
+  const statusColor = project.archived
+    ? "var(--file-type-default)"
+    : (project.status.color ?? "var(--status-review)");
   return (
     <>
       {navigationActions?.back && (
@@ -98,18 +101,18 @@ export function ProjectOverview({
           </div>
           <div
             className={cn(
-              "inline-flex items-center gap-[6px] relative shrink-0 px-0 py-[4px] rounded-[16777200px] self-start select-none",
+              "inline-flex items-center gap-[6px] relative shrink-0 px-0 py-[4px] rounded-full self-start select-none",
             )}
           >
             <StatusBadgeIcon
               statusLabel={project.status.label}
               archived={project.archived}
               className="size-4 shrink-0"
-              color={project.archived ? "#9CA3AF" : "#29FD7D"}
+              color={statusColor}
             />
             <span
               className="txt-role-body-md txt-leading-body font-medium"
-              style={{ color: project.archived ? "#9CA3AF" : "#29FD7D" }}
+              style={{ color: statusColor }}
             >
               {project.archived ? "Archived" : project.status.label}
             </span>

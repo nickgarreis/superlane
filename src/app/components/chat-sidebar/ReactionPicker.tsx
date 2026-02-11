@@ -1,5 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { cn } from "../../../lib/utils";
+import { MENU_SURFACE_CLASS } from "../ui/menuChrome";
 const REACTION_OPTIONS = ["👍", "❤️", "👀", "🎉", "💡", "✅"];
 type ReactionPickerProps = {
   commentId: string;
@@ -19,7 +21,10 @@ export function ReactionPicker({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 4 }}
           transition={{ duration: 0.1 }}
-          className="absolute left-0 bottom-full mb-1 bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 flex items-center gap-0.5 p-1 z-50"
+          className={cn(
+            "absolute left-0 bottom-full mb-1 flex items-center gap-0.5 p-1 z-50",
+            MENU_SURFACE_CLASS,
+          )}
           onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
         >
           {REACTION_OPTIONS.map((emoji) => (

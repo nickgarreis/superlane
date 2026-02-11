@@ -1,6 +1,13 @@
 import React from "react";
 import { motion } from "motion/react";
 import { cn } from "../../../lib/utils";
+import { Z_LAYERS } from "../../lib/zLayers";
+import {
+  MENU_HEADER_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 import type { MentionEntityType } from "./types";
 type MentionDropdownPosition = {
   top?: number;
@@ -66,10 +73,10 @@ export function MentionDropdown({
         ...(dropdownPosition.bottom != null
           ? { bottom: dropdownPosition.bottom }
           : {}),
-        zIndex: 99999,
+        zIndex: Z_LAYERS.tooltip,
         pointerEvents: isVisible ? "auto" : "none",
       }}
-      className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
+      className={MENU_SURFACE_CLASS}
       role="listbox"
       aria-label="Mentions"
       aria-hidden={!isVisible}
@@ -85,7 +92,7 @@ export function MentionDropdown({
             return (
               <div
                 key={`header-${section.label}`}
-                className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none"
+                className={MENU_HEADER_CLASS}
               >
                 {section.label}
               </div>
@@ -105,10 +112,10 @@ export function MentionDropdown({
               }}
               onMouseEnter={() => onSelectIndex(index)}
               className={cn(
-                "w-full text-left px-3 py-2 flex items-center gap-2.5 txt-role-body-md transition-colors group cursor-pointer",
+                MENU_ITEM_CLASS,
                 index === selectedIndex
-                  ? "bg-white/[0.04] text-white"
-                  : "txt-tone-muted hover:bg-white/5",
+                  ? MENU_ITEM_ACTIVE_CLASS
+                  : "txt-tone-muted",
               )}
             >
               {item.type === "task" ? (

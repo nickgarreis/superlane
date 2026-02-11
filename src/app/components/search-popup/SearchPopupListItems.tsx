@@ -107,13 +107,13 @@ export function SearchPopupResultItem({
       </div>
       {item.type === "project" && item.status && (
         <div
-          className="inline-flex items-center gap-[6px] px-0 py-[4px] rounded-[16777200px] txt-role-kbd shrink-0"
-          style={{ color: "var(--status-review)" }}
+          className="inline-flex items-center gap-[6px] px-0 py-[4px] rounded-full txt-role-kbd shrink-0"
+          style={{ color: item.status.color || "var(--text-tone-accent)" }}
         >
           <StatusBadgeIcon
             statusLabel={item.status.label}
             className="size-3.5 shrink-0"
-            color="var(--status-review)"
+            color={item.status.color || "var(--text-tone-accent)"}
           />
           {item.status.label}
         </div>

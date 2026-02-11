@@ -10,6 +10,13 @@ import {
   getAssigneeInitials,
   resolveSelectedAssigneeUserId,
 } from "./taskRowHelpers";
+import {
+  MENU_CHECK_ICON_CLASS,
+  MENU_HEADER_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 type ProjectTaskRowProps = {
   task: Task;
   taskIsEditable: boolean;
@@ -155,12 +162,15 @@ export function ProjectTaskRow({
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-1 z-50 w-[220px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
+                  className={cn(
+                    "absolute right-0 top-full mt-1 z-50 w-[220px]",
+                    MENU_SURFACE_CLASS,
+                  )}
                   onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                     event.stopPropagation()
                   }
                 >
-                  <div className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none">
+                  <div className={MENU_HEADER_CLASS}>
                     Move to project
                   </div>
                   <button
@@ -170,10 +180,8 @@ export function ProjectTaskRow({
                       setOpenProjectTaskId(null);
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
-                      !task.projectId
-                        ? "text-white bg-white/[0.04]"
-                        : "txt-tone-muted",
+                      MENU_ITEM_CLASS,
+                      !task.projectId ? MENU_ITEM_ACTIVE_CLASS : "txt-tone-muted",
                     )}
                   >
                     <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
@@ -187,7 +195,7 @@ export function ProjectTaskRow({
                       No project
                     </span>
                     {!task.projectId && (
-                      <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <Check className={MENU_CHECK_ICON_CLASS} />
                     )}
                   </button>
                   {projectOptions.map((project) => (
@@ -199,9 +207,9 @@ export function ProjectTaskRow({
                         setOpenProjectTaskId(null);
                       }}
                       className={cn(
-                        "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                        MENU_ITEM_CLASS,
                         task.projectId === project.id
-                          ? "text-white bg-white/[0.04]"
+                          ? MENU_ITEM_ACTIVE_CLASS
                           : "txt-tone-muted",
                       )}
                     >
@@ -216,7 +224,7 @@ export function ProjectTaskRow({
                         {project.name}
                       </span>
                       {task.projectId === project.id && (
-                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <Check className={MENU_CHECK_ICON_CLASS} />
                       )}
                     </button>
                   ))}
@@ -300,7 +308,7 @@ export function ProjectTaskRow({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
+              <div className="w-full h-full bg-bg-avatar-fallback flex items-center justify-center txt-role-micro font-medium text-white">
                 {getAssigneeInitials(task.assignee.name)}
               </div>
             )}
@@ -311,12 +319,15 @@ export function ProjectTaskRow({
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-1 z-50 w-[220px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden"
+                className={cn(
+                  "absolute right-0 top-full mt-1 z-50 w-[220px]",
+                  MENU_SURFACE_CLASS,
+                )}
                 onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                   event.stopPropagation()
                 }
               >
-                <div className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none">
+                <div className={MENU_HEADER_CLASS}>
                   Assign to
                 </div>
                 {assignableMembers.length === 0 && (
@@ -331,9 +342,9 @@ export function ProjectTaskRow({
                       type="button"
                       onClick={() => handleAssigneeSelect(task.id, member)}
                       className={cn(
-                        "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                        MENU_ITEM_CLASS,
                         isSelectedAssignee(member)
-                          ? "text-white bg-white/[0.04]"
+                          ? MENU_ITEM_ACTIVE_CLASS
                           : "txt-tone-muted",
                       )}
                     >
@@ -349,7 +360,7 @@ export function ProjectTaskRow({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
+                          <div className="w-full h-full bg-bg-avatar-fallback flex items-center justify-center txt-role-micro font-medium text-white">
                             {getAssigneeInitials(member.name)}
                           </div>
                         )}
@@ -364,7 +375,7 @@ export function ProjectTaskRow({
                         {member.name}
                       </span>
                       {isSelectedAssignee(member) && (
-                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <Check className={MENU_CHECK_ICON_CLASS} />
                       )}
                     </button>
                   ))}

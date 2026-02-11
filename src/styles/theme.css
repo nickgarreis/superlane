@@ -89,6 +89,7 @@
   --shadow-popup-dialog: 0px 12px 40px 0px rgba(0, 0, 0, 0.3);
   --shadow-popup-knob: 0px 2px 6px 0px rgba(0, 0, 0, 0.15);
   --shadow-popup-calendar: 0px 18px 40px -28px rgba(0, 0, 0, 0.9);
+  --shadow-menu-surface: 0px 12px 32px -18px rgba(0, 0, 0, 0.72);
   --txt-size-body-md: 13px;
   --txt-size-body-sm: 12px;
   --txt-size-overline: 10px;
@@ -313,6 +314,10 @@
 
 @utility shadow-popup-calendar {
   box-shadow: var(--shadow-popup-calendar);
+}
+
+@utility shadow-menu-surface {
+  box-shadow: var(--shadow-menu-surface);
 }
 
 @utility txt-track-tight {

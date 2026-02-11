@@ -100,7 +100,7 @@ export function ReplyCommentComposer({
       className="mt-3 flex items-start gap-2"
     >
       <div className="shrink-0 pt-0.5">
-        <div className="w-5 h-5 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/[0.06]">
+        <div className="w-5 h-5 rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
           {currentUserAvatar ? (
             <img
               src={currentUserAvatar}

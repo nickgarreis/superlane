@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DayPicker } from "react-day-picker";
 import { fromUtcNoonEpochMsToDateOnly } from "../../lib/dates";
+import { Z_LAYERS } from "../../lib/zLayers";
 import type { Task, WorkspaceMember } from "../../types";
 import type { TaskProjectOption } from "./useProjectTaskHandlers";
 import { ProjectTaskRow } from "./ProjectTaskRow";
@@ -211,7 +212,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
               position: "fixed",
               top: calendarPosition.top,
               left: calendarPosition.left,
-              zIndex: 9999,
+              zIndex: Z_LAYERS.popover,
             }}
             className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
             onClick={(event: React.MouseEvent<HTMLDivElement>) =>

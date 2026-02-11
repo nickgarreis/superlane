@@ -11,8 +11,13 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "../../../lib/utils";
+import { Z_LAYERS } from "../../lib/zLayers";
 import type { CollaborationComment } from "../../types";
 import { DeniedAction } from "../permissions/DeniedAction";
+import {
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 import { ReactionPicker } from "./ReactionPicker";
 type CommentActionsProps = {
   comment: CollaborationComment;
@@ -231,8 +236,9 @@ export function CommentActions({
                   position: "fixed",
                   top: menuPos.top,
                   left: menuPos.left,
+                  zIndex: Z_LAYERS.popover,
                 }}
-                className="bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-[9999] w-[140px]"
+                className={cn("w-[140px]", MENU_SURFACE_CLASS)}
                 onClick={(event: React.MouseEvent<HTMLDivElement>) =>
                   event.stopPropagation()
                 }
@@ -243,7 +249,7 @@ export function CommentActions({
                     onSetEditValue(comment.content);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer txt-tone-muted"
+                  className={cn(MENU_ITEM_CLASS, "txt-tone-muted")}
                 >
                   <Pencil className="w-3.5 h-3.5 shrink-0 text-white/60" />
                   <span className="group-hover:text-white transition-colors">
@@ -255,7 +261,7 @@ export function CommentActions({
                     onDeleteComment(comment.id);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer text-red-400/75"
+                  className={cn(MENU_ITEM_CLASS, "text-red-400/75")}
                 >
                   <Trash2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="group-hover:text-red-300 transition-colors">

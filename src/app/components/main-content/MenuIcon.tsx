@@ -5,6 +5,7 @@ import svgPaths from "../../../imports/svg-0erue6fqwq";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../../lib/permissionRules";
 import type { WorkspaceRole } from "../../types";
+import { MENU_ITEM_CLASS, MENU_SURFACE_CLASS } from "../ui/menuChrome";
 export function MenuIcon({
   isArchived,
   isCompleted,
@@ -47,7 +48,12 @@ export function MenuIcon({
             className="fixed inset-0 z-20"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-full top-0 ml-2 w-[190px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-30">
+          <div
+            className={cn(
+              "absolute left-full top-0 ml-2 w-[190px] z-30",
+              MENU_SURFACE_CLASS,
+            )}
+          >
             <div className="py-1">
             {!isCompleted && !isArchived && onComplete && (
               <DeniedAction
@@ -59,10 +65,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
+                    MENU_ITEM_CLASS,
                     canManageProjectLifecycle
-                      ? "cursor-pointer hover:bg-white/5"
-                      : "cursor-not-allowed opacity-60",
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-60 hover:bg-transparent",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -102,10 +108,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
+                    MENU_ITEM_CLASS,
                     canManageProjectLifecycle
-                      ? "cursor-pointer hover:bg-white/5"
-                      : "cursor-not-allowed opacity-60",
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-60 hover:bg-transparent",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -145,10 +151,10 @@ export function MenuIcon({
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
-                    "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 transition-colors group relative",
+                    MENU_ITEM_CLASS,
                     canManageProjectLifecycle
-                      ? "cursor-pointer hover:bg-white/5"
-                      : "cursor-not-allowed opacity-60",
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-60 hover:bg-transparent",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {

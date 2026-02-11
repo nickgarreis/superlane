@@ -5,6 +5,12 @@ import { cn } from "../../../lib/utils";
 import type { ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
 import { ProjectLogo } from "../ProjectLogo";
+import {
+  MENU_CHECK_ICON_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 type ProjectDropdownProps = {
   activeProject: ProjectData;
   sortedProjects: ProjectData[];
@@ -67,7 +73,10 @@ export function ProjectDropdown({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.12 }}
-              className="absolute top-full left-0 mt-1 w-[220px] bg-[#1E1F20] border border-white/10 rounded-xl shadow-xl shadow-black/50 overflow-hidden z-50"
+              className={cn(
+                "absolute top-full left-0 mt-1 w-[220px] z-50",
+                MENU_SURFACE_CLASS,
+              )}
             >
               <div className="max-h-[200px] overflow-y-auto py-1">
                 {sortedProjects.map((project) => (
@@ -80,9 +89,9 @@ export function ProjectDropdown({
                       onOpenChange(false);
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 txt-role-body-md flex items-center gap-2.5 hover:bg-white/5 transition-colors group relative cursor-pointer",
+                      MENU_ITEM_CLASS,
                       activeProject.id === project.id
-                        ? "text-white bg-white/[0.04]"
+                        ? MENU_ITEM_ACTIVE_CLASS
                         : "txt-tone-muted",
                     )}
                   >
@@ -104,7 +113,7 @@ export function ProjectDropdown({
                       {project.name}
                     </span>
                     {activeProject.id === project.id && (
-                      <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <Check className={MENU_CHECK_ICON_CLASS} />
                     )}
                     {project.archived && (
                       <span className="txt-role-micro text-white/25 uppercase tracking-wider shrink-0">

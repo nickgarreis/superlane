@@ -5,6 +5,13 @@ import {
   TASK_SORT_OPTIONS,
   type TaskSortBy,
 } from "./useWorkspaceTaskFiltering";
+import {
+  MENU_CHECK_ICON_CLASS,
+  MENU_HEADER_CLASS,
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_SURFACE_CLASS,
+} from "../ui/menuChrome";
 type TasksToolbarProps = {
   taskCount: number;
   hideHeader: boolean;
@@ -78,8 +85,13 @@ export function TasksToolbar({
             <ArrowUpDown size={16} strokeWidth={2} />
           </button>
           {isSortOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#131314] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 txt-role-kbd uppercase font-bold text-white/30 tracking-wider">
+            <div
+              className={cn(
+                "absolute right-0 top-full mt-2 w-48 p-1 z-50 animate-in fade-in zoom-in-95 duration-100",
+                MENU_SURFACE_CLASS,
+              )}
+            >
+              <div className={MENU_HEADER_CLASS}>
                 Sort by
               </div>
               {TASK_SORT_OPTIONS.map((option) => (
@@ -89,18 +101,22 @@ export function TasksToolbar({
                     onSortSelect(option.id);
                     onCloseSort();
                   }}
-                  className="w-full px-2 py-1.5 rounded-lg text-left txt-role-body-md hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3 group"
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    sortBy === option.id ? MENU_ITEM_ACTIVE_CLASS : "txt-tone-muted",
+                  )}
                 >
                   <div
                     className={cn(
-                      "w-4 h-4 flex items-center justify-center transition-opacity",
+                      MENU_CHECK_ICON_CLASS,
+                      "flex items-center justify-center transition-opacity",
                       sortBy === option.id ? "opacity-100" : "opacity-0",
                     )}
                   >
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                       <path
                         d="M9 1L3.5 6.5L1 4"
-                        stroke="#E8E8E8"
+                        stroke="currentColor"
                         strokeWidth="1.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -112,7 +128,7 @@ export function TasksToolbar({
                       "transition-colors",
                       sortBy === option.id
                         ? "text-white"
-                        : "txt-tone-subtle group-hover:txt-tone-primary",
+                        : "txt-tone-subtle group-hover:text-white",
                     )}
                   >
                     {option.label}

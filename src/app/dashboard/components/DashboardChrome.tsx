@@ -59,16 +59,6 @@ export const DashboardChrome = React.memo(function DashboardChrome({
         duration={3000}
         offset={20}
         toastOptions={{
-          style: {
-            background: "#131314",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "14px",
-            color: "#E8E8E8",
-            padding: "14px 16px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
-            backdropFilter: "blur(12px)",
-            gap: "12px",
-          },
           classNames: {
             toast: "custom-toast",
             title: "custom-toast-title",
