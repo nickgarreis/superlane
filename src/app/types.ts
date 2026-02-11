@@ -7,9 +7,7 @@ export type Workspace = {
   logoColor?: string;
   logoText?: string;
 };
-
 export type WorkspaceRole = "owner" | "admin" | "member";
-
 export interface WorkspaceMember {
   userId: string;
   workosUserId: string;
@@ -19,7 +17,6 @@ export interface WorkspaceMember {
   role: WorkspaceRole;
   isViewer: boolean;
 }
-
 export interface ViewerIdentity {
   userId: string | null;
   workosUserId: string | null;
@@ -28,13 +25,11 @@ export interface ViewerIdentity {
   avatarUrl: string | null;
   role: WorkspaceRole | null;
 }
-
 export interface CommentReaction {
   emoji: string;
   users: string[];
   userIds: string[];
 }
-
 export interface CollaborationComment {
   id: string;
   author: { userId: string; name: string; avatar: string };
@@ -45,27 +40,20 @@ export interface CollaborationComment {
   edited?: boolean;
   reactions?: CommentReaction[];
 }
-
 export interface ReviewComment {
   id: string;
   author: { userId?: string; name: string; avatar: string };
   content: string;
   timestamp: string;
 }
-
 export interface Task {
   id: string;
   title: string;
   projectId?: string;
-  assignee: {
-    userId?: string;
-    name: string;
-    avatar: string;
-  };
+  assignee: { userId?: string; name: string; avatar: string };
   dueDateEpochMs?: number | null;
   completed: boolean;
 }
-
 export interface ProjectDraftData {
   selectedService: string;
   projectName: string;
@@ -75,25 +63,14 @@ export interface ProjectDraftData {
   deadlineEpochMs?: number | null;
   lastStep: number;
 }
-
 export type ProjectStatus = "Draft" | "Review" | "Active" | "Completed";
 export type ProjectFileTab = "Assets" | "Contract" | "Attachments";
-
 export interface ProjectData {
   id: string;
   name: string;
   description: string;
-  creator: {
-    userId?: string;
-    name: string;
-    avatar: string;
-  };
-  status: {
-    label: string;
-    color: string;
-    bgColor: string;
-    dotColor: string;
-  };
+  creator: { userId?: string; name: string; avatar: string };
+  status: { label: string; color: string; bgColor: string; dotColor: string };
   previousStatus?: {
     label: string;
     color: string;
@@ -118,7 +95,6 @@ export interface ProjectData {
   tasks?: Task[];
   comments?: ReviewComment[];
 }
-
 export interface DbWorkspaceRecord {
   id: string;
   slug: string;
@@ -129,21 +105,15 @@ export interface DbWorkspaceRecord {
   logoText?: string;
   workosOrganizationId?: string;
 }
-
 export interface DbTaskRecord {
   id: string;
   projectPublicId?: string | null;
   taskId: string;
   title: string;
-  assignee: {
-    userId?: string;
-    name: string;
-    avatar: string;
-  };
+  assignee: { userId?: string; name: string; avatar: string };
   dueDateEpochMs?: number | null;
   completed: boolean;
 }
-
 export interface ProjectFileData {
   id: string;
   projectPublicId: string;
@@ -156,7 +126,6 @@ export interface ProjectFileData {
   sizeBytes?: number | null;
   downloadable?: boolean;
 }
-
 export type PendingDraftAttachmentUpload = {
   clientId: string;
   file: File;
@@ -166,7 +135,6 @@ export type PendingDraftAttachmentUpload = {
   error?: string;
   pendingUploadId?: string;
 };
-
 export interface DbProjectRecord {
   id: string;
   publicId: string;

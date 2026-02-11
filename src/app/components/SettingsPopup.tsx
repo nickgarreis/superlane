@@ -7,7 +7,6 @@ import { BillingTab } from "./settings-popup/BillingTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
 import { NotificationsTab } from "./settings-popup/NotificationsTab";
 import type { SettingsPopupProps, SettingsTab } from "./settings-popup/types";
-
 const SETTINGS_TABS: Array<{
   id: SettingsTab;
   icon: typeof User;
@@ -44,15 +43,15 @@ const SETTINGS_TABS: Array<{
     description: "Billing is coming soon. This panel is read-only for now.",
   },
 ];
-
-const tabMetaById = SETTINGS_TABS.reduce<Record<SettingsTab, (typeof SETTINGS_TABS)[number]>>(
+const tabMetaById = SETTINGS_TABS.reduce<
+  Record<SettingsTab, (typeof SETTINGS_TABS)[number]>
+>(
   (acc, tab) => {
     acc[tab.id] = tab;
     return acc;
   },
   {} as Record<SettingsTab, (typeof SETTINGS_TABS)[number]>,
 );
-
 export function SettingsPopup({
   isOpen,
   onClose,
@@ -79,19 +78,15 @@ export function SettingsPopup({
   onSoftDeleteWorkspace,
 }: SettingsPopupProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
-
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
-
   if (!isOpen) {
     return null;
   }
-
   const tabMeta = tabMetaById[activeTab];
-
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -102,24 +97,25 @@ export function SettingsPopup({
         aria-hidden="true"
       />
       <div
-        className="relative w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-['Roboto',sans-serif] text-[#E8E8E8]"
+        className="relative w-full max-w-[980px] h-[680px] bg-bg-base border border-white/10 rounded-[24px] shadow-2xl flex overflow-hidden font-app txt-tone-primary"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="w-[240px] flex flex-col py-6 px-4 shrink-0 bg-bg-base">
           <div className="px-2 mb-6 mt-2">
-            <span className="text-[18px] font-medium text-[#E8E8E8]">Settings</span>
+            <span className="txt-role-panel-title txt-tone-primary">
+              Settings
+            </span>
           </div>
-
           <div className="flex flex-col gap-1">
             {SETTINGS_TABS.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-all group outline-none cursor-pointer",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg txt-role-body-lg font-medium transition-all group outline-none cursor-pointer",
                   activeTab === item.id
-                    ? "bg-white/10 text-[#E8E8E8]"
-                    : "text-[#E8E8E8]/60 hover:text-[#E8E8E8] hover:bg-white/5",
+                    ? "bg-white/10 txt-tone-primary"
+                    : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/5",
                 )}
               >
                 <item.icon
@@ -127,7 +123,9 @@ export function SettingsPopup({
                   strokeWidth={2}
                   className={cn(
                     "transition-colors",
-                    activeTab === item.id ? "text-[#E8E8E8]" : "text-[#E8E8E8]/60 group-hover:text-[#E8E8E8]",
+                    activeTab === item.id
+                      ? "txt-tone-primary"
+                      : "txt-tone-subtle group-hover:txt-tone-primary",
                   )}
                 />
                 <span>{item.label}</span>
@@ -142,7 +140,6 @@ export function SettingsPopup({
             ))}
           </div>
         </div>
-
         <div className="flex-1 bg-bg-surface m-2 rounded-[20px] border border-white/5 flex flex-col overflow-hidden relative">
           <div className="absolute top-4 right-4 z-10">
             <button
@@ -152,7 +149,6 @@ export function SettingsPopup({
               <X size={20} />
             </button>
           </div>
-
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="max-w-[700px] mx-auto py-12 px-8">
               <AnimatePresence mode="wait" initial={false}>
@@ -164,10 +160,13 @@ export function SettingsPopup({
                   transition={{ duration: 0.2 }}
                 >
                   <div className="mb-8">
-                    <h2 className="text-[24px] font-medium text-[#E8E8E8] mb-2">{tabMeta.title}</h2>
-                    <p className="text-[14px] text-[#E8E8E8]/60">{tabMeta.description}</p>
+                    <h2 className="txt-role-screen-title txt-tone-primary mb-2">
+                      {tabMeta.title}
+                    </h2>
+                    <p className="txt-role-body-lg txt-tone-subtle">
+                      {tabMeta.description}
+                    </p>
                   </div>
-
                   {activeTab === "Account" && account && (
                     <AccountTab
                       data={account}
@@ -176,14 +175,12 @@ export function SettingsPopup({
                       onRemoveAvatar={onRemoveAvatar}
                     />
                   )}
-
                   {activeTab === "Notifications" && notifications && (
                     <NotificationsTab
                       data={notifications}
                       onSave={onSaveNotifications}
                     />
                   )}
-
                   {activeTab === "Company" && (
                     <CompanyTab
                       activeWorkspace={activeWorkspace}
@@ -202,7 +199,6 @@ export function SettingsPopup({
                       onSoftDeleteWorkspace={onSoftDeleteWorkspace}
                     />
                   )}
-
                   {activeTab === "Billing" && <BillingTab />}
                 </motion.div>
               </AnimatePresence>

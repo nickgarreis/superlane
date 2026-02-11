@@ -5,11 +5,9 @@ export const safeScrollIntoView = (
   if (!element || typeof element.scrollIntoView !== "function") {
     return;
   }
-
   if (options === undefined) {
     element.scrollIntoView();
     return;
   }
-
   element.scrollIntoView(options);
 };

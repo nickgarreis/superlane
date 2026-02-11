@@ -327,11 +327,11 @@ describe("P1.1 settings backendization", () => {
       workspaceSlug: workspace.workspaceSlug,
     });
 
-    const snapshot = await asOwner().query(api.dashboard.getSnapshot, {
+    const workspaceBootstrap = await asOwner().query(api.dashboard.getWorkspaceBootstrap, {
       activeWorkspaceSlug: workspace.workspaceSlug,
     });
 
-    expect(snapshot.workspaces.find((entry: any) => entry.slug === workspace.workspaceSlug)).toBeUndefined();
+    expect(workspaceBootstrap.workspaces.find((entry: any) => entry.slug === workspace.workspaceSlug)).toBeUndefined();
 
     await expect(
       asOwner().query(api.settings.getCompanySettingsSummary, {

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "maxTotalAny": 200,
+  "maxAnyByFile": {
+    "convex/settings.ts": 13,
+    "convex/files.ts": 10,
+    "convex/lib/taskMutations.ts": 0,
+    "convex/dashboard.ts": 0,
+    "convex/lib/dashboardContext.ts": 0
+  }
+}

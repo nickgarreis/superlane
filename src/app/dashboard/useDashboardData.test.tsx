@@ -14,7 +14,8 @@ vi.mock("convex/react", () => ({
 }));
 
 vi.mock("./useDashboardController", () => ({
-  useDashboardController: (...args: unknown[]) => useDashboardControllerMock(...args),
+  useDashboardController: (...args: unknown[]) =>
+    useDashboardControllerMock(...args),
 }));
 
 const createBaseArgs = () => ({
@@ -63,7 +64,14 @@ describe("useDashboardData", () => {
       },
       activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
       workspaces: [
-        { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+        {
+          slug: "alpha",
+          name: "Alpha",
+          plan: "Free",
+          logo: "",
+          logoColor: "",
+          logoText: "A",
+        },
       ],
     };
 
@@ -121,16 +129,47 @@ describe("useDashboardData", () => {
     const queryResults = [
       snapshot,
       {},
-      { events: { eventNotifications: true, teamActivities: true, productUpdates: true } },
+      {
+        events: {
+          eventNotifications: true,
+          teamActivities: true,
+          productUpdates: true,
+        },
+      },
       {},
       workspaceMembers,
     ];
     const paginatedQueryResults = [
-      { ...projectsResult, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
-      { ...tasksResult, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
-      { results: workspaceFiles, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
-      { results: workspaceFiles, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
-      { results: workspaceMembers.members, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
+      {
+        ...projectsResult,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
+      {
+        ...tasksResult,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
+      {
+        results: workspaceFiles,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
+      {
+        results: workspaceFiles,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
+      {
+        results: workspaceMembers.members,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      },
       { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
       { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
     ];
@@ -139,22 +178,35 @@ describe("useDashboardData", () => {
       queryArgs.push(queryArg);
       return queryResults[queryArgs.length - 1];
     });
-    usePaginatedQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
-      paginatedQueryArgs.push(queryArg);
-      return paginatedQueryResults[paginatedQueryArgs.length - 1]
-        ?? { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        paginatedQueryArgs.push(queryArg);
+        return (
+          paginatedQueryResults[paginatedQueryArgs.length - 1] ?? {
+            results: [],
+            status: "Exhausted",
+            isLoading: false,
+            loadMore: vi.fn(),
+          }
+        );
+      },
+    );
 
     const { result } = renderHook(() => useDashboardData(args));
 
     expect(result.current.resolvedWorkspaceSlug).toBe("alpha");
     expect(result.current.viewerIdentity.name).toBe("Snapshot Member");
     expect(result.current.activeWorkspace?.slug).toBe("alpha");
-    expect(result.current.visibleProjects["project-1"]?.name).toBe("Project One");
+    expect(result.current.visibleProjects["project-1"]?.name).toBe(
+      "Project One",
+    );
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
     expect(queryArgs[4]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedQueryArgs[0]).toEqual({ workspaceSlug: "alpha", includeArchived: true });
+    expect(paginatedQueryArgs[0]).toEqual({
+      workspaceSlug: "alpha",
+      includeArchived: true,
+    });
     expect(paginatedQueryArgs[1]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedQueryArgs[2]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedQueryArgs[3]).toEqual({ projectPublicId: "project-1" });
@@ -199,10 +251,17 @@ describe("useDashboardData", () => {
         workspaces: [],
       };
     });
-    usePaginatedQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
-      paginatedCallArgs.push(queryArg);
-      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        paginatedCallArgs.push(queryArg);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
 
     const { result } = renderHook(() => useDashboardData(args));
 
@@ -227,16 +286,30 @@ describe("useDashboardData", () => {
           viewer: null,
           activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
           workspaces: [
-            { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+            {
+              slug: "alpha",
+              name: "Alpha",
+              plan: "Free",
+              logo: "",
+              logoColor: "",
+              logoText: "A",
+            },
           ],
         };
       }
       return undefined;
     });
-    usePaginatedQueryMock.mockImplementation((_query: unknown, args: unknown) => {
-      paginatedCallArgs.push(args);
-      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, args: unknown) => {
+        paginatedCallArgs.push(args);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
 
     const args = {
       ...createBaseArgs(),
@@ -266,16 +339,30 @@ describe("useDashboardData", () => {
           viewer: null,
           activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
           workspaces: [
-            { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+            {
+              slug: "alpha",
+              name: "Alpha",
+              plan: "Free",
+              logo: "",
+              logoColor: "",
+              logoText: "A",
+            },
           ],
         };
       }
       return undefined;
     });
-    usePaginatedQueryMock.mockImplementation((_query: unknown, args: unknown) => {
-      paginatedCallArgs.push(args);
-      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, args: unknown) => {
+        paginatedCallArgs.push(args);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
 
     const args = {
       ...createBaseArgs(),
@@ -311,7 +398,14 @@ describe("useDashboardData", () => {
           },
           activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
           workspaces: [
-            { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+            {
+              slug: "alpha",
+              name: "Alpha",
+              plan: "Free",
+              logo: "",
+              logoColor: "",
+              logoText: "A",
+            },
           ],
         };
       }
@@ -332,15 +426,25 @@ describe("useDashboardData", () => {
       }
       return undefined;
     });
-    usePaginatedQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
-      paginatedCallArgs.push(queryArg);
-      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        paginatedCallArgs.push(queryArg);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
 
     const { result } = renderHook(() => useDashboardData(createBaseArgs()));
 
     expect(queryCallArgs[4]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedCallArgs[0]).toEqual({ workspaceSlug: "alpha", includeArchived: true });
+    expect(paginatedCallArgs[0]).toEqual({
+      workspaceSlug: "alpha",
+      includeArchived: true,
+    });
     expect(result.current.viewerIdentity.name).toBe("Fallback Member");
   });
 
@@ -362,24 +466,35 @@ describe("useDashboardData", () => {
         viewer: null,
         activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
         workspaces: [
-          { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+          {
+            slug: "alpha",
+            name: "Alpha",
+            plan: "Free",
+            logo: "",
+            logoColor: "",
+            logoText: "A",
+          },
         ],
       };
     });
 
     const loadMoreSpies = Array.from({ length: 7 }, () => vi.fn());
-    usePaginatedQueryMock.mockImplementation((_: unknown, queryArg: unknown) => {
-      const index = usePaginatedQueryMock.mock.calls.length - 1;
-      return {
-        results: [],
-        status: queryArg === "skip" ? "Exhausted" : "CanLoadMore",
-        isLoading: false,
-        loadMore: loadMoreSpies[index] ?? vi.fn(),
-      };
-    });
+    usePaginatedQueryMock.mockImplementation(
+      (_: unknown, queryArg: unknown) => {
+        const index = usePaginatedQueryMock.mock.calls.length - 1;
+        return {
+          results: [],
+          status: queryArg === "skip" ? "Exhausted" : "CanLoadMore",
+          isLoading: false,
+          loadMore: loadMoreSpies[index] ?? vi.fn(),
+        };
+      },
+    );
 
     renderHook(() => useDashboardData(args));
 
-    expect(loadMoreSpies.every((spy) => spy.mock.calls.length === 0)).toBe(true);
+    expect(loadMoreSpies.every((spy) => spy.mock.calls.length === 0)).toBe(
+      true,
+    );
   });
 });

@@ -90,12 +90,17 @@ describe("SearchPopup", () => {
     );
 
     fireEvent.change(
-      screen.getByPlaceholderText("Search projects, tasks, files, or actions..."),
+      screen.getByPlaceholderText(
+        "Search projects, tasks, files, or actions...",
+      ),
       { target: { value: "wireframe" } },
     );
 
     fireEvent.click(
-      await screen.findByText((_, element) => element?.textContent?.trim() === "Draft homepage wireframe"),
+      await screen.findByText(
+        (_, element) =>
+          element?.textContent?.trim() === "Draft homepage wireframe",
+      ),
     );
 
     await waitFor(() => {
@@ -103,7 +108,10 @@ describe("SearchPopup", () => {
     });
 
     expect(onClose).toHaveBeenCalled();
-    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", { type: "task", taskId: "task-1" });
+    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", {
+      type: "task",
+      taskId: "task-1",
+    });
   });
 
   test("supports keyboard navigation and enter activation", async () => {
@@ -122,7 +130,9 @@ describe("SearchPopup", () => {
       />,
     );
 
-    const input = screen.getByPlaceholderText("Search projects, tasks, files, or actions...");
+    const input = screen.getByPlaceholderText(
+      "Search projects, tasks, files, or actions...",
+    );
 
     fireEvent.change(input, { target: { value: "todo list" } });
     fireEvent.keyDown(input, { key: "Enter" });

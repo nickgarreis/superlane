@@ -1,9 +1,12 @@
 import type { SettingsCommands, SettingsTab } from "../types";
-
 type CreateSettingsCommandsArgs = {
   handleOpenSettings: (tab?: SettingsTab) => void;
   handleCloseSettings: () => void;
-  handleSaveAccountSettings: (payload: { firstName: string; lastName: string; email: string }) => Promise<void>;
+  handleSaveAccountSettings: (payload: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  }) => Promise<void>;
   handleUploadAccountAvatar: (file: File) => Promise<void>;
   handleRemoveAccountAvatar: () => Promise<void>;
   handleSaveSettingsNotifications: (payload: {
@@ -14,7 +17,6 @@ type CreateSettingsCommandsArgs = {
     };
   }) => Promise<void>;
 };
-
 export const createSettingsCommands = ({
   handleOpenSettings,
   handleCloseSettings,

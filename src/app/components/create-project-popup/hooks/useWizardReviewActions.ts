@@ -11,7 +11,6 @@ import { reportUiError } from "../../../lib/errors";
 import type { CreateProjectPayload } from "../../../dashboard/types";
 import type { CreateProjectPopupProps } from "./useCreateProjectWizardController";
 import type { ReviewComment } from "../../../types";
-
 type UseWizardReviewActionsArgs = {
   commentInput: string;
   setCommentInput: (value: string) => void;
@@ -35,7 +34,6 @@ type UseWizardReviewActionsArgs = {
   initialDraftData: CreateProjectPopupProps["initialDraftData"];
   onCreate: CreateProjectPopupProps["onCreate"];
 };
-
 export const useWizardReviewActions = ({
   commentInput,
   setCommentInput,
@@ -60,12 +58,10 @@ export const useWizardReviewActions = ({
     if (!trimmed) {
       return;
     }
-
     if (!user?.userId) {
       toast.error("Unable to add comments right now");
       return;
     }
-
     const newComment: ReviewComment = {
       id: createClientId("review-comment"),
       author: {
@@ -76,21 +72,20 @@ export const useWizardReviewActions = ({
       content: trimmed,
       timestamp: "Just now",
     };
-
     const previous = reviewComments;
     const updated = [...previous, newComment];
     setReviewComments(updated);
     setCommentInput("");
-
     const projectId = reviewProject?.id || editProjectId || createdProjectId;
     if (projectId && onUpdateComments) {
       void onUpdateComments(projectId, updated).catch((error) => {
-        reportUiError("createProjectWizard.addComment", error, { showToast: false });
+        reportUiError("createProjectWizard.addComment", error, {
+          showToast: false,
+        });
         setReviewComments(previous);
         toast.error("Failed to update comments");
       });
     }
-
     requestAnimationFrame(() => {
       safeScrollIntoView(commentsEndRef.current, { behavior: "smooth" });
     });
@@ -108,27 +103,25 @@ export const useWizardReviewActions = ({
     user?.name,
     user?.userId,
   ]);
-
   const handleDeleteComment = useCallback(
     (commentId: string) => {
       const comment = reviewComments.find((entry) => entry.id === commentId);
       if (!comment) {
         return;
       }
-
       if (!user?.userId || comment.author.userId !== user.userId) {
         toast.error("You can only delete your own comments");
         return;
       }
-
       const previous = reviewComments;
       const updated = previous.filter((entry) => entry.id !== commentId);
       setReviewComments(updated);
-
       const projectId = reviewProject?.id || editProjectId || createdProjectId;
       if (projectId && onUpdateComments) {
         void onUpdateComments(projectId, updated).catch((error) => {
-          reportUiError("createProjectWizard.deleteComment", error, { showToast: false });
+          reportUiError("createProjectWizard.deleteComment", error, {
+            showToast: false,
+          });
           setReviewComments(previous);
           toast.error("Failed to update comments");
         });
@@ -144,26 +137,33 @@ export const useWizardReviewActions = ({
       user?.userId,
     ],
   );
-
   const canRenderReviewApprovalAction =
-    Boolean(reviewProject?.id) && reviewProject?.status.label === "Review" && Boolean(onApproveReviewProject);
-  const canApproveReviewProject = canRenderReviewApprovalAction && user?.role === "owner";
+    Boolean(reviewProject?.id) &&
+    reviewProject?.status.label === "Review" &&
+    Boolean(onApproveReviewProject);
+  const canApproveReviewProject =
+    canRenderReviewApprovalAction && user?.role === "owner";
   const canDeleteReviewProject = isAdminOrOwner(user?.role);
   const reviewApprovalDeniedReason = getReviewApprovalDeniedReason(user?.role);
   const reviewDeleteDeniedReason = getProjectLifecycleDeniedReason(user?.role);
-
   const handleApproveReview = useCallback(() => {
-    if (!canApproveReviewProject || !reviewProject?.id || !onApproveReviewProject || isApprovingReview) {
+    if (
+      !canApproveReviewProject ||
+      !reviewProject?.id ||
+      !onApproveReviewProject ||
+      isApprovingReview
+    ) {
       return;
     }
-
     patchWizardState({ isApprovingReview: true });
     void onApproveReviewProject(reviewProject.id)
       .then(() => {
         handleCancel();
       })
       .catch((error) => {
-        reportUiError("createProjectWizard.approveReview", error, { showToast: false });
+        reportUiError("createProjectWizard.approveReview", error, {
+          showToast: false,
+        });
         toast.error("Failed to approve project");
       })
       .finally(() => {
@@ -177,7 +177,6 @@ export const useWizardReviewActions = ({
     patchWizardState,
     reviewProject?.id,
   ]);
-
   const handleConfirmSave = useCallback(async () => {
     try {
       const result = await createProject("Draft");
@@ -187,11 +186,12 @@ export const useWizardReviewActions = ({
       patchWizardState({ showCloseConfirm: false });
       handleCancel({ discardUploads: false });
     } catch (error) {
-      reportUiError("createProjectWizard.saveDraft", error, { showToast: false });
+      reportUiError("createProjectWizard.saveDraft", error, {
+        showToast: false,
+      });
       toast.error("Failed to save draft");
     }
   }, [createProject, handleCancel, onCreate, patchWizardState]);
-
   const handleConfirmCancel = useCallback(() => {
     if (editProjectId && initialDraftData) {
       const revertData: CreateProjectPayload = {
@@ -204,26 +204,30 @@ export const useWizardReviewActions = ({
         draftData: initialDraftData,
         _editProjectId: editProjectId,
       };
-
       if (onCreate) {
         void Promise.resolve(onCreate(revertData)).catch((error) => {
-          reportUiError("createProjectWizard.restoreDraft", error, { showToast: false });
+          reportUiError("createProjectWizard.restoreDraft", error, {
+            showToast: false,
+          });
           toast.error("Failed to restore original draft");
         });
       }
     }
-
     patchWizardState({ showCloseConfirm: false });
     handleCancel();
-  }, [editProjectId, handleCancel, initialDraftData, onCreate, patchWizardState]);
-
+  }, [
+    editProjectId,
+    handleCancel,
+    initialDraftData,
+    onCreate,
+    patchWizardState,
+  ]);
   const requestDeleteReviewProject = useCallback(() => {
     if (!canDeleteReviewProject) {
       return;
     }
     patchWizardState({ showDeleteProjectConfirm: true });
   }, [canDeleteReviewProject, patchWizardState]);
-
   return {
     handleAddComment,
     handleDeleteComment,

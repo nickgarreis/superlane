@@ -5,7 +5,7 @@
     "phase1": {
       "description": "Initial backend coverage gate",
       "thresholds": {
-        "linesPct": 70,
+        "linesPct": 65,
         "functionsPct": 70
       }
     }

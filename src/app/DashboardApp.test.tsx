@@ -21,7 +21,9 @@ describe("DashboardApp", () => {
     const { default: DashboardApp } = await import("./DashboardApp");
 
     render(<DashboardApp />);
-    expect(await screen.findByText("dashboard-legacy-shell")).toBeInTheDocument();
+    expect(
+      await screen.findByText("dashboard-legacy-shell"),
+    ).toBeInTheDocument();
   });
 
   test("renders rewrite shell when rewrite flag is not false", async () => {

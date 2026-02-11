@@ -31,7 +31,9 @@ const baseComment: CollaborationComment = {
   ],
 };
 
-const createProps = (overrides?: Partial<CommentItemProps>): CommentItemProps => ({
+const createProps = (
+  overrides?: Partial<CommentItemProps>,
+): CommentItemProps => ({
   comment: baseComment,
   currentUserId: "user-1",
   currentUserName: "Alex Owner",
@@ -89,7 +91,10 @@ describe("CommentItem", () => {
     );
 
     const textboxes = screen.getAllByRole("textbox");
-    fireEvent.keyDown(textboxes[textboxes.length - 1], { key: "Enter", metaKey: true });
+    fireEvent.keyDown(textboxes[textboxes.length - 1], {
+      key: "Enter",
+      metaKey: true,
+    });
 
     expect(onReply).toHaveBeenCalledWith("comment-1");
   });

@@ -1,5 +1,4 @@
 import type { ProjectStatus, ProjectData } from "../types";
-
 export const PROJECT_STATUS_STYLES: Record<
   ProjectStatus,
   ProjectData["status"]
@@ -29,8 +28,9 @@ export const PROJECT_STATUS_STYLES: Record<
     dotColor: "#16a34a",
   },
 };
-
-export const parseProjectStatus = (status: string | undefined | null): ProjectStatus => {
+export const parseProjectStatus = (
+  status: string | undefined | null,
+): ProjectStatus => {
   if (!status) {
     return "Draft";
   }
@@ -39,6 +39,5 @@ export const parseProjectStatus = (status: string | undefined | null): ProjectSt
   }
   return "Draft";
 };
-
 export const getStatusStyle = (status: string | undefined | null) =>
   PROJECT_STATUS_STYLES[parseProjectStatus(status)];

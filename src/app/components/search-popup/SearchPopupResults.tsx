@@ -7,16 +7,18 @@ import {
   type SetStateAction,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { SectionLabel, SearchPopupQuickActionItem, SearchPopupResultItem } from "./SearchPopupListItems";
+import {
+  SectionLabel,
+  SearchPopupQuickActionItem,
+  SearchPopupResultItem,
+} from "./SearchPopupListItems";
 import type { QuickAction, SearchResult } from "./types";
-
 type GroupedSearchResults = {
   projectResults: SearchResult[];
   taskResults: SearchResult[];
   fileResults: SearchResult[];
   actionResults: SearchResult[];
 };
-
 type SearchPopupResultsProps = {
   resultsRef: RefObject<HTMLDivElement>;
   longListStyle?: CSSProperties;
@@ -39,7 +41,6 @@ type SearchPopupResultsProps = {
   quickActions: QuickAction[];
   actionHandlers: Record<string, () => void>;
 };
-
 export function SearchPopupResults({
   resultsRef,
   longListStyle,
@@ -62,19 +63,18 @@ export function SearchPopupResults({
   quickActions,
   actionHandlers,
 }: SearchPopupResultsProps) {
-  const shouldVirtualizeSearchResults = hasSearchQuery && hasResults && flatResults.length > 80;
+  const shouldVirtualizeSearchResults =
+    hasSearchQuery && hasResults && flatResults.length > 80;
   const searchVirtualizer = useVirtualizer({
     count: flatResults.length,
     getScrollElement: () => resultsRef.current,
     estimateSize: () => 44,
     overscan: 10,
   });
-
   const projectOffset = 0;
   const taskOffset = grouped.projectResults.length;
   const fileOffset = taskOffset + grouped.taskResults.length;
   const actionOffset = fileOffset + grouped.fileResults.length;
-
   return (
     <div
       ref={resultsRef}
@@ -127,7 +127,10 @@ export function SearchPopupResults({
             <>
               {grouped.projectResults.length > 0 && (
                 <div className="mb-1">
-                  <SectionLabel label="Projects" count={grouped.projectResults.length} />
+                  <SectionLabel
+                    label="Projects"
+                    count={grouped.projectResults.length}
+                  />
                   {grouped.projectResults.map((item, index) => (
                     <SearchPopupResultItem
                       key={item.id}
@@ -145,7 +148,10 @@ export function SearchPopupResults({
               )}
               {grouped.taskResults.length > 0 && (
                 <div className="mb-1">
-                  <SectionLabel label="Tasks" count={grouped.taskResults.length} />
+                  <SectionLabel
+                    label="Tasks"
+                    count={grouped.taskResults.length}
+                  />
                   {grouped.taskResults.map((item, index) => (
                     <SearchPopupResultItem
                       key={item.id}
@@ -163,7 +169,10 @@ export function SearchPopupResults({
               )}
               {grouped.fileResults.length > 0 && (
                 <div className="mb-1">
-                  <SectionLabel label="Files" count={grouped.fileResults.length} />
+                  <SectionLabel
+                    label="Files"
+                    count={grouped.fileResults.length}
+                  />
                   {grouped.fileResults.map((item, index) => (
                     <SearchPopupResultItem
                       key={item.id}
@@ -204,8 +213,12 @@ export function SearchPopupResults({
             <div className="size-10 rounded-xl bg-white/[0.04] flex items-center justify-center mb-3">
               <Search size={18} className="text-white/20" />
             </div>
-            <p className="text-[13px] text-white/40 mb-1">No results for &ldquo;{query}&rdquo;</p>
-            <p className="text-[11px] text-white/20">Try a project name, task, file, or category</p>
+            <p className="txt-role-body-md text-white/40 mb-1">
+              No results for &ldquo;{query}&rdquo;
+            </p>
+            <p className="txt-role-meta text-white/20">
+              Try a project name, task, file, or category
+            </p>
           </div>
         )
       ) : (
@@ -217,7 +230,7 @@ export function SearchPopupResults({
                 {recentSearches.map((search, index) => (
                   <button
                     key={`${search}-${index}`}
-                    className="text-[11px] text-white/35 hover:text-white/60 bg-white/[0.04] hover:bg-white/[0.07] px-2 py-0.5 rounded-md transition-colors"
+                    className="txt-role-meta text-white/35 hover:text-white/60 bg-white/[0.04] hover:bg-white/[0.07] px-2 py-0.5 rounded-md transition-colors"
                     onClick={() => {
                       startTransition(() => {
                         onRecentSearchClick(search);
@@ -230,9 +243,10 @@ export function SearchPopupResults({
               </div>
             </div>
           )}
-
           <div className="mb-1">
-            <SectionLabel label={recentResults.length > 0 ? "Recent" : "Projects"} />
+            <SectionLabel
+              label={recentResults.length > 0 ? "Recent" : "Projects"}
+            />
             {defaultContent.map((item, index) => (
               <SearchPopupResultItem
                 key={item.id}
@@ -247,7 +261,6 @@ export function SearchPopupResults({
               />
             ))}
           </div>
-
           {suggestions.length > 0 && (
             <div className="mb-1">
               <SectionLabel label="Suggestions" />
@@ -266,7 +279,6 @@ export function SearchPopupResults({
               ))}
             </div>
           )}
-
           <div className="mb-1">
             <SectionLabel label="Quick Actions" />
             {quickActions.map((action, index) => (

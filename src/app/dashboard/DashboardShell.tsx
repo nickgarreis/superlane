@@ -5,26 +5,19 @@ import { DashboardChrome } from "./components/DashboardChrome";
 import { DashboardContent } from "./components/DashboardContent";
 import { DashboardPopups } from "./components/DashboardPopups";
 import { useDashboardOrchestration } from "./useDashboardOrchestration";
-
 export default function DashboardShell() {
-  const {
-    hasSnapshot,
-    popupsProps,
-    chromeProps,
-    contentProps,
-  } = useDashboardOrchestration();
-
+  const { hasSnapshot, popupsProps, chromeProps, contentProps } =
+    useDashboardOrchestration();
   if (!hasSnapshot) {
     return (
-      <div className="min-h-screen w-full bg-bg-base flex items-center justify-center text-white/60 font-['Roboto',sans-serif]">
+      <div className="min-h-screen w-full bg-bg-base flex items-center justify-center text-white/60 font-app">
         Loading workspace...
       </div>
     );
   }
-
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="flex h-screen w-full bg-bg-base overflow-hidden font-['Roboto',sans-serif] antialiased text-[#E8E8E8]">
+      <div className="flex h-screen w-full bg-bg-base overflow-hidden font-app antialiased txt-tone-primary">
         <DashboardPopups {...popupsProps} />
         <DashboardChrome {...chromeProps} />
         <DashboardContent {...contentProps} />

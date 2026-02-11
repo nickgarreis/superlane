@@ -8,11 +8,15 @@ import type { ProjectData } from "../types";
 
 vi.mock("../../imports/HorizontalBorder", () => ({
   default: ({ onToggleSidebar }: { onToggleSidebar: () => void }) => (
-    <button type="button" onClick={onToggleSidebar}>Toggle</button>
+    <button type="button" onClick={onToggleSidebar}>
+      Toggle
+    </button>
   ),
 }));
 
-const buildProject = (args: Partial<ProjectData> & Pick<ProjectData, "id" | "name" | "category">): ProjectData => ({
+const buildProject = (
+  args: Partial<ProjectData> & Pick<ProjectData, "id" | "name" | "category">,
+): ProjectData => ({
   id: args.id,
   name: args.name,
   category: args.category,
@@ -62,7 +66,11 @@ describe("ArchivePage", () => {
         isSidebarOpen
         projects={{
           "archived-1": archivedProject,
-          "active-1": buildProject({ id: "active-1", name: "Active Web", category: "Web" }),
+          "active-1": buildProject({
+            id: "active-1",
+            name: "Active Web",
+            category: "Web",
+          }),
         }}
         viewerRole="owner"
         onNavigateToProject={onNavigateToProject}
@@ -86,7 +94,9 @@ describe("ArchivePage", () => {
       target: { value: "missing" },
     });
 
-    expect(screen.getByText("No matching archived projects")).toBeInTheDocument();
+    expect(
+      screen.getByText("No matching archived projects"),
+    ).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(1801);

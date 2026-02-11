@@ -7,9 +7,15 @@ import type {
 } from "../types";
 import { useDashboardFileActions } from "./useDashboardFileActions";
 import { useDashboardProjectActions } from "./useDashboardProjectActions";
-import { asPendingUploadId, asProjectFileId, asStorageId, computeFileChecksumSha256, omitUndefined, uploadFileToConvexStorage } from "../lib/uploadHelpers";
+import {
+  asPendingUploadId,
+  asProjectFileId,
+  asStorageId,
+  computeFileChecksumSha256,
+  omitUndefined,
+  uploadFileToConvexStorage,
+} from "../lib/uploadHelpers";
 import type { DashboardDataLayer } from "./useDashboardDataLayer";
-
 export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
   const {
     convex,
@@ -21,7 +27,6 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     workspaceActions,
   } = dataLayer;
   const { navigateView } = navigation;
-
   const projectActions = useDashboardProjectActions({
     activeWorkspaceId: data.activeWorkspace?.id,
     projects: data.projects,
@@ -48,16 +53,17 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     asPendingUploadId,
     omitUndefined,
   });
-
   const fileActions = useDashboardFileActions({
     activeWorkspaceId: data.activeWorkspace?.id,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
     convexQuery: (query, args) => convex.query(query, args),
     generateUploadUrlMutation: apiHandlers.generateUploadUrlMutation,
     finalizeProjectUploadAction: apiHandlers.finalizeProjectUploadAction,
-    finalizePendingDraftAttachmentUploadAction: apiHandlers.finalizePendingDraftAttachmentUploadAction,
+    finalizePendingDraftAttachmentUploadAction:
+      apiHandlers.finalizePendingDraftAttachmentUploadAction,
     discardPendingUploadMutation: apiHandlers.discardPendingUploadMutation,
-    discardPendingUploadsForSessionMutation: apiHandlers.discardPendingUploadsForSessionMutation,
+    discardPendingUploadsForSessionMutation:
+      apiHandlers.discardPendingUploadsForSessionMutation,
     removeProjectFileMutation: apiHandlers.removeProjectFileMutation,
     computeFileChecksumSha256,
     uploadFileToConvexStorage,
@@ -65,7 +71,6 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     asPendingUploadId,
     asProjectFileId,
   });
-
   const dashboardCommands = useDashboardCommands({
     handleCreateProject: projectActions.handleCreateProject,
     handleEditProject: projectActions.handleEditProject,
@@ -79,30 +84,28 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     handleDownloadProjectFile: fileActions.handleDownloadProjectFile,
     handleUploadDraftAttachment: fileActions.handleUploadDraftAttachment,
     handleRemoveDraftAttachment: fileActions.handleRemoveDraftAttachment,
-    handleDiscardDraftSessionUploads: fileActions.handleDiscardDraftSessionUploads,
+    handleDiscardDraftSessionUploads:
+      fileActions.handleDiscardDraftSessionUploads,
     handleOpenSettings: navigation.handleOpenSettings,
     handleCloseSettings: navigation.handleCloseSettings,
     handleSaveAccountSettings: workspaceActions.handleSaveAccountSettings,
     handleUploadAccountAvatar: workspaceActions.handleUploadAccountAvatar,
     handleRemoveAccountAvatar: workspaceActions.handleRemoveAccountAvatar,
-    handleSaveSettingsNotifications: workspaceActions.handleSaveSettingsNotifications,
+    handleSaveSettingsNotifications:
+      workspaceActions.handleSaveSettingsNotifications,
     handleSwitchWorkspace,
     handleCreateWorkspace,
   });
   const { handleUpdateProject } = projectActions;
   const { file: fileCommands, project: projectCommands } = dashboardCommands;
-  const {
-    createProjectFile,
-    removeProjectFile,
-    downloadProjectFile,
-  } = fileCommands;
+  const { createProjectFile, removeProjectFile, downloadProjectFile } =
+    fileCommands;
   const {
     archiveProject,
     unarchiveProject,
     deleteProject,
     updateProjectStatus,
   } = projectCommands;
-
   const mainContentFileActions = useMemo<MainContentFileActions>(
     () => ({
       create: createProjectFile,
@@ -111,7 +114,6 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     }),
     [createProjectFile, downloadProjectFile, removeProjectFile],
   );
-
   const createMainContentProjectActions = useCallback(
     (projectId: string): MainContentProjectActions => ({
       archive: archiveProject,
@@ -120,19 +122,23 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
       updateStatus: updateProjectStatus,
       updateProject: (payload) => handleUpdateProject(projectId, payload),
     }),
-    [archiveProject, deleteProject, handleUpdateProject, unarchiveProject, updateProjectStatus],
+    [
+      archiveProject,
+      deleteProject,
+      handleUpdateProject,
+      unarchiveProject,
+      updateProjectStatus,
+    ],
   );
-
-  const baseMainContentNavigationActions = useMemo<MainContentNavigationActions>(
-    () => ({ navigate: navigateView }),
-    [navigateView],
-  );
-
+  const baseMainContentNavigationActions =
+    useMemo<MainContentNavigationActions>(
+      () => ({ navigate: navigateView }),
+      [navigateView],
+    );
   const handleNavigateToArchiveProject = useCallback(
     (projectId: string) => navigateView(`archive-project:${projectId}`),
     [navigateView],
   );
-
   return {
     projectActions,
     fileActions,
@@ -143,5 +149,4 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     handleNavigateToArchiveProject,
   };
 }
-
 export type DashboardActionLayer = ReturnType<typeof useDashboardActionLayer>;

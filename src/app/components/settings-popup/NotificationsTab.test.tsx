@@ -21,9 +21,15 @@ describe("NotificationsTab", () => {
     );
 
     expect(screen.queryByText("Desktop Channel")).not.toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Event Notifications" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Team Activities" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Product Updates" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Event Notifications" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Team Activities" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "Product Updates" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("switch", { name: "Team Activities" }));
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));

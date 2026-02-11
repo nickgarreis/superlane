@@ -6,9 +6,7 @@ import {
   createInitialCreateProjectWizardState,
   reduceCreateProjectWizardState,
 } from "../wizardState";
-
 export const createDraftSessionId = () => createClientId("draft");
-
 export const useWizardState = () => {
   const [wizardState, dispatchWizard] = useReducer(
     reduceCreateProjectWizardState,
@@ -23,18 +21,18 @@ export const useWizardState = () => {
     createdProjectId,
     isApprovingReview,
   } = wizardState;
-
-  const patchWizardState = useCallback((patch: Partial<CreateProjectWizardState>) => {
-    dispatchWizard({ type: "patch", patch });
-  }, []);
-
+  const patchWizardState = useCallback(
+    (patch: Partial<CreateProjectWizardState>) => {
+      dispatchWizard({ type: "patch", patch });
+    },
+    [],
+  );
   const setStep = useCallback(
     (value: number) => {
       patchWizardState({ step: value });
     },
     [patchWizardState],
   );
-
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
@@ -42,13 +40,13 @@ export const useWizardState = () => {
   const [isAIEnabled, setIsAIEnabled] = useState(true);
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [draftSessionId, setDraftSessionId] = useState(() => createDraftSessionId());
+  const [draftSessionId, setDraftSessionId] = useState(() =>
+    createDraftSessionId(),
+  );
   const [reviewComments, setReviewComments] = useState<ReviewComment[]>([]);
   const [commentInput, setCommentInput] = useState("");
-
   const calendarRef = useRef<HTMLDivElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
-
   return {
     step,
     showCloseConfirm,
@@ -82,5 +80,4 @@ export const useWizardState = () => {
     commentsEndRef,
   };
 };
-
 export type WizardStateValues = ReturnType<typeof useWizardState>;

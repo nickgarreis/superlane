@@ -10,20 +10,24 @@ import {
 import { InviteMemberForm } from "./InviteMemberForm";
 import { MemberRow } from "./MemberRow";
 import { PendingInvitationRow } from "./PendingInvitationRow";
-
 type CompanyMembersSectionProps = {
   members: CompanyMember[];
   pendingInvitations: CompanyPendingInvitation[];
   viewerRole?: WorkspaceRole;
   hasOrganizationLink: boolean;
   canManageMembers: boolean;
-  onInviteMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
-  onChangeMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
+  onInviteMember: (payload: {
+    email: string;
+    role: "admin" | "member";
+  }) => Promise<void>;
+  onChangeMemberRole: (payload: {
+    userId: string;
+    role: "admin" | "member";
+  }) => Promise<void>;
   onRemoveMember: (payload: { userId: string }) => Promise<void>;
   onResendInvitation: (payload: { invitationId: string }) => Promise<void>;
   onRevokeInvitation: (payload: { invitationId: string }) => Promise<void>;
 };
-
 export function CompanyMembersSection({
   members,
   pendingInvitations,
@@ -39,16 +43,15 @@ export function CompanyMembersSection({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [inviting, setInviting] = useState(false);
-
   const memberManagementDeniedReason =
     getMemberManagementDeniedReason({
       role: viewerRole,
       hasOrganizationLink,
     }) ?? "Only admins and owners can manage members";
   const ownerAccountDeniedReason =
-    getOwnerAccountDeniedReason(viewerRole) ?? "Only owners can manage owner accounts";
+    getOwnerAccountDeniedReason(viewerRole) ??
+    "Only owners can manage owner accounts";
   const isMemberManagementDenied = !canManageMembers || !hasOrganizationLink;
-
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
       return;
@@ -66,8 +69,10 @@ export function CompanyMembersSection({
       setInviting(false);
     }
   };
-
-  const handleChangeMemberRole = async (payload: { userId: string; role: "admin" | "member" }) => {
+  const handleChangeMemberRole = async (payload: {
+    userId: string;
+    role: "admin" | "member";
+  }) => {
     try {
       await onChangeMemberRole(payload);
       toast.success("Member role updated");
@@ -76,7 +81,6 @@ export function CompanyMembersSection({
       toast.error("Failed to update member role");
     }
   };
-
   const handleRemoveMember = async (payload: { userId: string }) => {
     try {
       await onRemoveMember(payload);
@@ -86,40 +90,44 @@ export function CompanyMembersSection({
       toast.error("Failed to remove member");
     }
   };
-
   const handleResendInvitation = async (payload: { invitationId: string }) => {
     try {
       await onResendInvitation(payload);
       toast.success("Invitation resent");
     } catch (error) {
-      reportUiError("settings.members.resendInvitation", error, { showToast: false });
+      reportUiError("settings.members.resendInvitation", error, {
+        showToast: false,
+      });
       toast.error("Failed to resend invitation");
     }
   };
-
   const handleRevokeInvitation = async (payload: { invitationId: string }) => {
     try {
       await onRevokeInvitation(payload);
       toast.success("Invitation revoked");
     } catch (error) {
-      reportUiError("settings.members.revokeInvitation", error, { showToast: false });
+      reportUiError("settings.members.revokeInvitation", error, {
+        showToast: false,
+      });
       toast.error("Failed to revoke invitation");
     }
   };
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h3 className="text-[16px] font-medium text-[#E8E8E8]">Members</h3>
-        <p className="text-[13px] text-[#E8E8E8]/40">Manage workspace access and invitations.</p>
+        <h3 className="txt-role-body-xl font-medium txt-tone-primary">
+          Members
+        </h3>
+        <p className="txt-role-body-md txt-tone-faint">
+          Manage workspace access and invitations.
+        </p>
       </div>
-
       {!hasOrganizationLink && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100">
-          This workspace is not linked to a WorkOS organization. Member management is disabled until it is linked.
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 txt-role-body-md text-amber-100">
+          This workspace is not linked to a WorkOS organization. Member
+          management is disabled until it is linked.
         </div>
       )}
-
       <InviteMemberForm
         inviteEmail={inviteEmail}
         onInviteEmailChange={setInviteEmail}
@@ -130,9 +138,8 @@ export function CompanyMembersSection({
         memberManagementDeniedReason={memberManagementDeniedReason}
         onInvite={handleInvite}
       />
-
       <div className="flex flex-col">
-        <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider mb-4">
+        <h4 className="txt-role-body-md font-medium txt-tone-subtle uppercase tracking-wider mb-4">
           Members ({members.length + pendingInvitations.length})
         </h4>
         <div className="flex flex-col">
@@ -148,7 +155,6 @@ export function CompanyMembersSection({
               onRemoveMember={handleRemoveMember}
             />
           ))}
-
           {pendingInvitations.map((invitation) => (
             <PendingInvitationRow
               key={invitation.invitationId}

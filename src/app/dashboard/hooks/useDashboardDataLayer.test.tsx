@@ -50,7 +50,8 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("../useDashboardNavigation", () => ({
-  useDashboardNavigation: (...args: unknown[]) => useDashboardNavigationMock(...args),
+  useDashboardNavigation: (...args: unknown[]) =>
+    useDashboardNavigationMock(...args),
 }));
 
 vi.mock("../useDashboardData", () => ({
@@ -58,22 +59,29 @@ vi.mock("../useDashboardData", () => ({
 }));
 
 vi.mock("../useDashboardWorkspaceActions", () => ({
-  useDashboardWorkspaceActions: (...args: unknown[]) => useDashboardWorkspaceActionsMock(...args),
+  useDashboardWorkspaceActions: (...args: unknown[]) =>
+    useDashboardWorkspaceActionsMock(...args),
 }));
 
 vi.mock("./useDashboardApiHandlers", () => ({
-  useDashboardApiHandlers: (...args: unknown[]) => useDashboardApiHandlersMock(...args),
+  useDashboardApiHandlers: (...args: unknown[]) =>
+    useDashboardApiHandlersMock(...args),
 }));
 
 vi.mock("./useDashboardLifecycleEffects", () => ({
-  useDashboardLifecycleEffects: (...args: unknown[]) => useDashboardLifecycleEffectsMock(...args),
+  useDashboardLifecycleEffects: (...args: unknown[]) =>
+    useDashboardLifecycleEffectsMock(...args),
 }));
 
 vi.mock("../components/DashboardPopups", () => ({
-  loadSearchPopupModule: (...args: unknown[]) => loadSearchPopupModuleMock(...args),
-  loadCreateProjectPopupModule: (...args: unknown[]) => loadCreateProjectPopupModuleMock(...args),
-  loadCreateWorkspacePopupModule: (...args: unknown[]) => loadCreateWorkspacePopupModuleMock(...args),
-  loadSettingsPopupModule: (...args: unknown[]) => loadSettingsPopupModuleMock(...args),
+  loadSearchPopupModule: (...args: unknown[]) =>
+    loadSearchPopupModuleMock(...args),
+  loadCreateProjectPopupModule: (...args: unknown[]) =>
+    loadCreateProjectPopupModuleMock(...args),
+  loadCreateWorkspacePopupModule: (...args: unknown[]) =>
+    loadCreateWorkspacePopupModuleMock(...args),
+  loadSettingsPopupModule: (...args: unknown[]) =>
+    loadSettingsPopupModuleMock(...args),
 }));
 
 const createNavigation = () => ({
@@ -183,7 +191,9 @@ describe("useDashboardDataLayer", () => {
     });
 
     expect(result.current.canCreateWorkspace).toBe(true);
-    expect(navigation.setActiveWorkspaceSlug).toHaveBeenCalledWith("workspace-2");
+    expect(navigation.setActiveWorkspaceSlug).toHaveBeenCalledWith(
+      "workspace-2",
+    );
     expect(navigation.navigateView).toHaveBeenCalledWith("tasks");
     expect(navigation.openCreateWorkspace).toHaveBeenCalledTimes(1);
     expect(loadSearchPopupModuleMock).toHaveBeenCalledTimes(1);
@@ -209,8 +219,12 @@ describe("useDashboardDataLayer", () => {
     });
 
     expect(result.current.canCreateWorkspace).toBe(false);
-    expect(toastMock.error).toHaveBeenCalledWith("Only workspace owners can create workspaces");
-    expect(result.current.navigation.openCreateWorkspace).not.toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledWith(
+      "Only workspace owners can create workspaces",
+    );
+    expect(
+      result.current.navigation.openCreateWorkspace,
+    ).not.toHaveBeenCalled();
   });
 
   test("builds unknown-user fallback when auth user is missing", () => {
@@ -236,7 +250,11 @@ describe("useDashboardDataLayer", () => {
 
     rerender();
 
-    expect(result.current.handleSwitchWorkspace).toBe(initialHandleSwitchWorkspace);
-    expect(result.current.handleCreateWorkspace).toBe(initialHandleCreateWorkspace);
+    expect(result.current.handleSwitchWorkspace).toBe(
+      initialHandleSwitchWorkspace,
+    );
+    expect(result.current.handleCreateWorkspace).toBe(
+      initialHandleCreateWorkspace,
+    );
   });
 });

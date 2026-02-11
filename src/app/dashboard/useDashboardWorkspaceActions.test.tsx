@@ -34,21 +34,29 @@ const createBaseArgs = () => ({
   closeCreateWorkspace: vi.fn(),
   createWorkspaceMutation: vi.fn().mockResolvedValue({ slug: "workspace-new" }),
   reconcileWorkspaceInvitationsAction: vi.fn().mockResolvedValue({}),
-  reconcileWorkspaceOrganizationMembershipsAction: vi.fn().mockResolvedValue({}),
+  reconcileWorkspaceOrganizationMembershipsAction: vi
+    .fn()
+    .mockResolvedValue({}),
   updateAccountProfileAction: vi.fn().mockResolvedValue({}),
-  generateAvatarUploadUrlMutation: vi.fn().mockResolvedValue({ uploadUrl: "https://upload.test/avatar" }),
+  generateAvatarUploadUrlMutation: vi
+    .fn()
+    .mockResolvedValue({ uploadUrl: "https://upload.test/avatar" }),
   finalizeAvatarUploadMutation: vi.fn().mockResolvedValue({}),
   removeAvatarMutation: vi.fn().mockResolvedValue({}),
   saveNotificationPreferencesMutation: vi.fn().mockResolvedValue({}),
   updateWorkspaceGeneralMutation: vi.fn().mockResolvedValue({}),
-  generateWorkspaceLogoUploadUrlMutation: vi.fn().mockResolvedValue({ uploadUrl: "https://upload.test/logo" }),
+  generateWorkspaceLogoUploadUrlMutation: vi
+    .fn()
+    .mockResolvedValue({ uploadUrl: "https://upload.test/logo" }),
   finalizeWorkspaceLogoUploadMutation: vi.fn().mockResolvedValue({}),
   inviteWorkspaceMemberAction: vi.fn().mockResolvedValue({}),
   resendWorkspaceInvitationAction: vi.fn().mockResolvedValue({}),
   revokeWorkspaceInvitationAction: vi.fn().mockResolvedValue({}),
   changeWorkspaceMemberRoleAction: vi.fn().mockResolvedValue({}),
   removeWorkspaceMemberAction: vi.fn().mockResolvedValue({}),
-  generateBrandAssetUploadUrlMutation: vi.fn().mockResolvedValue({ uploadUrl: "https://upload.test/brand" }),
+  generateBrandAssetUploadUrlMutation: vi
+    .fn()
+    .mockResolvedValue({ uploadUrl: "https://upload.test/brand" }),
   finalizeBrandAssetUploadMutation: vi.fn().mockResolvedValue({}),
   removeBrandAssetMutation: vi.fn().mockResolvedValue({}),
   softDeleteWorkspaceMutation: vi.fn().mockResolvedValue({}),
@@ -57,7 +65,11 @@ const createBaseArgs = () => ({
   asStorageId: vi.fn((value: string) => value as any),
   asUserId: vi.fn((value: string) => value as any),
   asBrandAssetId: vi.fn((value: string) => value as any),
-  omitUndefined: ((value: Record<string, unknown>) => value) as <T extends Record<string, unknown>>(value: T) => T,
+  omitUndefined: ((value: Record<string, unknown>) => value) as <
+    T extends Record<string, unknown>,
+  >(
+    value: T,
+  ) => T,
 });
 
 describe("useDashboardWorkspaceActions", () => {
@@ -79,7 +91,9 @@ describe("useDashboardWorkspaceActions", () => {
       logoFile,
     });
 
-    expect(args.createWorkspaceMutation).toHaveBeenCalledWith({ name: "My Workspace" });
+    expect(args.createWorkspaceMutation).toHaveBeenCalledWith({
+      name: "My Workspace",
+    });
     expect(args.finalizeWorkspaceLogoUploadMutation).toHaveBeenCalledWith({
       workspaceSlug: "workspace-new",
       storageId: "storage-1",
@@ -96,18 +110,28 @@ describe("useDashboardWorkspaceActions", () => {
   test("handles create workspace guard and mutation failures", async () => {
     const forbiddenArgs = createBaseArgs();
     forbiddenArgs.canCreateWorkspace = false;
-    const forbiddenHook = renderHook(() => useDashboardWorkspaceActions(forbiddenArgs));
+    const forbiddenHook = renderHook(() =>
+      useDashboardWorkspaceActions(forbiddenArgs),
+    );
 
     await expect(
-      forbiddenHook.result.current.handleCreateWorkspaceSubmit({ name: "Blocked" }),
+      forbiddenHook.result.current.handleCreateWorkspaceSubmit({
+        name: "Blocked",
+      }),
     ).rejects.toThrow("Only workspace owners can create workspaces");
 
     const failingArgs = createBaseArgs();
-    failingArgs.createWorkspaceMutation.mockRejectedValueOnce(new Error("create failed"));
-    const failingHook = renderHook(() => useDashboardWorkspaceActions(failingArgs));
+    failingArgs.createWorkspaceMutation.mockRejectedValueOnce(
+      new Error("create failed"),
+    );
+    const failingHook = renderHook(() =>
+      useDashboardWorkspaceActions(failingArgs),
+    );
 
     await expect(
-      failingHook.result.current.handleCreateWorkspaceSubmit({ name: "Will Fail" }),
+      failingHook.result.current.handleCreateWorkspaceSubmit({
+        name: "Will Fail",
+      }),
     ).rejects.toThrow("create failed");
 
     expect(reportUiErrorMock).toHaveBeenCalledWith(
@@ -120,7 +144,9 @@ describe("useDashboardWorkspaceActions", () => {
 
   test("continues when logo upload fails after workspace creation", async () => {
     const args = createBaseArgs();
-    args.finalizeWorkspaceLogoUploadMutation.mockRejectedValueOnce(new Error("logo failed"));
+    args.finalizeWorkspaceLogoUploadMutation.mockRejectedValueOnce(
+      new Error("logo failed"),
+    );
     const { result } = renderHook(() => useDashboardWorkspaceActions(args));
     const logoFile = new File(["logo"], "logo.png", { type: "image/png" });
 
@@ -137,7 +163,9 @@ describe("useDashboardWorkspaceActions", () => {
         details: { workspaceSlug: "workspace-new" },
       },
     );
-    expect(toastMock.error).toHaveBeenCalledWith("Workspace created, but logo upload failed");
+    expect(toastMock.error).toHaveBeenCalledWith(
+      "Workspace created, but logo upload failed",
+    );
     expect(toastMock.success).toHaveBeenCalledWith("Workspace created");
   });
 
@@ -183,7 +211,9 @@ describe("useDashboardWorkspaceActions", () => {
       invitationId: "invite-2",
     });
     await result.current.handleUploadWorkspaceBrandAsset(file);
-    await result.current.handleRemoveWorkspaceBrandAsset({ brandAssetId: "brand-1" });
+    await result.current.handleRemoveWorkspaceBrandAsset({
+      brandAssetId: "brand-1",
+    });
 
     expect(args.updateAccountProfileAction).toHaveBeenCalledWith({
       firstName: "Nick",
@@ -238,8 +268,12 @@ describe("useDashboardWorkspaceActions", () => {
 
   test("reports reconciliation failures and handles soft-delete rollback", async () => {
     const args = createBaseArgs();
-    args.reconcileWorkspaceInvitationsAction.mockRejectedValueOnce(new Error("reconcile invites failed"));
-    args.softDeleteWorkspaceMutation.mockRejectedValueOnce(new Error("delete failed"));
+    args.reconcileWorkspaceInvitationsAction.mockRejectedValueOnce(
+      new Error("reconcile invites failed"),
+    );
+    args.softDeleteWorkspaceMutation.mockRejectedValueOnce(
+      new Error("delete failed"),
+    );
     const { result } = renderHook(() => useDashboardWorkspaceActions(args));
 
     await act(async () => {
@@ -258,9 +292,14 @@ describe("useDashboardWorkspaceActions", () => {
       }),
     );
 
-    await expect(result.current.handleSoftDeleteWorkspace()).rejects.toThrow("delete failed");
+    await expect(result.current.handleSoftDeleteWorkspace()).rejects.toThrow(
+      "delete failed",
+    );
     expect(args.setActiveWorkspaceSlug).toHaveBeenNthCalledWith(1, null);
-    expect(args.setActiveWorkspaceSlug).toHaveBeenNthCalledWith(2, "workspace-1");
+    expect(args.setActiveWorkspaceSlug).toHaveBeenNthCalledWith(
+      2,
+      "workspace-1",
+    );
     expect(reportUiErrorMock).toHaveBeenCalledWith(
       "workspace.softDelete",
       expect.any(Error),

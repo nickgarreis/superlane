@@ -61,14 +61,18 @@ describe("CreateProjectPopup", () => {
       expect(onCreate).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("Let's explore some possibilities")).toBeInTheDocument();
+    expect(
+      screen.getByText("Let's explore some possibilities"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Your Project is in Review" }),
     ).not.toBeInTheDocument();
   });
 
   test("uses returned project publicId when persisting review comments", async () => {
-    const onCreate = vi.fn().mockResolvedValue({ publicId: "project-123", mode: "create" });
+    const onCreate = vi
+      .fn()
+      .mockResolvedValue({ publicId: "project-123", mode: "create" });
     const onUpdateComments = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -91,7 +95,9 @@ describe("CreateProjectPopup", () => {
     });
 
     const commentInput = screen.getByPlaceholderText("Add a comment...");
-    fireEvent.change(commentInput, { target: { value: "Please prioritize homepage animation." } });
+    fireEvent.change(commentInput, {
+      target: { value: "Please prioritize homepage animation." },
+    });
     fireEvent.keyDown(commentInput, { key: "Enter", code: "Enter" });
 
     await waitFor(() => {
@@ -111,7 +117,9 @@ describe("CreateProjectPopup", () => {
     });
 
     try {
-      const onCreate = vi.fn().mockResolvedValue({ publicId: "project-456", mode: "create" });
+      const onCreate = vi
+        .fn()
+        .mockResolvedValue({ publicId: "project-456", mode: "create" });
       const onUpdateComments = vi.fn().mockResolvedValue(undefined);
 
       render(
@@ -134,7 +142,9 @@ describe("CreateProjectPopup", () => {
       });
 
       const commentInput = screen.getByPlaceholderText("Add a comment...");
-      fireEvent.change(commentInput, { target: { value: "No crash when scrolling is unavailable." } });
+      fireEvent.change(commentInput, {
+        target: { value: "No crash when scrolling is unavailable." },
+      });
       fireEvent.keyDown(commentInput, { key: "Enter", code: "Enter" });
 
       await waitFor(() => {
@@ -162,7 +172,9 @@ describe("CreateProjectPopup", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Your Project is in Review" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Your Project is in Review" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
     await waitFor(() => {

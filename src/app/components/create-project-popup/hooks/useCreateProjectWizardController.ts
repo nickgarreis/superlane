@@ -1,4 +1,7 @@
-import type { CreateProjectPayload, CreateProjectResult } from "../../../dashboard/types";
+import type {
+  CreateProjectPayload,
+  CreateProjectResult,
+} from "../../../dashboard/types";
 import type {
   ProjectDraftData,
   ProjectData,
@@ -9,7 +12,6 @@ import { useDraftAttachments } from "../useDraftAttachments";
 import { useWizardEffects } from "./useWizardEffects";
 import { useWizardState } from "./useWizardState";
 import { useWizardSubmission } from "./useWizardSubmission";
-
 const REVIEW_CATEGORY_LABELS: Record<string, string> = {
   webdesign: "Web Design",
   "web design": "Web Design",
@@ -21,24 +23,27 @@ const REVIEW_CATEGORY_LABELS: Record<string, string> = {
   "ai consulting": "AI Consulting",
   "creative strategy & concept": "Creative Strategy & Concept",
 };
-
 export type CreateProjectPopupUser = {
   userId?: string;
   name: string;
   avatar: string;
   role?: WorkspaceRole;
 };
-
 export type CreateProjectPopupProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCreate?: (data: CreateProjectPayload) => Promise<CreateProjectResult> | CreateProjectResult | void;
+  onCreate?: (
+    data: CreateProjectPayload,
+  ) => Promise<CreateProjectResult> | CreateProjectResult | void;
   user?: CreateProjectPopupUser;
   editProjectId?: string | null;
   initialDraftData?: ProjectDraftData | null;
   onDeleteDraft?: (id: string) => void;
   reviewProject?: ProjectData | null;
-  onUpdateComments?: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  onUpdateComments?: (
+    projectId: string,
+    comments: ReviewComment[],
+  ) => Promise<unknown>;
   onApproveReviewProject?: (projectId: string) => Promise<unknown>;
   onUploadAttachment?: (
     file: File,
@@ -53,7 +58,6 @@ export type CreateProjectPopupProps = {
   onRemovePendingAttachment?: (pendingUploadId: string) => Promise<void>;
   onDiscardDraftUploads?: (draftSessionId: string) => Promise<void>;
 };
-
 export function useCreateProjectWizardController({
   isOpen,
   onClose,
@@ -70,7 +74,6 @@ export function useCreateProjectWizardController({
   onDiscardDraftUploads,
 }: CreateProjectPopupProps) {
   const state = useWizardState();
-
   const {
     attachments,
     isUploading,
@@ -86,7 +89,6 @@ export function useCreateProjectWizardController({
     onUploadAttachment,
     onRemovePendingAttachment,
   });
-
   useWizardEffects({
     isOpen,
     initialDraftData,
@@ -95,7 +97,6 @@ export function useCreateProjectWizardController({
     state,
     resetAttachments,
   });
-
   const submission = useWizardSubmission({
     state,
     props: {
@@ -114,14 +115,12 @@ export function useCreateProjectWizardController({
     isUploading,
     markDiscardRequested,
   });
-
   return {
     step: state.step,
     showCloseConfirm: state.showCloseConfirm,
     showDeleteConfirm: state.showDeleteConfirm,
     showDeleteProjectConfirm: state.showDeleteProjectConfirm,
     isApprovingReview: state.isApprovingReview,
-
     selectedService: state.selectedService,
     setSelectedService: state.setSelectedService,
     projectName: state.projectName,
@@ -141,10 +140,8 @@ export function useCreateProjectWizardController({
     commentInput: state.commentInput,
     setCommentInput: state.setCommentInput,
     step2JobLabel: submission.step2JobLabel,
-
     calendarRef: state.calendarRef,
     commentsEndRef: state.commentsEndRef,
-
     attachments,
     isUploading,
     getRootProps,
@@ -152,15 +149,12 @@ export function useCreateProjectWizardController({
     isDragActive,
     handleRemoveAttachment,
     handleRetryAttachment,
-
     canRenderReviewApprovalAction: submission.canRenderReviewApprovalAction,
     canApproveReviewProject: submission.canApproveReviewProject,
     canDeleteReviewProject: submission.canDeleteReviewProject,
     reviewApprovalDeniedReason: submission.reviewApprovalDeniedReason,
     reviewDeleteDeniedReason: submission.reviewDeleteDeniedReason,
-
     isNextDisabled: submission.isNextDisabled,
-
     setStep: state.setStep,
     handleNext: submission.handleNext,
     handleDeleteDraft: submission.handleDeleteDraft,
@@ -174,9 +168,10 @@ export function useCreateProjectWizardController({
     handleConfirmCancel: submission.handleConfirmCancel,
     handleCancel: submission.handleCancel,
     requestDeleteReviewProject: submission.requestDeleteReviewProject,
-
-    setShowCloseConfirm: (show: boolean) => state.patchWizardState({ showCloseConfirm: show }),
-    setShowDeleteConfirm: (show: boolean) => state.patchWizardState({ showDeleteConfirm: show }),
+    setShowCloseConfirm: (show: boolean) =>
+      state.patchWizardState({ showCloseConfirm: show }),
+    setShowDeleteConfirm: (show: boolean) =>
+      state.patchWizardState({ showDeleteConfirm: show }),
     setShowDeleteProjectConfirm: (show: boolean) =>
       state.patchWizardState({ showDeleteProjectConfirm: show }),
   };

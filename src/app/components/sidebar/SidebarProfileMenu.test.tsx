@@ -27,7 +27,9 @@ describe("SidebarProfileMenu", () => {
   test("wires settings/help/logout actions", () => {
     const onOpenSettings = vi.fn();
     const onLogout = vi.fn();
-    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    const windowOpenSpy = vi
+      .spyOn(window, "open")
+      .mockImplementation(() => null);
 
     render(
       <SidebarProfileMenu
@@ -48,7 +50,9 @@ describe("SidebarProfileMenu", () => {
       "noopener,noreferrer",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Profile menu for Jordan Viewer" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Profile menu for Jordan Viewer" }),
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: "Log out" }));
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
@@ -63,15 +67,21 @@ describe("SidebarProfileMenu", () => {
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: "Profile menu for Jordan Viewer" });
+    const trigger = screen.getByRole("button", {
+      name: "Profile menu for Jordan Viewer",
+    });
     fireEvent.keyDown(trigger, { key: "Enter" });
-    expect(screen.getByRole("menu", { name: "Profile actions for Jordan Viewer" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menu", { name: "Profile actions for Jordan Viewer" }),
+    ).toBeInTheDocument();
 
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Request a feature" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Request a feature" }),
+    );
     expect(screen.getByText("Request a feature")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));

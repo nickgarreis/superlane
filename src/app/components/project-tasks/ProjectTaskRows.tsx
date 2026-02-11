@@ -7,7 +7,6 @@ import { fromUtcNoonEpochMsToDateOnly } from "../../lib/dates";
 import type { Task, WorkspaceMember } from "../../types";
 import type { TaskProjectOption } from "./useProjectTaskHandlers";
 import { ProjectTaskRow } from "./ProjectTaskRow";
-
 type ProjectTaskRowsProps = {
   initialTasks: Task[];
   sortedTasks: Task[];
@@ -34,7 +33,6 @@ type ProjectTaskRowsProps = {
   editTaskDisabledMessage: string;
   isTaskEditable: (task: Task) => boolean;
 };
-
 export const ProjectTaskRows = React.memo(function ProjectTaskRows({
   initialTasks,
   sortedTasks,
@@ -63,13 +61,11 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
 }: ProjectTaskRowsProps) {
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const rowsRootRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     if (!rowsRootRef.current) {
       setScrollElement(null);
       return;
     }
-
     let parent = rowsRootRef.current.parentElement;
     while (parent) {
       const overflowY = window.getComputedStyle(parent).overflowY;
@@ -79,29 +75,28 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
       }
       parent = parent.parentElement;
     }
-
     setScrollElement(null);
   }, [sortedTasks.length]);
-
   const projectById = useMemo(
-    () => new Map(projectOptions.map((project) => [project.id, project] as const)),
+    () =>
+      new Map(projectOptions.map((project) => [project.id, project] as const)),
     [projectOptions],
   );
-
   const tasksById = useMemo(
     () => new Map(initialTasks.map((task) => [task.id, task] as const)),
     [initialTasks],
   );
-
-  const activeCalendarTask = openCalendarTaskId ? tasksById.get(openCalendarTaskId) : null;
-  const shouldVirtualizeRows = sortedTasks.length > 80 && Boolean(scrollElement);
+  const activeCalendarTask = openCalendarTaskId
+    ? tasksById.get(openCalendarTaskId)
+    : null;
+  const shouldVirtualizeRows =
+    sortedTasks.length > 80 && Boolean(scrollElement);
   const rowVirtualizer = useVirtualizer({
     count: sortedTasks.length,
     getScrollElement: () => scrollElement,
     estimateSize: () => 56,
     overscan: 8,
   });
-
   return (
     <>
       <div ref={rowsRootRef}>
@@ -117,7 +112,6 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
               if (!task) {
                 return null;
               }
-
               return (
                 <div
                   key={task.id}
@@ -135,9 +129,9 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
                     task={task}
                     taskIsEditable={isTaskEditable(task)}
                     hasOpenDropdown={
-                      openCalendarTaskId === task.id
-                      || openAssigneeTaskId === task.id
-                      || openProjectTaskId === task.id
+                      openCalendarTaskId === task.id ||
+                      openAssigneeTaskId === task.id ||
+                      openProjectTaskId === task.id
                     }
                     showProjectColumn={showProjectColumn}
                     projectOptions={projectOptions}
@@ -171,9 +165,9 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
               task={task}
               taskIsEditable={isTaskEditable(task)}
               hasOpenDropdown={
-                openCalendarTaskId === task.id
-                || openAssigneeTaskId === task.id
-                || openProjectTaskId === task.id
+                openCalendarTaskId === task.id ||
+                openAssigneeTaskId === task.id ||
+                openProjectTaskId === task.id
               }
               showProjectColumn={showProjectColumn}
               projectOptions={projectOptions}
@@ -198,41 +192,49 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
           ))
         )}
       </div>
-
       {initialTasks.length === 0 && !isAdding && (
-        <div className="py-8 text-center text-[13px] text-white/20 italic">
+        <div className="py-8 text-center txt-role-body-md text-white/20 italic">
           {showProjectColumn && projectOptions.length === 0
             ? "No active projects available. Activate a project to assign tasks."
-            : "No tasks yet. Click \"Add Task\" to create one."}
+            : 'No tasks yet. Click "Add Task" to create one.'}
         </div>
       )}
-
-      {openCalendarTaskId && calendarPosition && createPortal(
-        <motion.div
-          key={openCalendarTaskId}
-          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          style={{
-            position: "fixed",
-            top: calendarPosition.top,
-            left: calendarPosition.left,
-            zIndex: 9999,
-          }}
-          className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
-          onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
-        >
-          <DayPicker
-            className="rdp-dark-theme"
-            mode="single"
-            selected={activeCalendarTask ? fromUtcNoonEpochMsToDateOnly(activeCalendarTask.dueDateEpochMs) : undefined}
-            onSelect={(date) => handleDateSelect(openCalendarTaskId, date)}
-            showOutsideDays
-            disabled={{ before: new Date() }}
-          />
-        </motion.div>,
-        document.body,
-      )}
+      {openCalendarTaskId &&
+        calendarPosition &&
+        createPortal(
+          <motion.div
+            key={openCalendarTaskId}
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{
+              position: "fixed",
+              top: calendarPosition.top,
+              left: calendarPosition.left,
+              zIndex: 9999,
+            }}
+            className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
+            onClick={(event: React.MouseEvent<HTMLDivElement>) =>
+              event.stopPropagation()
+            }
+          >
+            <DayPicker
+              className="rdp-dark-theme"
+              mode="single"
+              selected={
+                activeCalendarTask
+                  ? fromUtcNoonEpochMsToDateOnly(
+                      activeCalendarTask.dueDateEpochMs,
+                    )
+                  : undefined
+              }
+              onSelect={(date) => handleDateSelect(openCalendarTaskId, date)}
+              showOutsideDays
+              disabled={{ before: new Date() }}
+            />
+          </motion.div>,
+          document.body,
+        )}
     </>
   );
 });

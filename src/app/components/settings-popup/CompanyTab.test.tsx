@@ -6,11 +6,15 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { CompanyTab } from "./CompanyTab";
 
 vi.mock("./CompanyMembersSection", () => ({
-  CompanyMembersSection: () => <div data-testid="members-section">Members section</div>,
+  CompanyMembersSection: () => (
+    <div data-testid="members-section">Members section</div>
+  ),
 }));
 
 vi.mock("./CompanyBrandAssetsSection", () => ({
-  CompanyBrandAssetsSection: () => <div data-testid="brand-assets-section">Brand assets section</div>,
+  CompanyBrandAssetsSection: () => (
+    <div data-testid="brand-assets-section">Brand assets section</div>
+  ),
 }));
 
 describe("CompanyTab", () => {
@@ -40,7 +44,7 @@ describe("CompanyTab", () => {
         onUploadBrandAsset={vi.fn().mockResolvedValue(undefined)}
         onRemoveBrandAsset={vi.fn().mockResolvedValue(undefined)}
         onSoftDeleteWorkspace={vi.fn().mockResolvedValue(undefined)}
-      />, 
+      />,
     );
 
     expect(screen.getByText("Loading company settings...")).toBeInTheDocument();
@@ -59,7 +63,12 @@ describe("CompanyTab", () => {
 
     const { container } = render(
       <CompanyTab
-        activeWorkspace={{ id: "workspace-1", slug: "workspace-1", name: "Workspace", plan: "Starter" }}
+        activeWorkspace={{
+          id: "workspace-1",
+          slug: "workspace-1",
+          name: "Workspace",
+          plan: "Starter",
+        }}
         company={{
           workspace: {
             id: "workspace-1",
@@ -101,29 +110,39 @@ describe("CompanyTab", () => {
     expect(nameInput).not.toBeNull();
 
     act(() => {
-      fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Workspace Draft" } });
+      fireEvent.change(nameInput as HTMLInputElement, {
+        target: { value: "Workspace Draft" },
+      });
     });
 
     act(() => {
-      fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Workspace Renamed" } });
+      fireEvent.change(nameInput as HTMLInputElement, {
+        target: { value: "Workspace Renamed" },
+      });
     });
 
     act(() => {
       vi.advanceTimersByTime(801);
     });
     expect(onUpdateWorkspaceGeneral).toHaveBeenCalledTimes(1);
-    expect(onUpdateWorkspaceGeneral).toHaveBeenCalledWith({ name: "Workspace Renamed" });
+    expect(onUpdateWorkspaceGeneral).toHaveBeenCalledWith({
+      name: "Workspace Renamed",
+    });
 
     const fileInput = container.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
 
     await act(async () => {
       fireEvent.change(fileInput as HTMLInputElement, {
-        target: { files: [new File(["logo"], "logo.png", { type: "image/png" })] },
+        target: {
+          files: [new File(["logo"], "logo.png", { type: "image/png" })],
+        },
       });
     });
 
-    expect(onUploadWorkspaceLogo).toHaveBeenCalledWith(expect.objectContaining({ name: "logo.png" }));
+    expect(onUploadWorkspaceLogo).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "logo.png" }),
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Delete Workspace" }));

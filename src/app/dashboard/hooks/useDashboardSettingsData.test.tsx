@@ -6,21 +6,23 @@ import { useDashboardSettingsData } from "./useDashboardSettingsData";
 
 describe("useDashboardSettingsData", () => {
   test("uses fallback account and notification defaults when settings are absent", () => {
-    const { result } = renderHook(() => useDashboardSettingsData({
-      accountSettings: undefined,
-      notificationSettings: undefined,
-      companySummary: undefined,
-      companyMembersResult: undefined,
-      companyPendingInvitationsResult: undefined,
-      companyBrandAssetsResult: undefined,
-      fallbackAvatarUrl: "https://cdn.test/fallback.png",
-      user: {
-        firstName: "Nick",
-        lastName: "User",
-        email: "nick@example.com",
-        profilePictureUrl: "https://cdn.test/profile.png",
-      },
-    }));
+    const { result } = renderHook(() =>
+      useDashboardSettingsData({
+        accountSettings: undefined,
+        notificationSettings: undefined,
+        companySummary: undefined,
+        companyMembersResult: undefined,
+        companyPendingInvitationsResult: undefined,
+        companyBrandAssetsResult: undefined,
+        fallbackAvatarUrl: "https://cdn.test/fallback.png",
+        user: {
+          firstName: "Nick",
+          lastName: "User",
+          email: "nick@example.com",
+          profilePictureUrl: "https://cdn.test/profile.png",
+        },
+      }),
+    );
 
     expect(result.current.settingsAccountData).toEqual({
       firstName: "Nick",
@@ -39,79 +41,81 @@ describe("useDashboardSettingsData", () => {
   });
 
   test("uses explicit settings and filters null company entries", () => {
-    const { result } = renderHook(() => useDashboardSettingsData({
-      accountSettings: {
-        firstName: "Jane",
-        lastName: "Owner",
-        email: "jane@example.com",
-        avatarUrl: "https://cdn.test/jane.png",
-      },
-      notificationSettings: {
-        events: {
-          eventNotifications: false,
-          teamActivities: true,
-          productUpdates: false,
+    const { result } = renderHook(() =>
+      useDashboardSettingsData({
+        accountSettings: {
+          firstName: "Jane",
+          lastName: "Owner",
+          email: "jane@example.com",
+          avatarUrl: "https://cdn.test/jane.png",
         },
-      },
-      companySummary: {
-        workspace: {
-          id: "workspace-1",
-          slug: "workspace-1",
-          name: "Company",
-          plan: "free",
-          logo: null,
-          logoColor: null,
-          logoText: null,
-          workosOrganizationId: null,
+        notificationSettings: {
+          events: {
+            eventNotifications: false,
+            teamActivities: true,
+            productUpdates: false,
+          },
         },
-        capability: {
-          hasOrganizationLink: true,
-          canManageWorkspaceGeneral: true,
-          canManageMembers: true,
-          canManageBrandAssets: true,
-          canDeleteWorkspace: true,
+        companySummary: {
+          workspace: {
+            id: "workspace-1",
+            slug: "workspace-1",
+            name: "Company",
+            plan: "free",
+            logo: null,
+            logoColor: null,
+            logoText: null,
+            workosOrganizationId: null,
+          },
+          capability: {
+            hasOrganizationLink: true,
+            canManageWorkspaceGeneral: true,
+            canManageMembers: true,
+            canManageBrandAssets: true,
+            canDeleteWorkspace: true,
+          },
+          viewerRole: "owner",
         },
-        viewerRole: "owner",
-      },
-      companyMembersResult: {
-        results: [
-          {
-            userId: "user-1",
-            name: "Jane",
-            email: "jane@example.com",
-            avatarUrl: null,
-            role: "owner",
-            status: "active",
-          },
-        ],
-      },
-      companyPendingInvitationsResult: {
-        results: [
-          {
-            invitationId: "inv-1",
-            email: "member@example.com",
-            state: "pending",
-            requestedRole: "member",
-            expiresAt: new Date(Date.now() + 1000).toISOString(),
-          },
-        ],
-      },
-      companyBrandAssetsResult: {
-        results: [
-          {
-            id: "asset-1",
-            name: "Brand Asset",
-            type: "PNG",
-            mimeType: "image/png",
-            sizeBytes: 1024,
-            displayDateEpochMs: Date.now(),
-            downloadUrl: null,
-          },
-        ],
-      },
-      fallbackAvatarUrl: null,
-      user: null,
-    }));
+        companyMembersResult: {
+          results: [
+            {
+              userId: "user-1",
+              name: "Jane",
+              email: "jane@example.com",
+              avatarUrl: null,
+              role: "owner",
+              status: "active",
+            },
+          ],
+        },
+        companyPendingInvitationsResult: {
+          results: [
+            {
+              invitationId: "inv-1",
+              email: "member@example.com",
+              state: "pending",
+              requestedRole: "member",
+              expiresAt: new Date(Date.now() + 1000).toISOString(),
+            },
+          ],
+        },
+        companyBrandAssetsResult: {
+          results: [
+            {
+              id: "asset-1",
+              name: "Brand Asset",
+              type: "PNG",
+              mimeType: "image/png",
+              sizeBytes: 1024,
+              displayDateEpochMs: Date.now(),
+              downloadUrl: null,
+            },
+          ],
+        },
+        fallbackAvatarUrl: null,
+        user: null,
+      }),
+    );
 
     expect(result.current.settingsAccountData).toEqual({
       firstName: "Jane",
@@ -127,7 +131,9 @@ describe("useDashboardSettingsData", () => {
       },
     });
     expect(result.current.settingsCompanyData?.members).toHaveLength(1);
-    expect(result.current.settingsCompanyData?.pendingInvitations).toHaveLength(1);
+    expect(result.current.settingsCompanyData?.pendingInvitations).toHaveLength(
+      1,
+    );
     expect(result.current.settingsCompanyData?.brandAssets).toHaveLength(1);
   });
 });

@@ -1,7 +1,6 @@
 import React from "react";
 import { MentionTextarea } from "../MentionTextarea";
 import type { MentionItem as MentionItemType } from "../mentions/types";
-
 type EditComposerProps = {
   commentId: string;
   editValue: string;
@@ -11,7 +10,6 @@ type EditComposerProps = {
   onSetEditingComment: (id: string | null) => void;
   onEditComment: (commentId: string) => void;
 };
-
 export function EditCommentComposer({
   commentId,
   editValue,
@@ -29,14 +27,13 @@ export function EditCommentComposer({
         onChange={onSetEditValue}
         items={mentionItems}
         onMentionClick={onMentionClick}
-        className="w-full bg-white/[0.04] border border-white/10 rounded-lg p-2.5 text-[13.5px] text-[#E8E8E8] focus:outline-none focus:border-white/20 leading-relaxed transition-colors"
+        className="w-full bg-white/[0.04] border border-white/10 rounded-lg p-2.5 txt-role-body-md txt-tone-primary focus:outline-none focus:border-white/20 leading-relaxed transition-colors"
         style={{ minHeight: 36, maxHeight: 160 }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
             onEditComment(commentId);
           }
-
           if (event.key === "Escape") {
             onSetEditingComment(null);
             onSetEditValue("");
@@ -47,7 +44,7 @@ export function EditCommentComposer({
         <button
           onClick={() => onEditComment(commentId)}
           disabled={!editValue.trim()}
-          className="px-2.5 py-1 text-[11px] bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="px-2.5 py-1 txt-role-meta bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
         >
           Save
         </button>
@@ -56,18 +53,17 @@ export function EditCommentComposer({
             onSetEditingComment(null);
             onSetEditValue("");
           }}
-          className="px-2.5 py-1 text-[11px] text-white/40 hover:text-white/60 transition-colors cursor-pointer"
+          className="px-2.5 py-1 txt-role-meta text-white/40 hover:text-white/60 transition-colors cursor-pointer"
         >
           Cancel
         </button>
-        <span className="text-[10px] text-white/15 ml-auto">
+        <span className="txt-role-kbd text-white/15 ml-auto">
           ⌘Enter to save · @ to mention
         </span>
       </div>
     </div>
   );
 }
-
 type ReplyComposerProps = {
   commentId: string;
   currentUserName: string;
@@ -79,7 +75,6 @@ type ReplyComposerProps = {
   onSetReplyValue: (value: string) => void;
   onReply: (parentId: string, e?: React.FormEvent) => void;
 };
-
 const getInitials = (name: string) =>
   name
     .split(" ")
@@ -88,7 +83,6 @@ const getInitials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase() || "U";
-
 export function ReplyCommentComposer({
   commentId,
   currentUserName,
@@ -114,7 +108,7 @@ export function ReplyCommentComposer({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-white/10 flex items-center justify-center text-[8px] font-medium text-white/80">
+            <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-micro font-medium text-white/80">
               {getInitials(currentUserName)}
             </div>
           )}
@@ -127,14 +121,13 @@ export function ReplyCommentComposer({
           onChange={onSetReplyValue}
           items={mentionItems}
           placeholder=""
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-[#E8E8E8] placeholder:text-white/20 focus:outline-none focus:border-white/15 leading-relaxed transition-colors"
+          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 txt-role-body-md txt-tone-primary placeholder:text-white/20 focus:outline-none focus:border-white/15 leading-relaxed transition-colors"
           style={{ minHeight: 32, maxHeight: 140 }}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               event.preventDefault();
               onReply(commentId);
             }
-
             if (event.key === "Escape") {
               onSetReplyingTo(null);
               onSetReplyValue("");
@@ -146,7 +139,7 @@ export function ReplyCommentComposer({
           <button
             type="submit"
             disabled={!replyValue.trim()}
-            className="px-2.5 py-1 text-[11px] bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            className="px-2.5 py-1 txt-role-meta bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
           >
             Reply
           </button>
@@ -156,11 +149,11 @@ export function ReplyCommentComposer({
               onSetReplyingTo(null);
               onSetReplyValue("");
             }}
-            className="text-[11px] text-white/30 hover:text-white/50 transition-colors cursor-pointer"
+            className="txt-role-meta text-white/30 hover:text-white/50 transition-colors cursor-pointer"
           >
             Cancel
           </button>
-          <span className="text-[10px] text-white/15 ml-auto">⌘Enter</span>
+          <span className="txt-role-kbd text-white/15 ml-auto">⌘Enter</span>
         </div>
       </div>
     </form>

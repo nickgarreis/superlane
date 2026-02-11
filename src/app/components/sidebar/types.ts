@@ -1,6 +1,5 @@
 import type { AppView } from "../../lib/routing";
 import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
-
 export type SidebarWorkspaceSectionProps = {
   activeWorkspace?: Workspace;
   workspaces: Workspace[];
@@ -8,7 +7,6 @@ export type SidebarWorkspaceSectionProps = {
   onCreateWorkspace: () => void;
   canCreateWorkspace: boolean;
 };
-
 export type SidebarPrimaryActionsProps = {
   currentView?: string;
   onSearch: () => void;
@@ -17,7 +15,6 @@ export type SidebarPrimaryActionsProps = {
   onOpenCreateProject: () => void;
   onOpenCreateProjectIntent?: () => void;
 };
-
 export type SidebarProjectsSectionProps = {
   projects: Record<string, ProjectData>;
   currentView?: string;
@@ -26,10 +23,11 @@ export type SidebarProjectsSectionProps = {
   onViewReviewProject: (project: ProjectData) => void;
   onOpenCompletedProjectsPopup: () => void;
 };
-
 export type SidebarProfileMenuProps = {
   viewerIdentity: ViewerIdentity;
-  onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
+  onOpenSettings: (
+    tab?: "Account" | "Notifications" | "Company" | "Billing",
+  ) => void;
   onOpenSettingsIntent?: () => void;
   onLogout: () => void;
 };

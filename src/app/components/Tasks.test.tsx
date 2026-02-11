@@ -4,7 +4,12 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { Tasks } from "./Tasks";
-import type { ProjectData, Task, ViewerIdentity, WorkspaceMember } from "../types";
+import type {
+  ProjectData,
+  Task,
+  ViewerIdentity,
+  WorkspaceMember,
+} from "../types";
 
 const { projectTasksRenderMock } = vi.hoisted(() => ({
   projectTasksRenderMock: vi.fn(),
@@ -12,12 +17,16 @@ const { projectTasksRenderMock } = vi.hoisted(() => ({
 
 vi.mock("../../imports/HorizontalBorder", () => ({
   default: ({ onToggleSidebar }: { onToggleSidebar: () => void }) => (
-    <button type="button" onClick={onToggleSidebar}>Toggle</button>
+    <button type="button" onClick={onToggleSidebar}>
+      Toggle
+    </button>
   ),
 }));
 
 vi.mock("./ProjectLogo", () => ({
-  ProjectLogo: ({ category }: { category: string }) => <span data-testid="project-logo">{category}</span>,
+  ProjectLogo: ({ category }: { category: string }) => (
+    <span data-testid="project-logo">{category}</span>
+  ),
 }));
 
 vi.mock("./ProjectTasks", () => ({
@@ -31,12 +40,18 @@ vi.mock("./ProjectTasks", () => ({
     return (
       <div>
         <div data-testid="task-count">{props.tasks.length}</div>
-        <div data-testid="adding-flag">{props.isAddingMode ? "true" : "false"}</div>
+        <div data-testid="adding-flag">
+          {props.isAddingMode ? "true" : "false"}
+        </div>
         <button
           type="button"
           onClick={() => {
             props.onUpdateTasks([
-              ...props.tasks.map((task) => task.id === "task-1" ? { ...task, title: "Design Homepage Updated" } : task),
+              ...props.tasks.map((task) =>
+                task.id === "task-1"
+                  ? { ...task, title: "Design Homepage Updated" }
+                  : task,
+              ),
               {
                 id: "task-new",
                 title: "New Imported Task",
@@ -76,7 +91,9 @@ const MEMBERS: WorkspaceMember[] = [
   },
 ];
 
-const buildProject = (args: Partial<ProjectData> & Pick<ProjectData, "id" | "name" | "category">): ProjectData => ({
+const buildProject = (
+  args: Partial<ProjectData> & Pick<ProjectData, "id" | "name" | "category">,
+): ProjectData => ({
   id: args.id,
   name: args.name,
   category: args.category,
@@ -102,8 +119,16 @@ const buildProject = (args: Partial<ProjectData> & Pick<ProjectData, "id" | "nam
 describe("Tasks", () => {
   test("filters tasks by search and project and toggles add mode", async () => {
     const projects: Record<string, ProjectData> = {
-      "active-1": buildProject({ id: "active-1", name: "Active One", category: "Web" }),
-      "active-2": buildProject({ id: "active-2", name: "Active Two", category: "Brand" }),
+      "active-1": buildProject({
+        id: "active-1",
+        name: "Active One",
+        category: "Web",
+      }),
+      "active-2": buildProject({
+        id: "active-2",
+        name: "Active Two",
+        category: "Brand",
+      }),
       "archived-1": buildProject({
         id: "archived-1",
         name: "Archived One",
@@ -178,7 +203,11 @@ describe("Tasks", () => {
     const onUpdateWorkspaceTasks = vi.fn();
 
     const projects: Record<string, ProjectData> = {
-      "active-1": buildProject({ id: "active-1", name: "Active One", category: "Web" }),
+      "active-1": buildProject({
+        id: "active-1",
+        name: "Active One",
+        category: "Web",
+      }),
       "archived-1": buildProject({
         id: "archived-1",
         name: "Archived One",
@@ -225,7 +254,11 @@ describe("Tasks", () => {
     const updatedTasks = onUpdateWorkspaceTasks.mock.calls[0][0] as Task[];
     expect(updatedTasks).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "task-1", title: "Design Homepage Updated", projectId: "active-1" }),
+        expect.objectContaining({
+          id: "task-1",
+          title: "Design Homepage Updated",
+          projectId: "active-1",
+        }),
         expect.objectContaining({ id: "task-2", projectId: undefined }),
         expect.objectContaining({ id: "task-new", projectId: undefined }),
       ]),

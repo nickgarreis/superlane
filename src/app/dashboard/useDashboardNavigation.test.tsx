@@ -9,7 +9,9 @@ import { dashboardStorageKeys } from "./storage";
 
 const buildWrapper = (initialEntry: string) => {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>;
+    return (
+      <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
+    );
   };
 };
 
@@ -23,7 +25,8 @@ const baseArgs = () => ({
 const storageState = new Map<string, string>();
 
 const localStorageMock = {
-  getItem: (key: string) => (storageState.has(key) ? storageState.get(key)! : null),
+  getItem: (key: string) =>
+    storageState.has(key) ? storageState.get(key)! : null,
   setItem: (key: string, value: string) => {
     storageState.set(key, value);
   },
@@ -71,7 +74,10 @@ describe("useDashboardNavigation", () => {
   });
 
   test("migrates legacy workspace storage value into versioned storage", () => {
-    window.localStorage.setItem(dashboardStorageKeys.legacy, "legacy-workspace");
+    window.localStorage.setItem(
+      dashboardStorageKeys.legacy,
+      "legacy-workspace",
+    );
     const args = baseArgs();
 
     const { result } = renderHook(() => useDashboardNavigation(args), {
@@ -150,9 +156,12 @@ describe("useDashboardNavigation", () => {
   test("keeps key navigation callbacks stable across rerenders", () => {
     const args = baseArgs();
 
-    const { result, rerender } = renderHook(() => useDashboardNavigation(args), {
-      wrapper: buildWrapper("/tasks"),
-    });
+    const { result, rerender } = renderHook(
+      () => useDashboardNavigation(args),
+      {
+        wrapper: buildWrapper("/tasks"),
+      },
+    );
 
     const initialNavigateView = result.current.navigateView;
     const initialOpenSearch = result.current.openSearch;

@@ -1,8 +1,10 @@
 import { ArrowUpDown, Plus } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { DeniedAction } from "../permissions/DeniedAction";
-import { TASK_SORT_OPTIONS, type TaskSortBy } from "./useWorkspaceTaskFiltering";
-
+import {
+  TASK_SORT_OPTIONS,
+  type TaskSortBy,
+} from "./useWorkspaceTaskFiltering";
 type TasksToolbarProps = {
   taskCount: number;
   hideHeader: boolean;
@@ -15,7 +17,6 @@ type TasksToolbarProps = {
   sortBy: TaskSortBy;
   onSortSelect: (sortBy: TaskSortBy) => void;
 };
-
 export function TasksToolbar({
   taskCount,
   hideHeader,
@@ -31,15 +32,19 @@ export function TasksToolbar({
   if (hideHeader) {
     return null;
   }
-
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <h4 className="text-[13px] font-medium text-[#E8E8E8]/60 uppercase tracking-wider">Tasks ({taskCount})</h4>
+        <h4 className="txt-role-body-md font-medium txt-tone-subtle uppercase tracking-wider">
+          Tasks ({taskCount})
+        </h4>
       </div>
-
       <div className="flex items-center gap-3">
-        <DeniedAction denied={!canAddTasks} reason={addTaskDisabledMessage} tooltipAlign="right">
+        <DeniedAction
+          denied={!canAddTasks}
+          reason={addTaskDisabledMessage}
+          tooltipAlign="right"
+        >
           <button
             type="button"
             onClick={() => {
@@ -50,33 +55,31 @@ export function TasksToolbar({
             }}
             aria-disabled={!canAddTasks}
             className={cn(
-              "text-[12px] font-medium transition-colors flex items-center gap-1",
+              "txt-role-body-sm font-medium transition-colors flex items-center gap-1",
               canAddTasks
-                ? "text-[#58AFFF] hover:text-[#58AFFF]/80 cursor-pointer"
-                : "text-[#58AFFF]/45 opacity-50 cursor-not-allowed",
+                ? "txt-tone-accent hover:txt-tone-accent cursor-pointer"
+                : "txt-tone-muted opacity-50 cursor-not-allowed",
             )}
           >
             <Plus size={14} /> Add Task
           </button>
         </DeniedAction>
-
         <div className="relative">
           <button
             onClick={onToggleSort}
             className={cn(
               "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 cursor-pointer",
               isSortOpen
-                ? "bg-white/10 text-[#E8E8E8]"
-                : "text-[#E8E8E8]/60 hover:text-[#E8E8E8] hover:bg-white/5",
+                ? "bg-white/10 txt-tone-primary"
+                : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/5",
             )}
             title="Sort tasks"
           >
             <ArrowUpDown size={16} strokeWidth={2} />
           </button>
-
           {isSortOpen && (
             <div className="absolute right-0 top-full mt-2 w-48 bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 text-[10px] uppercase font-bold text-white/30 tracking-wider">
+              <div className="px-3 py-2 txt-role-kbd uppercase font-bold text-white/30 tracking-wider">
                 Sort by
               </div>
               {TASK_SORT_OPTIONS.map((option) => (
@@ -86,7 +89,7 @@ export function TasksToolbar({
                     onSortSelect(option.id);
                     onCloseSort();
                   }}
-                  className="w-full px-2 py-1.5 rounded-lg text-left text-[13px] hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3 group"
+                  className="w-full px-2 py-1.5 rounded-lg text-left txt-role-body-md hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-3 group"
                 >
                   <div
                     className={cn(
@@ -95,13 +98,21 @@ export function TasksToolbar({
                     )}
                   >
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M9 1L3.5 6.5L1 4" stroke="#E8E8E8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M9 1L3.5 6.5L1 4"
+                        stroke="#E8E8E8"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </div>
                   <span
                     className={cn(
                       "transition-colors",
-                      sortBy === option.id ? "text-white" : "text-[#E8E8E8]/60 group-hover:text-[#E8E8E8]",
+                      sortBy === option.id
+                        ? "text-white"
+                        : "txt-tone-subtle group-hover:txt-tone-primary",
                     )}
                   >
                     {option.label}

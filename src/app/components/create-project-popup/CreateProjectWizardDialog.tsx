@@ -10,14 +10,8 @@ import {
 import { StepDetails, STEP_THREE_TITLE } from "./steps/StepDetails";
 import { StepReview } from "./steps/StepReview";
 import { StepService } from "./steps/StepService";
-
 export function CreateProjectPopup(props: CreateProjectPopupProps) {
-  const {
-    isOpen,
-    editProjectId,
-    user,
-  } = props;
-
+  const { isOpen, editProjectId, user } = props;
   const {
     step,
     showCloseConfirm,
@@ -73,11 +67,9 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
     setShowDeleteConfirm,
     setShowDeleteProjectConfirm,
   } = useCreateProjectWizardController(props);
-
   if (!isOpen) {
     return null;
   }
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -91,7 +83,6 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
           aria-hidden="true"
           className="absolute border border-[#131314] border-solid inset-0 pointer-events-none rounded-[40px] z-20"
         />
-
         <div
           className={`flex flex-col items-start w-full relative rounded-[inherit] ${step === 4 ? "flex-1 overflow-hidden" : "overflow-y-auto custom-scrollbar"}`}
         >
@@ -105,26 +96,26 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                   src={createProjectBgFallbackPng}
                 />
               </picture>
-
               <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start px-[32px] py-[24px] relative size-full">
                 <div className="content-stretch flex items-center relative shrink-0 w-full justify-between">
-                  <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#e8e8e8] text-[17.7px] whitespace-nowrap">
-                    <p className="leading-[25.2px]">
+                  <div className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap">
+                    <p className="txt-leading-title">
                       {editProjectId ? "Edit Project" : "Create a new Project"}
                     </p>
                   </div>
-                  <WizardCloseButton className="z-30" onClick={handleCloseClick} />
+                  <WizardCloseButton
+                    className="z-30"
+                    onClick={handleCloseClick}
+                  />
                 </div>
               </div>
             </div>
           )}
-
           {(step === 2 || step === 3) && (
             <div className="absolute right-[25px] top-[25px] z-30">
               <WizardCloseButton onClick={handleCloseClick} />
             </div>
           )}
-
           {step === 3 && (
             <motion.div
               initial={{ y: 6, opacity: 0 }}
@@ -132,12 +123,11 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
               transition={{ delay: 0.05, duration: 0.35 }}
               className="px-[33px] pt-[29px] w-full"
             >
-              <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#e8e8e8] text-[17.7px] whitespace-nowrap">
-                <p className="leading-[25.2px]">{STEP_THREE_TITLE}</p>
+              <div className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap">
+                <p className="txt-leading-title">{STEP_THREE_TITLE}</p>
               </div>
             </motion.div>
           )}
-
           <div
             className={`${step === 1 ? "p-[32px]" : step === 4 ? "flex-1 flex flex-col overflow-hidden" : "px-[33px] pb-[33px]"} w-full flex flex-col`}
           >
@@ -147,7 +137,6 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 onSelectService={setSelectedService}
               />
             )}
-
             {(step === 2 || step === 3) && (
               <StepDetails
                 step={step as 2 | 3}
@@ -173,7 +162,6 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 onRemoveAttachment={handleRemoveAttachment}
               />
             )}
-
             {step === 4 && (
               <StepReview
                 editProjectId={editProjectId}
@@ -199,7 +187,6 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 onRequestDeleteProject={requestDeleteReviewProject}
               />
             )}
-
             {step !== 4 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -212,38 +199,29 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                     onClick={() => setStep(step - 1)}
                     className="backdrop-blur-[6px] content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 border border-[rgba(232,232,232,0.1)] hover:bg-white/5 transition-colors cursor-pointer"
                   >
-                    <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#e8e8e8] text-[14px] text-center whitespace-nowrap">
-                      <p className="leading-[20px]">Previous</p>
+                    <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-tone-primary txt-role-body-lg text-center whitespace-nowrap">
+                      <p className="txt-leading-body">Previous</p>
                     </div>
                   </button>
                 )}
-
                 <div className="flex gap-[16px] ml-auto">
                   {editProjectId && (
                     <button
                       onClick={handleDeleteDraft}
                       className="content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 bg-[rgba(255,59,48,0.06)] opacity-80 hover:opacity-100 transition-all cursor-pointer"
                     >
-                      <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#ff3b30] text-[14px] text-center whitespace-nowrap">
-                        <p className="leading-[20px]">Delete draft</p>
+                      <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-tone-danger txt-role-body-lg text-center whitespace-nowrap">
+                        <p className="txt-leading-body">Delete draft</p>
                       </div>
                     </button>
                   )}
-
                   <button
                     onClick={handleNext}
                     disabled={isNextDisabled}
-                    className={`
-                      content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer
-                      ${
-                        isNextDisabled
-                          ? "bg-[#e8e8e8]/50 cursor-not-allowed text-[#131314]/50"
-                          : "bg-[#e8e8e8] hover:bg-white text-[#131314]"
-                      }
-                    `}
+                    className={` content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer ${isNextDisabled ? "bg-[#e8e8e8]/50 cursor-not-allowed txt-tone-inverse" : "bg-[#e8e8e8] hover:bg-white txt-tone-inverse"} `}
                   >
-                    <div className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center whitespace-nowrap">
-                      <p className="leading-[20px]">
+                    <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-role-body-lg text-center whitespace-nowrap">
+                      <p className="txt-leading-body">
                         {step === 3
                           ? editProjectId
                             ? "Update & submit"
@@ -258,7 +236,6 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
           </div>
         </div>
       </div>
-
       <CreateProjectWizardConfirmDialogs
         showCloseConfirm={showCloseConfirm}
         editProjectId={editProjectId}

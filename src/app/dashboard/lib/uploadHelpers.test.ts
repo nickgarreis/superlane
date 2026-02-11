@@ -16,8 +16,12 @@ describe("uploadHelpers", () => {
   });
 
   test("computes stable SHA-256 checksums", async () => {
-    const checksum = await computeFileChecksumSha256(new File(["abc"], "file.txt", { type: "text/plain" }));
-    expect(checksum).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    const checksum = await computeFileChecksumSha256(
+      new File(["abc"], "file.txt", { type: "text/plain" }),
+    );
+    expect(checksum).toBe(
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    );
   });
 
   test("uploads file to convex storage and returns storage id", async () => {
@@ -29,7 +33,10 @@ describe("uploadHelpers", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const file = new File(["image"], "logo.png", { type: "image/png" });
-    const storageId = await uploadFileToConvexStorage("https://upload.example", file);
+    const storageId = await uploadFileToConvexStorage(
+      "https://upload.example",
+      file,
+    );
 
     expect(storageId).toBe("storage-1");
     expect(fetchMock).toHaveBeenCalledWith("https://upload.example", {
@@ -55,11 +62,17 @@ describe("uploadHelpers", () => {
     );
 
     await expect(
-      uploadFileToConvexStorage("https://upload.example", new File(["x"], "x.bin")),
+      uploadFileToConvexStorage(
+        "https://upload.example",
+        new File(["x"], "x.bin"),
+      ),
     ).rejects.toThrow("Upload failed with status 500");
 
     await expect(
-      uploadFileToConvexStorage("https://upload.example", new File(["x"], "x.bin")),
+      uploadFileToConvexStorage(
+        "https://upload.example",
+        new File(["x"], "x.bin"),
+      ),
     ).rejects.toThrow("Upload response missing storageId");
   });
 
@@ -70,6 +83,9 @@ describe("uploadHelpers", () => {
     expect(asPendingUploadId("pending-id")).toBe("pending-id");
     expect(asProjectFileId("file-id")).toBe("file-id");
 
-    expect(omitUndefined({ a: 1, b: undefined, c: null })).toEqual({ a: 1, c: null });
+    expect(omitUndefined({ a: 1, b: undefined, c: null })).toEqual({
+      a: 1,
+      c: null,
+    });
   });
 });

@@ -2,7 +2,6 @@ import type React from "react";
 import { motion } from "motion/react";
 import { CornerDownLeft } from "lucide-react";
 import { cn } from "../../../lib/utils";
-
 type AddTaskRowProps = {
   addTaskRowRef: React.Ref<HTMLDivElement>;
   newTaskTitle: string;
@@ -11,7 +10,6 @@ type AddTaskRowProps = {
   onAddTask: () => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
 };
-
 export function AddTaskRow({
   addTaskRowRef,
   newTaskTitle,
@@ -38,10 +36,9 @@ export function AddTaskRow({
             onChange={(event) => onTitleChange(event.target.value)}
             onKeyDown={onKeyDown}
             placeholder="What needs to be done?"
-            className="flex-1 bg-transparent border-none outline-none text-[14px] text-[#E8E8E8] placeholder:text-white/20"
+            className="flex-1 bg-transparent border-none outline-none txt-role-body-lg txt-tone-primary placeholder:text-white/20"
           />
         </div>
-
         <div className="shrink-0 pl-4">
           <button
             type="button"
@@ -51,7 +48,7 @@ export function AddTaskRow({
             className={cn(
               "inline-flex items-center gap-2 h-8 px-2.5 rounded-full border transition-colors",
               canCreateTask
-                ? "border-[#58AFFF]/30 bg-[#58AFFF]/10 text-[#58AFFF] hover:bg-[#58AFFF]/15 cursor-pointer"
+                ? "border-[#58AFFF]/30 bg-[#58AFFF]/10 txt-tone-accent hover:bg-[#58AFFF]/15 cursor-pointer"
                 : "border-white/10 bg-white/5 text-white/30 cursor-not-allowed",
             )}
           >
@@ -59,13 +56,13 @@ export function AddTaskRow({
               className={cn(
                 "inline-flex items-center justify-center w-6 h-5 rounded-md border",
                 canCreateTask
-                  ? "border-[#58AFFF]/35 bg-[#58AFFF]/15 text-[#9BD0FF]"
+                  ? "border-[#58AFFF]/35 bg-[#58AFFF]/15 txt-tone-accent"
                   : "border-white/10 bg-white/5 text-white/30",
               )}
             >
               <CornerDownLeft size={11} strokeWidth={2.3} aria-hidden="true" />
             </span>
-            <span className="text-[12px] font-medium">Create</span>
+            <span className="txt-role-body-sm font-medium">Create</span>
           </button>
         </div>
       </div>

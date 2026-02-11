@@ -5,7 +5,6 @@ import svgPaths from "../../../imports/svg-0erue6fqwq";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../../lib/permissionRules";
 import type { WorkspaceRole } from "../../types";
-
 export function MenuIcon({
   isArchived,
   isCompleted,
@@ -28,7 +27,6 @@ export function MenuIcon({
   const [isOpen, setIsOpen] = useState(false);
   const lifecycleDeniedReason = getProjectLifecycleDeniedReason(viewerRole);
   const canManageProjectLifecycle = lifecycleDeniedReason == null;
-
   return (
     <div className="relative">
       <button
@@ -43,21 +41,27 @@ export function MenuIcon({
           <path d={svgPaths.p1100df00} fill="#E8E8E8" />
         </svg>
       </button>
-
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed inset-0 z-20"
+            onClick={() => setIsOpen(false)}
+          />
           <div className="absolute left-full top-0 ml-2 w-[180px] bg-[#181818] border border-[#262626] rounded-xl shadow-2xl overflow-hidden py-1.5 z-30 flex flex-col gap-0.5">
             {!isCompleted && !isArchived && onComplete && (
-              <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+              <DeniedAction
+                denied={!canManageProjectLifecycle}
+                reason={lifecycleDeniedReason}
+                tooltipAlign="right"
+              >
                 <button
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
                     "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
                     canManageProjectLifecycle
-                      ? "hover:bg-[#22c55e]/10 cursor-pointer text-[#22c55e] group"
-                      : "cursor-not-allowed text-[#22c55e]/45 opacity-60",
+                      ? "hover:bg-[#22c55e]/10 cursor-pointer txt-tone-success group"
+                      : "cursor-not-allowed txt-tone-muted opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -71,25 +75,28 @@ export function MenuIcon({
                     className={cn(
                       "w-4 h-4 transition-colors",
                       canManageProjectLifecycle
-                        ? "text-[#22c55e]/80 group-hover:text-[#22c55e]"
-                        : "text-[#22c55e]/45",
+                        ? "txt-tone-success group-hover:txt-tone-success"
+                        : "txt-tone-muted",
                     )}
                   />
-                  <span className="text-[13px] font-medium">Complete</span>
+                  <span className="txt-role-body-md font-medium">Complete</span>
                 </button>
               </DeniedAction>
             )}
-
             {!isArchived && isCompleted && onUncomplete && (
-              <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+              <DeniedAction
+                denied={!canManageProjectLifecycle}
+                reason={lifecycleDeniedReason}
+                tooltipAlign="right"
+              >
                 <button
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
                     "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
                     canManageProjectLifecycle
-                      ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
-                      : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
+                      ? "hover:bg-white/5 cursor-pointer txt-tone-primary group"
+                      : "cursor-not-allowed txt-tone-faint opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -103,25 +110,30 @@ export function MenuIcon({
                     className={cn(
                       "w-4 h-4 transition-colors",
                       canManageProjectLifecycle
-                        ? "text-[#E8E8E8]/60 group-hover:text-white"
-                        : "text-[#E8E8E8]/35",
+                        ? "txt-tone-subtle group-hover:text-white"
+                        : "txt-tone-faint",
                     )}
                   />
-                  <span className="text-[13px] font-medium">Revert to Active</span>
+                  <span className="txt-role-body-md font-medium">
+                    Revert to Active
+                  </span>
                 </button>
               </DeniedAction>
             )}
-
             {!isCompleted && (
-              <DeniedAction denied={!canManageProjectLifecycle} reason={lifecycleDeniedReason} tooltipAlign="right">
+              <DeniedAction
+                denied={!canManageProjectLifecycle}
+                reason={lifecycleDeniedReason}
+                tooltipAlign="right"
+              >
                 <button
                   type="button"
                   disabled={!canManageProjectLifecycle}
                   className={cn(
                     "w-[calc(100%-8px)] mx-1 px-2 py-1.5 rounded-lg flex items-center gap-3 transition-colors",
                     canManageProjectLifecycle
-                      ? "hover:bg-white/5 cursor-pointer text-[#E8E8E8] group"
-                      : "cursor-not-allowed text-[#E8E8E8]/35 opacity-60",
+                      ? "hover:bg-white/5 cursor-pointer txt-tone-primary group"
+                      : "cursor-not-allowed txt-tone-faint opacity-60",
                   )}
                   onClick={() => {
                     if (!canManageProjectLifecycle) {
@@ -140,8 +152,8 @@ export function MenuIcon({
                       className={cn(
                         "w-4 h-4 transition-colors",
                         canManageProjectLifecycle
-                          ? "text-[#E8E8E8]/60 group-hover:text-white"
-                          : "text-[#E8E8E8]/35",
+                          ? "txt-tone-subtle group-hover:text-white"
+                          : "txt-tone-faint",
                       )}
                     />
                   ) : (
@@ -149,12 +161,14 @@ export function MenuIcon({
                       className={cn(
                         "w-4 h-4 transition-colors",
                         canManageProjectLifecycle
-                          ? "text-[#E8E8E8]/60 group-hover:text-white"
-                          : "text-[#E8E8E8]/35",
+                          ? "txt-tone-subtle group-hover:text-white"
+                          : "txt-tone-faint",
                       )}
                     />
                   )}
-                  <span className="text-[13px] font-medium">{isArchived ? "Unarchive" : "Archive"}</span>
+                  <span className="txt-role-body-md font-medium">
+                    {isArchived ? "Unarchive" : "Archive"}
+                  </span>
                 </button>
               </DeniedAction>
             )}

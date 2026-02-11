@@ -8,11 +8,36 @@ import type { ProjectData, ProjectFileData } from "../../types";
 import type { QuickAction } from "./types";
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: "action-create", label: "Create New Project", icon: <span />, keyword: "create new add project" },
-  { id: "action-tasks", label: "Go to Tasks", icon: <span />, keyword: "tasks todo list" },
-  { id: "action-assets", label: "Go to Brand Assets", icon: <span />, keyword: "brand assets design" },
-  { id: "action-archive", label: "Go to Archive", icon: <span />, keyword: "archive archived" },
-  { id: "action-settings", label: "Open Settings", icon: <span />, keyword: "settings preferences config" },
+  {
+    id: "action-create",
+    label: "Create New Project",
+    icon: <span />,
+    keyword: "create new add project",
+  },
+  {
+    id: "action-tasks",
+    label: "Go to Tasks",
+    icon: <span />,
+    keyword: "tasks todo list",
+  },
+  {
+    id: "action-assets",
+    label: "Go to Brand Assets",
+    icon: <span />,
+    keyword: "brand assets design",
+  },
+  {
+    id: "action-archive",
+    label: "Go to Archive",
+    icon: <span />,
+    keyword: "archive archived",
+  },
+  {
+    id: "action-settings",
+    label: "Open Settings",
+    icon: <span />,
+    keyword: "settings preferences config",
+  },
 ];
 
 const PROJECTS: Record<string, ProjectData> = {
@@ -130,17 +155,25 @@ describe("useSearchPopupData", () => {
       quickActions: QUICK_ACTIONS,
     };
 
-    const { result, rerender } = renderHook((props: typeof baseArgs) => useSearchPopupData(props), {
-      initialProps: baseArgs,
-    });
+    const { result, rerender } = renderHook(
+      (props: typeof baseArgs) => useSearchPopupData(props),
+      {
+        initialProps: baseArgs,
+      },
+    );
 
-    const taskResult = result.current.flatResults.find((entry) => entry.type === "task");
+    const taskResult = result.current.flatResults.find(
+      (entry) => entry.type === "task",
+    );
     expect(taskResult).toBeDefined();
     taskResult?.action();
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("project:project-1");
-    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", { type: "task", taskId: "task-1" });
+    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", {
+      type: "task",
+      taskId: "task-1",
+    });
 
     rerender({
       ...baseArgs,
@@ -148,7 +181,9 @@ describe("useSearchPopupData", () => {
       deferredQuery: "brief",
     });
 
-    const fileResult = result.current.flatResults.find((entry) => entry.type === "file");
+    const fileResult = result.current.flatResults.find(
+      (entry) => entry.type === "file",
+    );
     expect(fileResult).toBeDefined();
     fileResult?.action();
 
@@ -171,7 +206,9 @@ describe("useSearchPopupData", () => {
         files: FILES,
         query: "",
         deferredQuery: "",
-        recentResults: [{ id: "project-1", title: "Website Redesign", type: "project" }],
+        recentResults: [
+          { id: "project-1", title: "Website Redesign", type: "project" },
+        ],
         onClose,
         onNavigate,
         onOpenCreateProject: vi.fn(),
@@ -189,6 +226,9 @@ describe("useSearchPopupData", () => {
 
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onNavigate).toHaveBeenCalledWith("project:project-1");
-    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", { type: "task", taskId: "task-1" });
+    expect(onHighlightNavigate).toHaveBeenCalledWith("project-1", {
+      type: "task",
+      taskId: "task-1",
+    });
   });
 });

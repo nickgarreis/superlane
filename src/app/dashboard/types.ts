@@ -1,8 +1,17 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
+import type {
+  FunctionArgs,
+  FunctionReference,
+  FunctionReturnType,
+} from "convex/server";
 import type { AppView } from "../lib/routing";
-import type { ProjectData, ProjectDraftData, ProjectFileTab, ReviewComment, Task } from "../types";
-
+import type {
+  ProjectData,
+  ProjectDraftData,
+  ProjectFileTab,
+  ReviewComment,
+  Task,
+} from "../types";
 export type PendingHighlight = {
   projectId: string;
   type: "task" | "file";
@@ -10,31 +19,31 @@ export type PendingHighlight = {
   fileName?: string;
   fileTab?: string;
 };
-
 export type SettingsTab = "Account" | "Notifications" | "Company" | "Billing";
-
-export const SETTINGS_TABS: readonly SettingsTab[] = ["Account", "Notifications", "Company", "Billing"];
-
-export const parseSettingsTab = (value: string | null | undefined): SettingsTab => {
+export const SETTINGS_TABS: readonly SettingsTab[] = [
+  "Account",
+  "Notifications",
+  "Company",
+  "Billing",
+];
+export const parseSettingsTab = (
+  value: string | null | undefined,
+): SettingsTab => {
   if (value && (SETTINGS_TABS as readonly string[]).includes(value)) {
     return value as SettingsTab;
   }
   return "Account";
 };
-
-export type DashboardMutationHandler<Ref extends FunctionReference<"mutation">> = (
-  args: FunctionArgs<Ref>,
-) => Promise<FunctionReturnType<Ref>>;
-
+export type DashboardMutationHandler<
+  Ref extends FunctionReference<"mutation">,
+> = (args: FunctionArgs<Ref>) => Promise<FunctionReturnType<Ref>>;
 export type DashboardActionHandler<Ref extends FunctionReference<"action">> = (
   args: FunctionArgs<Ref>,
 ) => Promise<FunctionReturnType<Ref>>;
-
 export type DashboardQueryInvoker = <Ref extends FunctionReference<"query">>(
   query: Ref,
   args: FunctionArgs<Ref>,
 ) => Promise<FunctionReturnType<Ref>>;
-
 export interface MainContentProjectActions {
   archive?: (id: string) => void;
   unarchive?: (id: string) => void;
@@ -42,13 +51,11 @@ export interface MainContentProjectActions {
   updateStatus?: (id: string, status: string) => void;
   updateProject?: (data: Partial<ProjectData>) => void;
 }
-
 export interface MainContentFileActions {
   create: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
   remove: (fileId: string) => void;
   download: (fileId: string) => void;
 }
-
 export type CreateProjectPayload = {
   name?: string;
   description?: string;
@@ -60,14 +67,14 @@ export type CreateProjectPayload = {
   _editProjectId?: string;
   attachmentPendingUploadIds?: string[];
 };
-
 export type CreateProjectResult = {
   publicId: string;
   mode: "create" | "update";
 };
-
 export interface ProjectCommands {
-  createOrUpdateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
+  createOrUpdateProject: (
+    payload: CreateProjectPayload,
+  ) => Promise<CreateProjectResult>;
   editProject: (project: ProjectData) => void;
   viewReviewProject: (project: ProjectData) => void;
   archiveProject: (projectId: string) => void;
@@ -75,9 +82,12 @@ export interface ProjectCommands {
   deleteProject: (projectId: string) => void;
   updateProjectStatus: (projectId: string, newStatus: string) => void;
 }
-
 export interface FileCommands {
-  createProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
+  createProjectFile: (
+    projectPublicId: string,
+    tab: ProjectFileTab,
+    file: File,
+  ) => void;
   removeProjectFile: (fileId: string) => void;
   downloadProjectFile: (fileId: string) => void;
   uploadDraftAttachment: (
@@ -93,11 +103,14 @@ export interface FileCommands {
   removeDraftAttachment: (pendingUploadId: string) => Promise<void>;
   discardDraftSessionUploads: (draftSessionId: string) => Promise<void>;
 }
-
 export interface SettingsCommands {
   openSettings: (tab?: SettingsTab) => void;
   closeSettings: () => void;
-  saveAccount: (payload: { firstName: string; lastName: string; email: string }) => Promise<void>;
+  saveAccount: (payload: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  }) => Promise<void>;
   uploadAccountAvatar: (file: File) => Promise<void>;
   removeAccountAvatar: () => Promise<void>;
   saveNotifications: (payload: {
@@ -108,7 +121,6 @@ export interface SettingsCommands {
     };
   }) => Promise<void>;
 }
-
 export interface DashboardCommands {
   project: ProjectCommands;
   file: FileCommands;
@@ -118,12 +130,16 @@ export interface DashboardCommands {
     createWorkspace: () => void;
   };
 }
-
 export interface DashboardProjectActions {
-  handleCreateProject: (payload: CreateProjectPayload) => Promise<CreateProjectResult>;
+  handleCreateProject: (
+    payload: CreateProjectPayload,
+  ) => Promise<CreateProjectResult>;
   handleEditProject: (project: ProjectData) => void;
   handleViewReviewProject: (project: ProjectData) => void;
-  handleUpdateComments: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  handleUpdateComments: (
+    projectId: string,
+    comments: ReviewComment[],
+  ) => Promise<unknown>;
   handleArchiveProject: (projectId: string) => void;
   handleUnarchiveProject: (projectId: string) => void;
   handleDeleteProject: (projectId: string) => void;
@@ -132,9 +148,12 @@ export interface DashboardProjectActions {
   handleUpdateProject: (projectId: string, data: Partial<ProjectData>) => void;
   handleReplaceWorkspaceTasks: (tasks: Task[]) => void;
 }
-
 export interface DashboardFileActions {
-  handleCreateProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
+  handleCreateProjectFile: (
+    projectPublicId: string,
+    tab: ProjectFileTab,
+    file: File,
+  ) => void;
   handleUploadDraftAttachment: (
     file: File,
     draftSessionId: string,
@@ -150,21 +169,22 @@ export interface DashboardFileActions {
   handleRemoveProjectFile: (fileId: string) => void;
   handleDownloadProjectFile: (fileId: string) => void;
 }
-
 export type NavigationDestination = "archive";
-
 export interface MainContentNavigationActions {
   navigate?: (view: AppView) => void;
   backTo?: NavigationDestination;
   back?: () => void;
 }
-
 export type DashboardContentModel =
   | { kind: "tasks" }
   | { kind: "archive" }
-  | { kind: "main"; project: ProjectData; backTo?: NavigationDestination; back?: () => void }
+  | {
+      kind: "main";
+      project: ProjectData;
+      backTo?: NavigationDestination;
+      back?: () => void;
+    }
   | { kind: "empty" };
-
 export interface DashboardControllerArgs {
   currentView: AppView;
   projects: Record<string, ProjectData>;
@@ -173,7 +193,6 @@ export interface DashboardControllerArgs {
   setPendingHighlight: Dispatch<SetStateAction<PendingHighlight | null>>;
   navigateView: (view: AppView) => void;
 }
-
 export interface DashboardControllerResult {
   contentModel: DashboardContentModel;
   toggleSidebar: () => void;

@@ -15,16 +15,32 @@ vi.mock("../../components/Tasks", () => ({
 }));
 
 vi.mock("../../components/ArchivePage", () => ({
-  ArchivePage: ({ onUnarchiveProject }: { onUnarchiveProject: (id: string) => void }) => (
-    <button type="button" onClick={() => onUnarchiveProject("project-1")} data-testid="archive-view">
+  ArchivePage: ({
+    onUnarchiveProject,
+  }: {
+    onUnarchiveProject: (id: string) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() => onUnarchiveProject("project-1")}
+      data-testid="archive-view"
+    >
       Archive
     </button>
   ),
 }));
 
 vi.mock("../../components/MainContent", () => ({
-  MainContent: ({ navigationActions }: { navigationActions?: { back?: () => void } }) => (
-    <button type="button" onClick={() => navigationActions?.back?.()} data-testid="main-view">
+  MainContent: ({
+    navigationActions,
+  }: {
+    navigationActions?: { back?: () => void };
+  }) => (
+    <button
+      type="button"
+      onClick={() => navigationActions?.back?.()}
+      data-testid="main-view"
+    >
       Main
     </button>
   ),
@@ -85,12 +101,7 @@ describe("DashboardContent", () => {
   test("renders tasks content for tasks model", async () => {
     const props = baseProps();
 
-    render(
-      <DashboardContent
-        {...props}
-        contentModel={{ kind: "tasks" }}
-      />,
-    );
+    render(<DashboardContent {...props} contentModel={{ kind: "tasks" }} />);
 
     fireEvent.click(await screen.findByTestId("tasks-view"));
     expect(props.handleToggleSidebar).toHaveBeenCalledTimes(1);
@@ -99,12 +110,7 @@ describe("DashboardContent", () => {
   test("renders archive content for archive model", async () => {
     const props = baseProps();
 
-    render(
-      <DashboardContent
-        {...props}
-        contentModel={{ kind: "archive" }}
-      />,
-    );
+    render(<DashboardContent {...props} contentModel={{ kind: "archive" }} />);
 
     fireEvent.click(await screen.findByTestId("archive-view"));
     expect(props.handleUnarchiveProject).toHaveBeenCalledWith("project-1");
@@ -117,24 +123,26 @@ describe("DashboardContent", () => {
     render(
       <DashboardContent
         {...props}
-        contentModel={{ kind: "main", project: BASE_PROJECT, backTo: "archive", back }}
+        contentModel={{
+          kind: "main",
+          project: BASE_PROJECT,
+          backTo: "archive",
+          back,
+        }}
       />,
     );
 
     fireEvent.click(await screen.findByTestId("main-view"));
     expect(back).toHaveBeenCalledTimes(1);
-    expect(props.createMainContentProjectActions).toHaveBeenCalledWith("project-1");
+    expect(props.createMainContentProjectActions).toHaveBeenCalledWith(
+      "project-1",
+    );
   });
 
   test("renders empty state and triggers create project", () => {
     const props = baseProps();
 
-    render(
-      <DashboardContent
-        {...props}
-        contentModel={{ kind: "empty" }}
-      />,
-    );
+    render(<DashboardContent {...props} contentModel={{ kind: "empty" }} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Create new project" }));
     expect(props.openCreateProject).toHaveBeenCalledTimes(1);

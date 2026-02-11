@@ -2,6 +2,8 @@
 
 :root {
   --font-size: 16px;
+  --font-family-app: "Roboto", sans-serif;
+  --font-family-heading: "Geist Mono", "Roboto Mono", monospace;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -22,6 +24,24 @@
   --input: transparent;
   --input-background: #f3f3f5;
   --switch-background: #cbced4;
+  --text-tone-primary: #e8e8e8;
+  --text-tone-secondary: rgba(232, 232, 232, 0.9);
+  --text-tone-muted: rgba(232, 232, 232, 0.7);
+  --text-tone-subtle: rgba(232, 232, 232, 0.55);
+  --text-tone-faint: rgba(232, 232, 232, 0.4);
+  --text-tone-accent: #58afff;
+  --text-tone-success: #22c55e;
+  --text-tone-danger: #ff3b30;
+  --text-tone-warning: #f59e0b;
+  --text-tone-inverse: #141414;
+  --txt-size-body-md: 13px;
+  --txt-size-body-sm: 12px;
+  --txt-size-overline: 10px;
+  --txt-weight-strong: 500;
+  --txt-weight-heading: 700;
+  --txt-track-tight-sm: -0.01em;
+  --txt-track-wide: 0.08em;
+  --txt-track-normal: 0.01em;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: oklch(0.708 0 0);
@@ -44,6 +64,16 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+  --text-tone-primary: #e8e8e8;
+  --text-tone-secondary: rgba(232, 232, 232, 0.9);
+  --text-tone-muted: rgba(232, 232, 232, 0.7);
+  --text-tone-subtle: rgba(232, 232, 232, 0.55);
+  --text-tone-faint: rgba(232, 232, 232, 0.4);
+  --text-tone-accent: #58afff;
+  --text-tone-success: #22c55e;
+  --text-tone-danger: #ff3b30;
+  --text-tone-warning: #f59e0b;
+  --text-tone-inverse: #141414;
   --card: oklch(0.145 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
@@ -117,8 +147,268 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-app: var(--font-family-app);
+  --font-heading: var(--font-family-heading);
+  --color-text-tone-primary: var(--text-tone-primary);
+  --color-text-tone-secondary: var(--text-tone-secondary);
+  --color-text-tone-muted: var(--text-tone-muted);
+  --color-text-tone-subtle: var(--text-tone-subtle);
+  --color-text-tone-faint: var(--text-tone-faint);
+  --color-text-tone-accent: var(--text-tone-accent);
+  --color-text-tone-success: var(--text-tone-success);
+  --color-text-tone-danger: var(--text-tone-danger);
+  --color-text-tone-warning: var(--text-tone-warning);
+  --color-text-tone-inverse: var(--text-tone-inverse);
   --color-bg-base: #141414;
   --color-bg-surface: #181818;
+}
+
+@utility font-app {
+  font-family: var(--font-family-app);
+}
+
+@utility font-heading {
+  font-family: var(--font-family-heading);
+}
+
+@utility txt-tone-primary {
+  color: var(--text-tone-primary);
+}
+
+@utility txt-tone-secondary {
+  color: var(--text-tone-secondary);
+}
+
+@utility txt-tone-muted {
+  color: var(--text-tone-muted);
+}
+
+@utility txt-tone-subtle {
+  color: var(--text-tone-subtle);
+}
+
+@utility txt-tone-faint {
+  color: var(--text-tone-faint);
+}
+
+@utility txt-tone-accent {
+  color: var(--text-tone-accent);
+}
+
+@utility txt-tone-success {
+  color: var(--text-tone-success);
+}
+
+@utility txt-tone-danger {
+  color: var(--text-tone-danger);
+}
+
+@utility txt-tone-warning {
+  color: var(--text-tone-warning);
+}
+
+@utility txt-tone-inverse {
+  color: var(--text-tone-inverse);
+}
+
+@utility txt-track-tight {
+  letter-spacing: -0.02em;
+}
+
+@utility txt-track-tight-sm {
+  letter-spacing: -0.01em;
+}
+
+@utility txt-track-wide {
+  letter-spacing: 0.08em;
+}
+
+@utility txt-leading-tightest {
+  line-height: 1.03;
+}
+
+@utility txt-leading-compact {
+  line-height: 1.35;
+}
+
+@utility txt-leading-reading {
+  line-height: 1.55;
+}
+
+@utility txt-leading-caption {
+  line-height: 18px;
+}
+
+@utility txt-leading-body {
+  line-height: 20px;
+}
+
+@utility txt-leading-title {
+  line-height: 25.2px;
+}
+
+@utility txt-leading-display {
+  line-height: 28px;
+}
+
+@utility txt-leading-display-lg {
+  line-height: 32px;
+}
+
+@utility txt-leading-hero {
+  line-height: 33.6px;
+}
+
+@utility txt-role-hero {
+  font-family: var(--font-family-heading);
+  font-size: clamp(44px, 6vw, 68px);
+  font-weight: 700;
+  line-height: 1.03;
+  letter-spacing: -0.02em;
+}
+
+@utility txt-role-screen-title {
+  font-family: var(--font-family-heading);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+@utility txt-role-page-title {
+  font-family: var(--font-family-heading);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+@utility txt-role-panel-title {
+  font-family: var(--font-family-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@utility txt-role-section-title {
+  font-family: var(--font-family-heading);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@utility txt-role-display-badge {
+  font-family: var(--font-family-heading);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@utility txt-role-body-xl {
+  font-family: var(--font-family-app);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-xl-strong {
+  font-family: var(--font-family-app);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-lg {
+  font-family: var(--font-family-app);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-lg-strong {
+  font-family: var(--font-family-app);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-md {
+  font-family: var(--font-family-app);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-md-strong {
+  font-family: var(--font-family-app);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-sm {
+  font-family: var(--font-family-app);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility txt-role-body-sm-strong {
+  font-family: var(--font-family-app);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+@utility txt-role-caption {
+  font-family: var(--font-family-app);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility txt-role-caption-strong {
+  font-family: var(--font-family-app);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+@utility txt-role-meta {
+  font-family: var(--font-family-app);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+@utility txt-role-overline {
+  font-family: var(--font-family-app);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility txt-role-kbd {
+  font-family: var(--font-family-app);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@utility txt-role-micro {
+  font-family: var(--font-family-app);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+@utility txt-role-reading {
+  font-family: var(--font-family-app);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
 }
 
 @layer base {
@@ -128,6 +418,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-family-app);
   }
 
   /**
@@ -140,43 +431,52 @@
   }
 
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-family-heading);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-family-heading);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
   }
 
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-family-heading);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
   }
 
   h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: var(--font-family-heading);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
   }
 
   label {
-    font-size: var(--text-base);
+    font-family: var(--font-family-app);
+    font-size: 13px;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   button {
-    font-size: var(--text-base);
+    font-family: var(--font-family-app);
+    font-size: 13px;
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   input {
-    font-size: var(--text-base);
+    font-family: var(--font-family-app);
+    font-size: 13px;
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
@@ -184,11 +484,21 @@
 
 /* ── Task row flash animation (mention click highlight) ── */
 @keyframes taskRowFlash {
-  0%   { background-color: rgba(255, 255, 255, 0); }
-  15%  { background-color: rgba(255, 255, 255, 0.08); }
-  30%  { background-color: rgba(255, 255, 255, 0.05); }
-  60%  { background-color: rgba(255, 255, 255, 0.03); }
-  100% { background-color: rgba(255, 255, 255, 0); }
+  0% {
+    background-color: rgba(255, 255, 255, 0);
+  }
+  15% {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  30% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  60% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0);
+  }
 }
 
 .task-row-flash {
@@ -198,8 +508,12 @@
 
 /* ── Mention badge pulse ring on click ── */
 @keyframes mentionBadgePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
-  100% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+  }
 }
 
 .mention-badge-pulse {
@@ -208,11 +522,21 @@
 
 /* ── File row flash animation (file mention click highlight) ── */
 @keyframes fileRowFlash {
-  0%   { background-color: rgba(255, 255, 255, 0); }
-  15%  { background-color: rgba(255, 255, 255, 0.08); }
-  30%  { background-color: rgba(255, 255, 255, 0.05); }
-  60%  { background-color: rgba(255, 255, 255, 0.03); }
-  100% { background-color: rgba(255, 255, 255, 0); }
+  0% {
+    background-color: rgba(255, 255, 255, 0);
+  }
+  15% {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  30% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  60% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0);
+  }
 }
 
 .file-row-flash {
@@ -250,9 +574,9 @@
 
 .rdp-dark-theme .rdp-caption_label {
   color: #e8e8e8;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-size: var(--txt-size-body-md);
+  font-weight: var(--txt-weight-strong);
+  letter-spacing: var(--txt-track-normal);
   padding: 0;
 }
 
@@ -268,7 +592,10 @@
   padding: 0;
   background: transparent;
   border: 1px solid rgba(232, 232, 232, 0.08);
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background-color 0.2s;
   cursor: pointer;
   border-radius: 7px;
   display: inline-flex;
@@ -289,11 +616,11 @@
 
 .rdp-dark-theme .rdp-head_cell {
   color: rgba(232, 232, 232, 0.44);
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--txt-size-overline);
+  font-weight: var(--txt-weight-strong);
   padding: 0 0 6px;
   height: auto;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--txt-track-wide);
   text-transform: uppercase;
 }
 
@@ -303,14 +630,17 @@
 
 .rdp-dark-theme .rdp-day {
   color: rgba(232, 232, 232, 0.92);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--txt-size-body-sm);
+  font-weight: var(--txt-weight-strong);
   width: var(--rdp-cell-size);
   height: var(--rdp-cell-size);
   border: 1px solid transparent;
   border-radius: 8px;
   box-sizing: border-box;
-  transition: background-color 0.16s, border-color 0.16s, color 0.16s;
+  transition:
+    background-color 0.16s,
+    border-color 0.16s,
+    color 0.16s;
 }
 
 .rdp-dark-theme .rdp-day:hover:not([disabled]):not(.rdp-day_selected) {
@@ -322,7 +652,7 @@
   color: #ffffff;
   border-color: transparent;
   border-radius: 50%;
-  font-weight: 700;
+  font-weight: var(--txt-weight-heading);
 }
 
 .rdp-dark-theme .rdp-day_selected:hover:not([disabled]) {
@@ -343,16 +673,26 @@
 .rdp-dark-theme .rdp-day_today:not(.rdp-day_selected) {
   background-color: transparent;
   border-color: transparent;
-  font-weight: 500;
+  font-weight: var(--txt-weight-strong);
 }
 
 /* ── Archive row flash animation (newly archived project highlight) ── */
 @keyframes archiveRowFlash {
-  0%   { background-color: rgba(255, 255, 255, 0); }
-  15%  { background-color: rgba(255, 255, 255, 0.08); }
-  30%  { background-color: rgba(255, 255, 255, 0.05); }
-  60%  { background-color: rgba(255, 255, 255, 0.03); }
-  100% { background-color: rgba(255, 255, 255, 0); }
+  0% {
+    background-color: rgba(255, 255, 255, 0);
+  }
+  15% {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  30% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  60% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0);
+  }
 }
 
 .archive-row-flash {
@@ -372,26 +712,26 @@
 /* Base toast overrides */
 [data-sonner-toaster] {
   --width: 340px !important;
-  font-family: 'Roboto', sans-serif !important;
+  font-family: var(--font-family-app) !important;
 }
 
 [data-sonner-toaster][data-theme="dark"] [data-sonner-toast] {
   --normal-bg: #181818 !important;
-  --normal-border: rgba(255,255,255,0.08) !important;
-  --normal-text: #E8E8E8 !important;
+  --normal-border: rgba(255, 255, 255, 0.08) !important;
+  --normal-text: #e8e8e8 !important;
 }
 
 /* Toast title */
 [data-sonner-toast] [data-title] {
-  font-size: 13px !important;
+  font-size: var(--txt-size-body-md) !important;
   font-weight: 450 !important;
-  letter-spacing: 0.01em;
+  letter-spacing: var(--txt-track-normal);
   color: rgba(232, 232, 232, 0.9) !important;
 }
 
 /* Toast description */
 [data-sonner-toast] [data-description] {
-  font-size: 12px !important;
+  font-size: var(--txt-size-body-sm) !important;
   color: rgba(232, 232, 232, 0.45) !important;
 }
 
@@ -423,7 +763,7 @@
 }
 
 [data-sonner-toast][data-type="info"] [data-icon] svg {
-  color: #58AFFF !important;
+  color: #58afff !important;
   width: 15px !important;
   height: 15px !important;
 }

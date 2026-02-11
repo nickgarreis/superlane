@@ -25,7 +25,9 @@ const createBaseArgs = () => ({
   activeWorkspaceId: "workspace-1",
   resolvedWorkspaceSlug: "workspace-1",
   convexQuery: vi.fn(),
-  generateUploadUrlMutation: vi.fn().mockResolvedValue({ uploadUrl: "https://upload.test" }),
+  generateUploadUrlMutation: vi
+    .fn()
+    .mockResolvedValue({ uploadUrl: "https://upload.test" }),
   finalizeProjectUploadAction: vi.fn().mockResolvedValue({}),
   finalizePendingDraftAttachmentUploadAction: vi.fn().mockResolvedValue({
     pendingUploadId: "pending-1",
@@ -75,9 +77,14 @@ describe("useDashboardFileActions", () => {
       });
     });
 
-    expect(toastMock.success).toHaveBeenCalledWith("Successfully uploaded asset.png");
+    expect(toastMock.success).toHaveBeenCalledWith(
+      "Successfully uploaded asset.png",
+    );
 
-    const draftResult = await result.current.handleUploadDraftAttachment(file, "draft-session-1");
+    const draftResult = await result.current.handleUploadDraftAttachment(
+      file,
+      "draft-session-1",
+    );
     expect(draftResult).toEqual({
       pendingUploadId: "pending-1",
       name: "draft.png",
@@ -107,7 +114,8 @@ describe("useDashboardFileActions", () => {
     const args = createBaseArgs();
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    args.convexQuery = vi.fn()
+    args.convexQuery = vi
+      .fn()
       .mockResolvedValueOnce({ url: "invalid-url" })
       .mockResolvedValueOnce({ url: "https://download.test/file.png" });
 
@@ -117,7 +125,9 @@ describe("useDashboardFileActions", () => {
       result.current.handleRemoveProjectFile("file-1");
     });
     await waitFor(() => {
-      expect(args.removeProjectFileMutation).toHaveBeenCalledWith({ fileId: "file-1" });
+      expect(args.removeProjectFileMutation).toHaveBeenCalledWith({
+        fileId: "file-1",
+      });
     });
 
     act(() => {
@@ -131,7 +141,11 @@ describe("useDashboardFileActions", () => {
       result.current.handleDownloadProjectFile("file-2");
     });
     await waitFor(() => {
-      expect(openSpy).toHaveBeenCalledWith("https://download.test/file.png", "_blank", "noopener,noreferrer");
+      expect(openSpy).toHaveBeenCalledWith(
+        "https://download.test/file.png",
+        "_blank",
+        "noopener,noreferrer",
+      );
     });
 
     openSpy.mockRestore();

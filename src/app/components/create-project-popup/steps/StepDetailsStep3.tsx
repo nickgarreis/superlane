@@ -7,7 +7,6 @@ import {
   toUtcNoonEpochMsFromDateOnly,
 } from "../../../lib/dates";
 import type { PendingDraftAttachmentUpload } from "../../../types";
-
 type StepDetailsStep3Props = {
   description: string;
   onDescriptionChange: (value: string) => void;
@@ -25,19 +24,16 @@ type StepDetailsStep3Props = {
   onCalendarOpenChange: (open: boolean) => void;
   calendarRef: RefObject<HTMLDivElement>;
 };
-
 const STEP_THREE_PATHS = {
   p7659d00:
     "M5.25317 6.2182C5.46077 6.0106 5.7822 6.01729 5.96969 6.21152L8.56792 8.96373L11.1527 6.21152C11.3402 6.0106 11.675 6.01729 11.8692 6.22489C12.05 6.41237 12.0433 6.72043 11.8491 6.92803L9.21746 9.71373C8.86923 10.0954 8.25317 10.0954 7.90494 9.71373L5.27323 6.92803C5.09917 6.74049 5.08574 6.39232 5.25317 6.2182Z",
 };
-
 const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     action();
   }
 };
-
 export const StepDetailsStep3 = memo(function StepDetailsStep3({
   description,
   onDescriptionChange,
@@ -63,35 +59,30 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
         transition={{ delay: 0.1, duration: 0.35 }}
         className="w-full mb-[32px]"
       >
-        <p className="font-medium text-[14px] text-[rgba(232,232,232,0.6)] mb-[8px]">
+        <p className="font-medium txt-role-body-lg txt-tone-subtle mb-[8px]">
           Project description
         </p>
         <div className="bg-[rgba(232,232,232,0.04)] h-[104px] rounded-[18px] w-full border border-[rgba(232,232,232,0.04)] relative">
           <textarea
-            className="w-full h-full bg-transparent border-none outline-none resize-none p-[16px] text-[#e8e8e8] text-[14px] placeholder-[rgba(232,232,232,0.4)]"
+            className="w-full h-full bg-transparent border-none outline-none resize-none p-[16px] txt-tone-primary txt-role-body-lg placeholder-[rgba(232,232,232,0.4)]"
             placeholder="Enter workflow description"
             value={description}
             onChange={(event) => onDescriptionChange(event.target.value)}
           />
         </div>
       </motion.div>
-
       <motion.div
         initial={{ y: 8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.35 }}
         className="w-full mb-[32px]"
       >
-        <p className="font-medium text-[14px] text-[rgba(232,232,232,0.6)] mb-[8px]">
+        <p className="font-medium txt-role-body-lg txt-tone-subtle mb-[8px]">
           Attachments
         </p>
-
         <div
           {...getRootProps()}
-          className={`
-            border border-dashed border-[rgba(232,232,232,0.2)] rounded-[18px] w-full min-h-[64px] flex flex-col items-center justify-center cursor-pointer transition-colors relative p-4
-            ${isDragActive ? "bg-white/10 border-white/40" : "hover:bg-[rgba(232,232,232,0.04)]"}
-          `}
+          className={` border border-dashed border-[rgba(232,232,232,0.2)] rounded-[18px] w-full min-h-[64px] flex flex-col items-center justify-center cursor-pointer transition-colors relative p-4 ${isDragActive ? "bg-white/10 border-white/40" : "hover:bg-[rgba(232,232,232,0.04)]"} `}
         >
           <input {...getInputProps()} />
           <div className="flex items-center gap-2 mb-1">
@@ -104,15 +95,14 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[#e8e8e8] opacity-60"
+              className="txt-tone-primary opacity-60"
             >
               <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
-            <span className="text-[14px] text-[#e8e8e8] opacity-60 font-medium">
+            <span className="txt-role-body-lg txt-tone-primary opacity-60 font-medium">
               {isDragActive ? "Drop files here..." : "Upload file"}
             </span>
           </div>
-
           {attachments.length > 0 && (
             <div className="flex flex-col gap-1 mt-2 w-full">
               {attachments.map((file) => (
@@ -122,10 +112,11 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
                 >
                   <div className="flex flex-col min-w-0">
                     <span className="truncate max-w-[250px]">{file.name}</span>
-                    <span className="text-[10px] text-white/40">
+                    <span className="txt-role-kbd text-white/40">
                       {file.status === "uploading" && "Uploading..."}
                       {file.status === "uploaded" && "Uploaded"}
-                      {file.status === "error" && (file.error || "Upload failed")}
+                      {file.status === "error" &&
+                        (file.error || "Upload failed")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -137,7 +128,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
                           event.stopPropagation();
                           onRetryAttachment(file.clientId);
                         }}
-                        className="text-[10px] text-white/70 hover:text-white"
+                        className="txt-role-kbd text-white/70 hover:text-white"
                       >
                         Retry
                       </button>
@@ -160,22 +151,21 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
           )}
         </div>
       </motion.div>
-
       <motion.div
         initial={{ y: 8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.35 }}
         className="w-full mb-[32px]"
       >
-        <p className="font-medium text-[14px] text-[#e8e8e8] mb-[4px]">Allow AI usage</p>
-        <p className="text-[13.8px] text-[rgba(232,232,232,0.6)] mb-[8px] leading-[19.6px]">
-          Superlane will leverage AI tools when and if it&apos;s useful; for ideation,
-          efficiency, volume and quality.
+        <p className="font-medium txt-role-body-lg txt-tone-primary mb-[4px]">
+          Allow AI usage
+        </p>
+        <p className="txt-role-body-md txt-tone-subtle mb-[8px] txt-leading-body">
+          Superlane will leverage AI tools when and if it&apos;s useful; for
+          ideation, efficiency, volume and quality.
         </p>
         <div
-          className={`${
-            isAIEnabled ? "bg-[#22c55e]" : "bg-[rgba(232,232,232,0.08)]"
-          } flex h-[16px] items-center px-[2px] relative rounded-[16px] w-[26px] cursor-pointer transition-colors`}
+          className={`${isAIEnabled ? "bg-[#22c55e]" : "bg-[rgba(232,232,232,0.08)]"} flex h-[16px] items-center px-[2px] relative rounded-[16px] w-[26px] cursor-pointer transition-colors`}
           onClick={onToggleAIEnabled}
           onKeyDown={(event) => handleKeyDown(event, onToggleAIEnabled)}
           role="switch"
@@ -190,18 +180,18 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
           />
         </div>
       </motion.div>
-
       <motion.div
         initial={{ y: 8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.35 }}
         className="w-full mb-[24px]"
       >
-        <p className="font-medium text-[14px] text-[#e8e8e8] mb-[4px]">Final deadline</p>
-        <p className="text-[13.7px] text-[rgba(232,232,232,0.6)] mb-[8px]">
+        <p className="font-medium txt-role-body-lg txt-tone-primary mb-[4px]">
+          Final deadline
+        </p>
+        <p className="txt-role-body-md txt-tone-subtle mb-[8px]">
           When do you expect to receive all assets ready to use?
         </p>
-
         <div className="relative w-full" ref={calendarRef}>
           <div
             className="bg-[rgba(255,255,255,0)] flex items-center h-[36px] rounded-[100px] shadow-[0px_0px_0px_1px_rgba(232,232,232,0.15)] w-full px-[20px] relative cursor-pointer hover:bg-white/5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50"
@@ -215,7 +205,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
             aria-label="Toggle deadline calendar"
             tabIndex={0}
           >
-            <div className="flex-1 text-[#e8e8e8] text-[14px] font-medium">
+            <div className="flex-1 txt-tone-primary txt-role-body-lg font-medium">
               {formatProjectDeadlineLong(
                 deadline ? toUtcNoonEpochMsFromDateOnly(deadline) : null,
               )}
@@ -230,7 +220,6 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
               </svg>
             </div>
           </div>
-
           <AnimatePresence>
             {isCalendarOpen && (
               <motion.div

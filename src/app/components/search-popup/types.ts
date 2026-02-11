@@ -1,7 +1,6 @@
 import type React from "react";
 import type { ProjectData, ProjectFileData } from "../../types";
 import type { AppView } from "../../lib/routing";
-
 export interface SearchResult {
   id: string;
   type: "project" | "task" | "file" | "action";
@@ -16,12 +15,10 @@ export interface SearchResult {
   fileType?: string;
   fileTab?: string;
 }
-
 export interface SearchIndexedProject {
   project: ProjectData;
   searchable: string;
 }
-
 export interface SearchIndexedTask {
   projectId: string;
   projectName: string;
@@ -32,7 +29,6 @@ export interface SearchIndexedTask {
   completed: boolean;
   searchable: string;
 }
-
 export interface SearchIndexedFile {
   key: string;
   name: string;
@@ -42,20 +38,30 @@ export interface SearchIndexedFile {
   dateLabel: string;
   searchable: string;
 }
-
 export interface SearchPopupProps {
   isOpen: boolean;
   onClose: () => void;
   projects: Record<string, ProjectData>;
   files: ProjectFileData[];
-  workspaceFilesPaginationStatus?: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  workspaceFilesPaginationStatus?:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   loadMoreWorkspaceFiles?: (numItems: number) => void;
   onNavigate: (view: AppView) => void;
   onOpenCreateProject: () => void;
   onOpenSettings: (tab?: string) => void;
-  onHighlightNavigate?: (projectId: string, highlight: { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string }) => void;
+  onHighlightNavigate?: (
+    projectId: string,
+    highlight: {
+      type: "task" | "file";
+      taskId?: string;
+      fileName?: string;
+      fileTab?: string;
+    },
+  ) => void;
 }
-
 export type QuickAction = {
   id: string;
   label: string;

@@ -7,10 +7,20 @@ import { DashboardPopups } from "./DashboardPopups";
 import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
 
 vi.mock("../../components/SearchPopup", () => ({
-  SearchPopup: ({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings: (tab?: string) => void }) => (
+  SearchPopup: ({
+    onClose,
+    onOpenSettings,
+  }: {
+    onClose: () => void;
+    onOpenSettings: (tab?: string) => void;
+  }) => (
     <div data-testid="search-popup">
-      <button type="button" onClick={onClose}>Close Search</button>
-      <button type="button" onClick={() => onOpenSettings("Company")}>Open Settings</button>
+      <button type="button" onClick={onClose}>
+        Close Search
+      </button>
+      <button type="button" onClick={() => onOpenSettings("Company")}>
+        Open Settings
+      </button>
     </div>
   ),
 }));
@@ -25,7 +35,11 @@ vi.mock("../../components/CreateProjectPopup", () => ({
 
 vi.mock("../../components/CreateWorkspacePopup", () => ({
   CreateWorkspacePopup: ({ onClose }: { onClose: () => void }) => (
-    <button type="button" onClick={onClose} data-testid="create-workspace-popup">
+    <button
+      type="button"
+      onClick={onClose}
+      data-testid="create-workspace-popup"
+    >
       Create Workspace
     </button>
   ),
@@ -142,8 +156,12 @@ describe("DashboardPopups", () => {
     render(<DashboardPopups {...baseProps()} />);
 
     expect(screen.queryByTestId("search-popup")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("create-project-popup")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("create-workspace-popup")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("create-project-popup"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("create-workspace-popup"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("settings-popup")).not.toBeInTheDocument();
   });
 
@@ -158,7 +176,9 @@ describe("DashboardPopups", () => {
 
     render(<DashboardPopups {...props} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Close Search" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Close Search" }),
+    );
     expect(props.setIsSearchOpen).toHaveBeenCalledWith(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
@@ -171,6 +191,8 @@ describe("DashboardPopups", () => {
     expect(props.closeCreateWorkspace).toHaveBeenCalledTimes(1);
 
     fireEvent.click(await screen.findByTestId("settings-popup"));
-    expect(props.dashboardCommands.settings.closeSettings).toHaveBeenCalledTimes(1);
+    expect(
+      props.dashboardCommands.settings.closeSettings,
+    ).toHaveBeenCalledTimes(1);
   });
 });

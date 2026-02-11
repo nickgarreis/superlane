@@ -6,8 +6,10 @@ import { getCommentAuthorDeniedReason } from "../../lib/permissionRules";
 import type { CommentItemProps } from "./commentItemTypes";
 import { CommentActions } from "./CommentActions";
 import { CommentThread } from "./CommentThread";
-import { EditCommentComposer, ReplyCommentComposer } from "./CommentComposerInline";
-
+import {
+  EditCommentComposer,
+  ReplyCommentComposer,
+} from "./CommentComposerInline";
 const getInitials = (name: string) =>
   name
     .split(" ")
@@ -16,7 +18,6 @@ const getInitials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase() || "U";
-
 export const CommentItem = React.memo(function CommentItem({
   comment,
   currentUserId,
@@ -46,15 +47,18 @@ export const CommentItem = React.memo(function CommentItem({
   onToggleReaction,
   onToggleThread,
 }: CommentItemProps) {
-  const isOwn = Boolean(currentUserId) && comment.author.userId === currentUserId;
+  const isOwn =
+    Boolean(currentUserId) && comment.author.userId === currentUserId;
   const commentAuthorDeniedReason = getCommentAuthorDeniedReason(isOwn);
   const isEditing = editingComment === comment.id;
   const isCollapsed = collapsedThreads.has(comment.id);
   const replyCount = comment.replies.length;
   const hasReplies = replyCount > 0;
-
   return (
-    <div className={cn("chat-comment-row group/comment relative")} style={performanceStyle}>
+    <div
+      className={cn("chat-comment-row group/comment relative")}
+      style={performanceStyle}
+    >
       <div
         className={cn(
           "relative flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-colors duration-150",
@@ -70,22 +74,26 @@ export const CommentItem = React.memo(function CommentItem({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
+              <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-kbd font-medium text-white/80">
                 {getInitials(comment.author.name)}
               </div>
             )}
           </div>
         </div>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[13px] text-[#E8E8E8]">{comment.author.name}</span>
-            <span className="text-[11px] text-white/25 select-none">{comment.timestamp}</span>
+            <span className="txt-role-body-md txt-tone-primary">
+              {comment.author.name}
+            </span>
+            <span className="txt-role-meta text-white/25 select-none">
+              {comment.timestamp}
+            </span>
             {comment.edited && (
-              <span className="text-[10px] text-white/20 select-none italic">edited</span>
+              <span className="txt-role-kbd text-white/20 select-none italic">
+                edited
+              </span>
             )}
           </div>
-
           {isEditing ? (
             <EditCommentComposer
               commentId={comment.id}
@@ -97,11 +105,10 @@ export const CommentItem = React.memo(function CommentItem({
               onEditComment={onEditComment}
             />
           ) : (
-            <div className="text-[13.5px] text-[#E8E8E8]/75 leading-[1.55] whitespace-pre-wrap break-words">
+            <div className="txt-role-body-md txt-tone-muted txt-leading-reading whitespace-pre-wrap break-words">
               {renderCommentContent(comment.content, onMentionClick)}
             </div>
           )}
-
           {!isEditing && (
             <CommentActions
               comment={comment}
@@ -123,7 +130,6 @@ export const CommentItem = React.memo(function CommentItem({
               onToggleReaction={onToggleReaction}
             />
           )}
-
           <AnimatePresence>
             {replyingTo === comment.id && (
               <motion.div
@@ -149,7 +155,6 @@ export const CommentItem = React.memo(function CommentItem({
           </AnimatePresence>
         </div>
       </div>
-
       <CommentThread
         commentId={comment.id}
         isTopLevel={isTopLevel}

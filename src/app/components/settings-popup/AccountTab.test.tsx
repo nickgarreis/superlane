@@ -20,12 +20,18 @@ describe("AccountTab", () => {
         onSave={onSave}
         onUploadAvatar={vi.fn().mockResolvedValue(undefined)}
         onRemoveAvatar={vi.fn().mockResolvedValue(undefined)}
-      />, 
+      />,
     );
 
-    fireEvent.change(screen.getByLabelText("First Name"), { target: { value: "Jordan" } });
-    fireEvent.change(screen.getByLabelText("Last Name"), { target: { value: "Builder" } });
-    fireEvent.change(screen.getByLabelText("Email Address"), { target: { value: "jordan@example.com" } });
+    fireEvent.change(screen.getByLabelText("First Name"), {
+      target: { value: "Jordan" },
+    });
+    fireEvent.change(screen.getByLabelText("Last Name"), {
+      target: { value: "Builder" },
+    });
+    fireEvent.change(screen.getByLabelText("Email Address"), {
+      target: { value: "jordan@example.com" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
@@ -53,18 +59,22 @@ describe("AccountTab", () => {
         onSave={vi.fn().mockResolvedValue(undefined)}
         onUploadAvatar={onUploadAvatar}
         onRemoveAvatar={onRemoveAvatar}
-      />, 
+      />,
     );
 
     const fileInput = container.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
 
     fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [new File(["avatar"], "avatar.png", { type: "image/png" })] },
+      target: {
+        files: [new File(["avatar"], "avatar.png", { type: "image/png" })],
+      },
     });
 
     await waitFor(() => {
-      expect(onUploadAvatar).toHaveBeenCalledWith(expect.objectContaining({ name: "avatar.png" }));
+      expect(onUploadAvatar).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "avatar.png" }),
+      );
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));

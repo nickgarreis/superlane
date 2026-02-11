@@ -1,8 +1,10 @@
-export type AppView = "tasks" | "archive" | `project:${string}` | `archive-project:${string}`;
-
+export type AppView =
+  | "tasks"
+  | "archive"
+  | `project:${string}`
+  | `archive-project:${string}`;
 const archiveProjectPattern = /^\/archive\/([^/]+)$/;
 const projectPattern = /^\/project\/([^/]+)$/;
-
 const safeDecodePathSegment = (value: string): string | null => {
   try {
     return decodeURIComponent(value);
@@ -10,7 +12,6 @@ const safeDecodePathSegment = (value: string): string | null => {
     return null;
   }
 };
-
 export const viewToPath = (view: AppView): string => {
   if (view === "tasks") {
     return "/tasks";
@@ -25,7 +26,6 @@ export const viewToPath = (view: AppView): string => {
   const projectId = view.slice("project:".length);
   return `/project/${encodeURIComponent(projectId)}`;
 };
-
 export const pathToView = (pathname: string): AppView | null => {
   if (pathname === "/tasks") {
     return "tasks";
@@ -33,15 +33,15 @@ export const pathToView = (pathname: string): AppView | null => {
   if (pathname === "/archive") {
     return "archive";
   }
-
   const archiveProjectMatch = pathname.match(archiveProjectPattern);
   if (archiveProjectMatch) {
-    const decodedArchiveProjectId = safeDecodePathSegment(archiveProjectMatch[1]);
+    const decodedArchiveProjectId = safeDecodePathSegment(
+      archiveProjectMatch[1],
+    );
     if (decodedArchiveProjectId !== null) {
       return `archive-project:${decodedArchiveProjectId}`;
     }
   }
-
   const projectMatch = pathname.match(projectPattern);
   if (projectMatch) {
     const decodedProjectId = safeDecodePathSegment(projectMatch[1]);
@@ -49,10 +49,8 @@ export const pathToView = (pathname: string): AppView | null => {
       return `project:${decodedProjectId}`;
     }
   }
-
   return null;
 };
-
 export const isProtectedPath = (pathname: string): boolean =>
   pathname === "/tasks" ||
   pathname === "/archive" ||

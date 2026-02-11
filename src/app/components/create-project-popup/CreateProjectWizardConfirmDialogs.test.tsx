@@ -5,7 +5,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { CreateProjectWizardConfirmDialogs } from "./CreateProjectWizardConfirmDialogs";
 
-type DialogProps = React.ComponentProps<typeof CreateProjectWizardConfirmDialogs>;
+type DialogProps = React.ComponentProps<
+  typeof CreateProjectWizardConfirmDialogs
+>;
 
 const buildProps = (overrides: Partial<DialogProps> = {}): DialogProps => ({
   showCloseConfirm: false,

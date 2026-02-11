@@ -1,10 +1,7 @@
 import { format } from "date-fns";
-
 const UTC_NOON_HOUR = 12;
-
 const isFiniteEpoch = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
-
 export const toUtcNoonEpochMsFromDateOnly = (value: Date): number =>
   Date.UTC(
     value.getUTCFullYear(),
@@ -15,8 +12,9 @@ export const toUtcNoonEpochMsFromDateOnly = (value: Date): number =>
     0,
     0,
   );
-
-export const fromUtcNoonEpochMsToDateOnly = (value: number | null | undefined): Date | undefined => {
+export const fromUtcNoonEpochMsToDateOnly = (
+  value: number | null | undefined,
+): Date | undefined => {
   if (!isFiniteEpoch(value)) {
     return undefined;
   }
@@ -31,42 +29,44 @@ export const fromUtcNoonEpochMsToDateOnly = (value: number | null | undefined): 
     0,
   );
 };
-
 export const formatTaskDueDate = (value: number | null | undefined): string => {
   if (!isFiniteEpoch(value)) {
     return "No date";
   }
   return format(new Date(value), "MMM d");
 };
-
-export const formatProjectDeadlineShort = (value: number | null | undefined): string => {
+export const formatProjectDeadlineShort = (
+  value: number | null | undefined,
+): string => {
   if (!isFiniteEpoch(value)) {
     return "";
   }
   return format(new Date(value), "dd.MM.yy");
 };
-
-export const formatProjectDeadlineMedium = (value: number | null | undefined): string => {
+export const formatProjectDeadlineMedium = (
+  value: number | null | undefined,
+): string => {
   if (!isFiniteEpoch(value)) {
     return "Not set";
   }
   return format(new Date(value), "dd MMM yyyy");
 };
-
-export const formatProjectDeadlineLong = (value: number | null | undefined): string => {
+export const formatProjectDeadlineLong = (
+  value: number | null | undefined,
+): string => {
   if (!isFiniteEpoch(value)) {
     return "Select date";
   }
   return format(new Date(value), "dd.MM.yyyy");
 };
-
-export const formatFileDisplayDate = (value: number | null | undefined): string => {
+export const formatFileDisplayDate = (
+  value: number | null | undefined,
+): string => {
   if (!isFiniteEpoch(value)) {
     return "";
   }
   return new Date(value).toISOString();
 };
-
 export const compareNullableEpochMsAsc = (
   a: number | null | undefined,
   b: number | null | undefined,

@@ -1,6 +1,5 @@
 type GetUploadUrl = (workspaceSlug: string) => Promise<{ uploadUrl: string }>;
 type GetChecksum = (file: File) => Promise<string>;
-
 export const prepareUpload = async (
   file: File,
   workspaceSlug: string,
@@ -11,9 +10,5 @@ export const prepareUpload = async (
     getChecksum(file),
     getUploadUrl(workspaceSlug),
   ]);
-
-  return {
-    checksumSha256,
-    uploadUrl,
-  };
+  return { checksumSha256, uploadUrl };
 };

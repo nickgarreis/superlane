@@ -89,7 +89,9 @@ describe("CompletedProjectsPopup", () => {
     fireEvent.change(screen.getByPlaceholderText("Search completed projects"), {
       target: { value: "missing" },
     });
-    expect(screen.getByText("No matching completed projects")).toBeInTheDocument();
+    expect(
+      screen.getByText("No matching completed projects"),
+    ).toBeInTheDocument();
   });
 
   test("allows reverting lifecycle when viewer can manage completed projects", () => {

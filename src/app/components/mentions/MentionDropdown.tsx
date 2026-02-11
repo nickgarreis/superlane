@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "motion/react";
 import { cn } from "../../../lib/utils";
 import type { MentionEntityType } from "./types";
-
 type MentionDropdownPosition = {
   top?: number;
   bottom?: number;
@@ -10,18 +9,15 @@ type MentionDropdownPosition = {
   width: number;
   placement: "above" | "below";
 };
-
 export type MentionDropdownItem = {
   type: MentionEntityType;
   id: string;
   label: string;
   meta?: string;
 };
-
 type MentionSection =
   | { kind: "header"; label: string }
   | { kind: "item"; item: MentionDropdownItem; index: number };
-
 type MentionDropdownProps = {
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   dropdownPosition: MentionDropdownPosition | null;
@@ -31,7 +27,6 @@ type MentionDropdownProps = {
   onSelect: (item: MentionDropdownItem) => void;
   onSelectIndex: (index: number) => void;
 };
-
 export function MentionDropdown({
   dropdownRef,
   dropdownPosition,
@@ -44,15 +39,15 @@ export function MentionDropdown({
   if (!dropdownPosition) {
     return null;
   }
-
   const hiddenOffset = dropdownPosition.placement === "below" ? -4 : 4;
   const getOptionId = (item: MentionDropdownItem, index: number) =>
     `mention-option-${item.type}-${item.id}-${index}`;
   const activeOptionId = sections.find(
-    (section): section is { kind: "item"; item: MentionDropdownItem; index: number } =>
+    (
+      section,
+    ): section is { kind: "item"; item: MentionDropdownItem; index: number } =>
       section.kind === "item" && section.index === selectedIndex,
   );
-
   return (
     <motion.div
       ref={dropdownRef as React.RefObject<HTMLDivElement>}
@@ -68,7 +63,9 @@ export function MentionDropdown({
         left: dropdownPosition.left,
         width: dropdownPosition.width,
         ...(dropdownPosition.top != null ? { top: dropdownPosition.top } : {}),
-        ...(dropdownPosition.bottom != null ? { bottom: dropdownPosition.bottom } : {}),
+        ...(dropdownPosition.bottom != null
+          ? { bottom: dropdownPosition.bottom }
+          : {}),
         zIndex: 99999,
         pointerEvents: isVisible ? "auto" : "none",
       }}
@@ -88,13 +85,12 @@ export function MentionDropdown({
             return (
               <div
                 key={`header-${section.label}`}
-                className="px-3 pt-2 pb-1 text-[10px] text-white/25 uppercase tracking-wider select-none"
+                className="px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none"
               >
                 {section.label}
               </div>
             );
           }
-
           const { item, index } = section;
           return (
             <button
@@ -109,21 +105,22 @@ export function MentionDropdown({
               }}
               onMouseEnter={() => onSelectIndex(index)}
               className={cn(
-                "w-full text-left px-3 py-1.5 flex items-center gap-2.5 text-[13px] transition-colors cursor-pointer",
+                "w-full text-left px-3 py-1.5 flex items-center gap-2.5 txt-role-body-md transition-colors cursor-pointer",
                 index === selectedIndex
                   ? "bg-white/[0.06] text-white"
-                  : "text-[#ccc] hover:bg-white/[0.04]",
+                  : "txt-tone-muted hover:bg-white/[0.04]",
               )}
             >
               {item.type === "task" ? (
-                <span className="text-[13px] leading-[1] shrink-0">📋</span>
+                <span className="txt-role-body-md leading-none shrink-0">
+                  📋
+                </span>
               ) : item.type === "file" ? (
-                <span className="text-[13px] leading-[1] shrink-0">📂</span>
+                <span className="txt-role-body-md leading-none shrink-0">
+                  📂
+                </span>
               ) : (
-                <span
-                  className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] text-[9px] text-white/60 shrink-0"
-                  style={{ fontWeight: 600, lineHeight: 1 }}
-                >
+                <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] txt-role-micro text-white/60 shrink-0 font-semibold leading-none">
                   {item.label
                     .trim()
                     .split(/\s+/)
@@ -136,7 +133,7 @@ export function MentionDropdown({
               )}
               <span className="truncate flex-1">{item.label}</span>
               {item.meta && (
-                <span className="text-[10px] text-white/20 shrink-0">
+                <span className="txt-role-kbd text-white/20 shrink-0">
                   {item.meta}
                 </span>
               )}
@@ -144,17 +141,23 @@ export function MentionDropdown({
           );
         })}
       </div>
-      <div className="border-t border-white/[0.05] px-3 py-1.5 flex items-center gap-3 text-[10px] text-white/15 select-none">
+      <div className="border-t border-white/[0.05] px-3 py-1.5 flex items-center gap-3 txt-role-kbd text-white/15 select-none">
         <span>
-          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">↑↓</kbd>{" "}
+          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded txt-role-micro">
+            ↑↓
+          </kbd>
           navigate
         </span>
         <span>
-          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">↵</kbd>{" "}
+          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded txt-role-micro">
+            ↵
+          </kbd>
           select
         </span>
         <span>
-          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded text-[9px]">esc</kbd>{" "}
+          <kbd className="px-1 py-0.5 bg-white/[0.04] rounded txt-role-micro">
+            esc
+          </kbd>
           dismiss
         </span>
       </div>

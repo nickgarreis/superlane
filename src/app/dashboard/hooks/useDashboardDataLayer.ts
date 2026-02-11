@@ -22,12 +22,10 @@ import {
   omitUndefined,
   uploadFileToConvexStorage,
 } from "../lib/uploadHelpers";
-
 export function useDashboardDataLayer() {
   const { user, signOut } = useAuth();
   const { isAuthenticated } = useConvexAuth();
   const convex = useConvex();
-
   const navigation = useDashboardNavigation({
     preloadSearchPopup: () => {
       void loadSearchPopupModule();
@@ -58,7 +56,6 @@ export function useDashboardDataLayer() {
     navigate,
     location,
   } = navigation;
-
   const apiHandlers = useDashboardApiHandlers();
   const {
     ensureDefaultWorkspaceAction,
@@ -84,19 +81,17 @@ export function useDashboardDataLayer() {
     reconcileWorkspaceOrganizationMembershipsAction,
     ensureOrganizationLinkAction,
   } = apiHandlers;
-
   const viewerFallback = useMemo(
     () => ({
       name:
-        [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
-        || user?.email
-        || "Unknown user",
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+        user?.email ||
+        "Unknown user",
       email: user?.email ?? "",
       avatarUrl: user?.profilePictureUrl ?? null,
     }),
     [user?.email, user?.firstName, user?.lastName, user?.profilePictureUrl],
   );
-
   const data = useDashboardData({
     isAuthenticated,
     activeWorkspaceSlug,
@@ -110,9 +105,7 @@ export function useDashboardDataLayer() {
     setPendingHighlight,
     navigateView,
   });
-
   const canCreateWorkspace = data.viewerIdentity.role === "owner";
-
   const handleSwitchWorkspace = useCallback(
     (workspaceSlug: string) => {
       setActiveWorkspaceSlug(workspaceSlug);
@@ -120,7 +113,6 @@ export function useDashboardDataLayer() {
     },
     [navigateView, setActiveWorkspaceSlug],
   );
-
   const handleCreateWorkspace = useCallback(() => {
     if (!canCreateWorkspace) {
       toast.error("Only workspace owners can create workspaces");
@@ -128,8 +120,10 @@ export function useDashboardDataLayer() {
     }
     openCreateWorkspace();
   }, [canCreateWorkspace, openCreateWorkspace]);
-
-  const navigateToPath = useCallback((path: string) => navigate(path), [navigate]);
+  const navigateToPath = useCallback(
+    (path: string) => navigate(path),
+    [navigate],
+  );
   const navigateToPathWithReplace = useCallback(
     (path: string, replace = false) => {
       navigate(path, { replace });
@@ -149,7 +143,6 @@ export function useDashboardDataLayer() {
     },
     [convex],
   );
-
   const workspaceActions = useDashboardWorkspaceActions({
     canCreateWorkspace,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
@@ -185,7 +178,6 @@ export function useDashboardDataLayer() {
     asBrandAssetId,
     omitUndefined,
   });
-
   useDashboardLifecycleEffects({
     snapshot: data.snapshot,
     ensureDefaultWorkspace: ensureDefaultWorkspaceAction,
@@ -198,9 +190,9 @@ export function useDashboardDataLayer() {
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
     companySettings: data.companySummary,
     ensureOrganizationLinkAction,
-    runWorkspaceSettingsReconciliation: workspaceActions.runWorkspaceSettingsReconciliation,
+    runWorkspaceSettingsReconciliation:
+      workspaceActions.runWorkspaceSettingsReconciliation,
   });
-
   return {
     user,
     signOut,
@@ -215,5 +207,4 @@ export function useDashboardDataLayer() {
     workspaceActions,
   };
 }
-
 export type DashboardDataLayer = ReturnType<typeof useDashboardDataLayer>;

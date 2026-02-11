@@ -1,33 +1,46 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { isProtectedPath, pathToView, viewToPath, type AppView } from "../lib/routing";
-import { parseSettingsTab, type PendingHighlight, type SettingsTab } from "./types";
+import {
+  isProtectedPath,
+  pathToView,
+  viewToPath,
+  type AppView,
+} from "../lib/routing";
+import {
+  parseSettingsTab,
+  type PendingHighlight,
+  type SettingsTab,
+} from "./types";
 import type { ProjectData, ProjectDraftData } from "../types";
 import {
   readPersistedDashboardWorkspaceSlug,
   writeDashboardWorkspaceSlug,
 } from "./storage";
-
 type UseDashboardNavigationArgs = {
   preloadSearchPopup: () => void;
   preloadCreateProjectPopup: () => void;
   preloadCreateWorkspacePopup: () => void;
   preloadSettingsPopup: () => void;
 };
-
 const WORKSPACE_SLUG_QUERY_KEY = "workspace";
-
-const isValidWorkspaceSlug = (value: string): boolean => /^[a-z0-9-]+$/.test(value);
-
-const readPersistedWorkspaceSlug = (searchParams: URLSearchParams): string | null => {
+const isValidWorkspaceSlug = (value: string): boolean =>
+  /^[a-z0-9-]+$/.test(value);
+const readPersistedWorkspaceSlug = (
+  searchParams: URLSearchParams,
+): string | null => {
   const fromQuery = searchParams.get(WORKSPACE_SLUG_QUERY_KEY)?.trim();
   if (fromQuery && isValidWorkspaceSlug(fromQuery)) {
     return fromQuery;
   }
-
   return readPersistedDashboardWorkspaceSlug();
 };
-
 export type DashboardNavigationState = {
   location: ReturnType<typeof useLocation>;
   navigate: ReturnType<typeof useNavigate>;
@@ -64,7 +77,6 @@ export type DashboardNavigationState = {
   handleOpenSettings: (tab?: SettingsTab) => void;
   handleCloseSettings: () => void;
 };
-
 export const useDashboardNavigation = ({
   preloadSearchPopup,
   preloadCreateProjectPopup,
@@ -74,32 +86,34 @@ export const useDashboardNavigation = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [rawSearchParams] = useSearchParams();
-
-  const searchParams = useMemo(() => new URLSearchParams(rawSearchParams), [rawSearchParams]);
-
+  const searchParams = useMemo(
+    () => new URLSearchParams(rawSearchParams),
+    [rawSearchParams],
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
-  const [highlightedArchiveProjectId, setHighlightedArchiveProjectId] = useState<string | null>(null);
-  const [pendingHighlight, setPendingHighlight] = useState<PendingHighlight | null>(null);
+  const [highlightedArchiveProjectId, setHighlightedArchiveProjectId] =
+    useState<string | null>(null);
+  const [pendingHighlight, setPendingHighlight] =
+    useState<PendingHighlight | null>(null);
   const [editProjectId, setEditProjectId] = useState<string | null>(null);
-  const [editDraftData, setEditDraftData] = useState<ProjectDraftData | null>(null);
-  const [reviewProject, setReviewProject] = useState<ProjectData | null>(null);
-  const [activeWorkspaceSlug, setActiveWorkspaceSlug] = useState<string | null>(() =>
-    readPersistedWorkspaceSlug(searchParams),
+  const [editDraftData, setEditDraftData] = useState<ProjectDraftData | null>(
+    null,
   );
-
+  const [reviewProject, setReviewProject] = useState<ProjectData | null>(null);
+  const [activeWorkspaceSlug, setActiveWorkspaceSlug] = useState<string | null>(
+    () => readPersistedWorkspaceSlug(searchParams),
+  );
   useEffect(() => {
     writeDashboardWorkspaceSlug(activeWorkspaceSlug);
   }, [activeWorkspaceSlug]);
-
   const currentView = useMemo<AppView>(() => {
     const directView = pathToView(location.pathname);
     if (directView) {
       return directView;
     }
-
     if (location.pathname === "/settings") {
       const fromParam = searchParams.get("from");
       if (fromParam && fromParam.startsWith("/")) {
@@ -109,76 +123,77 @@ export const useDashboardNavigation = ({
         }
       }
     }
-
     return "tasks";
   }, [location.pathname, searchParams]);
-
-  const settingsTab = useMemo(() => parseSettingsTab(searchParams.get("tab")), [searchParams]);
+  const settingsTab = useMemo(
+    () => parseSettingsTab(searchParams.get("tab")),
+    [searchParams],
+  );
   const isSettingsOpen = location.pathname === "/settings";
-
-  const toProtectedFromPath = useCallback((candidate: string | null | undefined): string | null => {
-    if (!candidate || !candidate.startsWith("/")) {
-      return null;
-    }
-    if (!isProtectedPath(candidate) || candidate === "/settings") {
-      return null;
-    }
-    return candidate;
-  }, []);
-
+  const toProtectedFromPath = useCallback(
+    (candidate: string | null | undefined): string | null => {
+      if (!candidate || !candidate.startsWith("/")) {
+        return null;
+      }
+      if (!isProtectedPath(candidate) || candidate === "/settings") {
+        return null;
+      }
+      return candidate;
+    },
+    [],
+  );
   const resolveSettingsFromPath = useCallback((): string => {
-    if (isProtectedPath(location.pathname) && location.pathname !== "/settings") {
+    if (
+      isProtectedPath(location.pathname) &&
+      location.pathname !== "/settings"
+    ) {
       return location.pathname;
     }
-
     const fromParam = toProtectedFromPath(searchParams.get("from"));
     return fromParam ?? "/tasks";
   }, [location.pathname, searchParams, toProtectedFromPath]);
-
-  const navigateView = useCallback((view: AppView) => {
-    navigate(viewToPath(view));
-  }, [navigate]);
-
+  const navigateView = useCallback(
+    (view: AppView) => {
+      navigate(viewToPath(view));
+    },
+    [navigate],
+  );
   const openSearch = useCallback(() => {
     preloadSearchPopup();
     setIsSearchOpen(true);
   }, [preloadSearchPopup]);
-
   const openCreateProject = useCallback(() => {
     preloadCreateProjectPopup();
     setIsCreateProjectOpen(true);
   }, [preloadCreateProjectPopup]);
-
   const closeCreateProject = useCallback(() => {
     setIsCreateProjectOpen(false);
     setEditProjectId(null);
     setEditDraftData(null);
     setReviewProject(null);
   }, []);
-
   const openCreateWorkspace = useCallback(() => {
     preloadCreateWorkspacePopup();
     setIsCreateWorkspaceOpen(true);
   }, [preloadCreateWorkspacePopup]);
-
   const closeCreateWorkspace = useCallback(() => {
     setIsCreateWorkspaceOpen(false);
   }, []);
-
-  const handleOpenSettings = useCallback((tab: SettingsTab = "Account") => {
-    preloadSettingsPopup();
-    const params = new URLSearchParams({
-      tab,
-      from: resolveSettingsFromPath(),
-    });
-    navigate(`/settings?${params.toString()}`);
-  }, [navigate, preloadSettingsPopup, resolveSettingsFromPath]);
-
+  const handleOpenSettings = useCallback(
+    (tab: SettingsTab = "Account") => {
+      preloadSettingsPopup();
+      const params = new URLSearchParams({
+        tab,
+        from: resolveSettingsFromPath(),
+      });
+      navigate(`/settings?${params.toString()}`);
+    },
+    [navigate, preloadSettingsPopup, resolveSettingsFromPath],
+  );
   const handleCloseSettings = useCallback(() => {
     const fromParam = toProtectedFromPath(searchParams.get("from"));
     navigate(fromParam ?? "/tasks");
   }, [navigate, searchParams, toProtectedFromPath]);
-
   return {
     location,
     navigate,

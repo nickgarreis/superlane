@@ -5,19 +5,17 @@ import { scheduleIdlePrefetch } from "../../lib/prefetch";
 import { reportUiError } from "../../lib/errors";
 import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 import type { ProjectData } from "../../types";
-
-type DashboardSnapshotLike = {
-  workspaces: unknown[];
-  activeWorkspaceSlug?: string | null;
-} | null | undefined;
-
-type CompanySettingsLike = {
-  capability?: {
-    hasOrganizationLink?: boolean;
-  };
-  viewerRole?: string | null;
-} | null | undefined;
-
+type DashboardSnapshotLike =
+  | { workspaces: unknown[]; activeWorkspaceSlug?: string | null }
+  | null
+  | undefined;
+type CompanySettingsLike =
+  | {
+      capability?: { hasOrganizationLink?: boolean };
+      viewerRole?: string | null;
+    }
+  | null
+  | undefined;
 type UseDashboardLifecycleEffectsArgs = {
   snapshot: DashboardSnapshotLike;
   ensureDefaultWorkspace: (args: {}) => Promise<{ slug: string }>;
@@ -29,10 +27,11 @@ type UseDashboardLifecycleEffectsArgs = {
   navigateToPath: (path: string, replace?: boolean) => void;
   resolvedWorkspaceSlug: string | null;
   companySettings: CompanySettingsLike;
-  ensureOrganizationLinkAction: (args: { workspaceSlug: string }) => Promise<{ alreadyLinked: boolean }>;
+  ensureOrganizationLinkAction: (args: {
+    workspaceSlug: string;
+  }) => Promise<{ alreadyLinked: boolean }>;
   runWorkspaceSettingsReconciliation: (workspaceSlug: string) => Promise<void>;
 };
-
 export const useDashboardLifecycleEffects = ({
   snapshot,
   ensureDefaultWorkspace,
@@ -50,24 +49,28 @@ export const useDashboardLifecycleEffects = ({
   const defaultWorkspaceRequestedRef = useRef(false);
   const invalidRouteRef = useRef<string | null>(null);
   const organizationLinkAttemptedWorkspacesRef = useRef<Set<string>>(new Set());
-  const handleSearchShortcut = useCallback((event: Event) => {
-    if (!(event instanceof KeyboardEvent)) {
-      return;
-    }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-      event.preventDefault();
-      openSearch();
-    }
-  }, [openSearch]);
-
+  const handleSearchShortcut = useCallback(
+    (event: Event) => {
+      if (!(event instanceof KeyboardEvent)) {
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+    },
+    [openSearch],
+  );
   useEffect(() => {
     if (!snapshot) {
       return;
     }
-    if (snapshot.workspaces.length > 0 || defaultWorkspaceRequestedRef.current) {
+    if (
+      snapshot.workspaces.length > 0 ||
+      defaultWorkspaceRequestedRef.current
+    ) {
       return;
     }
-
     defaultWorkspaceRequestedRef.current = true;
     void ensureDefaultWorkspace({})
       .then((result) => {
@@ -80,33 +83,27 @@ export const useDashboardLifecycleEffects = ({
         toast.error("Failed to create your default workspace");
       });
   }, [snapshot, ensureDefaultWorkspace, setActiveWorkspaceSlug]);
-
   useEffect(() => {
     const cancel = scheduleIdlePrefetch(() => preloadSearchPopupModule());
     return cancel;
   }, [preloadSearchPopupModule]);
-
   useGlobalEventListener({
     target: document,
     type: "keydown",
     listener: handleSearchShortcut,
   });
-
   useEffect(() => {
     if (!snapshot) {
       return;
     }
-
     const routeView = pathToView(locationPathname);
     if (!routeView) {
       invalidRouteRef.current = null;
       return;
     }
-
     if (routeView.startsWith("project:")) {
       const projectId = routeView.split(":")[1];
       const project = projects[projectId];
-
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
           invalidRouteRef.current = locationPathname;
@@ -115,20 +112,16 @@ export const useDashboardLifecycleEffects = ({
         navigateToPath("/tasks", true);
         return;
       }
-
       if (project.archived) {
         navigateToPath(viewToPath(`archive-project:${projectId}`), true);
         return;
       }
-
       invalidRouteRef.current = null;
       return;
     }
-
     if (routeView.startsWith("archive-project:")) {
       const projectId = routeView.split(":")[1];
       const project = projects[projectId];
-
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
           invalidRouteRef.current = locationPathname;
@@ -137,31 +130,29 @@ export const useDashboardLifecycleEffects = ({
         navigateToPath("/archive", true);
         return;
       }
-
       if (!project.archived) {
         navigateToPath(viewToPath(`project:${projectId}`), true);
         return;
       }
-
       invalidRouteRef.current = null;
     }
   }, [snapshot, locationPathname, projects, navigateToPath]);
-
   useEffect(() => {
     if (!resolvedWorkspaceSlug || !companySettings) {
       return;
     }
-    if (companySettings.capability?.hasOrganizationLink || companySettings.viewerRole !== "owner") {
+    if (
+      companySettings.capability?.hasOrganizationLink ||
+      companySettings.viewerRole !== "owner"
+    ) {
       return;
     }
-
     const slug = resolvedWorkspaceSlug;
     const attempted = organizationLinkAttemptedWorkspacesRef.current;
     if (attempted.has(slug)) {
       return;
     }
     attempted.add(slug);
-
     void ensureOrganizationLinkAction({ workspaceSlug: slug })
       .then(async (result) => {
         if (!result.alreadyLinked) {

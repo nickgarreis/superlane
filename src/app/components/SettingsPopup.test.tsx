@@ -6,7 +6,9 @@ import { describe, expect, test, vi } from "vitest";
 import { SettingsPopup } from "./SettingsPopup";
 import type { SettingsPopupProps } from "./settings-popup/types";
 
-const buildProps = (overrides: Partial<SettingsPopupProps> = {}): SettingsPopupProps => ({
+const buildProps = (
+  overrides: Partial<SettingsPopupProps> = {},
+): SettingsPopupProps => ({
   isOpen: true,
   onClose: vi.fn(),
   initialTab: "Account",
@@ -88,13 +90,19 @@ describe("SettingsPopup", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Notifications" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Notifications" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Company" }));
-    expect(await screen.findByRole("heading", { name: "Company" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Company" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Billing & Plans" }));
-    expect(await screen.findByRole("heading", { name: "Billing & Plans" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Billing & Plans" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(container.firstChild as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);

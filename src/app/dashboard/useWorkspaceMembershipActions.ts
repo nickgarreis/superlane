@@ -2,18 +2,26 @@ import { useCallback } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import type { DashboardActionHandler } from "./types";
-
 type UseWorkspaceMembershipActionsArgs = {
   resolvedWorkspaceSlug: string | null;
   asUserId: (value: string) => Id<"users">;
   runWorkspaceSettingsReconciliation: (workspaceSlug: string) => Promise<void>;
-  inviteWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.inviteWorkspaceMember>;
-  resendWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.resendWorkspaceInvitation>;
-  revokeWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.revokeWorkspaceInvitation>;
-  changeWorkspaceMemberRoleAction: DashboardActionHandler<typeof api.settings.changeWorkspaceMemberRole>;
-  removeWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.removeWorkspaceMember>;
+  inviteWorkspaceMemberAction: DashboardActionHandler<
+    typeof api.settings.inviteWorkspaceMember
+  >;
+  resendWorkspaceInvitationAction: DashboardActionHandler<
+    typeof api.settings.resendWorkspaceInvitation
+  >;
+  revokeWorkspaceInvitationAction: DashboardActionHandler<
+    typeof api.settings.revokeWorkspaceInvitation
+  >;
+  changeWorkspaceMemberRoleAction: DashboardActionHandler<
+    typeof api.settings.changeWorkspaceMemberRole
+  >;
+  removeWorkspaceMemberAction: DashboardActionHandler<
+    typeof api.settings.removeWorkspaceMember
+  >;
 };
-
 export function useWorkspaceMembershipActions({
   resolvedWorkspaceSlug,
   asUserId,
@@ -36,9 +44,12 @@ export function useWorkspaceMembershipActions({
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
     },
-    [inviteWorkspaceMemberAction, resolvedWorkspaceSlug, runWorkspaceSettingsReconciliation],
+    [
+      inviteWorkspaceMemberAction,
+      resolvedWorkspaceSlug,
+      runWorkspaceSettingsReconciliation,
+    ],
   );
-
   const handleChangeWorkspaceMemberRole = useCallback(
     async (payload: { userId: string; role: "admin" | "member" }) => {
       if (!resolvedWorkspaceSlug) {
@@ -58,7 +69,6 @@ export function useWorkspaceMembershipActions({
       runWorkspaceSettingsReconciliation,
     ],
   );
-
   const handleRemoveWorkspaceMember = useCallback(
     async (payload: { userId: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -70,9 +80,13 @@ export function useWorkspaceMembershipActions({
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
     },
-    [asUserId, removeWorkspaceMemberAction, resolvedWorkspaceSlug, runWorkspaceSettingsReconciliation],
+    [
+      asUserId,
+      removeWorkspaceMemberAction,
+      resolvedWorkspaceSlug,
+      runWorkspaceSettingsReconciliation,
+    ],
   );
-
   const handleResendWorkspaceInvitation = useCallback(
     async (payload: { invitationId: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -84,9 +98,12 @@ export function useWorkspaceMembershipActions({
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
     },
-    [resolvedWorkspaceSlug, resendWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
+    [
+      resolvedWorkspaceSlug,
+      resendWorkspaceInvitationAction,
+      runWorkspaceSettingsReconciliation,
+    ],
   );
-
   const handleRevokeWorkspaceInvitation = useCallback(
     async (payload: { invitationId: string }) => {
       if (!resolvedWorkspaceSlug) {
@@ -98,9 +115,12 @@ export function useWorkspaceMembershipActions({
       });
       await runWorkspaceSettingsReconciliation(resolvedWorkspaceSlug);
     },
-    [resolvedWorkspaceSlug, revokeWorkspaceInvitationAction, runWorkspaceSettingsReconciliation],
+    [
+      resolvedWorkspaceSlug,
+      revokeWorkspaceInvitationAction,
+      runWorkspaceSettingsReconciliation,
+    ],
   );
-
   return {
     handleInviteWorkspaceMember,
     handleChangeWorkspaceMemberRole,

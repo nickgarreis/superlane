@@ -2,7 +2,6 @@ import React from "react";
 import { Archive, ListChecks, Plus, Search } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
 import type { SidebarPrimaryActionsProps } from "./types";
-
 export function SidebarPrimaryActions({
   currentView,
   onSearch,
@@ -30,14 +29,17 @@ export function SidebarPrimaryActions({
         icon={<Archive size={16} />}
         label="Archive"
         onClick={() => onNavigate("archive")}
-        isActive={currentView === "archive" || currentView?.startsWith("archive-project:")}
+        isActive={
+          currentView === "archive" ||
+          currentView?.startsWith("archive-project:")
+        }
       />
       <SidebarItem
         icon={<Plus size={16} />}
         label="Create Project"
         onClick={onOpenCreateProject}
         onIntent={onOpenCreateProjectIntent}
-        className="text-[#58AFFF]/80 hover:text-[#58AFFF] hover:bg-[#58AFFF]/10 mt-1"
+        className="txt-tone-accent hover:txt-tone-accent hover:bg-[#58AFFF]/10 mt-1"
       />
     </div>
   );

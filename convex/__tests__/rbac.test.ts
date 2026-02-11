@@ -318,11 +318,18 @@ describe("P0.1 RBAC and soft-delete", () => {
       expect(commentRows.filter((row) => row.projectId === project.projectId).length).toBeGreaterThan(0);
     });
 
-    const snapshot = await asOwner().query(api.dashboard.getSnapshot, {
-      activeWorkspaceSlug: workspace.workspaceSlug,
+    const projects = await asOwner().query(api.projects.listForWorkspace, {
+      workspaceSlug: workspace.workspaceSlug,
+      includeArchived: true,
+      paginationOpts: { cursor: null, numItems: 200 },
     });
-    expect(snapshot.projects).toHaveLength(0);
-    expect(snapshot.tasks).toHaveLength(0);
+    expect(projects.page).toHaveLength(0);
+
+    const tasks = await asOwner().query(api.tasks.listForWorkspace, {
+      workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 200 },
+    });
+    expect(tasks.page).toHaveLength(0);
 
     const files = await asOwner().query(api.files.listForWorkspace, {
       workspaceSlug: workspace.workspaceSlug,

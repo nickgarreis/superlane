@@ -6,14 +6,8 @@ import { reportUiError } from "../lib/errors";
 import type { AppView } from "../lib/routing";
 import { prepareUpload } from "./lib/uploadPipeline";
 import { useWorkspaceMembershipActions } from "./useWorkspaceMembershipActions";
-import type {
-  DashboardActionHandler,
-  DashboardMutationHandler,
-} from "./types";
-type CreateWorkspacePayload = {
-  name: string;
-  logoFile?: File | null;
-};
+import type { DashboardActionHandler, DashboardMutationHandler } from "./types";
+type CreateWorkspacePayload = { name: string; logoFile?: File | null };
 type UseDashboardWorkspaceActionsArgs = {
   canCreateWorkspace: boolean;
   resolvedWorkspaceSlug: string | null;
@@ -22,26 +16,67 @@ type UseDashboardWorkspaceActionsArgs = {
   navigateView: (view: AppView) => void;
   closeCreateWorkspace: () => void;
   createWorkspaceMutation: DashboardActionHandler<typeof api.workspaces.create>;
-  reconcileWorkspaceInvitationsAction: DashboardActionHandler<typeof api.settings.reconcileWorkspaceInvitations>;
-  reconcileWorkspaceOrganizationMembershipsAction: DashboardActionHandler<typeof api.organizationSync.reconcileWorkspaceOrganizationMemberships>;
-  updateAccountProfileAction: DashboardActionHandler<typeof api.settings.updateAccountProfile>;
-  generateAvatarUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateAvatarUploadUrl>;
-  finalizeAvatarUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeAvatarUpload>;
-  removeAvatarMutation: DashboardMutationHandler<typeof api.settings.removeAvatar>;
-  saveNotificationPreferencesMutation: DashboardMutationHandler<typeof api.settings.saveNotificationPreferences>;
-  updateWorkspaceGeneralMutation: DashboardMutationHandler<typeof api.settings.updateWorkspaceGeneral>;
-  generateWorkspaceLogoUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateWorkspaceLogoUploadUrl>;
-  finalizeWorkspaceLogoUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeWorkspaceLogoUpload>;
-  inviteWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.inviteWorkspaceMember>;
-  resendWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.resendWorkspaceInvitation>;
-  revokeWorkspaceInvitationAction: DashboardActionHandler<typeof api.settings.revokeWorkspaceInvitation>;
-  changeWorkspaceMemberRoleAction: DashboardActionHandler<typeof api.settings.changeWorkspaceMemberRole>;
-  removeWorkspaceMemberAction: DashboardActionHandler<typeof api.settings.removeWorkspaceMember>;
-  generateBrandAssetUploadUrlMutation: DashboardMutationHandler<typeof api.settings.generateBrandAssetUploadUrl>;
-  finalizeBrandAssetUploadMutation: DashboardMutationHandler<typeof api.settings.finalizeBrandAssetUpload>;
-  removeBrandAssetMutation: DashboardMutationHandler<typeof api.settings.removeBrandAsset>;
-  softDeleteWorkspaceMutation: DashboardMutationHandler<typeof api.settings.softDeleteWorkspace>;
-  getBrandAssetDownloadUrlQuery: (workspaceSlug: string, brandAssetId: string) => Promise<string | null>;
+  reconcileWorkspaceInvitationsAction: DashboardActionHandler<
+    typeof api.settings.reconcileWorkspaceInvitations
+  >;
+  reconcileWorkspaceOrganizationMembershipsAction: DashboardActionHandler<
+    typeof api.organizationSync.reconcileWorkspaceOrganizationMemberships
+  >;
+  updateAccountProfileAction: DashboardActionHandler<
+    typeof api.settings.updateAccountProfile
+  >;
+  generateAvatarUploadUrlMutation: DashboardMutationHandler<
+    typeof api.settings.generateAvatarUploadUrl
+  >;
+  finalizeAvatarUploadMutation: DashboardMutationHandler<
+    typeof api.settings.finalizeAvatarUpload
+  >;
+  removeAvatarMutation: DashboardMutationHandler<
+    typeof api.settings.removeAvatar
+  >;
+  saveNotificationPreferencesMutation: DashboardMutationHandler<
+    typeof api.settings.saveNotificationPreferences
+  >;
+  updateWorkspaceGeneralMutation: DashboardMutationHandler<
+    typeof api.settings.updateWorkspaceGeneral
+  >;
+  generateWorkspaceLogoUploadUrlMutation: DashboardMutationHandler<
+    typeof api.settings.generateWorkspaceLogoUploadUrl
+  >;
+  finalizeWorkspaceLogoUploadMutation: DashboardMutationHandler<
+    typeof api.settings.finalizeWorkspaceLogoUpload
+  >;
+  inviteWorkspaceMemberAction: DashboardActionHandler<
+    typeof api.settings.inviteWorkspaceMember
+  >;
+  resendWorkspaceInvitationAction: DashboardActionHandler<
+    typeof api.settings.resendWorkspaceInvitation
+  >;
+  revokeWorkspaceInvitationAction: DashboardActionHandler<
+    typeof api.settings.revokeWorkspaceInvitation
+  >;
+  changeWorkspaceMemberRoleAction: DashboardActionHandler<
+    typeof api.settings.changeWorkspaceMemberRole
+  >;
+  removeWorkspaceMemberAction: DashboardActionHandler<
+    typeof api.settings.removeWorkspaceMember
+  >;
+  generateBrandAssetUploadUrlMutation: DashboardMutationHandler<
+    typeof api.settings.generateBrandAssetUploadUrl
+  >;
+  finalizeBrandAssetUploadMutation: DashboardMutationHandler<
+    typeof api.settings.finalizeBrandAssetUpload
+  >;
+  removeBrandAssetMutation: DashboardMutationHandler<
+    typeof api.settings.removeBrandAsset
+  >;
+  softDeleteWorkspaceMutation: DashboardMutationHandler<
+    typeof api.settings.softDeleteWorkspace
+  >;
+  getBrandAssetDownloadUrlQuery: (
+    workspaceSlug: string,
+    brandAssetId: string,
+  ) => Promise<string | null>;
   computeFileChecksumSha256: (file: File) => Promise<string>;
   uploadFileToConvexStorage: (uploadUrl: string, file: File) => Promise<string>;
   asStorageId: (value: string) => Id<"_storage">;
@@ -96,14 +131,21 @@ export const useDashboardWorkspaceActions = ({
       ] as const;
       settlements.forEach((settlement, index) => {
         if (settlement.status === "rejected") {
-          reportUiError("workspace.settings.reconciliation", settlement.reason, {
-            showToast: false,
-            details: { action: actionLabels[index], workspaceSlug },
-          });
+          reportUiError(
+            "workspace.settings.reconciliation",
+            settlement.reason,
+            {
+              showToast: false,
+              details: { action: actionLabels[index], workspaceSlug },
+            },
+          );
         }
       });
     },
-    [reconcileWorkspaceInvitationsAction, reconcileWorkspaceOrganizationMembershipsAction],
+    [
+      reconcileWorkspaceInvitationsAction,
+      reconcileWorkspaceOrganizationMembershipsAction,
+    ],
   );
   const handleSaveAccountSettings = useCallback(
     async (payload: { firstName: string; lastName: string; email: string }) => {
@@ -155,7 +197,8 @@ export const useDashboardWorkspaceActions = ({
       const { checksumSha256, uploadUrl } = await prepareUpload(
         file,
         workspaceSlug,
-        (slug) => generateWorkspaceLogoUploadUrlMutation({ workspaceSlug: slug }),
+        (slug) =>
+          generateWorkspaceLogoUploadUrlMutation({ workspaceSlug: slug }),
         computeFileChecksumSha256,
       );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
@@ -186,7 +229,10 @@ export const useDashboardWorkspaceActions = ({
         });
         if (payload.logoFile) {
           try {
-            await uploadWorkspaceLogoForSlug(createdWorkspace.slug, payload.logoFile);
+            await uploadWorkspaceLogoForSlug(
+              createdWorkspace.slug,
+              payload.logoFile,
+            );
           } catch (logoError) {
             reportUiError("workspace.create.logoUpload", logoError, {
               showToast: false,
@@ -215,7 +261,12 @@ export const useDashboardWorkspaceActions = ({
     ],
   );
   const handleUpdateWorkspaceGeneral = useCallback(
-    async (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => {
+    async (payload: {
+      name: string;
+      logo?: string;
+      logoColor?: string;
+      logoText?: string;
+    }) => {
       if (!resolvedWorkspaceSlug) {
         throw new Error("No active workspace");
       }
@@ -268,7 +319,6 @@ export const useDashboardWorkspaceActions = ({
         computeFileChecksumSha256,
       );
       const storageId = await uploadFileToConvexStorage(uploadUrl, file);
-
       await finalizeBrandAssetUploadMutation({
         workspaceSlug: resolvedWorkspaceSlug,
         storageId: asStorageId(storageId),
@@ -304,7 +354,10 @@ export const useDashboardWorkspaceActions = ({
       if (!resolvedWorkspaceSlug) {
         throw new Error("No active workspace");
       }
-      return getBrandAssetDownloadUrlQuery(resolvedWorkspaceSlug, payload.brandAssetId);
+      return getBrandAssetDownloadUrlQuery(
+        resolvedWorkspaceSlug,
+        payload.brandAssetId,
+      );
     },
     [getBrandAssetDownloadUrlQuery, resolvedWorkspaceSlug],
   );
@@ -326,7 +379,12 @@ export const useDashboardWorkspaceActions = ({
       });
       throw error;
     }
-  }, [navigateToPath, resolvedWorkspaceSlug, setActiveWorkspaceSlug, softDeleteWorkspaceMutation]);
+  }, [
+    navigateToPath,
+    resolvedWorkspaceSlug,
+    setActiveWorkspaceSlug,
+    softDeleteWorkspaceMutation,
+  ]);
   return {
     runWorkspaceSettingsReconciliation,
     handleSaveAccountSettings,

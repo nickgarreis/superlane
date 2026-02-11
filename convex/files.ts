@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { makeFunctionReference, paginationOptsValidator } from "convex/server";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { action, internalMutation, mutation, query, type ActionCtx, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireProjectRole, requireProjectRoleById, requireWorkspaceRole } from "./lib/auth";
 import {
   assertAllowedFileSignature,
@@ -47,7 +48,7 @@ const internalFinalizePendingDraftAttachmentUploadRef = makeFunctionReference<"m
   "files:internalFinalizePendingDraftAttachmentUpload",
 );
 
-const mapProjectFile = (file: any) => ({
+const mapProjectFile = (file: Doc<"projectFiles">) => ({
   id: file._id,
   projectPublicId: file.projectPublicId,
   tab: file.tab,
@@ -66,7 +67,11 @@ const normalizeMimeType = (value: string) => value.trim().toLowerCase();
 
 const FILE_SIGNATURE_MAX_BYTES = 32;
 
-const validateFileSignature = async (ctx: any, storageId: any, name: string) => {
+const validateFileSignature = async (
+  ctx: Pick<ActionCtx, "storage">,
+  storageId: Id<"_storage">,
+  name: string,
+) => {
   if (!name.toLowerCase().endsWith(".fig")) {
     return;
   }
@@ -83,9 +88,9 @@ const validateFileSignature = async (ctx: any, storageId: any, name: string) => 
 };
 
 const validateStorageMetadata = async (
-  ctx: any,
+  ctx: QueryCtx | MutationCtx,
   args: {
-    storageId: any;
+    storageId: Id<"_storage">;
     name: string;
     sizeBytes: number;
     checksumSha256: string;
@@ -101,7 +106,7 @@ const validateStorageMetadata = async (
     throw new ConvexError("Uploaded file size mismatch");
   }
 
-  const contentType = (metadata as any).contentType;
+  const contentType = metadata.contentType;
   if (typeof contentType === "string" && contentType.trim().length > 0) {
     const expectedMime = normalizeMimeType(args.mimeType);
     const actualMime = normalizeMimeType(contentType);
@@ -117,28 +122,31 @@ const validateStorageMetadata = async (
   }
 };
 
-const collectActiveProjectFiles = async (ctx: any, projectId: any) => {
+const collectActiveProjectFiles = async (
+  ctx: QueryCtx | MutationCtx,
+  projectId: Id<"projects">,
+) => {
   const files = await ctx.db
     .query("projectFiles")
-    .withIndex("by_projectId", (q: any) => q.eq("projectId", projectId))
+    .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
     .collect();
-  return files.filter((file: any) => file.deletedAt == null);
+  return files.filter((file) => file.deletedAt == null);
 };
 
-const projectAllowsFileMutations = (project: any) =>
+const projectAllowsFileMutations = (project: Doc<"projects">) =>
   project.deletedAt == null
   && project.archived !== true
   && project.status !== "Completed"
   && project.completedAt == null;
 
-const assertProjectAllowsFileMutations = (project: any) => {
+const assertProjectAllowsFileMutations = (project: Doc<"projects">) => {
   if (!projectAllowsFileMutations(project)) {
     throw new ConvexError("Files can only be modified for active projects");
   }
 };
 
 const finalizeProjectUploadCore = async (
-  ctx: any,
+  ctx: MutationCtx,
   args: {
     projectPublicId: string;
     tab: "Assets" | "Contract" | "Attachments";
@@ -146,7 +154,7 @@ const finalizeProjectUploadCore = async (
     mimeType: string;
     sizeBytes: number;
     checksumSha256: string;
-    storageId: any;
+    storageId: Id<"_storage">;
     displayDateEpochMs?: number;
     source?: "upload" | "importedAttachment";
   },
@@ -157,7 +165,7 @@ const finalizeProjectUploadCore = async (
   const normalizedMimeType = normalizeMimeType(args.mimeType);
   const trimmedName = args.name.trim();
 
-  let fileId: any = null;
+  let fileId: Id<"projectFiles"> | null = null;
   try {
     if (trimmedName.length === 0) {
       throw new ConvexError("File name is required");
@@ -184,8 +192,8 @@ const finalizeProjectUploadCore = async (
     }
 
     const existingNamesForTab = activeFiles
-      .filter((file: any) => file.tab === args.tab)
-      .map((file: any) => file.name);
+      .filter((file) => file.tab === args.tab)
+      .map((file) => file.name);
     const finalName = ensureUniqueFileName(trimmedName, existingNamesForTab);
     const source = args.source ?? "upload";
 
@@ -236,10 +244,13 @@ const finalizeProjectUploadCore = async (
   }
 };
 
-const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
+const getWorkspaceBySlug = async (
+  ctx: QueryCtx | MutationCtx,
+  workspaceSlug: string,
+) => {
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_slug", (q: any) => q.eq("slug", workspaceSlug))
+    .withIndex("by_slug", (q) => q.eq("slug", workspaceSlug))
     .unique();
 
   if (!workspace) {
@@ -330,7 +341,7 @@ export const listForWorkspace = query({
           makeQuery: () =>
             ctx.db
               .query("projectFiles")
-              .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
+              .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q) =>
                 q.eq("workspaceId", workspace._id)
                   .eq("projectPublicId", normalizedProjectPublicId)
                   .eq("deletedAt", null))
@@ -343,7 +354,7 @@ export const listForWorkspace = query({
           makeQuery: () =>
             ctx.db
               .query("projectFiles")
-              .withIndex("by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs", (q: any) =>
+              .withIndex("by_workspace_projectDeletedAt_deletedAt_displayDateEpochMs", (q) =>
                 q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null).eq("deletedAt", null))
               .order("desc"),
           includeFile: (file: any) =>
@@ -369,7 +380,7 @@ export const listForProjectPaginated = query({
       makeQuery: () =>
         ctx.db
           .query("projectFiles")
-          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
+          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q) =>
             q.eq("workspaceId", project.workspaceId)
               .eq("projectPublicId", project.publicId)
               .eq("deletedAt", null))
@@ -382,33 +393,6 @@ export const listForProjectPaginated = query({
       ...paginated,
       page: paginated.page.map(mapProjectFile),
     };
-  },
-});
-
-export const listForProject = query({
-  args: {
-    projectPublicId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
-    const files = await paginateProjectFilesWithFilter({
-      paginationOpts: {
-        cursor: null,
-        numItems: 5000,
-      },
-      makeQuery: () =>
-        ctx.db
-          .query("projectFiles")
-          .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
-            q.eq("workspaceId", project.workspaceId)
-              .eq("projectPublicId", project.publicId)
-              .eq("deletedAt", null))
-          .order("desc"),
-      includeFile: (file: any) =>
-        file.projectDeletedAt == null && file.deletedAt == null && file.storageId != null,
-    });
-
-    return files.page.map(mapProjectFile);
   },
 });
 
@@ -562,7 +546,7 @@ export const discardPendingUploadsForSession = mutation({
 
     const pendingUploads = await ctx.db
       .query("pendingFileUploads")
-      .withIndex("by_draftSessionId", (q: any) => q.eq("draftSessionId", args.draftSessionId))
+      .withIndex("by_draftSessionId", (q) => q.eq("draftSessionId", args.draftSessionId))
       .collect();
 
     const scoped = pendingUploads.filter(
@@ -689,11 +673,11 @@ export const runLegacyMetadataCleanup = internalMutation({
       throw new ConvexError("confirmToken must be I_KNOW_WHAT_I_AM_DOING for non-dry-run cleanup");
     }
     const batchSize = Math.max(1, Math.min(args.batchSize ?? 100, 200));
-    const targetsById = new Map<string, any>();
+    const targetsById = new Map<string, Doc<"projectFiles">>();
 
     const missingStorageIdRows = await ctx.db
       .query("projectFiles")
-      .withIndex("by_storageId", (q: any) => q.eq("storageId", undefined))
+      .withIndex("by_storageId", (q) => q.eq("storageId", undefined))
       .take(batchSize);
     for (const file of missingStorageIdRows) {
       if (file.storageId == null) {
@@ -705,7 +689,7 @@ export const runLegacyMetadataCleanup = internalMutation({
       const remaining = batchSize - targetsById.size;
       const explicitNullStorageRows = await ctx.db
         .query("projectFiles")
-        .filter((q: any) => q.eq(q.field("storageId"), null))
+        .filter((q) => q.eq(q.field("storageId"), null))
         .take(remaining);
       for (const file of explicitNullStorageRows) {
         if (file.storageId == null) {
@@ -730,7 +714,7 @@ export const runLegacyMetadataCleanup = internalMutation({
       for (const publicId of affectedAttachmentProjects) {
         const project = await ctx.db
           .query("projects")
-          .withIndex("by_publicId", (q: any) => q.eq("publicId", publicId))
+          .withIndex("by_publicId", (q) => q.eq("publicId", publicId))
           .unique();
         if (project && project.deletedAt == null) {
           await syncProjectAttachmentMirror(ctx, project);
@@ -754,7 +738,7 @@ export const internalPurgeDeletedFiles = internalMutation({
     const batchSize = 500;
     const filesToPurge = await ctx.db
       .query("projectFiles")
-      .withIndex("by_purgeAfterAt", (q: any) => q.lte("purgeAfterAt", now))
+      .withIndex("by_purgeAfterAt", (q) => q.lte("purgeAfterAt", now))
       .order("asc")
       .take(batchSize);
 
@@ -781,7 +765,7 @@ export const internalPurgeDeletedFiles = internalMutation({
     for (const publicId of affectedAttachmentProjectPublicIds) {
       const project = await ctx.db
         .query("projects")
-        .withIndex("by_publicId", (q: any) => q.eq("publicId", publicId))
+        .withIndex("by_publicId", (q) => q.eq("publicId", publicId))
         .unique();
       if (project && project.deletedAt == null) {
         await syncProjectAttachmentMirror(ctx, project);
@@ -791,7 +775,7 @@ export const internalPurgeDeletedFiles = internalMutation({
     const staleCutoff = now - STALE_PENDING_UPLOAD_MS;
     const stalePendingUploads = await ctx.db
       .query("pendingFileUploads")
-      .withIndex("by_createdAt", (q: any) => q.lte("createdAt", staleCutoff))
+      .withIndex("by_createdAt", (q) => q.lte("createdAt", staleCutoff))
       .order("asc")
       .take(batchSize);
 

@@ -1,23 +1,43 @@
 import { ConvexError } from "convex/values";
+import type { Id, Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { assertFiniteEpochMs } from "./dateNormalization";
 import { requireProjectRole } from "./auth";
 
-export const projectAllowsTaskMutations = (project: any) =>
+type ProjectDoc = Doc<"projects">;
+type TaskDoc = Doc<"tasks">;
+type WorkspaceDoc = Doc<"workspaces">;
+type TaskMutationCtx = QueryCtx | MutationCtx;
+
+type TaskInput = {
+  id: string;
+  title: string;
+  assignee: {
+    userId?: string;
+    name: string;
+    avatar: string;
+  };
+  dueDateEpochMs?: number | null;
+  completed: boolean;
+  projectPublicId?: string | null;
+};
+
+export const projectAllowsTaskMutations = (project: ProjectDoc) =>
   project.deletedAt == null
   && project.archived !== true
   && project.status === "Active"
   && project.completedAt == null;
 
-export const assertProjectAllowsTaskMutations = (project: any) => {
+export const assertProjectAllowsTaskMutations = (project: ProjectDoc) => {
   if (!projectAllowsTaskMutations(project)) {
     throw new ConvexError("Tasks can only be modified for active projects");
   }
 };
 
-export const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
+export const getWorkspaceBySlug = async (ctx: TaskMutationCtx, workspaceSlug: string) => {
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_slug", (q: any) => q.eq("slug", workspaceSlug))
+    .withIndex("by_slug", (q) => q.eq("slug", workspaceSlug))
     .unique();
 
   if (!workspace || workspace.deletedAt != null) {
@@ -69,7 +89,7 @@ export const normalizeOptionalProjectPublicId = (value: string | null | undefine
   return normalized.length > 0 ? normalized : null;
 };
 
-export const mapTaskForClient = (task: any) => ({
+export const mapTaskForClient = (task: TaskDoc) => ({
   taskId: task.taskId,
   title: task.title,
   assignee: task.assignee,
@@ -80,9 +100,9 @@ export const mapTaskForClient = (task: any) => ({
 });
 
 export const resolveTaskTargetProject = async (
-  ctx: any,
+  ctx: TaskMutationCtx,
   args: {
-    workspaceId: any;
+    workspaceId: Id<"workspaces">;
     projectPublicId: string | null;
   },
 ) => {
@@ -100,26 +120,30 @@ export const resolveTaskTargetProject = async (
 };
 
 export const getWorkspaceTaskRowByTaskId = async (
-  ctx: any,
+  ctx: TaskMutationCtx,
   args: {
-    workspaceId: any;
+    workspaceId: Id<"workspaces">;
     taskId: string;
   },
 ) => ctx.db
   .query("tasks")
-  .withIndex("by_workspace_taskId", (q: any) =>
+  .withIndex("by_workspace_taskId", (q) =>
     q.eq("workspaceId", args.workspaceId).eq("taskId", args.taskId))
   .unique();
 
-export const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) => {
+export const replaceProjectTasks = async (
+  ctx: MutationCtx,
+  project: ProjectDoc,
+  tasks: TaskInput[],
+) => {
   assertProjectAllowsTaskMutations(project);
 
   const existing = await ctx.db
     .query("tasks")
-    .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
+    .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
     .collect();
 
-  await Promise.all(existing.map((task: any) => ctx.db.delete(task._id)));
+  await Promise.all(existing.map((task) => ctx.db.delete(task._id)));
 
   const now = Date.now();
   await Promise.all(
@@ -148,41 +172,41 @@ export const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<a
 };
 
 export const replaceWorkspaceTasksLegacy = async (
-  ctx: any,
+  ctx: MutationCtx,
   args: {
-    workspace: any;
-    tasks: Array<any>;
+    workspace: WorkspaceDoc;
+    tasks: TaskInput[];
   },
 ) => {
   const projects = await ctx.db
     .query("projects")
-    .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", args.workspace._id))
+    .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.workspace._id))
     .collect();
-  const activeProjectsByPublicId = new Map<string, any>(
+  const activeProjectsByPublicId = new Map<string, ProjectDoc>(
     projects
-      .filter((project: any) => projectAllowsTaskMutations(project))
-      .map((project: any) => [project.publicId, project]),
+      .filter((project): project is ProjectDoc => projectAllowsTaskMutations(project))
+      .map((project) => [project.publicId, project]),
   );
   const inactiveProjectPublicIds = new Set(
     projects
-      .filter((project: any) => project.deletedAt == null && !projectAllowsTaskMutations(project))
-      .map((project: any) => project.publicId),
+      .filter((project) => project.deletedAt == null && !projectAllowsTaskMutations(project))
+      .map((project) => project.publicId),
   );
 
   const existing = await ctx.db
     .query("tasks")
-    .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", args.workspace._id))
+    .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.workspace._id))
     .collect();
   const preservedInactiveProjectTasks = existing.filter(
-    (task: any) =>
+    (task) =>
       typeof task.projectPublicId === "string"
       && inactiveProjectPublicIds.has(task.projectPublicId),
   );
   const preservedInactiveTaskIds = new Set(
-    preservedInactiveProjectTasks.map((task: any) => task.taskId),
+    preservedInactiveProjectTasks.map((task) => task.taskId),
   );
   const preservedInactiveRowIds = new Set(
-    preservedInactiveProjectTasks.map((task: any) => String(task._id)),
+    preservedInactiveProjectTasks.map((task) => String(task._id)),
   );
 
   for (const task of args.tasks) {
@@ -210,8 +234,8 @@ export const replaceWorkspaceTasksLegacy = async (
 
   await Promise.all(
     existing
-      .filter((task: any) => !preservedInactiveRowIds.has(String(task._id)))
-      .map((task: any) => ctx.db.delete(task._id)),
+      .filter((task) => !preservedInactiveRowIds.has(String(task._id)))
+      .map((task) => ctx.db.delete(task._id)),
   );
 
   const now = Date.now();
@@ -255,11 +279,11 @@ export const replaceWorkspaceTasksLegacy = async (
 };
 
 export const assertTaskProjectMutationAccess = async (
-  ctx: any,
+  ctx: TaskMutationCtx,
   args: {
-    workspaceId: any;
-    task: any;
-    projectAccessCache?: Map<string, any>;
+    workspaceId: Id<"workspaces">;
+    task: TaskDoc;
+    projectAccessCache?: Map<string, ProjectDoc>;
   },
 ) => {
   if (!args.task.projectPublicId) {

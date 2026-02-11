@@ -1,10 +1,22 @@
-import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useMemo,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { ViewerIdentity } from "../../types";
 import { reportUiError } from "../../lib/errors";
-import { parseSettingsTab, type PendingHighlight, type SettingsTab } from "../types";
-
-type SearchHighlight = { type: "task" | "file"; taskId?: string; fileName?: string; fileTab?: string };
-
+import {
+  parseSettingsTab,
+  type PendingHighlight,
+  type SettingsTab,
+} from "../types";
+type SearchHighlight = {
+  type: "task" | "file";
+  taskId?: string;
+  fileName?: string;
+  fileTab?: string;
+};
 type UseDashboardPopupBindingsArgs = {
   viewerIdentity: ViewerIdentity;
   setPendingHighlight: Dispatch<SetStateAction<PendingHighlight | null>>;
@@ -14,7 +26,6 @@ type UseDashboardPopupBindingsArgs = {
   preloadSettingsPopupModule: () => Promise<unknown>;
   signOut: () => Promise<unknown> | void;
 };
-
 export const useDashboardPopupBindings = ({
   viewerIdentity,
   setPendingHighlight,
@@ -26,7 +37,6 @@ export const useDashboardPopupBindings = ({
 }: UseDashboardPopupBindingsArgs) => {
   const viewerName = viewerIdentity.name;
   const viewerAvatar = viewerIdentity.avatarUrl || "";
-
   const createProjectViewer = useMemo(
     () => ({
       userId: viewerIdentity.userId ?? undefined,
@@ -36,33 +46,27 @@ export const useDashboardPopupBindings = ({
     }),
     [viewerAvatar, viewerIdentity.role, viewerIdentity.userId, viewerName],
   );
-
   const searchPopupOpenSettings = useCallback(
     (tab?: string) => {
       openSettings(parseSettingsTab(tab));
     },
     [openSettings],
   );
-
   const searchPopupHighlightNavigate = useCallback(
     (projectId: string, highlight: SearchHighlight) => {
       setPendingHighlight({ projectId, ...highlight });
     },
     [setPendingHighlight],
   );
-
   const handleSearchIntent = useCallback(() => {
     void preloadSearchPopupModule();
   }, [preloadSearchPopupModule]);
-
   const handleCreateProjectIntent = useCallback(() => {
     void preloadCreateProjectPopupModule();
   }, [preloadCreateProjectPopupModule]);
-
   const handleSettingsIntent = useCallback(() => {
     void preloadSettingsPopupModule();
   }, [preloadSettingsPopupModule]);
-
   const handleSignOut = useCallback(async () => {
     try {
       await signOut();
@@ -72,7 +76,6 @@ export const useDashboardPopupBindings = ({
       });
     }
   }, [signOut]);
-
   return {
     createProjectViewer,
     searchPopupOpenSettings,

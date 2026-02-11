@@ -237,20 +237,26 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
     expect(comments[0].reactions?.[0]?.userIds ?? []).toContain(String(workspace.adminUserId));
     expect(comments[0].reactions?.[0]?.users ?? []).toContain("Admin User");
 
-    const snapshot = await asOwner().query(api.dashboard.getSnapshot, {
-      activeWorkspaceSlug: workspace.workspaceSlug,
+    const projects = await asOwner().query(api.projects.listForWorkspace, {
+      workspaceSlug: workspace.workspaceSlug,
+      includeArchived: true,
+      paginationOpts: { cursor: null, numItems: 100 },
     });
-    expect(snapshot.projects).toHaveLength(1);
-    expect(snapshot.projects[0].creator.userId).toBe(String(workspace.ownerUserId));
-    expect(snapshot.projects[0].creator.name).toBe("Owner User");
-    expect(snapshot.projects[0].creator.avatarUrl).toBe("https://example.com/owner-avatar.png");
-    expect(snapshot.workspaceMembers).toHaveLength(3);
-    expect(snapshot.workspaceMembers[0].userId).toBe(String(workspace.ownerUserId));
-    expect(snapshot.workspaceMembers[0].isViewer).toBe(true);
-    const memberNames = snapshot.workspaceMembers.slice(1).map((member: any) => member.name);
+    expect(projects.page).toHaveLength(1);
+    expect(projects.page[0].creator.userId).toBe(String(workspace.ownerUserId));
+    expect(projects.page[0].creator.name).toBe("Owner User");
+    expect(projects.page[0].creator.avatarUrl).toBe("https://example.com/owner-avatar.png");
+
+    const membersResult = await asOwner().query(api.collaboration.listWorkspaceMembers, {
+      workspaceSlug: workspace.workspaceSlug,
+    });
+    expect(membersResult.members).toHaveLength(3);
+    expect(membersResult.members[0].userId).toBe(String(workspace.ownerUserId));
+    expect(membersResult.members[0].isViewer).toBe(true);
+    const memberNames = membersResult.members.slice(1).map((member: any) => member.name);
     expect(memberNames).toEqual(["Admin User", "Member User"]);
     expect(
-      snapshot.workspaceMembers.find((member: any) => member.userId === String(workspace.ownerUserId)),
+      membersResult.members.find((member: any) => member.userId === String(workspace.ownerUserId)),
     ).toEqual(
       expect.objectContaining({
         email: "owner@example.com",

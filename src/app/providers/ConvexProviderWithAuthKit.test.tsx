@@ -10,13 +10,13 @@ const { useAuthMock, getAccessTokenMock } = vi.hoisted(() => ({
   getAccessTokenMock: vi.fn(),
 }));
 
-let capturedAuth:
-  | {
-    isLoading: boolean;
-    isAuthenticated: boolean;
-    fetchAccessToken: (args?: { forceRefreshToken: boolean }) => Promise<string | null>;
-  }
-  | null = null;
+let capturedAuth: {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  fetchAccessToken: (args?: {
+    forceRefreshToken: boolean;
+  }) => Promise<string | null>;
+} | null = null;
 
 vi.mock("@workos-inc/authkit-react", () => ({
   useAuth: (...args: unknown[]) => useAuthMock(...args),
@@ -31,7 +31,9 @@ vi.mock("convex/react", () => ({
     useAuth: () => {
       isLoading: boolean;
       isAuthenticated: boolean;
-      fetchAccessToken: (args?: { forceRefreshToken: boolean }) => Promise<string | null>;
+      fetchAccessToken: (args?: {
+        forceRefreshToken: boolean;
+      }) => Promise<string | null>;
     };
   }) => {
     capturedAuth = useAuth();
@@ -63,7 +65,9 @@ describe("ConvexProviderWithAuthKit", () => {
     expect(capturedAuth?.isLoading).toBe(false);
     expect(capturedAuth?.isAuthenticated).toBe(true);
 
-    const token = await capturedAuth?.fetchAccessToken({ forceRefreshToken: true });
+    const token = await capturedAuth?.fetchAccessToken({
+      forceRefreshToken: true,
+    });
     expect(getAccessTokenMock).toHaveBeenCalledWith({ forceRefresh: true });
     expect(token).toBe("token-123");
   });
@@ -77,7 +81,9 @@ describe("ConvexProviderWithAuthKit", () => {
       </ConvexProviderWithAuthKit>,
     );
 
-    const token = await capturedAuth?.fetchAccessToken({ forceRefreshToken: false });
+    const token = await capturedAuth?.fetchAccessToken({
+      forceRefreshToken: false,
+    });
     expect(getAccessTokenMock).toHaveBeenCalledWith({ forceRefresh: false });
     expect(token).toBeNull();
   });

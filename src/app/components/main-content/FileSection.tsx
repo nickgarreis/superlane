@@ -3,7 +3,6 @@ import { cn } from "../../../lib/utils";
 import type { ProjectFileTab } from "../../types";
 import svgPaths from "../../../imports/svg-0erue6fqwq";
 import { DeniedAction } from "../permissions/DeniedAction";
-
 type FileSectionProps = {
   projectId: string;
   activeTab: ProjectFileTab;
@@ -23,7 +22,6 @@ type FileSectionProps = {
   renderedFileRows: React.ReactNode;
   filteredFilesLength: number;
 };
-
 export const FileSection = React.memo(function FileSection({
   projectId,
   activeTab,
@@ -50,8 +48,10 @@ export const FileSection = React.memo(function FileSection({
           <button
             onClick={() => setActiveTab("Assets")}
             className={cn(
-              "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer",
-              activeTab === "Assets" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]",
+              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              activeTab === "Assets"
+                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
             Assets
@@ -59,8 +59,10 @@ export const FileSection = React.memo(function FileSection({
           <button
             onClick={() => setActiveTab("Contract")}
             className={cn(
-              "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer",
-              activeTab === "Contract" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]",
+              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              activeTab === "Contract"
+                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
             Contract
@@ -68,15 +70,20 @@ export const FileSection = React.memo(function FileSection({
           <button
             onClick={() => setActiveTab("Attachments")}
             className={cn(
-              "px-[17px] py-[7px] text-[14px] font-medium rounded-full transition-all cursor-pointer",
-              activeTab === "Attachments" ? "bg-[rgba(232,232,232,0.05)] text-[#E8E8E8] backdrop-blur-[6px]" : "text-[#E8E8E8]/60 hover:text-[#E8E8E8]",
+              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              activeTab === "Attachments"
+                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
             Attachments
           </button>
         </div>
-
-        <DeniedAction denied={!canMutateProjectFiles} reason={fileMutationDisabledMessage} tooltipAlign="right">
+        <DeniedAction
+          denied={!canMutateProjectFiles}
+          reason={fileMutationDisabledMessage}
+          tooltipAlign="right"
+        >
           <button
             onClick={handleUploadClick}
             disabled={!canMutateProjectFiles}
@@ -92,8 +99,14 @@ export const FileSection = React.memo(function FileSection({
                 <path d={svgPaths.p34261000} fill="black" fillOpacity="0.667" />
               </svg>
             </div>
-            <span className="text-[13px] font-medium text-[#141414] leading-[19.5px]">
-              Add {activeTab === "Assets" ? "asset" : (activeTab === "Contract" ? "contract" : "attachment")}
+            <span className="txt-role-body-md font-medium txt-tone-inverse txt-leading-body">
+              {`Add ${
+                activeTab === "Assets"
+                  ? "asset"
+                  : activeTab === "Contract"
+                    ? "contract"
+                    : "attachment"
+              }`}
             </span>
           </button>
         </DeniedAction>
@@ -104,7 +117,6 @@ export const FileSection = React.memo(function FileSection({
           className="hidden"
         />
       </div>
-
       <div className="flex items-center justify-between mb-6 z-10 relative">
         <div className="relative w-[384px] h-[36px]">
           <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />
@@ -119,11 +131,10 @@ export const FileSection = React.memo(function FileSection({
               placeholder="Search content"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="w-full bg-transparent border-none text-[13.9px] text-[#E8E8E8] placeholder:text-[rgba(232,232,232,0.4)] focus:outline-none"
+              className="w-full bg-transparent border-none txt-role-body-md txt-tone-primary placeholder:txt-tone-faint focus:outline-none"
             />
           </div>
         </div>
-
         <div className="relative">
           <button
             type="button"
@@ -135,7 +146,7 @@ export const FileSection = React.memo(function FileSection({
             }}
             aria-haspopup="true"
             aria-expanded={isSortOpen}
-            className="flex items-center gap-2 text-[14px] font-medium text-[rgba(232,232,232,0.6)] hover:text-[#E8E8E8] transition-colors cursor-pointer"
+            className="flex items-center gap-2 txt-role-body-lg font-medium txt-tone-subtle hover:txt-tone-primary transition-colors cursor-pointer"
           >
             {sortBy === "relevance" ? "Relevance" : "Name (A-Z)"}
             <div className="w-4 h-4 shrink-0">
@@ -144,10 +155,12 @@ export const FileSection = React.memo(function FileSection({
               </svg>
             </div>
           </button>
-
           {isSortOpen && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setIsSortOpen(false)} />
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setIsSortOpen(false)}
+              />
               <div
                 className="absolute right-0 top-full mt-2 w-40 bg-[#181818] border border-[#262626] rounded-xl shadow-xl overflow-hidden py-1 z-20"
                 onKeyDown={(event) => {
@@ -164,8 +177,10 @@ export const FileSection = React.memo(function FileSection({
                     setIsSortOpen(false);
                   }}
                   className={cn(
-                    "w-full px-4 py-2 text-left text-[13px] hover:bg-white/5 transition-colors",
-                    sortBy === "relevance" ? "text-white font-medium" : "text-white/60",
+                    "w-full px-4 py-2 text-left txt-role-body-md hover:bg-white/5 transition-colors",
+                    sortBy === "relevance"
+                      ? "text-white font-medium"
+                      : "text-white/60",
                   )}
                 >
                   Relevance
@@ -177,8 +192,10 @@ export const FileSection = React.memo(function FileSection({
                     setIsSortOpen(false);
                   }}
                   className={cn(
-                    "w-full px-4 py-2 text-left text-[13px] hover:bg-white/5 transition-colors",
-                    sortBy === "name" ? "text-white font-medium" : "text-white/60",
+                    "w-full px-4 py-2 text-left txt-role-body-md hover:bg-white/5 transition-colors",
+                    sortBy === "name"
+                      ? "text-white font-medium"
+                      : "text-white/60",
                   )}
                 >
                   Name (A-Z)
@@ -188,16 +205,18 @@ export const FileSection = React.memo(function FileSection({
           )}
         </div>
       </div>
-
       <div
         className="flex flex-col gap-2"
-        style={shouldOptimizeFileRows
-          ? ({ contentVisibility: "auto", containIntrinsicSize: "640px" } as const)
-          : undefined}
+        style={
+          shouldOptimizeFileRows
+            ? ({
+                contentVisibility: "auto",
+                containIntrinsicSize: "640px",
+              } as const)
+            : undefined
+        }
       >
-        <div key={projectId + "-" + activeTab}>
-          {renderedFileRows}
-        </div>
+        <div key={projectId + "-" + activeTab}> {renderedFileRows} </div>
         {filteredFilesLength === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-white/40">
             <p className="text-sm">

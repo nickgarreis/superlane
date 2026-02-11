@@ -6,20 +6,17 @@ import type {
   SearchIndexedTask,
   SearchResult,
 } from "./types";
-
 export type SearchIndex = {
   projectIndex: SearchIndexedProject[];
   taskIndex: SearchIndexedTask[];
   fileIndex: SearchIndexedFile[];
 };
-
 export type GroupedSearchResults = {
   projectResults: SearchResult[];
   taskResults: SearchResult[];
   fileResults: SearchResult[];
   actionResults: SearchResult[];
 };
-
 export const buildSearchIndex = ({
   projectsList,
   files,
@@ -29,7 +26,6 @@ export const buildSearchIndex = ({
 }): SearchIndex => {
   const projectIndex: SearchIndexedProject[] = [];
   const taskIndex: SearchIndexedTask[] = [];
-
   for (const project of projectsList) {
     const projectSearchable = [
       project.name,
@@ -37,13 +33,10 @@ export const buildSearchIndex = ({
       project.category,
       project.status.label,
       project.scope ?? "",
-    ].join(" ").toLowerCase();
-
-    projectIndex.push({
-      project,
-      searchable: projectSearchable,
-    });
-
+    ]
+      .join(" ")
+      .toLowerCase();
+    projectIndex.push({ project, searchable: projectSearchable });
     for (const task of project.tasks ?? []) {
       const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
       const assigneeName = task.assignee?.name?.trim() || "Unassigned";
@@ -55,11 +48,11 @@ export const buildSearchIndex = ({
         assigneeName,
         dueDateLabel,
         completed: task.completed,
-        searchable: `${task.title} ${assigneeName} ${dueDateLabel}`.toLowerCase(),
+        searchable:
+          `${task.title} ${assigneeName} ${dueDateLabel}`.toLowerCase(),
       });
     }
   }
-
   const fileIndex: SearchIndexedFile[] = [];
   const seen = new Set<string>();
   for (const file of files) {
@@ -79,30 +72,24 @@ export const buildSearchIndex = ({
       searchable: `${file.name} ${file.type}`.toLowerCase(),
     });
   }
-
-  return {
-    projectIndex,
-    taskIndex,
-    fileIndex,
-  };
+  return { projectIndex, taskIndex, fileIndex };
 };
-
-export const groupSearchResults = (results: SearchResult[]): GroupedSearchResults => {
-  return results.reduce<GroupedSearchResults>((acc, result) => {
-    if (result.type === "project") {
-      acc.projectResults.push(result);
-    } else if (result.type === "task") {
-      acc.taskResults.push(result);
-    } else if (result.type === "file") {
-      acc.fileResults.push(result);
-    } else {
-      acc.actionResults.push(result);
-    }
-    return acc;
-  }, {
-    projectResults: [],
-    taskResults: [],
-    fileResults: [],
-    actionResults: [],
-  });
+export const groupSearchResults = (
+  results: SearchResult[],
+): GroupedSearchResults => {
+  return results.reduce<GroupedSearchResults>(
+    (acc, result) => {
+      if (result.type === "project") {
+        acc.projectResults.push(result);
+      } else if (result.type === "task") {
+        acc.taskResults.push(result);
+      } else if (result.type === "file") {
+        acc.fileResults.push(result);
+      } else {
+        acc.actionResults.push(result);
+      }
+      return acc;
+    },
+    { projectResults: [], taskResults: [], fileResults: [], actionResults: [] },
+  );
 };

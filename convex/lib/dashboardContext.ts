@@ -1,4 +1,6 @@
 import { ConvexError } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 import { getResolvedAuthUser, requireAuthUser } from "./auth";
 import { hasActiveOrganizationMembershipForWorkspace } from "./workosOrganization";
 
@@ -47,7 +49,11 @@ export const buildProvisioningContext = (authUser: {
   };
 };
 
-export const resolveAvatarUrl = async (ctx: any, appUser: any) => {
+type AppUserDoc = Doc<"users">;
+type WorkspaceDoc = Doc<"workspaces">;
+type WorkspaceMemberDoc = Doc<"workspaceMembers">;
+
+export const resolveAvatarUrl = async (ctx: QueryCtx, appUser: AppUserDoc) => {
   // Prefer persisted URL to avoid repeated storage URL lookups on hot query paths.
   if (typeof appUser.avatarUrl === "string" && appUser.avatarUrl.trim().length > 0) {
     return appUser.avatarUrl;
@@ -60,10 +66,10 @@ export const resolveAvatarUrl = async (ctx: any, appUser: any) => {
 
 type DashboardAccess = {
   provisioned: true;
-  appUser: any;
+  appUser: AppUserDoc;
   authUser: null;
-  workspaces: any[];
-  activeWorkspace: any | null;
+  workspaces: WorkspaceDoc[];
+  activeWorkspace: WorkspaceDoc | null;
 } | {
   provisioned: false;
   authUser: {
@@ -74,15 +80,15 @@ type DashboardAccess = {
     profilePictureUrl?: string | null;
   };
   appUser: null;
-  workspaces: any[];
+  workspaces: WorkspaceDoc[];
   activeWorkspace: null;
 };
 
 export const getAccessibleWorkspaceContext = async (
-  ctx: any,
+  ctx: QueryCtx,
   args: { activeWorkspaceSlug?: string },
 ): Promise<DashboardAccess> => {
-  let appUser: any;
+  let appUser: AppUserDoc;
   try {
     ({ appUser } = await requireAuthUser(ctx));
   } catch (error) {
@@ -107,16 +113,16 @@ export const getAccessibleWorkspaceContext = async (
 
   const memberships = await ctx.db
     .query("workspaceMembers")
-    .withIndex("by_userId", (q: any) => q.eq("userId", appUser._id))
+    .withIndex("by_userId", (q) => q.eq("userId", appUser._id))
     .collect();
-  const activeMemberships = memberships.filter((membership: any) => membership.status === "active");
+  const activeMemberships = memberships.filter((membership) => membership.status === "active");
 
   const workspaceCandidates = (
-    await Promise.all(activeMemberships.map((membership: any) => ctx.db.get(membership.workspaceId)))
-  ).filter((workspace: any) => Boolean(workspace) && workspace.deletedAt == null);
+    await Promise.all(activeMemberships.map((membership) => ctx.db.get(membership.workspaceId)))
+  ).filter((workspace): workspace is WorkspaceDoc => Boolean(workspace) && workspace.deletedAt == null);
 
   const workspacesWithOrgAccess = await Promise.all(
-    workspaceCandidates.map(async (workspace: any) => {
+    workspaceCandidates.map(async (workspace) => {
       const hasOrgAccess = await hasActiveOrganizationMembershipForWorkspace(
         ctx,
         workspace,
@@ -127,11 +133,11 @@ export const getAccessibleWorkspaceContext = async (
   );
 
   const workspaces = workspacesWithOrgAccess
-    .filter(Boolean)
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    .filter((workspace): workspace is WorkspaceDoc => workspace !== null)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const desiredWorkspace = args.activeWorkspaceSlug
-    ? workspaces.find((workspace: any) => workspace.slug === args.activeWorkspaceSlug)
+    ? workspaces.find((workspace) => workspace.slug === args.activeWorkspaceSlug)
     : undefined;
 
   return {
@@ -153,27 +159,18 @@ export type SnapshotWorkspaceMember = {
   isViewer: boolean;
 };
 
-export const listWorkspaceMembers = async (
-  ctx: any,
-  args: {
-    activeWorkspace: any;
-    appUser: any;
-  },
+type WorkspaceMembersHydrationArgs = {
+  membershipRows: WorkspaceMemberDoc[];
+  viewerUserId: Id<"users">;
+  sortResults?: boolean;
+};
+
+export const hydrateWorkspaceMembers = async (
+  ctx: QueryCtx,
+  args: WorkspaceMembersHydrationArgs,
 ): Promise<SnapshotWorkspaceMember[]> => {
-  if (!args.activeWorkspace || !args.appUser) {
-    return [];
-  }
-
-  const workspaceMemberships = await ctx.db
-    .query("workspaceMembers")
-    .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", args.activeWorkspace._id))
-    .collect();
-  const activeWorkspaceMemberships = workspaceMemberships.filter(
-    (membership: any) => membership.status === "active",
-  );
-
   const members = await Promise.all(
-    activeWorkspaceMemberships.map(async (membership: any) => {
+    args.membershipRows.map(async (membership) => {
       const memberUser = await ctx.db.get(membership.userId);
       if (!memberUser) {
         return null;
@@ -186,16 +183,44 @@ export const listWorkspaceMembers = async (
         email: memberUser.email ?? "",
         avatarUrl: await resolveAvatarUrl(ctx, memberUser),
         role: membership.role,
-        isViewer: String(memberUser._id) === String(args.appUser._id),
+        isViewer: String(memberUser._id) === String(args.viewerUserId),
       } satisfies SnapshotWorkspaceMember;
     }),
   );
 
-  return members
-    .filter((member): member is SnapshotWorkspaceMember => member !== null)
-    .sort((a, b) => {
-      if (a.isViewer && !b.isViewer) return -1;
-      if (!a.isViewer && b.isViewer) return 1;
-      return a.name.localeCompare(b.name);
-    });
+  const resolved = members.filter((member): member is SnapshotWorkspaceMember => member !== null);
+  if (args.sortResults === false) {
+    return resolved;
+  }
+
+  return resolved.sort((a, b) => {
+    if (a.isViewer && !b.isViewer) return -1;
+    if (!a.isViewer && b.isViewer) return 1;
+    return a.name.localeCompare(b.name);
+  });
+};
+
+export const listWorkspaceMembers = async (
+  ctx: QueryCtx,
+  args: {
+    activeWorkspace: WorkspaceDoc | null;
+    appUser: AppUserDoc | null;
+  },
+): Promise<SnapshotWorkspaceMember[]> => {
+  if (!args.activeWorkspace || !args.appUser) {
+    return [];
+  }
+
+  const workspaceMemberships = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.activeWorkspace._id))
+    .collect();
+  const activeWorkspaceMemberships = workspaceMemberships.filter(
+    (membership) => membership.status === "active",
+  );
+
+  return hydrateWorkspaceMembers(ctx, {
+    membershipRows: activeWorkspaceMemberships,
+    viewerUserId: args.appUser._id,
+  });
 };

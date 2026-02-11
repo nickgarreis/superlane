@@ -15,7 +15,9 @@ describe("DeniedAction", () => {
       </DeniedAction>,
     );
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Only owners can create workspaces");
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Only owners can create workspaces",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Create Workspace" }));
     expect(onClick).not.toHaveBeenCalled();
   });

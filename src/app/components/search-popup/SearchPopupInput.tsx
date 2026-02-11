@@ -1,6 +1,5 @@
 import type React from "react";
 import { Search, X } from "lucide-react";
-
 type SearchPopupInputProps = {
   inputRef: React.RefObject<HTMLInputElement>;
   query: string;
@@ -8,7 +7,6 @@ type SearchPopupInputProps = {
   onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onClearQuery: () => void;
 };
-
 export function SearchPopupInput({
   inputRef,
   query,
@@ -26,7 +24,7 @@ export function SearchPopupInput({
         onChange={onQueryChange}
         onKeyDown={onKeyDown}
         placeholder="Search projects, tasks, files, or actions..."
-        className="flex-1 bg-transparent border-none text-[14px] text-[#E8E8E8] placeholder:text-white/25 focus:outline-none"
+        className="flex-1 bg-transparent border-none txt-role-body-lg txt-tone-primary placeholder:text-white/25 focus:outline-none"
       />
       {query && (
         <button
@@ -36,7 +34,9 @@ export function SearchPopupInput({
           <X size={14} className="text-white/30" />
         </button>
       )}
-      <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-white/25 bg-white/[0.04] rounded border border-white/[0.06] shrink-0 select-none">ESC</kbd>
+      <kbd className="px-1.5 py-0.5 txt-role-kbd font-medium text-white/25 bg-white/[0.04] rounded border border-white/[0.06] shrink-0 select-none">
+        ESC
+      </kbd>
     </div>
   );
 }

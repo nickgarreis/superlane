@@ -4,10 +4,8 @@ import {
   ChevronRightIcon,
   MoreHorizontalIcon,
 } from "lucide-react";
-
 import { cn } from "./utils";
 import { Button, buttonVariants } from "./button";
-
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
@@ -19,7 +17,6 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
     />
   );
 }
-
 function PaginationContent({
   className,
   ...props
@@ -32,16 +29,14 @@ function PaginationContent({
     />
   );
 }
-
 function PaginationItem({ ...props }: React.ComponentProps<"li">) {
   return <li data-slot="pagination-item" {...props} />;
 }
-
-type PaginationLinkProps = {
-  isActive?: boolean;
-} & Pick<React.ComponentProps<typeof Button>, "size"> &
+type PaginationLinkProps = { isActive?: boolean } & Pick<
+  React.ComponentProps<typeof Button>,
+  "size"
+> &
   React.ComponentProps<"a">;
-
 function PaginationLink({
   className,
   isActive,
@@ -54,17 +49,13 @@ function PaginationLink({
       data-slot="pagination-link"
       data-active={isActive}
       className={cn(
-        buttonVariants({
-          variant: isActive ? "outline" : "ghost",
-          size,
-        }),
+        buttonVariants({ variant: isActive ? "outline" : "ghost", size }),
         className,
       )}
       {...props}
     />
   );
 }
-
 function PaginationPrevious({
   className,
   ...props
@@ -76,12 +67,10 @@ function PaginationPrevious({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <ChevronLeftIcon />
-      <span className="hidden sm:block">Previous</span>
+      <ChevronLeftIcon /> <span className="hidden sm:block">Previous</span>
     </PaginationLink>
   );
 }
-
 function PaginationNext({
   className,
   ...props
@@ -93,12 +82,10 @@ function PaginationNext({
       className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
       {...props}
     >
-      <span className="hidden sm:block">Next</span>
-      <ChevronRightIcon />
+      <span className="hidden sm:block">Next</span> <ChevronRightIcon />
     </PaginationLink>
   );
 }
-
 function PaginationEllipsis({
   className,
   ...props
@@ -115,7 +102,6 @@ function PaginationEllipsis({
     </span>
   );
 }
-
 export {
   Pagination,
   PaginationContent,

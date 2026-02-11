@@ -7,7 +7,12 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AuthCallbackPage, sanitizeReturnTo } from "./AuthCallbackPage";
 import { ensureSafeReturnTo } from "./AuthPage";
 import { ProtectedRoute } from "./ProtectedRoute";
-import { clearStoredAuthMode, clearStoredReturnTo, storeAuthMode, storeReturnTo } from "../lib/authReturnTo";
+import {
+  clearStoredAuthMode,
+  clearStoredReturnTo,
+  storeAuthMode,
+  storeReturnTo,
+} from "../lib/authReturnTo";
 
 const { mockUseConvexAuth } = vi.hoisted(() => ({
   mockUseConvexAuth: vi.fn(),
@@ -19,7 +24,9 @@ vi.mock("convex/react", () => ({
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</div>;
+  return (
+    <div data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</div>
+  );
 }
 
 describe("auth + protected routing behavior", () => {
@@ -42,11 +49,11 @@ describe("auth + protected routing behavior", () => {
         <Routes>
           <Route
             path="/tasks"
-            element={(
+            element={
               <ProtectedRoute>
                 <div>Protected content</div>
               </ProtectedRoute>
-            )}
+            }
           />
           <Route path="/login" element={<LocationProbe />} />
         </Routes>
@@ -71,11 +78,11 @@ describe("auth + protected routing behavior", () => {
         <Routes>
           <Route
             path="/tasks"
-            element={(
+            element={
               <ProtectedRoute>
                 <div>Protected content</div>
               </ProtectedRoute>
-            )}
+            }
           />
           <Route path="/login" element={<LocationProbe />} />
         </Routes>
@@ -96,11 +103,11 @@ describe("auth + protected routing behavior", () => {
         <Routes>
           <Route
             path="/tasks"
-            element={(
+            element={
               <ProtectedRoute>
                 <div>Protected content</div>
               </ProtectedRoute>
-            )}
+            }
           />
         </Routes>
       </MemoryRouter>,
@@ -111,15 +118,26 @@ describe("auth + protected routing behavior", () => {
 
   test("sanitizes invalid returnTo values for auth page and callback", () => {
     expect(ensureSafeReturnTo("/tasks", "/fallback")).toBe("/tasks");
-    expect(ensureSafeReturnTo("//evil.test/pwn", "/fallback")).toBe("/fallback");
-    expect(ensureSafeReturnTo("https://evil.test/pwn", "/fallback")).toBe("/fallback");
+    expect(ensureSafeReturnTo("//evil.test/pwn", "/fallback")).toBe(
+      "/fallback",
+    );
+    expect(ensureSafeReturnTo("https://evil.test/pwn", "/fallback")).toBe(
+      "/fallback",
+    );
     expect(ensureSafeReturnTo("/tasks\u0000", "/fallback")).toBe("/fallback");
 
-    expect(sanitizeReturnTo("https://evil.test/steal", "/fallback")).toBe("/fallback");
-    expect(sanitizeReturnTo("  //evil.test/path  ", "/fallback")).toBe("/fallback");
-    expect(sanitizeReturnTo(`${window.location.origin}/archive?tab=all#top`, "/fallback")).toBe(
-      "/archive?tab=all#top",
+    expect(sanitizeReturnTo("https://evil.test/steal", "/fallback")).toBe(
+      "/fallback",
     );
+    expect(sanitizeReturnTo("  //evil.test/path  ", "/fallback")).toBe(
+      "/fallback",
+    );
+    expect(
+      sanitizeReturnTo(
+        `${window.location.origin}/archive?tab=all#top`,
+        "/fallback",
+      ),
+    ).toBe("/archive?tab=all#top");
   });
 
   test("auth callback without code routes safely using stored returnTo and mode", async () => {
@@ -145,7 +163,10 @@ describe("auth + protected routing behavior", () => {
   });
 
   test("auth callback falls back to /tasks when stored returnTo is unsafe", async () => {
-    window.sessionStorage.setItem("builddesign.auth.returnTo", "https://evil.test/steal");
+    window.sessionStorage.setItem(
+      "builddesign.auth.returnTo",
+      "https://evil.test/steal",
+    );
 
     render(
       <MemoryRouter initialEntries={["/auth/callback"]}>
@@ -159,7 +180,9 @@ describe("auth + protected routing behavior", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("location").textContent).toBe("/login?returnTo=%2Ftasks");
+      expect(screen.getByTestId("location").textContent).toBe(
+        "/login?returnTo=%2Ftasks",
+      );
     });
   });
 });

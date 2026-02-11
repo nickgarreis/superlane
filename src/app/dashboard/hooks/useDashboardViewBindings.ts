@@ -11,21 +11,33 @@ import { useDashboardPopupBindings } from "./useDashboardPopupBindings";
 import { useDashboardSettingsData } from "./useDashboardSettingsData";
 import type { DashboardActionLayer } from "./useDashboardActionLayer";
 import type { DashboardDataLayer } from "./useDashboardDataLayer";
-
 type DashboardViewBindings = {
   hasSnapshot: boolean;
   popupsProps: ComponentProps<typeof DashboardPopups>;
   chromeProps: ComponentProps<typeof DashboardChrome>;
   contentProps: ComponentProps<typeof DashboardContent>;
 };
-
 export function useDashboardViewBindings(
   dataLayer: DashboardDataLayer,
   actionLayer: DashboardActionLayer,
 ): DashboardViewBindings {
-  const { user, signOut, navigation, data, viewerFallback, canCreateWorkspace, workspaceActions } = dataLayer;
-  const { dashboardCommands, projectActions, mainContentFileActions, createMainContentProjectActions, baseMainContentNavigationActions, handleNavigateToArchiveProject } = actionLayer;
-
+  const {
+    user,
+    signOut,
+    navigation,
+    data,
+    viewerFallback,
+    canCreateWorkspace,
+    workspaceActions,
+  } = dataLayer;
+  const {
+    dashboardCommands,
+    projectActions,
+    mainContentFileActions,
+    createMainContentProjectActions,
+    baseMainContentNavigationActions,
+    handleNavigateToArchiveProject,
+  } = actionLayer;
   const {
     createProjectViewer,
     searchPopupOpenSettings,
@@ -43,18 +55,21 @@ export function useDashboardViewBindings(
     preloadSettingsPopupModule: loadSettingsPopupModule,
     signOut,
   });
-
-  const { settingsAccountData, settingsNotificationsData, settingsCompanyData } = useDashboardSettingsData({
+  const {
+    settingsAccountData,
+    settingsNotificationsData,
+    settingsCompanyData,
+  } = useDashboardSettingsData({
     accountSettings: data.accountSettings,
     notificationSettings: data.notificationSettings,
     companySummary: data.companySummary,
     companyMembersResult: data.companyMembersResult,
     companyPendingInvitationsResult: data.companyPendingInvitationsResult,
     companyBrandAssetsResult: data.companyBrandAssetsResult,
-    fallbackAvatarUrl: data.viewerIdentity.avatarUrl ?? viewerFallback.avatarUrl,
+    fallbackAvatarUrl:
+      data.viewerIdentity.avatarUrl ?? viewerFallback.avatarUrl,
     user,
   });
-
   const popupsProps = useMemo<ComponentProps<typeof DashboardPopups>>(
     () => ({
       isSearchOpen: navigation.isSearchOpen,
@@ -87,16 +102,23 @@ export function useDashboardViewBindings(
       settingsCompanyData,
       resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,
       companySummary: data.companySummary,
-      handleUpdateWorkspaceGeneral: workspaceActions.handleUpdateWorkspaceGeneral,
+      handleUpdateWorkspaceGeneral:
+        workspaceActions.handleUpdateWorkspaceGeneral,
       handleUploadWorkspaceLogo: workspaceActions.handleUploadWorkspaceLogo,
       handleInviteWorkspaceMember: workspaceActions.handleInviteWorkspaceMember,
-      handleChangeWorkspaceMemberRole: workspaceActions.handleChangeWorkspaceMemberRole,
+      handleChangeWorkspaceMemberRole:
+        workspaceActions.handleChangeWorkspaceMemberRole,
       handleRemoveWorkspaceMember: workspaceActions.handleRemoveWorkspaceMember,
-      handleResendWorkspaceInvitation: workspaceActions.handleResendWorkspaceInvitation,
-      handleRevokeWorkspaceInvitation: workspaceActions.handleRevokeWorkspaceInvitation,
-      handleUploadWorkspaceBrandAsset: workspaceActions.handleUploadWorkspaceBrandAsset,
-      handleRemoveWorkspaceBrandAsset: workspaceActions.handleRemoveWorkspaceBrandAsset,
-      handleGetWorkspaceBrandAssetDownloadUrl: workspaceActions.handleGetWorkspaceBrandAssetDownloadUrl,
+      handleResendWorkspaceInvitation:
+        workspaceActions.handleResendWorkspaceInvitation,
+      handleRevokeWorkspaceInvitation:
+        workspaceActions.handleRevokeWorkspaceInvitation,
+      handleUploadWorkspaceBrandAsset:
+        workspaceActions.handleUploadWorkspaceBrandAsset,
+      handleRemoveWorkspaceBrandAsset:
+        workspaceActions.handleRemoveWorkspaceBrandAsset,
+      handleGetWorkspaceBrandAssetDownloadUrl:
+        workspaceActions.handleGetWorkspaceBrandAssetDownloadUrl,
       handleSoftDeleteWorkspace: workspaceActions.handleSoftDeleteWorkspace,
     }),
     [
@@ -143,7 +165,6 @@ export function useDashboardViewBindings(
       workspaceActions.handleUploadWorkspaceLogo,
     ],
   );
-
   const chromeProps = useMemo<ComponentProps<typeof DashboardChrome>>(
     () => ({
       isSidebarOpen: navigation.isSidebarOpen,
@@ -190,7 +211,6 @@ export function useDashboardViewBindings(
       navigation.openSearch,
     ],
   );
-
   const contentProps = useMemo<ComponentProps<typeof DashboardContent>>(
     () => ({
       contentModel: data.contentModel,
@@ -245,7 +265,6 @@ export function useDashboardViewBindings(
       projectActions.handleUnarchiveProject,
     ],
   );
-
   return {
     hasSnapshot: Boolean(data.snapshot),
     popupsProps,

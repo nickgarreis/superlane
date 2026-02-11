@@ -6,7 +6,6 @@ import { SidebarPrimaryActions } from "./sidebar/SidebarPrimaryActions";
 import { SidebarProfileMenu } from "./sidebar/SidebarProfileMenu";
 import { SidebarProjectsSection } from "./sidebar/SidebarProjectsSection";
 import { SidebarWorkspaceSwitcher } from "./sidebar/SidebarWorkspaceSwitcher";
-
 type SidebarProps = {
   onNavigate: (view: AppView) => void;
   onSearch: () => void;
@@ -21,14 +20,15 @@ type SidebarProps = {
   onSwitchWorkspace: (workspaceSlug: string) => void;
   onCreateWorkspace: () => void;
   canCreateWorkspace: boolean;
-  onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
+  onOpenSettings: (
+    tab?: "Account" | "Notifications" | "Company" | "Billing",
+  ) => void;
   onOpenSettingsIntent?: () => void;
   onUpdateProjectStatus: (id: string, newStatus: string) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
   onLogout: () => void;
 };
-
 export function Sidebar({
   onNavigate,
   onSearch,
@@ -51,7 +51,6 @@ export function Sidebar({
   onLogout,
 }: SidebarProps) {
   const [isCompletedPopupOpen, setIsCompletedPopupOpen] = useState(false);
-
   return (
     <>
       <div className="flex flex-col h-full w-full bg-transparent px-3 py-4 select-none">
@@ -62,7 +61,6 @@ export function Sidebar({
           onCreateWorkspace={onCreateWorkspace}
           canCreateWorkspace={canCreateWorkspace}
         />
-
         <SidebarPrimaryActions
           currentView={currentView}
           onSearch={onSearch}
@@ -71,7 +69,6 @@ export function Sidebar({
           onOpenCreateProject={onOpenCreateProject}
           onOpenCreateProjectIntent={onOpenCreateProjectIntent}
         />
-
         <SidebarProjectsSection
           projects={projects}
           currentView={currentView}
@@ -80,7 +77,6 @@ export function Sidebar({
           onViewReviewProject={onViewReviewProject}
           onOpenCompletedProjectsPopup={() => setIsCompletedPopupOpen(true)}
         />
-
         <SidebarProfileMenu
           viewerIdentity={viewerIdentity}
           onOpenSettings={onOpenSettings}
@@ -88,7 +84,6 @@ export function Sidebar({
           onLogout={onLogout}
         />
       </div>
-
       <CompletedProjectsPopup
         isOpen={isCompletedPopupOpen}
         onClose={() => setIsCompletedPopupOpen(false)}

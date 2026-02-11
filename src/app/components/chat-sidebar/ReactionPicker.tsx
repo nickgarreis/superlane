@@ -1,14 +1,11 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-
 const REACTION_OPTIONS = ["👍", "❤️", "👀", "🎉", "💡", "✅"];
-
 type ReactionPickerProps = {
   commentId: string;
   isOpen: boolean;
   onToggleReaction: (commentId: string, emoji: string) => void;
 };
-
 export function ReactionPicker({
   commentId,
   isOpen,
@@ -29,7 +26,7 @@ export function ReactionPicker({
             <button
               key={emoji}
               onClick={() => onToggleReaction(commentId, emoji)}
-              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors text-[14px] cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors txt-role-body-lg cursor-pointer"
             >
               {emoji}
             </button>

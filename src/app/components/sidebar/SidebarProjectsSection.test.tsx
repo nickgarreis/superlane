@@ -37,8 +37,26 @@ describe("SidebarProjectsSection", () => {
       <SidebarProjectsSection
         projects={{
           a: project({ id: "active-1", name: "Active Project" }),
-          b: project({ id: "draft-1", name: "Draft Project", status: { label: "Draft", color: "#fff", bgColor: "#000", dotColor: "#fff" } }),
-          c: project({ id: "review-1", name: "Review Project", status: { label: "Review", color: "#fff", bgColor: "#000", dotColor: "#fff" } }),
+          b: project({
+            id: "draft-1",
+            name: "Draft Project",
+            status: {
+              label: "Draft",
+              color: "#fff",
+              bgColor: "#000",
+              dotColor: "#fff",
+            },
+          }),
+          c: project({
+            id: "review-1",
+            name: "Review Project",
+            status: {
+              label: "Review",
+              color: "#fff",
+              bgColor: "#000",
+              dotColor: "#fff",
+            },
+          }),
         }}
         currentView="tasks"
         onNavigate={onNavigate}
@@ -53,8 +71,12 @@ describe("SidebarProjectsSection", () => {
     fireEvent.click(screen.getByText("Review Project"));
 
     expect(onNavigate).toHaveBeenCalledWith("project:active-1");
-    expect(onEditProject).toHaveBeenCalledWith(expect.objectContaining({ id: "draft-1" }));
-    expect(onViewReviewProject).toHaveBeenCalledWith(expect.objectContaining({ id: "review-1" }));
+    expect(onEditProject).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "draft-1" }),
+    );
+    expect(onViewReviewProject).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "review-1" }),
+    );
   });
 
   test("opens completed projects popup from completed section", () => {
@@ -66,7 +88,12 @@ describe("SidebarProjectsSection", () => {
           completed: project({
             id: "completed-1",
             name: "Completed Project",
-            status: { label: "Completed", color: "#fff", bgColor: "#000", dotColor: "#fff" },
+            status: {
+              label: "Completed",
+              color: "#fff",
+              bgColor: "#000",
+              dotColor: "#fff",
+            },
             completedAt: Date.UTC(2026, 1, 10),
           }),
         }}

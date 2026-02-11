@@ -35,16 +35,21 @@ describe("FeedbackPopup", () => {
 
     render(<FeedbackPopup isOpen type="feature" onClose={onClose} />);
 
-    fireEvent.change(screen.getByPlaceholderText("Brief summary of your idea"), {
-      target: { value: "Need CSV export" },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText("Brief summary of your idea"),
+      {
+        target: { value: "Need CSV export" },
+      },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await act(async () => {
       vi.advanceTimersByTime(600);
     });
 
-    expect(toastSuccessMock).toHaveBeenCalledWith("Feature request submitted — thank you!");
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      "Feature request submitted — thank you!",
+    );
     expect(onClose).toHaveBeenCalled();
   });
 

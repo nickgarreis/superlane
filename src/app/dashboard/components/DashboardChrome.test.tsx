@@ -18,7 +18,9 @@ vi.mock("../../components/Sidebar", () => ({
     onLogout: () => void;
     onSwitchWorkspace: (workspaceSlug: string) => void;
     onCreateWorkspace: () => void;
-    onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
+    onOpenSettings: (
+      tab?: "Account" | "Notifications" | "Company" | "Billing",
+    ) => void;
     onUpdateProjectStatus: (projectId: string, newStatus: string) => void;
     onEditProject: (project: ProjectData) => void;
     onViewReviewProject: (project: ProjectData) => void;
@@ -26,15 +28,31 @@ vi.mock("../../components/Sidebar", () => ({
   }) => (
     <div data-testid="sidebar">
       <button onClick={props.onSearchIntent}>search-intent</button>
-      <button onClick={props.onOpenCreateProjectIntent}>create-project-intent</button>
+      <button onClick={props.onOpenCreateProjectIntent}>
+        create-project-intent
+      </button>
       <button onClick={props.onOpenSettingsIntent}>settings-intent</button>
       <button onClick={props.onLogout}>logout</button>
-      <button onClick={() => props.onSwitchWorkspace("workspace-b")}>switch-workspace</button>
+      <button onClick={() => props.onSwitchWorkspace("workspace-b")}>
+        switch-workspace
+      </button>
       <button onClick={props.onCreateWorkspace}>create-workspace</button>
-      <button onClick={() => props.onOpenSettings("Company")}>open-settings-company</button>
-      <button onClick={() => props.onUpdateProjectStatus("project-1", "Completed")}>update-status</button>
-      <button onClick={() => props.onEditProject(props.projects["project-1"])}>edit-project</button>
-      <button onClick={() => props.onViewReviewProject(props.projects["project-1"])}>review-project</button>
+      <button onClick={() => props.onOpenSettings("Company")}>
+        open-settings-company
+      </button>
+      <button
+        onClick={() => props.onUpdateProjectStatus("project-1", "Completed")}
+      >
+        update-status
+      </button>
+      <button onClick={() => props.onEditProject(props.projects["project-1"])}>
+        edit-project
+      </button>
+      <button
+        onClick={() => props.onViewReviewProject(props.projects["project-1"])}
+      >
+        review-project
+      </button>
     </div>
   ),
 }));
@@ -102,12 +120,16 @@ describe("DashboardChrome", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "search-intent" }));
-    fireEvent.click(screen.getByRole("button", { name: "create-project-intent" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "create-project-intent" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "settings-intent" }));
     fireEvent.click(screen.getByRole("button", { name: "logout" }));
     fireEvent.click(screen.getByRole("button", { name: "switch-workspace" }));
     fireEvent.click(screen.getByRole("button", { name: "create-workspace" }));
-    fireEvent.click(screen.getByRole("button", { name: "open-settings-company" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "open-settings-company" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "update-status" }));
     fireEvent.click(screen.getByRole("button", { name: "edit-project" }));
     fireEvent.click(screen.getByRole("button", { name: "review-project" }));
@@ -119,7 +141,10 @@ describe("DashboardChrome", () => {
     expect(props.onSwitchWorkspace).toHaveBeenCalledWith("workspace-b");
     expect(props.onCreateWorkspace).toHaveBeenCalledTimes(1);
     expect(props.onOpenSettings).toHaveBeenCalledWith("Company");
-    expect(props.onUpdateProjectStatus).toHaveBeenCalledWith("project-1", "Completed");
+    expect(props.onUpdateProjectStatus).toHaveBeenCalledWith(
+      "project-1",
+      "Completed",
+    );
     expect(props.onEditProject).toHaveBeenCalledWith(PROJECT);
     expect(props.onViewReviewProject).toHaveBeenCalledWith(PROJECT);
   });

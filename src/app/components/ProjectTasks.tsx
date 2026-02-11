@@ -3,12 +3,17 @@ import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import "react-day-picker/dist/style.css";
 import { ProjectTaskRows } from "./project-tasks/ProjectTaskRows";
 import { TasksToolbar } from "./project-tasks/TasksToolbar";
-import { useWorkspaceTaskFiltering, type TaskSortBy } from "./project-tasks/useWorkspaceTaskFiltering";
+import {
+  useWorkspaceTaskFiltering,
+  type TaskSortBy,
+} from "./project-tasks/useWorkspaceTaskFiltering";
 import { AddTaskRow } from "./project-tasks/AddTaskRow";
 import { ProjectTaskTableHeader } from "./project-tasks/ProjectTaskTableHeader";
 import { useTaskHighlight } from "./project-tasks/useTaskHighlight";
-import { useProjectTaskHandlers, type TaskProjectOption } from "./project-tasks/useProjectTaskHandlers";
-
+import {
+  useProjectTaskHandlers,
+  type TaskProjectOption,
+} from "./project-tasks/useProjectTaskHandlers";
 interface ProjectTasksProps {
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
@@ -29,7 +34,6 @@ interface ProjectTasksProps {
   canEditTask?: (task: Task) => boolean;
   editTaskDisabledMessage?: string;
 }
-
 export function ProjectTasks({
   tasks: initialTasks,
   onUpdateTasks,
@@ -51,21 +55,25 @@ export function ProjectTasks({
   editTaskDisabledMessage = "Tasks can only be edited for active projects",
 }: ProjectTasksProps) {
   const [internalIsAdding, setInternalIsAdding] = useState(false);
-  
   const isAdding = isAddingMode !== undefined ? isAddingMode : internalIsAdding;
   const setIsAdding = onAddingModeChange || setInternalIsAdding;
-
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [openCalendarTaskId, setOpenCalendarTaskId] = useState<string | null>(null);
-  const [calendarPosition, setCalendarPosition] = useState<{ top: number; left: number } | null>(null);
-  const [openAssigneeTaskId, setOpenAssigneeTaskId] = useState<string | null>(null);
-  const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(null);
+  const [openCalendarTaskId, setOpenCalendarTaskId] = useState<string | null>(
+    null,
+  );
+  const [calendarPosition, setCalendarPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const [openAssigneeTaskId, setOpenAssigneeTaskId] = useState<string | null>(
+    null,
+  );
+  const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(
+    null,
+  );
   const addTaskRowRef = useRef<HTMLDivElement | null>(null);
-
-  // Sorting
   const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
   const [isSortOpen, setIsSortOpen] = useState(false);
-
   const { sortedTasks, taskRowStyle } = useWorkspaceTaskFiltering({
     initialTasks,
     disableInternalSort,
@@ -99,127 +107,120 @@ export function ProjectTasks({
     setOpenAssigneeTaskId,
     setOpenProjectTaskId,
   });
-
   const closeAllDropdowns = useCallback(() => {
-      setOpenCalendarTaskId(null);
-      setCalendarPosition(null);
-      setOpenAssigneeTaskId(null);
-      setOpenProjectTaskId(null);
+    setOpenCalendarTaskId(null);
+    setCalendarPosition(null);
+    setOpenAssigneeTaskId(null);
+    setOpenProjectTaskId(null);
   }, []);
-
   useEffect(() => {
     if (canEditTasks) {
       return;
     }
     closeAllDropdowns();
   }, [canEditTasks, closeAllDropdowns]);
-
   useEffect(() => {
     if (!isAdding) {
       return;
     }
-
     const handlePointerDownOutside = (event: PointerEvent) => {
       const rowElement = addTaskRowRef.current;
       if (!rowElement) {
         return;
       }
-
       const target = event.target;
       if (!(target instanceof Node)) {
         return;
       }
-
       if (rowElement.contains(target)) {
         return;
       }
-
       handleCancelAddTask();
     };
-
     document.addEventListener("pointerdown", handlePointerDownOutside);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDownOutside);
     };
   }, [handleCancelAddTask, isAdding]);
-
   useEffect(() => {
     if (canAddTasks) {
       return;
     }
-
     if (!isAdding) {
       return;
     }
-
     handleCancelAddTask();
   }, [canAddTasks, handleCancelAddTask, isAdding]);
-
   const taskRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   useTaskHighlight({ highlightedTaskId, onHighlightDone, taskRowRefs });
-
   return (
     <div className="flex flex-col gap-5 mb-8">
-        {/* Backdrop for dropdowns */}
-        {(openCalendarTaskId || openAssigneeTaskId || openProjectTaskId || isSortOpen) && (
-            <div className="fixed inset-0 z-40 bg-transparent" onClick={() => {
-                closeAllDropdowns();
-                setIsSortOpen(false);
-            }} />
-        )}
-
-        <TasksToolbar
-          taskCount={initialTasks.length}
-          hideHeader={hideHeader}
-          canAddTasks={canAddTasks}
-          addTaskDisabledMessage={addTaskDisabledMessage}
-          onStartAdding={() => setIsAdding(true)}
-          isSortOpen={isSortOpen}
-          onToggleSort={() => setIsSortOpen(!isSortOpen)}
-          onCloseSort={() => setIsSortOpen(false)}
-          sortBy={sortBy}
-          onSortSelect={setSortBy}
+      {" "}
+      {/* Backdrop for dropdowns */}{" "}
+      {(openCalendarTaskId ||
+        openAssigneeTaskId ||
+        openProjectTaskId ||
+        isSortOpen) && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => {
+            closeAllDropdowns();
+            setIsSortOpen(false);
+          }}
         />
-
-        <div className="flex flex-col border-t border-white/5">
-            {showProjectColumn && <ProjectTaskTableHeader />}
-            {isAdding && (
-              <AddTaskRow
-                addTaskRowRef={addTaskRowRef}
-                newTaskTitle={newTaskTitle}
-                onTitleChange={setNewTaskTitle}
-                canCreateTask={canCreateTask}
-                onAddTask={handleAddTask}
-                onKeyDown={handleKeyDown}
-              />
-            )}
-            <ProjectTaskRows
-              initialTasks={initialTasks}
-              sortedTasks={sortedTasks}
-              showProjectColumn={showProjectColumn}
-              projectOptions={projectOptions}
-              assignableMembers={assignableMembers}
-              openCalendarTaskId={openCalendarTaskId}
-              setOpenCalendarTaskId={setOpenCalendarTaskId}
-              calendarPosition={calendarPosition}
-              setCalendarPosition={setCalendarPosition}
-              openAssigneeTaskId={openAssigneeTaskId}
-              setOpenAssigneeTaskId={setOpenAssigneeTaskId}
-              openProjectTaskId={openProjectTaskId}
-              setOpenProjectTaskId={setOpenProjectTaskId}
-              closeAllDropdowns={closeAllDropdowns}
-              handleToggle={handleToggle}
-              handleDelete={handleDelete}
-              handleDateSelect={handleDateSelect}
-              handleAssigneeSelect={handleAssigneeSelect}
-              handleProjectSelect={handleProjectSelect}
-              isAdding={isAdding}
-              taskRowRefs={taskRowRefs}
-              taskRowStyle={taskRowStyle}
-              editTaskDisabledMessage={editTaskDisabledMessage}
-              isTaskEditable={isTaskEditable}
-            />
-        </div>
+      )}{" "}
+      <TasksToolbar
+        taskCount={initialTasks.length}
+        hideHeader={hideHeader}
+        canAddTasks={canAddTasks}
+        addTaskDisabledMessage={addTaskDisabledMessage}
+        onStartAdding={() => setIsAdding(true)}
+        isSortOpen={isSortOpen}
+        onToggleSort={() => setIsSortOpen(!isSortOpen)}
+        onCloseSort={() => setIsSortOpen(false)}
+        sortBy={sortBy}
+        onSortSelect={setSortBy}
+      />{" "}
+      <div className="flex flex-col border-t border-white/5">
+        {" "}
+        {showProjectColumn && <ProjectTaskTableHeader />}{" "}
+        {isAdding && (
+          <AddTaskRow
+            addTaskRowRef={addTaskRowRef}
+            newTaskTitle={newTaskTitle}
+            onTitleChange={setNewTaskTitle}
+            canCreateTask={canCreateTask}
+            onAddTask={handleAddTask}
+            onKeyDown={handleKeyDown}
+          />
+        )}{" "}
+        <ProjectTaskRows
+          initialTasks={initialTasks}
+          sortedTasks={sortedTasks}
+          showProjectColumn={showProjectColumn}
+          projectOptions={projectOptions}
+          assignableMembers={assignableMembers}
+          openCalendarTaskId={openCalendarTaskId}
+          setOpenCalendarTaskId={setOpenCalendarTaskId}
+          calendarPosition={calendarPosition}
+          setCalendarPosition={setCalendarPosition}
+          openAssigneeTaskId={openAssigneeTaskId}
+          setOpenAssigneeTaskId={setOpenAssigneeTaskId}
+          openProjectTaskId={openProjectTaskId}
+          setOpenProjectTaskId={setOpenProjectTaskId}
+          closeAllDropdowns={closeAllDropdowns}
+          handleToggle={handleToggle}
+          handleDelete={handleDelete}
+          handleDateSelect={handleDateSelect}
+          handleAssigneeSelect={handleAssigneeSelect}
+          handleProjectSelect={handleProjectSelect}
+          isAdding={isAdding}
+          taskRowRefs={taskRowRefs}
+          taskRowStyle={taskRowStyle}
+          editTaskDisabledMessage={editTaskDisabledMessage}
+          isTaskEditable={isTaskEditable}
+        />{" "}
+      </div>{" "}
     </div>
   );
 }

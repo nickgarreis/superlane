@@ -14,56 +14,59 @@ import type {
   CompanySettingsData,
   NotificationSettingsData,
 } from "../../components/settings-popup/types";
-
-export const loadSearchPopupModule = () => import("../../components/SearchPopup");
-export const loadCreateProjectPopupModule = () => import("../../components/CreateProjectPopup");
-export const loadCreateWorkspacePopupModule = () => import("../../components/CreateWorkspacePopup");
-export const loadSettingsPopupModule = () => import("../../components/SettingsPopup");
-
+export const loadSearchPopupModule = () =>
+  import("../../components/SearchPopup");
+export const loadCreateProjectPopupModule = () =>
+  import("../../components/CreateProjectPopup");
+export const loadCreateWorkspacePopupModule = () =>
+  import("../../components/CreateWorkspacePopup");
+export const loadSettingsPopupModule = () =>
+  import("../../components/SettingsPopup");
 const LazySearchPopup = React.lazy(async () => {
   const module = await loadSearchPopupModule();
   return { default: module.SearchPopup };
 });
-
 const LazyCreateProjectPopup = React.lazy(async () => {
   const module = await loadCreateProjectPopupModule();
   return { default: module.CreateProjectPopup };
 });
-
 const LazyCreateWorkspacePopup = React.lazy(async () => {
   const module = await loadCreateWorkspacePopupModule();
   return { default: module.CreateWorkspacePopup };
 });
-
 const LazySettingsPopup = React.lazy(async () => {
   const module = await loadSettingsPopupModule();
   return { default: module.SettingsPopup };
 });
-
 const PopupLoadingFallback = (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 backdrop-blur-sm text-[#E8E8E8]/80 font-['Roboto',sans-serif] text-sm">
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 backdrop-blur-sm txt-tone-secondary font-app text-sm">
     Loading...
   </div>
 );
-
 type SearchHighlight = {
   type: "task" | "file";
   taskId?: string;
   fileName?: string;
   fileTab?: string;
 };
-
 type DashboardPopupsProps = {
   isSearchOpen: boolean;
   setIsSearchOpen: (value: boolean) => void;
   projects: Record<string, ProjectData>;
   allWorkspaceFiles: ProjectFileData[];
-  workspaceFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  workspaceFilesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   loadMoreWorkspaceFiles: (numItems: number) => void;
   navigateView: (view: AppView) => void;
   openCreateProject: () => void;
   searchPopupOpenSettings: (tab?: string) => void;
-  searchPopupHighlightNavigate: (projectId: string, highlight: SearchHighlight) => void;
+  searchPopupHighlightNavigate: (
+    projectId: string,
+    highlight: SearchHighlight,
+  ) => void;
   isCreateProjectOpen: boolean;
   closeCreateProject: () => void;
   dashboardCommands: DashboardCommands;
@@ -76,11 +79,17 @@ type DashboardPopupsProps = {
   editProjectId: string | null;
   editDraftData: ProjectDraftData | null;
   reviewProject: ProjectData | null;
-  handleUpdateComments: (projectId: string, comments: ReviewComment[]) => Promise<unknown>;
+  handleUpdateComments: (
+    projectId: string,
+    comments: ReviewComment[],
+  ) => Promise<unknown>;
   handleApproveReviewProject: (projectId: string) => Promise<void>;
   isCreateWorkspaceOpen: boolean;
   closeCreateWorkspace: () => void;
-  handleCreateWorkspaceSubmit: (payload: { name: string; logoFile?: File | null }) => Promise<void>;
+  handleCreateWorkspaceSubmit: (payload: {
+    name: string;
+    logoFile?: File | null;
+  }) => Promise<void>;
   isSettingsOpen: boolean;
   settingsTab: SettingsTab;
   activeWorkspace: Workspace | undefined;
@@ -89,19 +98,37 @@ type DashboardPopupsProps = {
   settingsCompanyData: CompanySettingsData | null;
   resolvedWorkspaceSlug: string | null;
   companySummary?: unknown;
-  handleUpdateWorkspaceGeneral: (payload: { name: string; logo?: string; logoColor?: string; logoText?: string }) => Promise<void>;
+  handleUpdateWorkspaceGeneral: (payload: {
+    name: string;
+    logo?: string;
+    logoColor?: string;
+    logoText?: string;
+  }) => Promise<void>;
   handleUploadWorkspaceLogo: (file: File) => Promise<void>;
-  handleInviteWorkspaceMember: (payload: { email: string; role: "admin" | "member" }) => Promise<void>;
-  handleChangeWorkspaceMemberRole: (payload: { userId: string; role: "admin" | "member" }) => Promise<void>;
+  handleInviteWorkspaceMember: (payload: {
+    email: string;
+    role: "admin" | "member";
+  }) => Promise<void>;
+  handleChangeWorkspaceMemberRole: (payload: {
+    userId: string;
+    role: "admin" | "member";
+  }) => Promise<void>;
   handleRemoveWorkspaceMember: (payload: { userId: string }) => Promise<void>;
-  handleResendWorkspaceInvitation: (payload: { invitationId: string }) => Promise<void>;
-  handleRevokeWorkspaceInvitation: (payload: { invitationId: string }) => Promise<void>;
+  handleResendWorkspaceInvitation: (payload: {
+    invitationId: string;
+  }) => Promise<void>;
+  handleRevokeWorkspaceInvitation: (payload: {
+    invitationId: string;
+  }) => Promise<void>;
   handleUploadWorkspaceBrandAsset: (file: File) => Promise<void>;
-  handleRemoveWorkspaceBrandAsset: (payload: { brandAssetId: string }) => Promise<void>;
-  handleGetWorkspaceBrandAssetDownloadUrl: (payload: { brandAssetId: string }) => Promise<string | null>;
+  handleRemoveWorkspaceBrandAsset: (payload: {
+    brandAssetId: string;
+  }) => Promise<void>;
+  handleGetWorkspaceBrandAssetDownloadUrl: (payload: {
+    brandAssetId: string;
+  }) => Promise<string | null>;
   handleSoftDeleteWorkspace: () => Promise<void>;
 };
-
 export function DashboardPopups({
   isSearchOpen,
   setIsSearchOpen,
@@ -163,7 +190,6 @@ export function DashboardPopups({
           />
         </Suspense>
       )}
-
       {isCreateProjectOpen && (
         <Suspense fallback={PopupLoadingFallback}>
           <LazyCreateProjectPopup
@@ -178,12 +204,15 @@ export function DashboardPopups({
             onUpdateComments={handleUpdateComments}
             onApproveReviewProject={handleApproveReviewProject}
             onUploadAttachment={dashboardCommands.file.uploadDraftAttachment}
-            onRemovePendingAttachment={dashboardCommands.file.removeDraftAttachment}
-            onDiscardDraftUploads={dashboardCommands.file.discardDraftSessionUploads}
+            onRemovePendingAttachment={
+              dashboardCommands.file.removeDraftAttachment
+            }
+            onDiscardDraftUploads={
+              dashboardCommands.file.discardDraftSessionUploads
+            }
           />
         </Suspense>
       )}
-
       {isCreateWorkspaceOpen && (
         <Suspense fallback={PopupLoadingFallback}>
           <LazyCreateWorkspacePopup
@@ -193,7 +222,6 @@ export function DashboardPopups({
           />
         </Suspense>
       )}
-
       {isSettingsOpen && (
         <Suspense fallback={PopupLoadingFallback}>
           <LazySettingsPopup
@@ -204,7 +232,11 @@ export function DashboardPopups({
             account={settingsAccountData}
             notifications={settingsNotificationsData}
             company={settingsCompanyData}
-            loadingCompany={isSettingsOpen && !!resolvedWorkspaceSlug && companySummary === undefined}
+            loadingCompany={
+              isSettingsOpen &&
+              !!resolvedWorkspaceSlug &&
+              companySummary === undefined
+            }
             onSaveAccount={dashboardCommands.settings.saveAccount}
             onUploadAvatar={dashboardCommands.settings.uploadAccountAvatar}
             onRemoveAvatar={dashboardCommands.settings.removeAccountAvatar}

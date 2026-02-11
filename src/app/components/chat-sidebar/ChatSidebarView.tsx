@@ -1,19 +1,12 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  X,
-  ChevronDown,
-  CheckCheck,
-  MessageSquare,
-  Send,
-} from "lucide-react";
+import { X, ChevronDown, CheckCheck, MessageSquare, Send } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import type { CollaborationComment, ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
 import { MentionTextarea } from "../MentionTextarea";
 import type { MentionItem as MentionItemType } from "../mentions/types";
 import { ProjectDropdown } from "./ProjectDropdown";
-
 type ChatSidebarViewProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -42,7 +35,6 @@ type ChatSidebarViewProps = {
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   onSubmitComment: (event?: React.FormEvent) => void;
 };
-
 const getInitials = (name: string) =>
   name
     .split(" ")
@@ -51,9 +43,7 @@ const getInitials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase() || "U";
-
 const resolvedThreadsPanelId = "resolved-threads-panel";
-
 export const ChatSidebarView = React.memo(function ChatSidebarView({
   isOpen,
   onClose,
@@ -102,13 +92,12 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                 onSwitchProject={onSwitchProject}
               />
               {totalThreadCount > 0 && (
-                <div className="ml-auto flex items-center gap-1.5 text-[11px] text-white/25 select-none mr-2">
+                <div className="ml-auto flex items-center gap-1.5 txt-role-meta text-white/25 select-none mr-2">
                   <MessageSquare className="w-3 h-3" />
                   <span>{totalThreadCount}</span>
                 </div>
               )}
             </div>
-
             <button
               onClick={onClose}
               aria-label="Close sidebar"
@@ -117,7 +106,6 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
               <X className="w-4 h-4" />
             </button>
           </div>
-
           <div className="shrink-0 px-4 pt-4 pb-3 border-b border-white/[0.04]">
             <form onSubmit={onSubmitComment}>
               <div
@@ -137,7 +125,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
+                      <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-kbd font-medium text-white/80">
                         {getInitials(currentUserName)}
                       </div>
                     )}
@@ -151,7 +139,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                     onFocus={() => onInputFocusChange(true)}
                     onBlur={() => onInputFocusChange(false)}
                     placeholder="Leave a comment... (@ to mention)"
-                    className="w-full bg-transparent border-none p-0 text-[13.5px] text-[#E8E8E8] placeholder:text-white/20 focus:outline-none resize-none leading-[1.5] min-h-[22px]"
+                    className="w-full bg-transparent border-none p-0 txt-role-body-md txt-tone-primary placeholder:text-white/20 focus:outline-none resize-none leading-normal min-h-[22px]"
                     rows={1}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -170,21 +158,20 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                         transition={{ duration: 0.12 }}
                         className="flex items-center justify-between mt-2 overflow-hidden"
                       >
-                        <span className="text-[10px] text-white/15 select-none">
+                        <span className="txt-role-kbd text-white/15 select-none">
                           ⌘Enter to send · @ to mention
                         </span>
                         <button
                           type="submit"
                           disabled={!inputValue.trim()}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] transition-all cursor-pointer",
+                            "flex items-center gap-1.5 px-3 py-1 rounded-lg txt-role-meta transition-all cursor-pointer",
                             inputValue.trim()
                               ? "bg-white/90 text-bg-base hover:bg-white"
                               : "bg-white/[0.06] text-white/20 cursor-not-allowed",
                           )}
                         >
-                          <Send className="w-3 h-3" />
-                          Send
+                          <Send className="w-3 h-3" /> Send
                         </button>
                       </motion.div>
                     )}
@@ -193,48 +180,53 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
               </div>
             </form>
           </div>
-
           <div
             ref={scrollRef}
             className="chat-comment-list flex-1 overflow-y-auto px-1.5 pb-8"
-            style={shouldOptimizeCommentRows
-              ? ({ contentVisibility: "auto", containIntrinsicSize: "900px" } as const)
-              : undefined}
+            style={
+              shouldOptimizeCommentRows
+                ? ({
+                    contentVisibility: "auto",
+                    containIntrinsicSize: "900px",
+                  } as const)
+                : undefined
+            }
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-8">
                 <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-4">
                   <MessageSquare className="w-5 h-5 text-white/15" />
                 </div>
-                <p className="text-[13px] text-white/25 mb-1">
+                <p className="txt-role-body-md text-white/25 mb-1">
                   No comments yet
                 </p>
-                <p className="text-[12px] text-white/12 max-w-[200px]">
+                <p className="txt-role-body-sm text-white/12 max-w-[200px]">
                   Start a conversation about {activeProject.name}
                 </p>
               </div>
             ) : (
               <>
                 {unresolvedComments.length > 0 && (
-                  <div className="pt-2">
-                    {unresolvedCommentItems}
-                  </div>
+                  <div className="pt-2"> {unresolvedCommentItems} </div>
                 )}
-
                 {resolvedCount > 0 && (
                   <div className="mt-2">
                     <button
                       onClick={onToggleResolvedThreads}
                       aria-expanded={showResolvedThreads}
                       aria-controls={resolvedThreadsPanelId}
-                      aria-label={showResolvedThreads ? "Collapse resolved threads" : "Expand resolved threads"}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-white/20 hover:text-white/35 transition-colors cursor-pointer select-none"
+                      aria-label={
+                        showResolvedThreads
+                          ? "Collapse resolved threads"
+                          : "Expand resolved threads"
+                      }
+                      className="w-full flex items-center gap-2 px-3 py-2 txt-role-meta text-white/20 hover:text-white/35 transition-colors cursor-pointer select-none"
                     >
                       <div className="flex-1 h-px bg-white/[0.04]" />
                       <div className="flex items-center gap-1.5 shrink-0">
                         <CheckCheck className="w-3 h-3" />
                         <span>
-                          {resolvedCount} resolved{" "}
+                          {resolvedCount} resolved
                           {resolvedCount === 1 ? "thread" : "threads"}
                         </span>
                         <ChevronDown
@@ -246,7 +238,6 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                       </div>
                       <div className="flex-1 h-px bg-white/[0.04]" />
                     </button>
-
                     <AnimatePresence>
                       {showResolvedThreads && (
                         <motion.div

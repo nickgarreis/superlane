@@ -36,11 +36,13 @@ vi.mock("convex/react", () => ({
 }));
 
 vi.mock("./useDashboardNavigation", () => ({
-  useDashboardNavigation: (...args: unknown[]) => useDashboardNavigationMock(...args),
+  useDashboardNavigation: (...args: unknown[]) =>
+    useDashboardNavigationMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardApiHandlers", () => ({
-  useDashboardApiHandlers: (...args: unknown[]) => useDashboardApiHandlersMock(...args),
+  useDashboardApiHandlers: (...args: unknown[]) =>
+    useDashboardApiHandlersMock(...args),
 }));
 
 vi.mock("./useDashboardData", () => ({
@@ -48,31 +50,38 @@ vi.mock("./useDashboardData", () => ({
 }));
 
 vi.mock("./useDashboardWorkspaceActions", () => ({
-  useDashboardWorkspaceActions: (...args: unknown[]) => useDashboardWorkspaceActionsMock(...args),
+  useDashboardWorkspaceActions: (...args: unknown[]) =>
+    useDashboardWorkspaceActionsMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardProjectActions", () => ({
-  useDashboardProjectActions: (...args: unknown[]) => useDashboardProjectActionsMock(...args),
+  useDashboardProjectActions: (...args: unknown[]) =>
+    useDashboardProjectActionsMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardFileActions", () => ({
-  useDashboardFileActions: (...args: unknown[]) => useDashboardFileActionsMock(...args),
+  useDashboardFileActions: (...args: unknown[]) =>
+    useDashboardFileActionsMock(...args),
 }));
 
 vi.mock("./useDashboardCommands", () => ({
-  useDashboardCommands: (...args: unknown[]) => useDashboardCommandsMock(...args),
+  useDashboardCommands: (...args: unknown[]) =>
+    useDashboardCommandsMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardPopupBindings", () => ({
-  useDashboardPopupBindings: (...args: unknown[]) => useDashboardPopupBindingsMock(...args),
+  useDashboardPopupBindings: (...args: unknown[]) =>
+    useDashboardPopupBindingsMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardSettingsData", () => ({
-  useDashboardSettingsData: (...args: unknown[]) => useDashboardSettingsDataMock(...args),
+  useDashboardSettingsData: (...args: unknown[]) =>
+    useDashboardSettingsDataMock(...args),
 }));
 
 vi.mock("./hooks/useDashboardLifecycleEffects", () => ({
-  useDashboardLifecycleEffects: (...args: unknown[]) => useDashboardLifecycleEffectsMock(...args),
+  useDashboardLifecycleEffects: (...args: unknown[]) =>
+    useDashboardLifecycleEffectsMock(...args),
 }));
 
 const BASE_PROJECT: ProjectData = {
@@ -263,11 +272,30 @@ function Harness() {
   return (
     <div>
       <div data-testid="has-snapshot">{String(orchestrated.hasSnapshot)}</div>
-      <button type="button" onClick={orchestrated.chromeProps.onCreateWorkspace}>create-workspace</button>
-      <button type="button" onClick={() => orchestrated.contentProps.createMainContentProjectActions("project-1").updateProject?.({ description: "updated" } as any)}>
+      <button
+        type="button"
+        onClick={orchestrated.chromeProps.onCreateWorkspace}
+      >
+        create-workspace
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          orchestrated.contentProps
+            .createMainContentProjectActions("project-1")
+            .updateProject?.({ description: "updated" } as any)
+        }
+      >
         update-project
       </button>
-      <button type="button" onClick={() => orchestrated.contentProps.handleNavigateToArchiveProject("project-1")}>go-archive</button>
+      <button
+        type="button"
+        onClick={() =>
+          orchestrated.contentProps.handleNavigateToArchiveProject("project-1")
+        }
+      >
+        go-archive
+      </button>
     </div>
   );
 }
@@ -353,7 +381,9 @@ beforeEach(() => {
 
 describe("useDashboardOrchestration", () => {
   test("reports unresolved snapshot state", () => {
-    useDashboardDataMock.mockReturnValue(buildDashboardData({ snapshot: null }));
+    useDashboardDataMock.mockReturnValue(
+      buildDashboardData({ snapshot: null }),
+    );
 
     render(<Harness />);
 
@@ -366,8 +396,13 @@ describe("useDashboardOrchestration", () => {
     fireEvent.click(screen.getByRole("button", { name: "go-archive" }));
     fireEvent.click(screen.getByRole("button", { name: "update-project" }));
 
-    expect(navigationState.navigateView).toHaveBeenCalledWith("archive-project:project-1");
-    expect(projectActionsState.handleUpdateProject).toHaveBeenCalledWith("project-1", { description: "updated" });
+    expect(navigationState.navigateView).toHaveBeenCalledWith(
+      "archive-project:project-1",
+    );
+    expect(projectActionsState.handleUpdateProject).toHaveBeenCalledWith(
+      "project-1",
+      { description: "updated" },
+    );
   });
 
   test("uses owner role to enable workspace creation", () => {
@@ -375,6 +410,8 @@ describe("useDashboardOrchestration", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "create-workspace" }));
 
-    expect(dashboardCommandsState.workspace.createWorkspace).toHaveBeenCalledTimes(1);
+    expect(
+      dashboardCommandsState.workspace.createWorkspace,
+    ).toHaveBeenCalledTimes(1);
   });
 });

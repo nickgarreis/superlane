@@ -22,7 +22,6 @@ import type {
   Workspace,
   WorkspaceMember,
 } from "../types";
-
 type UseDashboardDataArgs = {
   isAuthenticated: boolean;
   activeWorkspaceSlug: string | null;
@@ -31,32 +30,55 @@ type UseDashboardDataArgs = {
   settingsTab: SettingsTab;
   isSearchOpen: boolean;
   currentView: AppView;
-  viewerFallback: {
-    name: string;
-    email: string;
-    avatarUrl: string | null;
-  };
+  viewerFallback: { name: string; email: string; avatarUrl: string | null };
   setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
   setPendingHighlight: Dispatch<SetStateAction<PendingHighlight | null>>;
   navigateView: (view: AppView) => void;
 };
-
 type UseDashboardDataResult = {
-  snapshot: ReturnType<typeof useQuery<typeof api.dashboard.getWorkspaceBootstrap>>;
+  snapshot: ReturnType<
+    typeof useQuery<typeof api.dashboard.getWorkspaceBootstrap>
+  >;
   resolvedWorkspaceSlug: string | null;
-  tasksPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>>["status"];
-  loadMoreWorkspaceTasks: ReturnType<typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>>["loadMore"];
-  workspaceFilesPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.files.listForWorkspace>>["status"];
-  loadMoreWorkspaceFiles: ReturnType<typeof usePaginatedQuery<typeof api.files.listForWorkspace>>["loadMore"];
-  projectFilesPaginationStatus: ReturnType<typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>>["status"];
-  loadMoreProjectFiles: ReturnType<typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>>["loadMore"];
-  accountSettings: ReturnType<typeof useQuery<typeof api.settings.getAccountSettings>>;
-  notificationSettings: ReturnType<typeof useQuery<typeof api.settings.getNotificationPreferences>>;
-  companySummary: ReturnType<typeof useQuery<typeof api.settings.getCompanySettingsSummary>>;
-  companyMembersResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listCompanyMembers>>;
-  companyPendingInvitationsResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listPendingInvitations>>;
-  companyBrandAssetsResult: ReturnType<typeof usePaginatedQuery<typeof api.settings.listBrandAssets>>;
-  workspaceMembersResult: ReturnType<typeof useQuery<typeof api.collaboration.listWorkspaceMembers>>;
+  tasksPaginationStatus: ReturnType<
+    typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>
+  >["status"];
+  loadMoreWorkspaceTasks: ReturnType<
+    typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>
+  >["loadMore"];
+  workspaceFilesPaginationStatus: ReturnType<
+    typeof usePaginatedQuery<typeof api.files.listForWorkspace>
+  >["status"];
+  loadMoreWorkspaceFiles: ReturnType<
+    typeof usePaginatedQuery<typeof api.files.listForWorkspace>
+  >["loadMore"];
+  projectFilesPaginationStatus: ReturnType<
+    typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>
+  >["status"];
+  loadMoreProjectFiles: ReturnType<
+    typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>
+  >["loadMore"];
+  accountSettings: ReturnType<
+    typeof useQuery<typeof api.settings.getAccountSettings>
+  >;
+  notificationSettings: ReturnType<
+    typeof useQuery<typeof api.settings.getNotificationPreferences>
+  >;
+  companySummary: ReturnType<
+    typeof useQuery<typeof api.settings.getCompanySettingsSummary>
+  >;
+  companyMembersResult: ReturnType<
+    typeof usePaginatedQuery<typeof api.settings.listCompanyMembers>
+  >;
+  companyPendingInvitationsResult: ReturnType<
+    typeof usePaginatedQuery<typeof api.settings.listPendingInvitations>
+  >;
+  companyBrandAssetsResult: ReturnType<
+    typeof usePaginatedQuery<typeof api.settings.listBrandAssets>
+  >;
+  workspaceMembersResult: ReturnType<
+    typeof useQuery<typeof api.collaboration.listWorkspaceMembers>
+  >;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
   workspaces: Workspace[];
@@ -67,12 +89,14 @@ type UseDashboardDataResult = {
   allWorkspaceFiles: ProjectFileData[];
   projectFilesByProject: Record<string, ProjectFileData[]>;
   contentModel: ReturnType<typeof useDashboardController>["contentModel"];
-  handleToggleSidebar: ReturnType<typeof useDashboardController>["toggleSidebar"];
-  clearPendingHighlight: ReturnType<typeof useDashboardController>["clearPendingHighlight"];
+  handleToggleSidebar: ReturnType<
+    typeof useDashboardController
+  >["toggleSidebar"];
+  clearPendingHighlight: ReturnType<
+    typeof useDashboardController
+  >["clearPendingHighlight"];
 };
-
 const PAGINATION_PAGE_SIZE = 100;
-
 export const useDashboardData = ({
   isAuthenticated,
   activeWorkspaceSlug,
@@ -87,12 +111,14 @@ export const useDashboardData = ({
 }: UseDashboardDataArgs): UseDashboardDataResult => {
   const snapshot = useQuery(
     api.dashboard.getWorkspaceBootstrap,
-    isAuthenticated ? { activeWorkspaceSlug: activeWorkspaceSlug ?? undefined } : "skip",
+    isAuthenticated
+      ? { activeWorkspaceSlug: activeWorkspaceSlug ?? undefined }
+      : "skip",
   );
-
-  const resolvedWorkspaceSlug = snapshot === undefined
-    ? activeWorkspaceSlug ?? null
-    : snapshot.activeWorkspaceSlug ?? null;
+  const resolvedWorkspaceSlug =
+    snapshot === undefined
+      ? (activeWorkspaceSlug ?? null)
+      : (snapshot.activeWorkspaceSlug ?? null);
   const projectsResult = usePaginatedQuery(
     api.projects.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
@@ -100,7 +126,6 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
-
   const workspaceTasksResult = usePaginatedQuery(
     api.tasks.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug
@@ -108,11 +133,10 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
-
-  const shouldLoadWorkspaceFiles = isSearchOpen
-    || currentView.startsWith("project:")
-    || currentView.startsWith("archive-project:");
-
+  const shouldLoadWorkspaceFiles =
+    isSearchOpen ||
+    currentView.startsWith("project:") ||
+    currentView.startsWith("archive-project:");
   const workspaceFiles = usePaginatedQuery(
     api.files.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug && isSearchOpen
@@ -132,9 +156,7 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
-  const {
-    results: paginatedProjects,
-  } = projectsResult;
+  const { results: paginatedProjects } = projectsResult;
   const {
     results: paginatedWorkspaceTasks,
     status: tasksPaginationStatus,
@@ -150,19 +172,16 @@ export const useDashboardData = ({
     status: projectFilesPaginationStatus,
     loadMore: loadMoreProjectFiles,
   } = projectFiles;
-
   const accountSettings = useQuery(
     api.settings.getAccountSettings,
     isAuthenticated ? {} : "skip",
   );
-
   const notificationSettings = useQuery(
     api.settings.getNotificationPreferences,
     isAuthenticated && isSettingsOpen ? {} : "skip",
   );
-
-  const shouldLoadCompanySettings = isAuthenticated && resolvedWorkspaceSlug && isSettingsOpen;
-
+  const shouldLoadCompanySettings =
+    isAuthenticated && resolvedWorkspaceSlug && isSettingsOpen;
   const companySummary = useQuery(
     api.settings.getCompanySettingsSummary,
     shouldLoadCompanySettings
@@ -190,51 +209,63 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
-
   const workspaceMembersResult = useQuery(
     api.collaboration.listWorkspaceMembers,
-    isAuthenticated
-      && resolvedWorkspaceSlug
-      && snapshot !== undefined
+    isAuthenticated && resolvedWorkspaceSlug
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
-
   useEffect(() => {
     if (snapshot === undefined) {
       return;
     }
-
     const nextWorkspaceSlug = snapshot.activeWorkspaceSlug ?? null;
     if (nextWorkspaceSlug !== activeWorkspaceSlug) {
       setActiveWorkspaceSlug(nextWorkspaceSlug);
     }
   }, [snapshot, activeWorkspaceSlug, setActiveWorkspaceSlug]);
-
   const workspaceMembers = useMemo<WorkspaceMember[]>(
     () => workspaceMembersResult?.members ?? [],
     [workspaceMembersResult],
   );
-
   const viewerMembership = useMemo(
     () => workspaceMembers.find((member) => member.isViewer),
     [workspaceMembers],
   );
-
-  const viewerIdentity = useMemo<ViewerIdentity>(() => ({
-    userId: snapshot?.viewer?.id ? String(snapshot.viewer.id) : viewerMembership?.userId ?? null,
-    workosUserId: snapshot?.viewer?.workosUserId ?? viewerMembership?.workosUserId ?? null,
-    name: viewerMembership?.name ?? snapshot?.viewer?.name ?? viewerFallback.name,
-    email: viewerMembership?.email ?? snapshot?.viewer?.email ?? viewerFallback.email,
-    avatarUrl: viewerMembership?.avatarUrl ?? snapshot?.viewer?.avatarUrl ?? viewerFallback.avatarUrl,
-    role: viewerMembership?.role ?? null,
-  }), [snapshot?.viewer, viewerFallback.avatarUrl, viewerFallback.email, viewerFallback.name, viewerMembership]);
-
+  const viewerIdentity = useMemo<ViewerIdentity>(
+    () => ({
+      userId: snapshot?.viewer?.id
+        ? String(snapshot.viewer.id)
+        : (viewerMembership?.userId ?? null),
+      workosUserId:
+        snapshot?.viewer?.workosUserId ??
+        viewerMembership?.workosUserId ??
+        null,
+      name:
+        viewerMembership?.name ?? snapshot?.viewer?.name ?? viewerFallback.name,
+      email:
+        viewerMembership?.email ??
+        snapshot?.viewer?.email ??
+        viewerFallback.email,
+      avatarUrl:
+        viewerMembership?.avatarUrl ??
+        snapshot?.viewer?.avatarUrl ??
+        viewerFallback.avatarUrl,
+      role: viewerMembership?.role ?? null,
+    }),
+    [
+      snapshot?.viewer,
+      viewerFallback.avatarUrl,
+      viewerFallback.email,
+      viewerFallback.name,
+      viewerMembership,
+    ],
+  );
   const workspaces = useMemo(
-    () => mapWorkspacesToUi((snapshot?.workspaces ?? []) as SnapshotWorkspace[]),
+    () =>
+      mapWorkspacesToUi((snapshot?.workspaces ?? []) as SnapshotWorkspace[]),
     [snapshot?.workspaces],
   );
-
   const projects = useMemo(
     () =>
       mapProjectsToUi({
@@ -244,34 +275,35 @@ export const useDashboardData = ({
       }),
     [paginatedProjects, paginatedWorkspaceTasks, snapshot?.activeWorkspaceSlug],
   );
-
   const workspaceTasks = useMemo(
     () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
     [paginatedWorkspaceTasks],
   );
-
   const activeWorkspace = useMemo<Workspace | undefined>(() => {
-    const targetWorkspaceSlug = snapshot?.activeWorkspaceSlug ?? activeWorkspaceSlug;
+    const targetWorkspaceSlug =
+      snapshot?.activeWorkspaceSlug ?? activeWorkspaceSlug;
     if (!targetWorkspaceSlug) {
       return workspaces[0];
     }
-
-    return workspaces.find((workspace) => workspace.slug === targetWorkspaceSlug) ?? workspaces[0];
+    return (
+      workspaces.find((workspace) => workspace.slug === targetWorkspaceSlug) ??
+      workspaces[0]
+    );
   }, [workspaces, snapshot?.activeWorkspaceSlug, activeWorkspaceSlug]);
-
   const visibleProjects = useMemo(() => {
     if (!activeWorkspace) {
       return {};
     }
-
-    return Object.entries(projects).reduce<Record<string, ProjectData>>((acc, [key, project]) => {
-      if (project.workspaceId === activeWorkspace.id) {
-        acc[key] = project;
-      }
-      return acc;
-    }, {});
+    return Object.entries(projects).reduce<Record<string, ProjectData>>(
+      (acc, [key, project]) => {
+        if (project.workspaceId === activeWorkspace.id) {
+          acc[key] = project;
+        }
+        return acc;
+      },
+      {},
+    );
   }, [projects, activeWorkspace]);
-
   const {
     contentModel,
     toggleSidebar: handleToggleSidebar,
@@ -284,32 +316,24 @@ export const useDashboardData = ({
     setPendingHighlight,
     navigateView,
   });
-
   const allWorkspaceFiles = useMemo<ProjectFileData[]>(
     () =>
-      mapWorkspaceFilesToUi(
-        paginatedWorkspaceFiles as SnapshotWorkspaceFile[],
-      ),
+      mapWorkspaceFilesToUi(paginatedWorkspaceFiles as SnapshotWorkspaceFile[]),
     [paginatedWorkspaceFiles],
   );
-
-  const projectFilesByProject = useMemo(
-    () => {
-      const grouped: Record<string, ProjectFileData[]> = {};
-      const mappedProjectFiles = mapWorkspaceFilesToUi(
-        paginatedProjectFiles as SnapshotWorkspaceFile[],
-      );
-      mappedProjectFiles.forEach((file) => {
-        if (!grouped[file.projectPublicId]) {
-          grouped[file.projectPublicId] = [];
-        }
-        grouped[file.projectPublicId].push(file);
-      });
-      return grouped;
-    },
-    [paginatedProjectFiles],
-  );
-
+  const projectFilesByProject = useMemo(() => {
+    const grouped: Record<string, ProjectFileData[]> = {};
+    const mappedProjectFiles = mapWorkspaceFilesToUi(
+      paginatedProjectFiles as SnapshotWorkspaceFile[],
+    );
+    mappedProjectFiles.forEach((file) => {
+      if (!grouped[file.projectPublicId]) {
+        grouped[file.projectPublicId] = [];
+      }
+      grouped[file.projectPublicId].push(file);
+    });
+    return grouped;
+  }, [paginatedProjectFiles]);
   return {
     snapshot,
     resolvedWorkspaceSlug,

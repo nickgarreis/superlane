@@ -1,7 +1,6 @@
 import React, { memo, type KeyboardEvent } from "react";
 import { motion } from "motion/react";
 import { ProjectLogo } from "../../ProjectLogo";
-
 type StepDetailsStep2Props = {
   service: string;
   projectName: string;
@@ -12,16 +11,13 @@ type StepDetailsStep2Props = {
   selectedJob: string | null;
   onSelectJob: (job: string) => void;
 };
-
 const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     action();
   }
 };
-
 const PROJECT_NAME_INPUT_ID = "project-name";
-
 export const StepDetailsStep2 = memo(function StepDetailsStep2({
   service,
   projectName,
@@ -46,12 +42,11 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
           initial={{ y: 6, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.35 }}
-          className="flex flex-col font-['Roboto:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#e8e8e8] text-[17.7px] whitespace-nowrap"
+          className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap"
         >
-          <p className="leading-[25.2px]">Define project details</p>
+          <p className="txt-leading-title">Define project details</p>
         </motion.div>
       </div>
-
       <div className="w-full flex flex-col gap-[16px]">
         <motion.div
           initial={{ y: 8, opacity: 0 }}
@@ -62,7 +57,7 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
           <div className="pb-[8px] w-full">
             <label
               htmlFor={PROJECT_NAME_INPUT_ID}
-              className="font-medium text-[14px] text-[rgba(232,232,232,0.6)] leading-[19.6px]"
+              className="font-medium txt-role-body-lg txt-tone-subtle txt-leading-body"
             >
               Project name
             </label>
@@ -73,12 +68,11 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
               type="text"
               value={projectName}
               onChange={(event) => onProjectNameChange(event.target.value)}
-              className="w-full bg-transparent border-none outline-none font-medium text-[#e8e8e8] text-[19.5px] leading-[32px] p-0 placeholder-white/20"
+              className="w-full bg-transparent border-none outline-none txt-tone-primary txt-role-page-title txt-leading-display-lg p-0 placeholder:text-white/20"
               placeholder="Enter project name..."
             />
           </div>
         </motion.div>
-
         <motion.div
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -86,7 +80,7 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
           className="w-full pt-[16px]"
         >
           <div className="pb-[8px] w-full">
-            <p className="font-medium text-[14px] text-[rgba(232,232,232,0.6)] leading-[19.6px]">
+            <p className="font-medium txt-role-body-lg txt-tone-subtle txt-leading-body">
               {jobLabel}
             </p>
           </div>
@@ -100,17 +94,12 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
                 onClick={() => onSelectJob(job)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(event: KeyboardEvent) => handleKeyDown(event, () => onSelectJob(job))}
-                className={`
-                  backdrop-blur-[6px] bg-[rgba(232,232,232,0.04)] content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50
-                  ${
-                    selectedJob === job
-                      ? "bg-white/10 border-white/20 text-white"
-                      : "border-[rgba(232,232,232,0.04)] hover:bg-white/5 text-[#e8e8e8]"
-                  }
-                `}
+                onKeyDown={(event: KeyboardEvent) =>
+                  handleKeyDown(event, () => onSelectJob(job))
+                }
+                className={` backdrop-blur-[6px] bg-[rgba(232,232,232,0.04)] content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-[rgba(232,232,232,0.04)] hover:bg-white/5 txt-tone-primary"} `}
               >
-                <p className="font-medium text-[14px] leading-[20px] whitespace-nowrap">
+                <p className="font-medium txt-role-body-lg txt-leading-body whitespace-nowrap">
                   {jobIcons?.[job] && (
                     <span className="mr-[6px]">{jobIcons[job]}</span>
                   )}

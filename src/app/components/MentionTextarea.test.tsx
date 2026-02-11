@@ -3,7 +3,11 @@
 import React, { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { MentionTextarea, renderCommentContent, type MentionItem } from "./MentionTextarea";
+import {
+  MentionTextarea,
+  renderCommentContent,
+  type MentionItem,
+} from "./MentionTextarea";
 
 const mentionItems: MentionItem[] = [
   { type: "task", id: "task-1", label: "Task Alpha" },
@@ -85,7 +89,9 @@ describe("MentionTextarea", () => {
     fireEvent.keyDown(editor, { key: "Enter" });
 
     await waitFor(() => {
-      expect(screen.getByTestId("mention-value")).toHaveTextContent("@[file:File Bravo]");
+      expect(screen.getByTestId("mention-value")).toHaveTextContent(
+        "@[file:File Bravo]",
+      );
     });
   });
 
@@ -102,7 +108,9 @@ describe("MentionTextarea", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("mention-value")).toHaveTextContent("Hello World");
+      expect(screen.getByTestId("mention-value")).toHaveTextContent(
+        "Hello World",
+      );
     });
   });
 

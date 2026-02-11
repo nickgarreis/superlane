@@ -6,8 +6,10 @@ import { formatTaskDueDate } from "../../lib/dates";
 import { ProjectLogo } from "../ProjectLogo";
 import type { Task, WorkspaceMember } from "../../types";
 import type { TaskProjectOption } from "./useProjectTaskHandlers";
-import { getAssigneeInitials, resolveSelectedAssigneeUserId } from "./taskRowHelpers";
-
+import {
+  getAssigneeInitials,
+  resolveSelectedAssigneeUserId,
+} from "./taskRowHelpers";
 type ProjectTaskRowProps = {
   task: Task;
   taskIsEditable: boolean;
@@ -33,7 +35,6 @@ type ProjectTaskRowProps = {
   taskRowStyle?: React.CSSProperties;
   disableLayoutAnimation?: boolean;
 };
-
 export function ProjectTaskRow({
   task,
   taskIsEditable,
@@ -59,15 +60,21 @@ export function ProjectTaskRow({
   taskRowStyle,
   disableLayoutAnimation = false,
 }: ProjectTaskRowProps) {
-  const selectedProject = task.projectId ? projectById.get(task.projectId) : undefined;
-  const selectedAssigneeUserId = resolveSelectedAssigneeUserId(task, assignableMembers);
+  const selectedProject = task.projectId
+    ? projectById.get(task.projectId)
+    : undefined;
+  const selectedAssigneeUserId = resolveSelectedAssigneeUserId(
+    task,
+    assignableMembers,
+  );
   const isSelectedAssignee = (member: WorkspaceMember) =>
     selectedAssigneeUserId != null && selectedAssigneeUserId === member.userId;
-
   return (
     <motion.div
       key={task.id}
-      ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
+      ref={(el: HTMLDivElement | null) => {
+        taskRowRefs.current[task.id] = el;
+      }}
       layout={!disableLayoutAnimation}
       className={cn(
         "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
@@ -100,15 +107,15 @@ export function ProjectTaskRow({
         >
           {task.completed && <Check size={12} strokeWidth={3} />}
         </div>
-
-        <span className={cn(
-          "text-[14px] font-medium truncate transition-all",
-          task.completed ? "text-white/30 line-through" : "text-[#E8E8E8]",
-        )}>
+        <span
+          className={cn(
+            "txt-role-body-lg font-medium truncate transition-all",
+            task.completed ? "text-white/30 line-through" : "txt-tone-primary",
+          )}
+        >
           {task.title}
         </span>
       </div>
-
       <div className="flex items-center gap-3 shrink-0 pl-4 relative">
         {showProjectColumn && (
           <div className="w-[170px] relative">
@@ -119,14 +126,17 @@ export function ProjectTaskRow({
                 }
                 event.stopPropagation();
                 closeAllDropdowns();
-                setOpenProjectTaskId(openProjectTaskId === task.id ? null : task.id);
+                setOpenProjectTaskId(
+                  openProjectTaskId === task.id ? null : task.id,
+                );
               }}
               className={cn(
-                "flex items-center gap-1.5 text-[12px] transition-colors py-1 px-2 rounded-md w-full",
+                "flex items-center gap-1.5 txt-role-body-sm transition-colors py-1 px-2 rounded-md w-full",
                 task.completed || !taskIsEditable
                   ? "text-white/30 pointer-events-none cursor-not-allowed"
-                  : "cursor-pointer hover:text-[#E8E8E8] hover:bg-[rgba(232,232,232,0.08)] text-[rgba(232,232,232,0.44)]",
-                openProjectTaskId === task.id && "bg-[rgba(232,232,232,0.08)] text-[#E8E8E8]",
+                  : "cursor-pointer hover:txt-tone-primary hover:bg-[rgba(232,232,232,0.08)] txt-tone-faint",
+                openProjectTaskId === task.id &&
+                  "bg-[rgba(232,232,232,0.08)] txt-tone-primary",
               )}
               title={taskIsEditable ? undefined : editTaskDisabledMessage}
             >
@@ -135,9 +145,10 @@ export function ProjectTaskRow({
               ) : (
                 <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
               )}
-              <span className="truncate">{selectedProject?.name ?? "No project"}</span>
+              <span className="truncate">
+                {selectedProject?.name ?? "No project"}
+              </span>
             </div>
-
             <AnimatePresence>
               {openProjectTaskId === task.id && (
                 <motion.div
@@ -145,9 +156,11 @@ export function ProjectTaskRow({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[220px] overflow-hidden"
-                  onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
+                  onClick={(event: React.MouseEvent<HTMLDivElement>) =>
+                    event.stopPropagation()
+                  }
                 >
-                  <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
+                  <div className="px-3 py-2 txt-role-kbd uppercase font-medium txt-tone-faint tracking-wider">
                     Move to project
                   </div>
                   <div
@@ -161,10 +174,14 @@ export function ProjectTaskRow({
                     )}
                   >
                     <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
-                    <span className={cn(
-                      "text-[13px] truncate",
-                      !task.projectId ? "text-white font-medium" : "text-[#E8E8E8]",
-                    )}>
+                    <span
+                      className={cn(
+                        "txt-role-body-md truncate",
+                        !task.projectId
+                          ? "text-white font-medium"
+                          : "txt-tone-primary",
+                      )}
+                    >
                       No project
                     </span>
                   </div>
@@ -177,14 +194,19 @@ export function ProjectTaskRow({
                       }}
                       className={cn(
                         "flex items-center gap-2 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                        task.projectId === project.id && "bg-[rgba(232,232,232,0.08)]",
+                        task.projectId === project.id &&
+                          "bg-[rgba(232,232,232,0.08)]",
                       )}
                     >
                       <ProjectLogo size={12} category={project.category} />
-                      <span className={cn(
-                        "text-[13px] truncate",
-                        task.projectId === project.id ? "text-white font-medium" : "text-[#E8E8E8]",
-                      )}>
+                      <span
+                        className={cn(
+                          "txt-role-body-md truncate",
+                          task.projectId === project.id
+                            ? "text-white font-medium"
+                            : "txt-tone-primary",
+                        )}
+                      >
                         {project.name}
                       </span>
                     </div>
@@ -212,19 +234,23 @@ export function ProjectTaskRow({
               const gap = 8;
               const spaceBelow = window.innerHeight - rect.bottom;
               setCalendarPosition({
-                top: spaceBelow >= calH + gap
-                  ? rect.bottom + gap
-                  : Math.max(gap, rect.top - calH - gap),
-                left: Math.max(gap, Math.min(rect.right - calW, window.innerWidth - calW - gap)),
+                top:
+                  spaceBelow >= calH + gap
+                    ? rect.bottom + gap
+                    : Math.max(gap, rect.top - calH - gap),
+                left: Math.max(
+                  gap,
+                  Math.min(rect.right - calW, window.innerWidth - calW - gap),
+                ),
               });
               setOpenCalendarTaskId(task.id);
             }}
             className={cn(
-              "flex items-center gap-1.5 text-[12px] transition-colors py-1 px-2 rounded-md w-full",
+              "flex items-center gap-1.5 txt-role-body-sm transition-colors py-1 px-2 rounded-md w-full",
               task.completed || !taskIsEditable
                 ? "text-white/20 pointer-events-none cursor-not-allowed"
-                : "cursor-pointer hover:text-[#E8E8E8] hover:bg-white/5 text-white/40",
-              openCalendarTaskId === task.id && "bg-white/5 text-[#E8E8E8]",
+                : "cursor-pointer hover:txt-tone-primary hover:bg-white/5 text-white/40",
+              openCalendarTaskId === task.id && "bg-white/5 txt-tone-primary",
             )}
             title={taskIsEditable ? undefined : editTaskDisabledMessage}
           >
@@ -232,7 +258,6 @@ export function ProjectTaskRow({
             <span>{formatTaskDueDate(task.dueDateEpochMs)}</span>
           </div>
         </div>
-
         <div className="relative w-6">
           <div
             className={cn(
@@ -241,29 +266,36 @@ export function ProjectTaskRow({
                 ? "opacity-50 pointer-events-none cursor-not-allowed"
                 : "cursor-pointer",
             )}
-            title={taskIsEditable ? task.assignee.name : editTaskDisabledMessage}
+            title={
+              taskIsEditable ? task.assignee.name : editTaskDisabledMessage
+            }
             onClick={(event) => {
               if (!taskIsEditable) {
                 return;
               }
               event.stopPropagation();
               closeAllDropdowns();
-              setOpenAssigneeTaskId(openAssigneeTaskId === task.id ? null : task.id);
+              setOpenAssigneeTaskId(
+                openAssigneeTaskId === task.id ? null : task.id,
+              );
             }}
           >
             {task.assignee.avatar ? (
               <img
                 src={task.assignee.avatar}
-                alt={task.assignee.name ? `${task.assignee.name} avatar` : "Assignee avatar"}
+                alt={
+                  task.assignee.name
+                    ? `${task.assignee.name} avatar`
+                    : "Assignee avatar"
+                }
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
+              <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
                 {getAssigneeInitials(task.assignee.name)}
               </div>
             )}
           </div>
-
           <AnimatePresence>
             {openAssigneeTaskId === task.id && (
               <motion.div
@@ -271,13 +303,15 @@ export function ProjectTaskRow({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 className="absolute right-0 top-full mt-2 z-50 py-1 bg-[rgba(30,31,32,0.98)] rounded-xl shadow-xl border border-[rgba(232,232,232,0.12)] w-[200px] overflow-hidden"
-                onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
+                onClick={(event: React.MouseEvent<HTMLDivElement>) =>
+                  event.stopPropagation()
+                }
               >
-                <div className="px-3 py-2 text-[10px] uppercase font-medium text-[rgba(232,232,232,0.44)] tracking-wider">
+                <div className="px-3 py-2 txt-role-kbd uppercase font-medium txt-tone-faint tracking-wider">
                   Assign to
                 </div>
                 {assignableMembers.length === 0 && (
-                  <div className="px-3 py-2 text-[12px] text-[rgba(232,232,232,0.44)]">
+                  <div className="px-3 py-2 txt-role-body-sm txt-tone-faint">
                     No active members
                   </div>
                 )}
@@ -287,30 +321,39 @@ export function ProjectTaskRow({
                     onClick={() => handleAssigneeSelect(task.id, member)}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 hover:bg-[rgba(232,232,232,0.08)] cursor-pointer transition-colors",
-                      isSelectedAssignee(member) && "bg-[rgba(232,232,232,0.08)]",
+                      isSelectedAssignee(member) &&
+                        "bg-[rgba(232,232,232,0.08)]",
                     )}
                   >
                     <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
                       {member.avatarUrl ? (
                         <img
                           src={member.avatarUrl}
-                          alt={member.name ? `${member.name} avatar` : "Member avatar"}
+                          alt={
+                            member.name
+                              ? `${member.name} avatar`
+                              : "Member avatar"
+                          }
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
+                        <div className="w-full h-full bg-[#333] flex items-center justify-center txt-role-micro font-medium text-white">
                           {getAssigneeInitials(member.name)}
                         </div>
                       )}
                     </div>
-                    <span className={cn(
-                      "text-[13px]",
-                      isSelectedAssignee(member) ? "text-white font-medium" : "text-[#E8E8E8]",
-                    )}>
+                    <span
+                      className={cn(
+                        "txt-role-body-md",
+                        isSelectedAssignee(member)
+                          ? "text-white font-medium"
+                          : "txt-tone-primary",
+                      )}
+                    >
                       {member.name}
                     </span>
                     {isSelectedAssignee(member) && (
-                      <Check size={14} className="ml-auto text-[#58AFFF]" />
+                      <Check size={14} className="ml-auto txt-tone-accent" />
                     )}
                   </div>
                 ))}
@@ -318,7 +361,6 @@ export function ProjectTaskRow({
             )}
           </AnimatePresence>
         </div>
-
         <div className="w-7 flex items-center justify-center">
           <button
             onClick={(event) => {

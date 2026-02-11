@@ -14,39 +14,37 @@ import type {
   ViewerIdentity,
   WorkspaceMember,
 } from "../../types";
-
 const loadArchivePageModule = () => import("../../components/ArchivePage");
 const loadMainContentModule = () => import("../../components/MainContent");
 const loadTasksModule = () => import("../../components/Tasks");
-
 const LazyArchivePage = React.lazy(async () => {
   const module = await loadArchivePageModule();
   return { default: module.ArchivePage };
 });
-
 const LazyMainContent = React.lazy(async () => {
   const module = await loadMainContentModule();
   return { default: module.MainContent };
 });
-
 const LazyTasks = React.lazy(async () => {
   const module = await loadTasksModule();
   return { default: module.Tasks };
 });
-
 const ContentLoadingFallback = (
-  <div className="flex-1 h-full bg-bg-base flex items-center justify-center text-white/50 text-sm font-['Roboto',sans-serif]">
+  <div className="flex-1 h-full bg-bg-base flex items-center justify-center text-white/50 text-sm font-app">
     Loading...
   </div>
 );
-
 type DashboardContentProps = {
   contentModel: DashboardContentModel;
   handleToggleSidebar: () => void;
   isSidebarOpen: boolean;
   visibleProjects: Record<string, ProjectData>;
   workspaceTasks: Task[];
-  tasksPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  tasksPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   loadMoreWorkspaceTasks: (numItems: number) => void;
   handleReplaceWorkspaceTasks: (tasks: Task[]) => void;
   workspaceMembers: WorkspaceMember[];
@@ -57,16 +55,21 @@ type DashboardContentProps = {
   highlightedArchiveProjectId: string | null;
   setHighlightedArchiveProjectId: (id: string | null) => void;
   projectFilesByProject: Record<string, ProjectFileData[]>;
-  projectFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  projectFilesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   loadMoreProjectFiles: (numItems: number) => void;
   mainContentFileActions: MainContentFileActions;
-  createMainContentProjectActions: (projectId: string) => MainContentProjectActions;
+  createMainContentProjectActions: (
+    projectId: string,
+  ) => MainContentProjectActions;
   baseMainContentNavigationActions: MainContentNavigationActions;
   pendingHighlight: PendingHighlight | null;
   clearPendingHighlight: () => void;
   openCreateProject: () => void;
 };
-
 export const DashboardContent = React.memo(function DashboardContent({
   contentModel,
   handleToggleSidebar,
@@ -110,7 +113,6 @@ export const DashboardContent = React.memo(function DashboardContent({
       </Suspense>
     );
   }
-
   if (contentModel.kind === "archive") {
     return (
       <Suspense fallback={ContentLoadingFallback}>
@@ -128,7 +130,6 @@ export const DashboardContent = React.memo(function DashboardContent({
       </Suspense>
     );
   }
-
   if (contentModel.kind === "main") {
     const project = contentModel.project;
     const navigationActions: MainContentNavigationActions = contentModel.backTo
@@ -138,7 +139,6 @@ export const DashboardContent = React.memo(function DashboardContent({
           back: contentModel.back,
         }
       : baseMainContentNavigationActions;
-
     return (
       <Suspense fallback={ContentLoadingFallback}>
         <LazyMainContent
@@ -160,12 +160,16 @@ export const DashboardContent = React.memo(function DashboardContent({
       </Suspense>
     );
   }
-
   return (
     <div className="flex-1 h-full bg-bg-base flex flex-col items-center justify-center text-white/20">
       <div className="flex flex-col items-center gap-4">
         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-          <img src={imgLogo} alt="" aria-hidden="true" className="w-8 h-8 opacity-40 grayscale" />
+          <img
+            src={imgLogo}
+            alt=""
+            aria-hidden="true"
+            className="w-8 h-8 opacity-40 grayscale"
+          />
         </div>
         <div className="text-center">
           <p className="text-sm font-medium">No projects in this workspace</p>
@@ -180,5 +184,4 @@ export const DashboardContent = React.memo(function DashboardContent({
     </div>
   );
 });
-
 DashboardContent.displayName = "DashboardContent";

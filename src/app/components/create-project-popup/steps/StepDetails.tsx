@@ -3,13 +3,11 @@ import type { DropzoneInputProps, DropzoneRootProps } from "react-dropzone";
 import type { PendingDraftAttachmentUpload } from "../../../types";
 import { StepDetailsStep2 } from "./StepDetailsStep2";
 import { StepDetailsStep3 } from "./StepDetailsStep3";
-
 const JOB_OPTIONS = [
   "I would like to discuss some possibilities",
   "Create something new",
   "Refine something existing",
 ];
-
 const WEB_DESIGN_SCOPE = [
   "UI/UX Audit",
   "Landing page(s)",
@@ -19,7 +17,6 @@ const WEB_DESIGN_SCOPE = [
   "Product design",
   "Interactive animations",
 ];
-
 const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
   "UI/UX Audit": "\u{1F4E5}",
   "Landing page(s)": "\u{1F4C4}",
@@ -29,15 +26,11 @@ const WEB_DESIGN_SCOPE_ICONS: Record<string, string> = {
   "Product design": "\u{1F4F1}",
   "Interactive animations": "\u{1F300}",
 };
-
 export const STEP_THREE_TITLE = "Let's explore some possibilities";
-
 const isWebDesignService = (selectedService: string | null) =>
   selectedService === "Web Design";
-
 export const getStepDetailsJobLabel = (selectedService: string | null) =>
   isWebDesignService(selectedService) ? "Scope" : "Job";
-
 type StepDetailsProps = {
   step: 2 | 3;
   selectedService: string | null;
@@ -61,7 +54,6 @@ type StepDetailsProps = {
   onRetryAttachment: (clientId: string) => void;
   onRemoveAttachment: (clientId: string) => void;
 };
-
 export function StepDetails({
   step,
   selectedService,
@@ -93,7 +85,6 @@ export function StepDetails({
     ? WEB_DESIGN_SCOPE_ICONS
     : null;
   const service = selectedService || "Web Design";
-
   if (step === 2) {
     return (
       <StepDetailsStep2
@@ -108,7 +99,6 @@ export function StepDetails({
       />
     );
   }
-
   return (
     <StepDetailsStep3
       description={description}

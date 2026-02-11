@@ -10,7 +10,12 @@ import type {
   MainContentProjectActions,
   PendingHighlight,
 } from "../dashboard/types";
-import type { ProjectData, ProjectFileData, ViewerIdentity, WorkspaceMember } from "../types";
+import type {
+  ProjectData,
+  ProjectFileData,
+  ViewerIdentity,
+  WorkspaceMember,
+} from "../types";
 
 vi.mock("../../imports/HorizontalBorder", () => ({
   default: ({ onToggleSidebar }: { onToggleSidebar: () => void }) => (
@@ -25,7 +30,9 @@ vi.mock("./ProjectTasks", () => ({
 }));
 
 vi.mock("./ProjectLogo", () => ({
-  ProjectLogo: ({ category }: { category: string }) => <div data-testid="project-logo">{category}</div>,
+  ProjectLogo: ({ category }: { category: string }) => (
+    <div data-testid="project-logo">{category}</div>
+  ),
 }));
 
 vi.mock("./main-content/MenuIcon", () => ({
@@ -138,7 +145,9 @@ describe("MainContent", () => {
     expect(fileInput).not.toBeNull();
 
     fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [new File(["asset"], "logo.png", { type: "image/png" })] },
+      target: {
+        files: [new File(["asset"], "logo.png", { type: "image/png" })],
+      },
     });
 
     expect(fileActions.create).toHaveBeenCalledTimes(1);
@@ -183,10 +192,14 @@ describe("MainContent", () => {
 
     const fileInput = container.querySelector('input[type="file"]');
     fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [new File(["asset"], "blocked.png", { type: "image/png" })] },
+      target: {
+        files: [new File(["asset"], "blocked.png", { type: "image/png" })],
+      },
     });
 
-    const removeButton = screen.getByTitle("Files can only be modified for active projects");
+    const removeButton = screen.getByTitle(
+      "Files can only be modified for active projects",
+    );
     expect(removeButton).toBeDisabled();
     fireEvent.click(removeButton);
 

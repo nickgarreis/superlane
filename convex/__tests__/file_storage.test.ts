@@ -173,14 +173,15 @@ describe("P0.2 file storage pipeline", () => {
       storageId: stored.storageId,
     });
 
-    const list = await asMember().query(api.files.listForProject, {
+    const list = await asMember().query(api.files.listForProjectPaginated, {
       projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 100 },
     });
-    expect(list).toHaveLength(1);
-    expect(list[0].id).toBe(finalized.fileId);
-    expect(list[0].downloadable).toBe(true);
-    expect(list[0].mimeType).toBe("text/plain");
-    expect(list[0].sizeBytes).toBe(stored.sizeBytes);
+    expect(list.page).toHaveLength(1);
+    expect(list.page[0].id).toBe(finalized.fileId);
+    expect(list.page[0].downloadable).toBe(true);
+    expect(list.page[0].mimeType).toBe("text/plain");
+    expect(list.page[0].sizeBytes).toBe(stored.sizeBytes);
 
     const download = await asMember().query(api.files.getDownloadUrl, {
       fileId: finalized.fileId,
@@ -211,10 +212,11 @@ describe("P0.2 file storage pipeline", () => {
       }),
     ).rejects.toThrow("Unsupported file type");
 
-    const listed = await asMember().query(api.files.listForProject, {
+    const listed = await asMember().query(api.files.listForProjectPaginated, {
       projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 100 },
     });
-    expect(listed).toHaveLength(0);
+    expect(listed.page).toHaveLength(0);
     await expect(storageBlobExists(stored.storageId)).resolves.toBe(false);
   });
 
@@ -289,10 +291,11 @@ describe("P0.2 file storage pipeline", () => {
       storageId: second.storageId,
     });
 
-    const listed = await asMember().query(api.files.listForProject, {
+    const listed = await asMember().query(api.files.listForProjectPaginated, {
       projectPublicId: project.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 100 },
     });
-    const names = listed.map((entry: any) => entry.name);
+    const names = listed.page.map((entry: any) => entry.name);
     expect(names).toContain("proposal.pdf");
     expect(names).toContain("proposal (2).pdf");
     expect(secondUpload.name).toBe("proposal (2).pdf");

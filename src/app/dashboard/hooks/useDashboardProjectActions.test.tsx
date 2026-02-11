@@ -56,7 +56,9 @@ const createBaseArgs = () => ({
   openCreateProject: vi.fn(),
   navigateView: vi.fn(),
   navigateToPath: vi.fn(),
-  createProjectMutation: vi.fn().mockResolvedValue({ publicId: "project-created" }),
+  createProjectMutation: vi
+    .fn()
+    .mockResolvedValue({ publicId: "project-created" }),
   updateProjectMutation: vi.fn().mockResolvedValue({ publicId: "project-1" }),
   archiveProjectMutation: vi.fn().mockResolvedValue({}),
   unarchiveProjectMutation: vi.fn().mockResolvedValue({}),
@@ -142,9 +144,15 @@ describe("useDashboardProjectActions", () => {
     });
 
     await waitFor(() => {
-      expect(args.archiveProjectMutation).toHaveBeenCalledWith({ publicId: "project-1" });
-      expect(args.unarchiveProjectMutation).toHaveBeenCalledWith({ publicId: "project-1" });
-      expect(args.removeProjectMutation).toHaveBeenCalledWith({ publicId: "project-1" });
+      expect(args.archiveProjectMutation).toHaveBeenCalledWith({
+        publicId: "project-1",
+      });
+      expect(args.unarchiveProjectMutation).toHaveBeenCalledWith({
+        publicId: "project-1",
+      });
+      expect(args.removeProjectMutation).toHaveBeenCalledWith({
+        publicId: "project-1",
+      });
       expect(args.setProjectStatusMutation).toHaveBeenCalledWith({
         publicId: "project-1",
         status: "Completed",
@@ -154,10 +162,12 @@ describe("useDashboardProjectActions", () => {
     expect(args.setEditProjectId).toHaveBeenCalledWith("project-1");
     expect(args.setReviewProject).toHaveBeenCalledWith(baseProject);
     expect(args.applyTaskDiffMutation).toHaveBeenCalledTimes(2);
-    expect(args.applyTaskDiffMutation).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceSlug: "workspace-1",
-      orderedTaskIds: ["task-1"],
-    }));
+    expect(args.applyTaskDiffMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceSlug: "workspace-1",
+        orderedTaskIds: ["task-1"],
+      }),
+    );
   });
 
   test("approves review projects", async () => {

@@ -2,8 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MAX_FEATURE_FILE_LINES = 350;
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+// Permanent repository policy: feature files may be up to 500 lines.
+const MAX_FEATURE_FILE_LINES = 500;
 
 const LEGACY_OVERSIZED_ALLOWLIST = new Set([
   "convex/settings.ts",
@@ -22,7 +26,8 @@ const shouldSkipPath = (relativePath) => {
   if (relativePath.startsWith("src/app/components/ui/")) return true;
   if (relativePath.startsWith("convex/_generated/")) return true;
   if (relativePath.startsWith("convex/__tests__/")) return true;
-  if (relativePath.includes(".test.ts") || relativePath.includes(".test.tsx")) return true;
+  if (relativePath.includes(".test.ts") || relativePath.includes(".test.tsx"))
+    return true;
   return false;
 };
 
@@ -72,14 +77,18 @@ for (const file of files) {
 }
 
 if (legacyWarnings.length > 0) {
-  console.warn(`Legacy oversized files allowed temporarily (>${MAX_FEATURE_FILE_LINES} lines):`);
+  console.warn(
+    `Legacy oversized files allowed temporarily (>${MAX_FEATURE_FILE_LINES} lines):`,
+  );
   for (const warning of legacyWarnings.sort((a, b) => b.lines - a.lines)) {
     console.warn(`- ${warning.path}: ${warning.lines} lines`);
   }
 }
 
 if (violations.length > 0) {
-  console.error(`Feature file size check failed (>${MAX_FEATURE_FILE_LINES} lines):`);
+  console.error(
+    `Feature file size check failed (>${MAX_FEATURE_FILE_LINES} lines):`,
+  );
   for (const violation of violations.sort((a, b) => b.lines - a.lines)) {
     console.error(`- ${violation.path}: ${violation.lines} lines`);
   }

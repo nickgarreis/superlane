@@ -4,7 +4,6 @@ import { Toaster } from "sonner";
 import { Sidebar } from "../../components/Sidebar";
 import type { AppView } from "../../lib/routing";
 import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
-
 type DashboardChromeProps = {
   isSidebarOpen: boolean;
   navigateView: (view: AppView) => void;
@@ -22,12 +21,13 @@ type DashboardChromeProps = {
   handleSignOut: () => void;
   onSwitchWorkspace: (workspaceSlug: string) => void;
   onCreateWorkspace: () => void;
-  onOpenSettings: (tab?: "Account" | "Notifications" | "Company" | "Billing") => void;
+  onOpenSettings: (
+    tab?: "Account" | "Notifications" | "Company" | "Billing",
+  ) => void;
   onUpdateProjectStatus: (projectId: string, newStatus: string) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
 };
-
 export const DashboardChrome = React.memo(function DashboardChrome({
   isSidebarOpen,
   navigateView,
@@ -64,8 +64,6 @@ export const DashboardChrome = React.memo(function DashboardChrome({
             border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: "14px",
             color: "#E8E8E8",
-            fontFamily: "'Roboto', sans-serif",
-            fontSize: "13px",
             padding: "14px 16px",
             boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
             backdropFilter: "blur(12px)",
@@ -81,7 +79,6 @@ export const DashboardChrome = React.memo(function DashboardChrome({
           },
         }}
       />
-
       <AnimatePresence mode="wait" initial={false}>
         {isSidebarOpen && (
           <motion.div
@@ -120,5 +117,4 @@ export const DashboardChrome = React.memo(function DashboardChrome({
     </>
   );
 });
-
 DashboardChrome.displayName = "DashboardChrome";

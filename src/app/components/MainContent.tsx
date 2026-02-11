@@ -9,7 +9,13 @@ import React, {
 } from "react";
 import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
-import { ProjectData, ProjectFileData, ProjectFileTab, ViewerIdentity, WorkspaceMember } from "../types";
+import {
+  ProjectData,
+  ProjectFileData,
+  ProjectFileTab,
+  ViewerIdentity,
+  WorkspaceMember,
+} from "../types";
 import type {
   MainContentFileActions,
   MainContentNavigationActions,
@@ -21,19 +27,21 @@ import { FileSection } from "./main-content/FileSection";
 import { ProjectOverview } from "./main-content/ProjectOverview";
 import { MainContentFileRows } from "./main-content/MainContentFileRows";
 import { useMainContentHighlighting } from "./main-content/useMainContentHighlighting";
-
 const loadChatSidebarModule = () => import("./ChatSidebar");
 const LazyChatSidebar = React.lazy(async () => {
   const module = await loadChatSidebarModule();
   return { default: module.ChatSidebar };
 });
-
 interface MainContentProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
   project: ProjectData;
   projectFiles: ProjectFileData[];
-  projectFilesPaginationStatus: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  projectFilesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
   loadMoreProjectFiles: (numItems: number) => void;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
@@ -44,7 +52,6 @@ interface MainContentProps {
   pendingHighlight?: PendingHighlight | null;
   onClearPendingHighlight?: () => void;
 }
-
 export function MainContent({
   onToggleSidebar,
   isSidebarOpen,
@@ -68,29 +75,26 @@ export function MainContent({
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasLoadedChatSidebar, setHasLoadedChatSidebar] = useState(false);
-
   const handleOpenChat = useCallback(() => {
     setHasLoadedChatSidebar(true);
     void loadChatSidebarModule();
     setIsChatOpen(true);
   }, []);
-
-  useEffect(() => scheduleIdlePrefetch(() => loadChatSidebarModule(), 2500), []);
-
+  useEffect(
+    () => scheduleIdlePrefetch(() => loadChatSidebarModule(), 2500),
+    [],
+  );
   const filesByTab = useMemo(() => {
     const grouped: Record<ProjectFileTab, ProjectFileData[]> = {
       Assets: [],
       Contract: [],
       Attachments: [],
     };
-
     projectFiles.forEach((file) => {
       grouped[file.tab].push(file);
     });
-
     return grouped;
   }, [projectFiles]);
-
   const allFiles = useMemo(() => {
     const seen = new Set<string>();
     const combined: Array<{ id: string; name: string; type: string }> = [];
@@ -102,7 +106,6 @@ export function MainContent({
     }
     return combined;
   }, [projectFiles]);
-
   const {
     highlightedTaskId,
     handleTaskHighlightDone,
@@ -116,87 +119,91 @@ export function MainContent({
     onClearPendingHighlight,
     setActiveTab,
   });
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const canMutateProjectFiles =
-    !project.archived && project.status.label !== "Completed" && !project.completedAt;
-  const fileMutationDisabledMessage = "Files can only be modified for active projects";
-
+    !project.archived &&
+    project.status.label !== "Completed" &&
+    !project.completedAt;
+  const fileMutationDisabledMessage =
+    "Files can only be modified for active projects";
   const handleUploadClick = useCallback(() => {
     if (!canMutateProjectFiles) {
       return;
     }
     fileInputRef.current?.click();
   }, [canMutateProjectFiles]);
-
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!canMutateProjectFiles) {
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!canMutateProjectFiles) {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      fileActions.create(project.id, activeTab, file);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
-    fileActions.create(project.id, activeTab, file);
-
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [activeTab, canMutateProjectFiles, fileActions, project.id]);
-
-  const handleRemoveFile = useCallback((id: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (!canMutateProjectFiles) {
-      return;
-    }
-    fileActions.remove(id);
-  }, [canMutateProjectFiles, fileActions]);
-
+    },
+    [activeTab, canMutateProjectFiles, fileActions, project.id],
+  );
+  const handleRemoveFile = useCallback(
+    (id: string, event: React.MouseEvent) => {
+      event.stopPropagation();
+      if (!canMutateProjectFiles) {
+        return;
+      }
+      fileActions.remove(id);
+    },
+    [canMutateProjectFiles, fileActions],
+  );
   const currentFiles = filesByTab[activeTab];
-
   const filteredFiles = useMemo(
     () =>
       currentFiles
-        .filter((file) => file.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()))
+        .filter((file) =>
+          file.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()),
+        )
         .sort((a, b) => {
           if (sortBy === "name") return a.name.localeCompare(b.name);
           return 0;
         }),
     [currentFiles, deferredSearchQuery, sortBy],
   );
-
   const shouldOptimizeFileRows = filteredFiles.length > 40;
   const fileRowStyle = useMemo(
-    () => (
+    () =>
       shouldOptimizeFileRows
         ? ({ contentVisibility: "auto", containIntrinsicSize: "72px" } as const)
-        : undefined
-    ),
+        : undefined,
     [shouldOptimizeFileRows],
   );
-
   const canCreateProjectTasks =
-    !project.archived && project.status.label === "Active" && !project.completedAt;
-
-  const handleMainContentScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-    if (projectFilesPaginationStatus !== "CanLoadMore") {
-      return;
-    }
-
-    const element = event.currentTarget;
-    const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
-    if (remaining <= 240) {
-      loadMoreProjectFiles(100);
-    }
-  }, [loadMoreProjectFiles, projectFilesPaginationStatus]);
-
+    !project.archived &&
+    project.status.label === "Active" &&
+    !project.completedAt;
+  const handleMainContentScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (projectFilesPaginationStatus !== "CanLoadMore") {
+        return;
+      }
+      const element = event.currentTarget;
+      const remaining =
+        element.scrollHeight - element.scrollTop - element.clientHeight;
+      if (remaining <= 240) {
+        loadMoreProjectFiles(100);
+      }
+    },
+    [loadMoreProjectFiles, projectFilesPaginationStatus],
+  );
   return (
-    <div className="flex-1 h-full bg-bg-base text-[#E8E8E8] overflow-hidden font-['Roboto',sans-serif] flex flex-col relative">
+    <div className="flex-1 h-full bg-bg-base txt-tone-primary overflow-hidden font-app flex flex-col relative">
       <div className="relative bg-bg-surface m-[8px] border border-white/5 rounded-[32px] flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
-
         <div className="w-full h-[57px] shrink-0">
-          <HorizontalBorder onToggleSidebar={onToggleSidebar} onToggleChat={handleOpenChat} />
+          <HorizontalBorder
+            onToggleSidebar={onToggleSidebar}
+            onToggleChat={handleOpenChat}
+          />
         </div>
-
         <div
           ref={contentScrollRef}
           className="flex-1 overflow-y-auto px-[80px] py-[40px]"
@@ -208,11 +215,12 @@ export function MainContent({
             projectActions={projectActions}
             navigationActions={navigationActions}
           />
-
           <ProjectTasks
             key={project.id}
             tasks={project.tasks || []}
-            onUpdateTasks={(newTasks) => projectActions.updateProject?.({ tasks: newTasks })}
+            onUpdateTasks={(newTasks) =>
+              projectActions.updateProject?.({ tasks: newTasks })
+            }
             highlightedTaskId={highlightedTaskId}
             onHighlightDone={handleTaskHighlightDone}
             assignableMembers={workspaceMembers}
@@ -222,7 +230,6 @@ export function MainContent({
             canEditTasks={canCreateProjectTasks}
             editTaskDisabledMessage="Tasks can only be edited for active projects"
           />
-
           <FileSection
             projectId={project.id}
             activeTab={activeTab}
@@ -239,7 +246,7 @@ export function MainContent({
             isSortOpen={isSortOpen}
             setIsSortOpen={setIsSortOpen}
             shouldOptimizeFileRows={shouldOptimizeFileRows}
-            renderedFileRows={(
+            renderedFileRows={
               <MainContentFileRows
                 filteredFiles={filteredFiles}
                 fileRowRefs={fileRowRefs}
@@ -249,11 +256,10 @@ export function MainContent({
                 onRemoveFile={handleRemoveFile}
                 fileRowStyle={fileRowStyle}
               />
-            )}
+            }
             filteredFilesLength={filteredFiles.length}
           />
         </div>
-
         <div className="absolute inset-0 z-50 pointer-events-none rounded-[32px] overflow-hidden">
           {(hasLoadedChatSidebar || isChatOpen) && (
             <Suspense fallback={null}>

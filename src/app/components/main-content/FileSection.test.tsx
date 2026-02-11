@@ -9,7 +9,9 @@ import type { ProjectFileTab } from "../../types";
 
 type FileSectionProps = React.ComponentProps<typeof FileSection>;
 
-const buildProps = (overrides: Partial<FileSectionProps> = {}): FileSectionProps => ({
+const buildProps = (
+  overrides: Partial<FileSectionProps> = {},
+): FileSectionProps => ({
   projectId: "project-1",
   activeTab: "Assets",
   setActiveTab: vi.fn(),
@@ -76,7 +78,9 @@ describe("FileSection", () => {
 
     await user.hover(addButton);
     expect(handleUploadClick).not.toHaveBeenCalled();
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Files can only be modified for active projects");
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Files can only be modified for active projects",
+    );
     await user.unhover(addButton);
   });
 
@@ -100,6 +104,8 @@ describe("FileSection", () => {
     expect(setSortBy).toHaveBeenCalledWith("name");
     expect(setIsSortOpen).toHaveBeenCalledWith(false);
 
-    expect(screen.getByText('No files found matching "missing"')).toBeInTheDocument();
+    expect(
+      screen.getByText('No files found matching "missing"'),
+    ).toBeInTheDocument();
   });
 });

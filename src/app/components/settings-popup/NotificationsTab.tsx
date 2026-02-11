@@ -4,24 +4,24 @@ import { toast } from "sonner";
 import { cn } from "../../../lib/utils";
 import { reportUiError } from "../../lib/errors";
 import type { NotificationSettingsData } from "./types";
-
 type ToggleRowProps = {
   label: string;
   description: string;
   checked: boolean;
   onToggle: () => void;
 };
-
 function ToggleRow({ label, description, checked, onToggle }: ToggleRowProps) {
   const labelId = useId();
-
   return (
     <div className="flex items-start justify-between py-5 border-b border-white/5 last:border-0 group">
       <div className="flex flex-col gap-1 pr-8">
-        <span id={labelId} className="text-[14px] font-medium text-[#E8E8E8]/90 group-hover:text-white transition-colors">
+        <span
+          id={labelId}
+          className="txt-role-body-lg font-medium txt-tone-secondary group-hover:text-white transition-colors"
+        >
           {label}
         </span>
-        <span className="text-[13px] text-[#E8E8E8]/50">{description}</span>
+        <span className="txt-role-body-md txt-tone-subtle">{description}</span>
       </div>
       <button
         onClick={onToggle}
@@ -45,26 +45,23 @@ function ToggleRow({ label, description, checked, onToggle }: ToggleRowProps) {
     </div>
   );
 }
-
 type NotificationsTabProps = {
   data: NotificationSettingsData;
   onSave: (payload: NotificationSettingsData) => Promise<void>;
 };
-
 export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
   const [state, setState] = useState<NotificationSettingsData>(data);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-
   useEffect(() => {
     if (isDirty) {
       return;
     }
     setState((current) => {
       const sameValues =
-        current.events.eventNotifications === data.events.eventNotifications
-        && current.events.teamActivities === data.events.teamActivities
-        && current.events.productUpdates === data.events.productUpdates;
+        current.events.eventNotifications === data.events.eventNotifications &&
+        current.events.teamActivities === data.events.teamActivities &&
+        current.events.productUpdates === data.events.productUpdates;
       if (sameValues) {
         return current;
       }
@@ -82,7 +79,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
     data.events.teamActivities,
     isDirty,
   ]);
-
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -96,7 +92,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
       setSaving(false);
     }
   };
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col rounded-xl">
@@ -138,17 +133,19 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
             setIsDirty(true);
             setState((current) => ({
               ...current,
-              events: { ...current.events, productUpdates: !current.events.productUpdates },
+              events: {
+                ...current.events,
+                productUpdates: !current.events.productUpdates,
+              },
             }));
           }}
         />
       </div>
-
       <div className="pt-4 flex justify-end">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full text-[14px] font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className="cursor-pointer px-6 py-2.5 bg-[#E8E8E8] hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

@@ -22,7 +22,10 @@ const PROJECT: ProjectData = {
 describe("useDashboardCommands", () => {
   test("returns a command object wired to provided handlers", async () => {
     const handlers = {
-      handleCreateProject: vi.fn(async () => ({ publicId: "project-1", mode: "create" as const })),
+      handleCreateProject: vi.fn(async () => ({
+        publicId: "project-1",
+        mode: "create" as const,
+      })),
       handleEditProject: vi.fn(),
       handleViewReviewProject: vi.fn(),
       handleArchiveProject: vi.fn(),
@@ -53,7 +56,9 @@ describe("useDashboardCommands", () => {
 
     const { result } = renderHook(() => useDashboardCommands(handlers));
 
-    const createResult = await result.current.project.createOrUpdateProject({ name: "New" });
+    const createResult = await result.current.project.createOrUpdateProject({
+      name: "New",
+    });
     result.current.project.editProject(PROJECT);
     result.current.project.archiveProject("project-1");
     result.current.project.updateProjectStatus("project-1", "Completed");
@@ -66,9 +71,19 @@ describe("useDashboardCommands", () => {
     expect(createResult).toEqual({ publicId: "project-1", mode: "create" });
     expect(handlers.handleEditProject).toHaveBeenCalledWith(PROJECT);
     expect(handlers.handleArchiveProject).toHaveBeenCalledWith("project-1");
-    expect(handlers.handleUpdateProjectStatus).toHaveBeenCalledWith("project-1", "Completed");
-    expect(handlers.handleCreateProjectFile).toHaveBeenCalledWith("project-1", "Assets", expect.anything());
-    expect(handlers.handleUploadDraftAttachment).toHaveBeenCalledWith(expect.anything(), "draft-1");
+    expect(handlers.handleUpdateProjectStatus).toHaveBeenCalledWith(
+      "project-1",
+      "Completed",
+    );
+    expect(handlers.handleCreateProjectFile).toHaveBeenCalledWith(
+      "project-1",
+      "Assets",
+      expect.anything(),
+    );
+    expect(handlers.handleUploadDraftAttachment).toHaveBeenCalledWith(
+      expect.anything(),
+      "draft-1",
+    );
     expect(handlers.handleOpenSettings).toHaveBeenCalledWith("Company");
     expect(handlers.handleSwitchWorkspace).toHaveBeenCalledWith("workspace-2");
     expect(handlers.handleCreateWorkspace).toHaveBeenCalledTimes(1);

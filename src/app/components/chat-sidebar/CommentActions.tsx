@@ -14,7 +14,6 @@ import { cn } from "../../../lib/utils";
 import type { CollaborationComment } from "../../types";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { ReactionPicker } from "./ReactionPicker";
-
 type CommentActionsProps = {
   comment: CollaborationComment;
   currentUserId: string | null;
@@ -34,7 +33,6 @@ type CommentActionsProps = {
   onResolve: (id: string) => void;
   onToggleReaction: (id: string, emoji: string) => void;
 };
-
 export function CommentActions({
   comment,
   currentUserId,
@@ -54,35 +52,31 @@ export function CommentActions({
   onResolve,
   onToggleReaction,
 }: CommentActionsProps) {
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (activeMoreMenu !== comment.id || !menuPos) {
       return;
     }
-
     const handleScroll = () => {
       onSetActiveMoreMenu(null);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     document.addEventListener("scroll", handleScroll, {
       capture: true,
       passive: true,
     });
-
     return () => {
       window.removeEventListener("scroll", handleScroll);
       document.removeEventListener("scroll", handleScroll, true);
     };
   }, [activeMoreMenu, comment.id, menuPos, onSetActiveMoreMenu]);
-
   useEffect(() => {
     if (activeMoreMenu !== comment.id) {
       return;
     }
-
     let cleanupClickListener: (() => void) | null = null;
     const timeoutId = window.setTimeout(() => {
       const handleDocumentClick = (event: MouseEvent) => {
@@ -90,26 +84,21 @@ export function CommentActions({
         if (!(target instanceof Node)) {
           return;
         }
-
         if (menuRef.current?.contains(target)) {
           return;
         }
-
         onSetActiveMoreMenu(null);
       };
-
       document.addEventListener("click", handleDocumentClick);
       cleanupClickListener = () => {
         document.removeEventListener("click", handleDocumentClick);
       };
     }, 0);
-
     return () => {
       window.clearTimeout(timeoutId);
       cleanupClickListener?.();
     };
   }, [activeMoreMenu, comment.id, onSetActiveMoreMenu]);
-
   return (
     <>
       <div className="flex items-center gap-1 mt-2 flex-wrap">
@@ -117,29 +106,29 @@ export function CommentActions({
           const isActive = currentUserId
             ? (reaction.userIds ?? []).includes(currentUserId)
             : reaction.users.includes(currentUserName);
-
           return (
             <button
               key={reaction.emoji}
               onClick={() => onToggleReaction(comment.id, reaction.emoji)}
               className={cn(
-                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[12px] transition-all cursor-pointer select-none",
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md txt-role-body-sm transition-all cursor-pointer select-none",
                 isActive
                   ? "bg-blue-500/15 border border-blue-500/20 text-blue-300"
                   : "bg-white/[0.04] border border-white/[0.06] text-white/50 hover:bg-white/[0.06] hover:border-white/10",
               )}
             >
               <span>{reaction.emoji}</span>
-              <span className="text-[10px]">{reaction.users.length}</span>
+              <span className="txt-role-kbd">{reaction.users.length}</span>
             </button>
           );
         })}
-
         <div className="relative opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
           <button
             onClick={(event) => {
               event.stopPropagation();
-              onSetActiveReactionPicker(activeReactionPicker === comment.id ? null : comment.id);
+              onSetActiveReactionPicker(
+                activeReactionPicker === comment.id ? null : comment.id,
+              );
             }}
             className="w-6 h-6 rounded-md bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer"
           >
@@ -151,17 +140,20 @@ export function CommentActions({
             onToggleReaction={onToggleReaction}
           />
         </div>
-
         <button
-          onClick={() => onSetReplyingTo(replyingTo === comment.id ? null : comment.id)}
-          className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1 transition-all px-1.5 py-0.5 rounded hover:bg-white/[0.04] cursor-pointer opacity-0 group-hover/comment:opacity-100 duration-150"
+          onClick={() =>
+            onSetReplyingTo(replyingTo === comment.id ? null : comment.id)
+          }
+          className="txt-role-meta text-white/30 hover:text-white/60 flex items-center gap-1 transition-all px-1.5 py-0.5 rounded hover:bg-white/[0.04] cursor-pointer opacity-0 group-hover/comment:opacity-100 duration-150"
         >
-          <CornerDownRight className="w-3 h-3" />
-          Reply
+          <CornerDownRight className="w-3 h-3" /> Reply
         </button>
-
         {isTopLevel && (
-          <DeniedAction denied={!isOwn} reason={commentAuthorDeniedReason} tooltipAlign="right">
+          <DeniedAction
+            denied={!isOwn}
+            reason={commentAuthorDeniedReason}
+            tooltipAlign="right"
+          >
             <button
               onClick={() => {
                 if (!isOwn) {
@@ -170,7 +162,7 @@ export function CommentActions({
                 onResolve(comment.id);
               }}
               className={cn(
-                "text-[11px] flex items-center gap-1 transition px-1.5 py-0.5 rounded opacity-0 group-hover/comment:opacity-100 duration-150",
+                "txt-role-meta flex items-center gap-1 transition px-1.5 py-0.5 rounded opacity-0 group-hover/comment:opacity-100 duration-150",
                 isOwn ? "cursor-pointer" : "cursor-not-allowed",
                 comment.resolved
                   ? isOwn
@@ -181,12 +173,15 @@ export function CommentActions({
                     : "text-white/20",
               )}
             >
-              {comment.resolved ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+              {comment.resolved ? (
+                <CheckCheck className="w-3 h-3" />
+              ) : (
+                <Check className="w-3 h-3" />
+              )}
               {comment.resolved ? "Resolved" : "Resolve"}
             </button>
           </DeniedAction>
         )}
-
         {isOwn ? (
           <div className="relative ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
             <button
@@ -196,12 +191,8 @@ export function CommentActions({
                   onSetActiveMoreMenu(null);
                   return;
                 }
-
                 const rect = event.currentTarget.getBoundingClientRect();
-                setMenuPos({
-                  top: rect.bottom + 4,
-                  left: rect.right - 120,
-                });
+                setMenuPos({ top: rect.bottom + 4, left: rect.right - 120 });
                 onSetActiveMoreMenu(comment.id);
               }}
               className="text-white/20 hover:text-white/50 p-0.5 rounded hover:bg-white/[0.04] transition-colors cursor-pointer"
@@ -210,7 +201,11 @@ export function CommentActions({
             </button>
           </div>
         ) : (
-          <DeniedAction denied reason={commentAuthorDeniedReason} tooltipAlign="right">
+          <DeniedAction
+            denied
+            reason={commentAuthorDeniedReason}
+            tooltipAlign="right"
+          >
             <div className="relative ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
               <button
                 type="button"
@@ -222,9 +217,8 @@ export function CommentActions({
           </DeniedAction>
         )}
       </div>
-
-      {isOwn
-        && createPortal(
+      {isOwn &&
+        createPortal(
           <AnimatePresence>
             {activeMoreMenu === comment.id && menuPos && (
               <motion.div
@@ -239,7 +233,9 @@ export function CommentActions({
                   left: menuPos.left,
                 }}
                 className="bg-[#1E1F20] border border-white/10 rounded-lg shadow-xl shadow-black/40 overflow-hidden py-1 z-[9999] w-[120px]"
-                onClick={(event: React.MouseEvent<HTMLDivElement>) => event.stopPropagation()}
+                onClick={(event: React.MouseEvent<HTMLDivElement>) =>
+                  event.stopPropagation()
+                }
               >
                 <button
                   onClick={() => {
@@ -247,20 +243,18 @@ export function CommentActions({
                     onSetEditValue(comment.content);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-white/70 hover:bg-white/5 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3 py-1.5 text-left txt-role-body-sm text-white/70 hover:bg-white/5 hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Pencil className="w-3 h-3" />
-                  Edit
+                  <Pencil className="w-3 h-3" /> Edit
                 </button>
                 <button
                   onClick={() => {
                     onDeleteComment(comment.id);
                     onSetActiveMoreMenu(null);
                   }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-red-400/70 hover:bg-red-500/10 hover:text-red-400 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3 py-1.5 text-left txt-role-body-sm text-red-400/70 hover:bg-red-500/10 hover:text-red-400 flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3" />
-                  Delete
+                  <Trash2 className="w-3 h-3" /> Delete
                 </button>
               </motion.div>
             )}

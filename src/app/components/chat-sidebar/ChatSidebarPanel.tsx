@@ -1,9 +1,20 @@
-import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import type { CollaborationComment, ProjectData, ViewerIdentity, WorkspaceMember } from "../../types";
+import type {
+  CollaborationComment,
+  ProjectData,
+  ViewerIdentity,
+  WorkspaceMember,
+} from "../../types";
 import type { AppView } from "../../lib/routing";
 import { formatTaskDueDate } from "../../lib/dates";
 import { reportUiError } from "../../lib/errors";
@@ -12,11 +23,8 @@ import type { MentionItem as MentionItemType } from "../mentions/types";
 import { CommentItem } from "./CommentItem";
 import { useChatSidebarState } from "./useChatSidebarState";
 import { ChatSidebarView } from "./ChatSidebarView";
-
 const formatRoleLabel = (role: WorkspaceMember["role"]) =>
-  role.charAt(0).toUpperCase() + role.slice(1);
-
-// ── Chat Sidebar ──────────────────────────────────────────────────
+  role.charAt(0).toUpperCase() + role.slice(1); // ── Chat Sidebar ──────────────────────────────────────────────────
 interface ChatSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +36,6 @@ interface ChatSidebarProps {
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   allFiles?: Array<{ id: number | string; name: string; type: string }>;
 }
-
 export function ChatSidebar({
   isOpen,
   onClose,
@@ -64,13 +71,11 @@ export function ChatSidebar({
     inputFocused,
     setInputFocused,
   } = useChatSidebarState(activeProject.id);
-
   const scrollRef = useRef<HTMLDivElement>(null);
   const [outsideClickReady, setOutsideClickReady] = useState(false);
   const currentUserName = viewerIdentity.name || "Unknown user";
   const currentUserAvatar = viewerIdentity.avatarUrl || "";
   const currentUserId = viewerIdentity.userId;
-
   const comments = useQuery(api.comments.listForProject, {
     projectPublicId: activeProject.id,
   });
@@ -79,7 +84,6 @@ export function ChatSidebar({
   const removeCommentMutation = useMutation(api.comments.remove);
   const toggleResolvedMutation = useMutation(api.comments.toggleResolved);
   const toggleReactionMutation = useMutation(api.comments.toggleReaction);
-
   const currentComments = useMemo(
     () => (comments ?? []) as CollaborationComment[],
     [comments],
@@ -87,7 +91,6 @@ export function ChatSidebar({
   const { unresolvedComments, resolvedComments } = useMemo(() => {
     const unresolved: CollaborationComment[] = [];
     const resolved: CollaborationComment[] = [];
-
     for (const comment of currentComments) {
       if (comment.resolved) {
         resolved.push(comment);
@@ -95,23 +98,20 @@ export function ChatSidebar({
         unresolved.push(comment);
       }
     }
-
-    return {
-      unresolvedComments: unresolved,
-      resolvedComments: resolved,
-    };
+    return { unresolvedComments: unresolved, resolvedComments: resolved };
   }, [currentComments]);
-
   const totalThreadCount = currentComments.length;
   const resolvedCount = resolvedComments.length;
   const shouldOptimizeCommentRows = currentComments.length > 40;
   const shouldVirtualizeUnresolvedComments = unresolvedComments.length > 80;
   const commentRowStyle = useMemo(
-    () => (
+    () =>
       shouldOptimizeCommentRows
-        ? ({ contentVisibility: "auto", containIntrinsicSize: "120px" } as const)
-        : undefined
-    ),
+        ? ({
+            contentVisibility: "auto",
+            containIntrinsicSize: "120px",
+          } as const)
+        : undefined,
     [shouldOptimizeCommentRows],
   );
   const unresolvedCommentVirtualizer = useVirtualizer({
@@ -120,37 +120,30 @@ export function ChatSidebar({
     estimateSize: () => 120,
     overscan: 8,
   });
-
   const mentionItemGroups = useMemo(() => {
-    const taskItems: MentionItemType[] = (activeProject.tasks ?? []).map((task) => ({
-      type: "task",
-      id: task.id,
-      label: task.title,
-      meta: task.completed ? "Done" : formatTaskDueDate(task.dueDateEpochMs),
-      completed: task.completed,
-    }));
-
+    const taskItems: MentionItemType[] = (activeProject.tasks ?? []).map(
+      (task) => ({
+        type: "task",
+        id: task.id,
+        label: task.title,
+        meta: task.completed ? "Done" : formatTaskDueDate(task.dueDateEpochMs),
+        completed: task.completed,
+      }),
+    );
     const fileItems: MentionItemType[] = (allFiles ?? []).map((file) => ({
       type: "file",
       id: String(file.id),
       label: file.name,
       meta: file.type,
     }));
-
     const userItems: MentionItemType[] = workspaceMembers.map((member) => ({
       type: "user",
       id: member.userId,
       label: member.name,
       meta: formatRoleLabel(member.role),
     }));
-
-    return {
-      taskItems,
-      fileItems,
-      userItems,
-    };
+    return { taskItems, fileItems, userItems };
   }, [activeProject.tasks, allFiles, workspaceMembers]);
-
   const mentionItems: MentionItemType[] = useMemo(
     () => [
       ...mentionItemGroups.taskItems,
@@ -159,13 +152,11 @@ export function ChatSidebar({
     ],
     [mentionItemGroups],
   );
-
   const hasOpenMenu = Boolean(activeReactionPicker || activeMoreMenu);
   const handleCloseOpenMenus = useCallback(() => {
     setActiveReactionPicker(null);
     setActiveMoreMenu(null);
   }, [setActiveMoreMenu, setActiveReactionPicker]);
-
   useEffect(() => {
     if (!hasOpenMenu) {
       setOutsideClickReady(false);
@@ -179,14 +170,12 @@ export function ChatSidebar({
       setOutsideClickReady(false);
     };
   }, [hasOpenMenu]);
-
   useGlobalEventListener({
     target: document,
     type: "click",
     listener: handleCloseOpenMenus,
     enabled: hasOpenMenu && outsideClickReady,
   });
-
   useGlobalEventListener({
     target: window,
     type: "scroll",
@@ -194,7 +183,6 @@ export function ChatSidebar({
     enabled: hasOpenMenu,
     options: { passive: true },
   });
-
   useGlobalEventListener({
     target: scrollRef.current,
     type: "scroll",
@@ -202,12 +190,10 @@ export function ChatSidebar({
     enabled: hasOpenMenu,
     options: { passive: true },
   });
-
   const handleAddComment = useCallback(
     (e?: React.FormEvent) => {
       e?.preventDefault();
       if (!inputValue.trim()) return;
-
       void createCommentMutation({
         projectPublicId: activeProject.id,
         content: inputValue.trim(),
@@ -223,14 +209,12 @@ export function ChatSidebar({
           reportUiError("chatSidebar.addComment", error, { showToast: false });
         });
     },
-    [inputValue, activeProject.id, createCommentMutation, setInputValue]
+    [inputValue, activeProject.id, createCommentMutation, setInputValue],
   );
-
   const handleReply = useCallback(
     (parentId: string, e?: React.FormEvent) => {
       e?.preventDefault();
       if (!replyValue.trim()) return;
-
       void createCommentMutation({
         projectPublicId: activeProject.id,
         parentCommentId: parentId as Id<"projectComments">,
@@ -246,7 +230,9 @@ export function ChatSidebar({
           setReplyValue("");
         })
         .catch((error) => {
-          reportUiError("chatSidebar.replyComment", error, { showToast: false });
+          reportUiError("chatSidebar.replyComment", error, {
+            showToast: false,
+          });
         });
     },
     [
@@ -256,22 +242,23 @@ export function ChatSidebar({
       setCollapsedThreads,
       setReplyingTo,
       setReplyValue,
-    ]
+    ],
   );
-
   const handleResolve = useCallback(
     (commentId: string) => {
-      void toggleResolvedMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
-        reportUiError("chatSidebar.toggleResolved", error, { showToast: false });
+      void toggleResolvedMutation({
+        commentId: commentId as Id<"projectComments">,
+      }).catch((error) => {
+        reportUiError("chatSidebar.toggleResolved", error, {
+          showToast: false,
+        });
       });
     },
-    [toggleResolvedMutation]
+    [toggleResolvedMutation],
   );
-
   const handleEditComment = useCallback(
     (commentId: string) => {
       if (!editValue.trim()) return;
-
       void updateCommentMutation({
         commentId: commentId as Id<"projectComments">,
         content: editValue.trim(),
@@ -284,18 +271,18 @@ export function ChatSidebar({
           reportUiError("chatSidebar.editComment", error, { showToast: false });
         });
     },
-    [editValue, updateCommentMutation, setEditingComment, setEditValue]
+    [editValue, updateCommentMutation, setEditingComment, setEditValue],
   );
-
   const handleDeleteComment = useCallback(
     (commentId: string) => {
-      void removeCommentMutation({ commentId: commentId as Id<"projectComments"> }).catch((error) => {
+      void removeCommentMutation({
+        commentId: commentId as Id<"projectComments">,
+      }).catch((error) => {
         reportUiError("chatSidebar.deleteComment", error, { showToast: false });
       });
     },
-    [removeCommentMutation]
+    [removeCommentMutation],
   );
-
   const handleToggleReaction = useCallback(
     (commentId: string, emoji: string) => {
       void toggleReactionMutation({
@@ -306,21 +293,24 @@ export function ChatSidebar({
           setActiveReactionPicker(null);
         })
         .catch((error) => {
-          reportUiError("chatSidebar.toggleReaction", error, { showToast: false });
+          reportUiError("chatSidebar.toggleReaction", error, {
+            showToast: false,
+          });
         });
     },
-    [toggleReactionMutation, setActiveReactionPicker]
+    [toggleReactionMutation, setActiveReactionPicker],
   );
-
-  const toggleThread = useCallback((id: string) => {
-    setCollapsedThreads((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, [setCollapsedThreads]);
-
+  const toggleThread = useCallback(
+    (id: string) => {
+      setCollapsedThreads((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    },
+    [setCollapsedThreads],
+  );
   const renderComment = useCallback(
     (comment: CollaborationComment) => (
       <CommentItem
@@ -382,58 +372,51 @@ export function ChatSidebar({
       toggleThread,
     ],
   );
-
-  const unresolvedCommentItems = useMemo(
-    () => {
-      if (!shouldVirtualizeUnresolvedComments) {
-        return unresolvedComments.map(renderComment);
-      }
-
-      return (
-        <div
-          style={{
-            height: unresolvedCommentVirtualizer.getTotalSize(),
-            position: "relative",
-          }}
-        >
-          {unresolvedCommentVirtualizer.getVirtualItems().map((virtualItem) => {
-            const comment = unresolvedComments[virtualItem.index];
-            if (!comment) {
-              return null;
-            }
-            return (
-              <div
-                key={comment.id}
-                ref={unresolvedCommentVirtualizer.measureElement}
-                data-index={virtualItem.index}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                {renderComment(comment)}
-              </div>
-            );
-          })}
-        </div>
-      );
-    },
-    [
-      renderComment,
-      unresolvedComments,
-      unresolvedCommentVirtualizer,
-      shouldVirtualizeUnresolvedComments,
-    ],
-  );
-
+  const unresolvedCommentItems = useMemo(() => {
+    if (!shouldVirtualizeUnresolvedComments) {
+      return unresolvedComments.map(renderComment);
+    }
+    return (
+      <div
+        style={{
+          height: unresolvedCommentVirtualizer.getTotalSize(),
+          position: "relative",
+        }}
+      >
+        {unresolvedCommentVirtualizer.getVirtualItems().map((virtualItem) => {
+          const comment = unresolvedComments[virtualItem.index];
+          if (!comment) {
+            return null;
+          }
+          return (
+            <div
+              key={comment.id}
+              ref={unresolvedCommentVirtualizer.measureElement}
+              data-index={virtualItem.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              {renderComment(comment)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [
+    renderComment,
+    unresolvedComments,
+    unresolvedCommentVirtualizer,
+    shouldVirtualizeUnresolvedComments,
+  ]);
   const resolvedCommentItems = useMemo(
     () => resolvedComments.map(renderComment),
     [renderComment, resolvedComments],
   );
-
   const sortedProjects = useMemo(
     () =>
       [...Object.values(allProjects)].sort((a, b) => {
@@ -442,7 +425,6 @@ export function ChatSidebar({
       }),
     [allProjects],
   );
-
   return (
     <ChatSidebarView
       isOpen={isOpen}
@@ -459,7 +441,9 @@ export function ChatSidebar({
       unresolvedCommentItems={unresolvedCommentItems}
       resolvedCount={resolvedCount}
       showResolvedThreads={showResolvedThreads}
-      onToggleResolvedThreads={() => setShowResolvedThreads(!showResolvedThreads)}
+      onToggleResolvedThreads={() =>
+        setShowResolvedThreads(!showResolvedThreads)
+      }
       scrollRef={scrollRef}
       shouldOptimizeCommentRows={shouldOptimizeCommentRows}
       currentUserName={currentUserName}

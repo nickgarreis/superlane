@@ -7,10 +7,7 @@ import { getFunctionName } from "convex/server";
 import { ChatSidebar } from "./ChatSidebarPanel";
 import type { ProjectData, ViewerIdentity, WorkspaceMember } from "../../types";
 
-const {
-  mockUseQuery,
-  mockUseMutation,
-} = vi.hoisted(() => ({
+const { mockUseQuery, mockUseMutation } = vi.hoisted(() => ({
   mockUseQuery: vi.fn(),
   mockUseMutation: vi.fn(),
 }));

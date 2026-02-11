@@ -1,5 +1,4 @@
 import type { Task, ViewerIdentity } from "../../types";
-
 const CATEGORY_TO_SERVICE: Record<string, string> = {
   webdesign: "Web Design",
   "web design": "Web Design",
@@ -11,10 +10,8 @@ const CATEGORY_TO_SERVICE: Record<string, string> = {
   "ai consulting": "AI Consulting",
   "creative strategy & concept": "Creative Strategy & Concept",
 };
-
 export const categoryToService = (category: string): string =>
   CATEGORY_TO_SERVICE[category.toLowerCase()] || category;
-
 const toBaseMutationTask = (task: Task, viewerIdentity: ViewerIdentity) => ({
   id: String(task.id),
   title: task.title,
@@ -26,11 +23,14 @@ const toBaseMutationTask = (task: Task, viewerIdentity: ViewerIdentity) => ({
   dueDateEpochMs: task.dueDateEpochMs ?? null,
   completed: task.completed,
 });
-
-export const toProjectMutationTasks = (tasks: Task[], viewerIdentity: ViewerIdentity) =>
-  tasks.map((task) => toBaseMutationTask(task, viewerIdentity));
-
-export const toWorkspaceMutationTasks = (tasks: Task[], viewerIdentity: ViewerIdentity) =>
+export const toProjectMutationTasks = (
+  tasks: Task[],
+  viewerIdentity: ViewerIdentity,
+) => tasks.map((task) => toBaseMutationTask(task, viewerIdentity));
+export const toWorkspaceMutationTasks = (
+  tasks: Task[],
+  viewerIdentity: ViewerIdentity,
+) =>
   tasks.map((task) => ({
     ...toBaseMutationTask(task, viewerIdentity),
     projectPublicId: task.projectId ?? null,

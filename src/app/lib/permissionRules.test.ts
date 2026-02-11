@@ -27,7 +27,9 @@ describe("permissionRules", () => {
 
   test("workspace and lifecycle deny messages", () => {
     expect(getCreateWorkspaceDeniedReason("owner")).toBeNull();
-    expect(getCreateWorkspaceDeniedReason("admin")).toBe("Only owners can create workspaces");
+    expect(getCreateWorkspaceDeniedReason("admin")).toBe(
+      "Only owners can create workspaces",
+    );
 
     expect(getProjectLifecycleDeniedReason("admin")).toBeNull();
     expect(getProjectLifecycleDeniedReason("member")).toBe(
@@ -40,7 +42,9 @@ describe("permissionRules", () => {
     );
 
     expect(getWorkspaceDeleteDeniedReason("owner")).toBeNull();
-    expect(getWorkspaceDeleteDeniedReason("admin")).toBe("Only owners can delete workspaces");
+    expect(getWorkspaceDeleteDeniedReason("admin")).toBe(
+      "Only owners can delete workspaces",
+    );
 
     expect(getReviewApprovalDeniedReason("owner")).toBeNull();
     expect(getReviewApprovalDeniedReason("admin")).toBe(
@@ -73,7 +77,9 @@ describe("permissionRules", () => {
 
   test("owner/member edge-case deny messages", () => {
     expect(getOwnerAccountDeniedReason("owner")).toBeNull();
-    expect(getOwnerAccountDeniedReason("admin")).toBe("Only owners can manage owner accounts");
+    expect(getOwnerAccountDeniedReason("admin")).toBe(
+      "Only owners can manage owner accounts",
+    );
 
     expect(getBrandAssetDeniedReason("owner")).toBeNull();
     expect(getBrandAssetDeniedReason("member")).toBe(

@@ -50,7 +50,7 @@ describe("CompanyMembersSection", () => {
         onRemoveMember={onRemoveMember}
         onResendInvitation={onResendInvitation}
         onRevokeInvitation={onRevokeInvitation}
-      />, 
+      />,
     );
 
     fireEvent.change(screen.getByPlaceholderText("Email address"), {
@@ -59,14 +59,20 @@ describe("CompanyMembersSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Invite" }));
 
     await waitFor(() => {
-      expect(onInviteMember).toHaveBeenCalledWith({ email: "invitee@example.com", role: "member" });
+      expect(onInviteMember).toHaveBeenCalledWith({
+        email: "invitee@example.com",
+        role: "member",
+      });
     });
 
     fireEvent.click(screen.getAllByRole("button", { name: "member" })[1]);
     fireEvent.click(screen.getByRole("button", { name: "admin" }));
 
     await waitFor(() => {
-      expect(onChangeMemberRole).toHaveBeenCalledWith({ userId: "member-1", role: "admin" });
+      expect(onChangeMemberRole).toHaveBeenCalledWith({
+        userId: "member-1",
+        role: "admin",
+      });
     });
 
     fireEvent.click(screen.getByTitle("Remove member"));
@@ -79,8 +85,12 @@ describe("CompanyMembersSection", () => {
     fireEvent.click(screen.getByTitle("Revoke invitation"));
 
     await waitFor(() => {
-      expect(onResendInvitation).toHaveBeenCalledWith({ invitationId: "invite-1" });
-      expect(onRevokeInvitation).toHaveBeenCalledWith({ invitationId: "invite-1" });
+      expect(onResendInvitation).toHaveBeenCalledWith({
+        invitationId: "invite-1",
+      });
+      expect(onRevokeInvitation).toHaveBeenCalledWith({
+        invitationId: "invite-1",
+      });
     });
   });
 });

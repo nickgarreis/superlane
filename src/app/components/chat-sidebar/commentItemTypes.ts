@@ -1,7 +1,6 @@
 import type { CSSProperties, FormEvent } from "react";
 import type { CollaborationComment } from "../../types";
 import type { MentionItem as MentionItemType } from "../mentions/types";
-
 export interface CommentItemViewProps {
   comment: CollaborationComment;
   currentUserId: string | null;
@@ -12,7 +11,6 @@ export interface CommentItemViewProps {
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   performanceStyle?: CSSProperties;
 }
-
 export interface CommentItemInteractionStateProps {
   replyingTo: string | null;
   editingComment: string | null;
@@ -22,7 +20,6 @@ export interface CommentItemInteractionStateProps {
   collapsedThreads: Set<string>;
   replyValue: string;
 }
-
 export interface CommentItemInteractionHandlerProps {
   onSetReplyingTo: (id: string | null) => void;
   onSetReplyValue: (val: string) => void;
@@ -37,8 +34,6 @@ export interface CommentItemInteractionHandlerProps {
   onToggleReaction: (commentId: string, emoji: string) => void;
   onToggleThread: (id: string) => void;
 }
-
-export type CommentItemProps =
-  CommentItemViewProps
-  & CommentItemInteractionStateProps
-  & CommentItemInteractionHandlerProps;
+export type CommentItemProps = CommentItemViewProps &
+  CommentItemInteractionStateProps &
+  CommentItemInteractionHandlerProps;

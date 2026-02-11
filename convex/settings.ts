@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { authKit } from "./auth";
 import { requireAuthUser, requireWorkspaceRole } from "./lib/auth";
@@ -32,15 +33,20 @@ const WORKSPACE_LOGO_ALLOWED_MIME = new Set([
 
 const normalizeMimeType = (value: string) => value.trim().toLowerCase();
 
+type WorkspaceDoc = Doc<"workspaces">;
+type WorkspaceMemberDoc = Doc<"workspaceMembers">;
+type UserDoc = Doc<"users">;
+type SettingsCtx = QueryCtx | MutationCtx;
+
 const computeDisplayName = (firstName?: string, lastName?: string, fallbackEmail?: string) => {
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   return fullName.length > 0 ? fullName : (fallbackEmail ?? "Unknown user");
 };
 
-const getWorkspaceBySlug = async (ctx: any, slug: string) => {
+const getWorkspaceBySlug = async (ctx: SettingsCtx, slug: string): Promise<WorkspaceDoc> => {
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_slug", (q: any) => q.eq("slug", slug))
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
     .unique();
 
   if (!workspace || workspace.deletedAt != null) {
@@ -51,9 +57,9 @@ const getWorkspaceBySlug = async (ctx: any, slug: string) => {
 };
 
 const validateStorageMetadata = async (
-  ctx: any,
+  ctx: SettingsCtx,
   args: {
-    storageId: any;
+    storageId: Id<"_storage">;
     sizeBytes: number;
     checksumSha256: string;
     mimeType: string;
@@ -68,7 +74,7 @@ const validateStorageMetadata = async (
     throw new ConvexError("Uploaded file size mismatch");
   }
 
-  const contentType = (metadata as any).contentType;
+  const contentType = metadata.contentType;
   if (typeof contentType === "string" && contentType.trim().length > 0) {
     const expectedMime = normalizeMimeType(args.mimeType);
     const actualMime = normalizeMimeType(contentType);
@@ -84,7 +90,7 @@ const validateStorageMetadata = async (
   }
 };
 
-const getResolvedAvatarUrl = async (ctx: any, user: any): Promise<string | null> => {
+const getResolvedAvatarUrl = async (ctx: QueryCtx, user: UserDoc): Promise<string | null> => {
   if (typeof user.avatarUrl === "string" && user.avatarUrl.trim().length > 0) {
     return user.avatarUrl;
   }
@@ -97,7 +103,7 @@ const getResolvedAvatarUrl = async (ctx: any, user: any): Promise<string | null>
 const workspaceRoleValidator = v.union(v.literal("admin"), v.literal("member"));
 
 const resolveCompanySettingsAccess = async (
-  ctx: any,
+  ctx: QueryCtx,
   workspaceSlug: string,
 ) => {
   const workspace = await getWorkspaceBySlug(ctx, workspaceSlug);
@@ -105,7 +111,7 @@ const resolveCompanySettingsAccess = async (
   return { workspace, access };
 };
 
-const mapCompanySummary = (workspace: any, role: "owner" | "admin" | "member") => ({
+const mapCompanySummary = (workspace: WorkspaceDoc, role: "owner" | "admin" | "member") => ({
   workspace: {
     id: String(workspace._id),
     slug: workspace.slug,
@@ -126,10 +132,10 @@ const mapCompanySummary = (workspace: any, role: "owner" | "admin" | "member") =
   viewerRole: role,
 });
 
-const mapMembershipRowsToMembers = async (ctx: any, membershipRows: any[]) => {
-  const uniqueUserIds = Array.from(new Set(membershipRows.map((membership: any) => String(membership.userId))));
+const mapMembershipRowsToMembers = async (ctx: QueryCtx, membershipRows: WorkspaceMemberDoc[]) => {
+  const uniqueUserIds = Array.from(new Set(membershipRows.map((membership) => String(membership.userId))));
   const userRows = await Promise.all(uniqueUserIds.map(async (userId) => {
-    const sampleMembership = membershipRows.find((membership: any) => String(membership.userId) === userId);
+    const sampleMembership = membershipRows.find((membership) => String(membership.userId) === userId);
     if (!sampleMembership) {
       return null;
     }
@@ -139,7 +145,7 @@ const mapMembershipRowsToMembers = async (ctx: any, membershipRows: any[]) => {
     }
     return [userId, user] as const;
   }));
-  const userById = new Map(userRows.filter((entry): entry is readonly [string, any] => entry !== null));
+  const userById = new Map(userRows.filter((entry): entry is readonly [string, UserDoc] => entry !== null));
   const avatarByUserId = new Map<string, string | null>(
     await Promise.all(Array.from(userById.entries()).map(async ([userId, user]) => [
       userId,
@@ -147,7 +153,7 @@ const mapMembershipRowsToMembers = async (ctx: any, membershipRows: any[]) => {
     ] as const)),
   );
 
-  return membershipRows.map((membership: any) => {
+  return membershipRows.map((membership) => {
     const user = userById.get(String(membership.userId));
     if (!user) {
       return null;
@@ -160,7 +166,7 @@ const mapMembershipRowsToMembers = async (ctx: any, membershipRows: any[]) => {
       status: membership.status,
       avatarUrl: avatarByUserId.get(String(membership.userId)) ?? null,
     };
-  }).filter((member: any) => member !== null);
+  }).filter((member): member is NonNullable<typeof member> => member !== null);
 };
 
 export const getAccountSettings = query({
@@ -184,7 +190,7 @@ export const getNotificationPreferences = query({
 
     const row = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_userId", (q: any) => q.eq("userId", appUser._id))
+      .withIndex("by_userId", (q) => q.eq("userId", appUser._id))
       .unique();
 
     if (!row) {
@@ -213,7 +219,7 @@ export const saveNotificationPreferences = mutation({
     const { appUser } = await requireAuthUser(ctx);
     const existing = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_userId", (q: any) => q.eq("userId", appUser._id))
+      .withIndex("by_userId", (q) => q.eq("userId", appUser._id))
       .unique();
 
     const now = Date.now();
@@ -321,59 +327,6 @@ export const removeAvatar = mutation({
   },
 });
 
-export const getCompanySettings = query({
-  args: {
-    workspaceSlug: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { workspace, access } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
-
-    const membershipRows = await ctx.db
-      .query("workspaceMembers")
-      .withIndex("by_workspace_status_joinedAt", (q: any) =>
-        q.eq("workspaceId", workspace._id).eq("status", "active"))
-      .collect();
-    const members = await mapMembershipRowsToMembers(ctx, membershipRows);
-
-    const pendingInvitations = (await ctx.db
-      .query("workspaceInvitations")
-      .withIndex("by_workspace_state_createdAt", (q: any) =>
-        q.eq("workspaceId", workspace._id).eq("state", "pending"))
-      .order("desc")
-      .collect())
-      .map((invitation: any) => ({
-        invitationId: invitation.invitationId,
-        email: invitation.email,
-        state: invitation.state,
-        requestedRole: invitation.requestedRole ?? "member",
-        expiresAt: invitation.expiresAt,
-      }));
-
-    const brandAssets = (await ctx.db
-      .query("workspaceBrandAssets")
-      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
-        q.eq("workspaceId", workspace._id).eq("deletedAt", null))
-      .order("desc")
-      .collect())
-      .map((asset: any) => ({
-      id: String(asset._id),
-      name: asset.name,
-      type: asset.type,
-      displayDateEpochMs: asset.displayDateEpochMs,
-      sizeBytes: asset.sizeBytes,
-      mimeType: asset.mimeType,
-      downloadUrl: null,
-    }));
-
-    return {
-      ...mapCompanySummary(workspace, access.membership.role),
-      members,
-      pendingInvitations,
-      brandAssets,
-    };
-  },
-});
-
 export const getCompanySettingsSummary = query({
   args: {
     workspaceSlug: v.string(),
@@ -393,7 +346,7 @@ export const listCompanyMembers = query({
     const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
     const paginated = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspace_status_joinedAt", (q: any) =>
+      .withIndex("by_workspace_status_joinedAt", (q) =>
         q.eq("workspaceId", workspace._id).eq("status", "active"))
       .paginate(args.paginationOpts);
 
@@ -414,7 +367,7 @@ export const listPendingInvitations = query({
     const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
     const paginated = await ctx.db
       .query("workspaceInvitations")
-      .withIndex("by_workspace_state_createdAt", (q: any) =>
+      .withIndex("by_workspace_state_createdAt", (q) =>
         q.eq("workspaceId", workspace._id).eq("state", "pending"))
       .order("desc")
       .paginate(args.paginationOpts);
@@ -441,7 +394,7 @@ export const listBrandAssets = query({
     const { workspace } = await resolveCompanySettingsAccess(ctx, args.workspaceSlug);
     const paginated = await ctx.db
       .query("workspaceBrandAssets")
-      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
+      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q) =>
         q.eq("workspaceId", workspace._id).eq("deletedAt", null))
       .order("desc")
       .paginate(args.paginationOpts);
@@ -655,7 +608,7 @@ export const finalizeBrandAssetUpload = mutation({
 
       const existing = await ctx.db
         .query("workspaceBrandAssets")
-        .withIndex("by_workspace_deletedAt", (q: any) => q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+        .withIndex("by_workspace_deletedAt", (q) => q.eq("workspaceId", workspace._id).eq("deletedAt", null))
         .collect();
 
       const finalName = ensureUniqueFileName(trimmedName, existing.map((entry: any) => entry.name));
@@ -732,7 +685,7 @@ export const softDeleteWorkspace = mutation({
 
     const memberships = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", workspace._id))
       .collect();
 
     await Promise.all(
@@ -777,7 +730,7 @@ export const internalGetWorkspaceInvitationContext = internalQuery({
 
     const invitation = await ctx.db
       .query("workspaceInvitations")
-      .withIndex("by_invitationId", (q: any) => q.eq("invitationId", args.invitationId))
+      .withIndex("by_invitationId", (q) => q.eq("invitationId", args.invitationId))
       .unique();
 
     if (!invitation || String(invitation.workspaceId) !== String(workspace._id)) {
@@ -808,7 +761,7 @@ export const internalGetWorkspaceRoleChangeContext = internalQuery({
 
     const targetMembership = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", workspace._id).eq("userId", args.targetUserId))
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspace._id).eq("userId", args.targetUserId))
       .unique();
 
     if (!targetMembership || targetMembership.status !== "active") {
@@ -826,7 +779,7 @@ export const internalGetWorkspaceRoleChangeContext = internalQuery({
 
     const orgMembership = await ctx.db
       .query("workosOrganizationMemberships")
-      .withIndex("by_workosOrganizationId_workosUserId", (q: any) =>
+      .withIndex("by_workosOrganizationId_workosUserId", (q) =>
         q.eq("workosOrganizationId", workspace.workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
       )
       .unique();
@@ -858,7 +811,7 @@ export const internalGetWorkspaceRemovalContext = internalQuery({
 
     const targetMembership = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", workspace._id).eq("userId", args.targetUserId))
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", workspace._id).eq("userId", args.targetUserId))
       .unique();
 
     if (!targetMembership || targetMembership.status !== "active") {
@@ -880,7 +833,7 @@ export const internalGetWorkspaceRemovalContext = internalQuery({
 
     const orgMembership = await ctx.db
       .query("workosOrganizationMemberships")
-      .withIndex("by_workosOrganizationId_workosUserId", (q: any) =>
+      .withIndex("by_workosOrganizationId_workosUserId", (q) =>
         q.eq("workosOrganizationId", workspace.workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
       )
       .unique();
@@ -955,7 +908,7 @@ export const internalUpsertWorkspaceInvitation = internalMutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("workspaceInvitations")
-      .withIndex("by_invitationId", (q: any) => q.eq("invitationId", args.invitationId))
+      .withIndex("by_invitationId", (q) => q.eq("invitationId", args.invitationId))
       .unique();
 
     const patch = {
@@ -998,7 +951,7 @@ export const internalApplyWorkspaceInvitationSnapshot = internalMutation({
     const now = Date.now();
     const existingRows = await ctx.db
       .query("workspaceInvitations")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", args.workspaceId))
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     const byInvitationId = new Map(existingRows.map((row: any) => [row.invitationId, row]));
@@ -1057,7 +1010,7 @@ export const internalPatchWorkspaceMemberRole = internalMutation({
   handler: async (ctx, args) => {
     const membership = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
       .unique();
 
     if (!membership) {
@@ -1079,7 +1032,7 @@ export const internalRemoveWorkspaceMember = internalMutation({
   handler: async (ctx, args) => {
     const membership = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspace_user", (q: any) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
+      .withIndex("by_workspace_user", (q) => q.eq("workspaceId", args.workspaceId).eq("userId", args.userId))
       .unique();
 
     if (!membership) {

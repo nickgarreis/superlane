@@ -1,8 +1,11 @@
 import type { ProjectFileTab } from "../../types";
 import type { FileCommands } from "../types";
-
 type CreateFileCommandsArgs = {
-  handleCreateProjectFile: (projectPublicId: string, tab: ProjectFileTab, file: File) => void;
+  handleCreateProjectFile: (
+    projectPublicId: string,
+    tab: ProjectFileTab,
+    file: File,
+  ) => void;
   handleRemoveProjectFile: (fileId: string) => void;
   handleDownloadProjectFile: (fileId: string) => void;
   handleUploadDraftAttachment: (
@@ -18,7 +21,6 @@ type CreateFileCommandsArgs = {
   handleRemoveDraftAttachment: (pendingUploadId: string) => Promise<void>;
   handleDiscardDraftSessionUploads: (draftSessionId: string) => Promise<void>;
 };
-
 export const createFileCommands = ({
   handleCreateProjectFile,
   handleRemoveProjectFile,

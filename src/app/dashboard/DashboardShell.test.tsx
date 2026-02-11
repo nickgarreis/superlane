@@ -12,15 +12,21 @@ vi.mock("./useDashboardOrchestration", () => ({
 }));
 
 vi.mock("./components/DashboardPopups", () => ({
-  DashboardPopups: (props: Record<string, unknown>) => <div data-testid="dashboard-popups">{JSON.stringify(props)}</div>,
+  DashboardPopups: (props: Record<string, unknown>) => (
+    <div data-testid="dashboard-popups">{JSON.stringify(props)}</div>
+  ),
 }));
 
 vi.mock("./components/DashboardChrome", () => ({
-  DashboardChrome: (props: Record<string, unknown>) => <div data-testid="dashboard-chrome">{JSON.stringify(props)}</div>,
+  DashboardChrome: (props: Record<string, unknown>) => (
+    <div data-testid="dashboard-chrome">{JSON.stringify(props)}</div>
+  ),
 }));
 
 vi.mock("./components/DashboardContent", () => ({
-  DashboardContent: (props: Record<string, unknown>) => <div data-testid="dashboard-content">{JSON.stringify(props)}</div>,
+  DashboardContent: (props: Record<string, unknown>) => (
+    <div data-testid="dashboard-content">{JSON.stringify(props)}</div>
+  ),
 }));
 
 describe("DashboardShell", () => {
@@ -54,8 +60,14 @@ describe("DashboardShell", () => {
 
     render(<DashboardShell />);
 
-    expect(screen.getByTestId("dashboard-popups")).toHaveTextContent('{"isSearchOpen":true}');
-    expect(screen.getByTestId("dashboard-chrome")).toHaveTextContent('{"isSidebarOpen":true}');
-    expect(screen.getByTestId("dashboard-content")).toHaveTextContent('{"contentModel":{"kind":"tasks"}}');
+    expect(screen.getByTestId("dashboard-popups")).toHaveTextContent(
+      '{"isSearchOpen":true}',
+    );
+    expect(screen.getByTestId("dashboard-chrome")).toHaveTextContent(
+      '{"isSidebarOpen":true}',
+    );
+    expect(screen.getByTestId("dashboard-content")).toHaveTextContent(
+      '{"contentModel":{"kind":"tasks"}}',
+    );
   });
 });

@@ -8,7 +8,6 @@ import type {
   Workspace,
 } from "../types";
 import { getStatusStyle } from "./status";
-
 export type SnapshotProject = {
   publicId: string;
   name: string;
@@ -24,26 +23,16 @@ export type SnapshotProject = {
   draftData?: ProjectDraftData | null;
   attachments?: ProjectData["attachments"];
   reviewComments?: ReviewComment[];
-  creator?: {
-    userId?: string;
-    name?: string;
-    avatarUrl?: string | null;
-  };
+  creator?: { userId?: string; name?: string; avatarUrl?: string | null };
 };
-
 export type SnapshotTask = {
   projectPublicId?: string | null;
   taskId: string;
   title: string;
-  assignee: {
-    userId?: string;
-    name: string;
-    avatar: string;
-  };
+  assignee: { userId?: string; name: string; avatar: string };
   dueDateEpochMs?: number | null;
   completed: boolean;
 };
-
 export type SnapshotWorkspace = {
   slug: string;
   name: string;
@@ -52,7 +41,6 @@ export type SnapshotWorkspace = {
   logoColor?: string;
   logoText?: string;
 };
-
 export type SnapshotWorkspaceFile = {
   id: string | number;
   projectPublicId: string;
@@ -65,8 +53,9 @@ export type SnapshotWorkspaceFile = {
   sizeBytes?: number | null;
   downloadable?: boolean;
 };
-
-export const mapWorkspacesToUi = (workspaces: SnapshotWorkspace[]): Workspace[] =>
+export const mapWorkspacesToUi = (
+  workspaces: SnapshotWorkspace[],
+): Workspace[] =>
   workspaces.map((workspace) => ({
     id: workspace.slug,
     slug: workspace.slug,
@@ -76,7 +65,6 @@ export const mapWorkspacesToUi = (workspaces: SnapshotWorkspace[]): Workspace[] 
     logoColor: workspace.logoColor,
     logoText: workspace.logoText,
   }));
-
 export const mapProjectsToUi = ({
   projects,
   tasks,
@@ -106,13 +94,16 @@ export const mapProjectsToUi = ({
     });
     return acc;
   }, {});
-
   return projects.reduce<Record<string, ProjectData>>((acc, project) => {
     const status = getStatusStyle(project.status);
-    const previousStatus = project.previousStatus ? getStatusStyle(project.previousStatus) : undefined;
+    const previousStatus = project.previousStatus
+      ? getStatusStyle(project.previousStatus)
+      : undefined;
     const creatorName = project.creator?.name?.trim() || "Unknown user";
-    const creatorAvatar = typeof project.creator?.avatarUrl === "string" ? project.creator.avatarUrl : "";
-
+    const creatorAvatar =
+      typeof project.creator?.avatarUrl === "string"
+        ? project.creator.avatarUrl
+        : "";
     acc[project.publicId] = {
       id: project.publicId,
       name: project.name,
@@ -136,11 +127,9 @@ export const mapProjectsToUi = ({
       comments: project.reviewComments,
       tasks: tasksByProject[project.publicId] ?? [],
     };
-
     return acc;
   }, {});
 };
-
 export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
   tasks.map((task) => ({
     id: task.taskId,
@@ -154,8 +143,9 @@ export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
     dueDateEpochMs: task.dueDateEpochMs ?? null,
     completed: task.completed,
   }));
-
-export const mapWorkspaceFilesToUi = (files: SnapshotWorkspaceFile[]): ProjectFileData[] =>
+export const mapWorkspaceFilesToUi = (
+  files: SnapshotWorkspaceFile[],
+): ProjectFileData[] =>
   files.map((file) => ({
     id: String(file.id),
     projectPublicId: file.projectPublicId,

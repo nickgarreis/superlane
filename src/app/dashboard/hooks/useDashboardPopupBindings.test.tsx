@@ -9,26 +9,30 @@ describe("useDashboardPopupBindings", () => {
     const setPendingHighlight = vi.fn();
     const openSettings = vi.fn();
     const preloadSearchPopupModule = vi.fn().mockResolvedValue(undefined);
-    const preloadCreateProjectPopupModule = vi.fn().mockResolvedValue(undefined);
+    const preloadCreateProjectPopupModule = vi
+      .fn()
+      .mockResolvedValue(undefined);
     const preloadSettingsPopupModule = vi.fn().mockResolvedValue(undefined);
     const signOut = vi.fn().mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useDashboardPopupBindings({
-      viewerIdentity: {
-        userId: "viewer-id",
-        workosUserId: "workos-viewer-id",
-        name: "Viewer Name",
-        email: "viewer@example.com",
-        avatarUrl: "https://example.com/avatar.png",
-        role: "owner",
-      },
-      setPendingHighlight,
-      openSettings,
-      preloadSearchPopupModule,
-      preloadCreateProjectPopupModule,
-      preloadSettingsPopupModule,
-      signOut,
-    }));
+    const { result } = renderHook(() =>
+      useDashboardPopupBindings({
+        viewerIdentity: {
+          userId: "viewer-id",
+          workosUserId: "workos-viewer-id",
+          name: "Viewer Name",
+          email: "viewer@example.com",
+          avatarUrl: "https://example.com/avatar.png",
+          role: "owner",
+        },
+        setPendingHighlight,
+        openSettings,
+        preloadSearchPopupModule,
+        preloadCreateProjectPopupModule,
+        preloadSettingsPopupModule,
+        signOut,
+      }),
+    );
 
     expect(result.current.createProjectViewer).toEqual({
       userId: "viewer-id",
@@ -39,7 +43,10 @@ describe("useDashboardPopupBindings", () => {
 
     act(() => {
       result.current.searchPopupOpenSettings("Company");
-      result.current.searchPopupHighlightNavigate("project-1", { type: "task", taskId: "task-1" });
+      result.current.searchPopupHighlightNavigate("project-1", {
+        type: "task",
+        taskId: "task-1",
+      });
       result.current.handleSearchIntent();
       result.current.handleCreateProjectIntent();
       result.current.handleSettingsIntent();
@@ -66,22 +73,24 @@ describe("useDashboardPopupBindings", () => {
     const signOut = vi.fn().mockRejectedValue(new Error("signout failed"));
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { result } = renderHook(() => useDashboardPopupBindings({
-      viewerIdentity: {
-        userId: null,
-        workosUserId: null,
-        name: "Viewer Name",
-        email: "viewer@example.com",
-        avatarUrl: null,
-        role: null,
-      },
-      setPendingHighlight: vi.fn(),
-      openSettings,
-      preloadSearchPopupModule: vi.fn().mockResolvedValue(undefined),
-      preloadCreateProjectPopupModule: vi.fn().mockResolvedValue(undefined),
-      preloadSettingsPopupModule: vi.fn().mockResolvedValue(undefined),
-      signOut,
-    }));
+    const { result } = renderHook(() =>
+      useDashboardPopupBindings({
+        viewerIdentity: {
+          userId: null,
+          workosUserId: null,
+          name: "Viewer Name",
+          email: "viewer@example.com",
+          avatarUrl: null,
+          role: null,
+        },
+        setPendingHighlight: vi.fn(),
+        openSettings,
+        preloadSearchPopupModule: vi.fn().mockResolvedValue(undefined),
+        preloadCreateProjectPopupModule: vi.fn().mockResolvedValue(undefined),
+        preloadSettingsPopupModule: vi.fn().mockResolvedValue(undefined),
+        signOut,
+      }),
+    );
 
     act(() => {
       result.current.searchPopupOpenSettings("NotATab");

@@ -100,7 +100,9 @@ describe("ProjectTasks", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /add task/i }));
 
-    expect(screen.queryByPlaceholderText("What needs to be done?")).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("What needs to be done?"),
+    ).not.toBeInTheDocument();
     expect(onUpdateTasks).not.toHaveBeenCalled();
   });
 
@@ -187,7 +189,9 @@ describe("ProjectTasks", () => {
         assignableMembers={members}
         viewerIdentity={VIEWER}
         showProjectColumn
-        projectOptions={[{ id: "project-2", name: "Mobile Refresh", category: "Product" }]}
+        projectOptions={[
+          { id: "project-2", name: "Mobile Refresh", category: "Product" },
+        ]}
       />,
     );
 

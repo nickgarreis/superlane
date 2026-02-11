@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { fromUtcNoonEpochMsToDateOnly } from "../../../lib/dates";
 import type { ProjectDraftData, ProjectData } from "../../../types";
 import { createDraftSessionId, type WizardStateValues } from "./useWizardState";
-
 type UseWizardEffectsArgs = {
   isOpen: boolean;
   initialDraftData?: ProjectDraftData | null;
@@ -11,7 +10,6 @@ type UseWizardEffectsArgs = {
   state: WizardStateValues;
   resetAttachments: () => void;
 };
-
 export const useWizardEffects = ({
   isOpen,
   initialDraftData,
@@ -36,15 +34,15 @@ export const useWizardEffects = ({
     patchWizardState,
     setCommentInput,
   } = state;
-
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
     if (reviewProject) {
       const category = reviewProject.category.toLowerCase();
-      setSelectedService(reviewCategoryLabels[category] || reviewProject.category);
+      setSelectedService(
+        reviewCategoryLabels[category] || reviewProject.category,
+      );
       setProjectName(reviewProject.name);
       setSelectedJob(reviewProject.scope || null);
       setDescription(reviewProject.description);
@@ -54,11 +52,9 @@ export const useWizardEffects = ({
       setStep(4);
       return;
     }
-
     if (!initialDraftData) {
       return;
     }
-
     setSelectedService(initialDraftData.selectedService);
     setProjectName(initialDraftData.projectName);
     setSelectedJob(initialDraftData.selectedJob);
@@ -81,38 +77,34 @@ export const useWizardEffects = ({
     setSelectedService,
     setStep,
   ]);
-
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
     setDraftSessionId(createDraftSessionId());
     resetAttachments();
   }, [isOpen, resetAttachments, setDraftSessionId]);
-
   useEffect(() => {
     if (!isCalendarOpen) {
       return;
     }
-
     const handleClickOutside = (event: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+      if (
+        calendarRef.current &&
+        !calendarRef.current.contains(event.target as Node)
+      ) {
         setIsCalendarOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [calendarRef, isCalendarOpen, setIsCalendarOpen]);
-
   useEffect(() => {
     if (isOpen) {
       return;
     }
-
     setSelectedService(null);
     setProjectName("");
     setSelectedJob(null);

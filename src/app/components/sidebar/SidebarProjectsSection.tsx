@@ -5,7 +5,6 @@ import type { SidebarProjectsSectionProps } from "./types";
 import { partitionSidebarProjects } from "./partitionProjects";
 import { SidebarItem } from "./SidebarItem";
 import { ProjectLogo } from "../ProjectLogo";
-
 function CollapsibleContent({
   isExpanded,
   children,
@@ -28,7 +27,6 @@ function CollapsibleContent({
     </div>
   );
 }
-
 function SectionHeader({
   title,
   count,
@@ -57,15 +55,14 @@ function SectionHeader({
         >
           <path d="M4 2l4 4-4 4" fill="currentColor" />
         </svg>
-        <span className="text-[11px] font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
+        <span className="txt-role-meta font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
           {title}
         </span>
-        <span className="text-[10px] text-white/20 tabular-nums">{count}</span>
+        <span className="txt-role-kbd text-white/20 tabular-nums">{count}</span>
       </div>
     </div>
   );
 }
-
 export function SidebarProjectsSection({
   projects,
   currentView,
@@ -75,51 +72,61 @@ export function SidebarProjectsSection({
   onOpenCompletedProjectsPopup,
 }: SidebarProjectsSectionProps) {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
-
   const { activeProjects, completedProjects, activeCompletedProject } = useMemo(
     () => partitionSidebarProjects(projects, currentView),
     [projects, currentView],
   );
-
   const renderedActiveProjects = useMemo(
-    () => activeProjects.map((project) => {
-      const projectIsDraft = project.status.label === "Draft";
-      const projectIsReview = project.status.label === "Review";
-      return (
-        <SidebarItem
-          key={project.id}
-          projectId={project.id}
-          icon={<ProjectLogo size={16} category={project.category} />}
-          label={project.name}
-          onClick={() => {
-            if (projectIsDraft) {
-              onEditProject(project);
-            } else if (projectIsReview) {
-              onViewReviewProject(project);
-            } else {
-              onNavigate(`project:${project.id}`);
+    () =>
+      activeProjects.map((project) => {
+        const projectIsDraft = project.status.label === "Draft";
+        const projectIsReview = project.status.label === "Review";
+        return (
+          <SidebarItem
+            key={project.id}
+            projectId={project.id}
+            icon={<ProjectLogo size={16} category={project.category} />}
+            label={project.name}
+            onClick={() => {
+              if (projectIsDraft) {
+                onEditProject(project);
+              } else if (projectIsReview) {
+                onViewReviewProject(project);
+              } else {
+                onNavigate(`project:${project.id}`);
+              }
+            }}
+            isActive={
+              !projectIsDraft &&
+              !projectIsReview &&
+              currentView === `project:${project.id}`
             }
-          }}
-          isActive={!projectIsDraft && !projectIsReview && currentView === `project:${project.id}`}
-          isDraft={projectIsDraft}
-          isReview={projectIsReview}
-        />
-      );
-    }),
-    [activeProjects, currentView, onEditProject, onNavigate, onViewReviewProject],
+            isDraft={projectIsDraft}
+            isReview={projectIsReview}
+          />
+        );
+      }),
+    [
+      activeProjects,
+      currentView,
+      onEditProject,
+      onNavigate,
+      onViewReviewProject,
+    ],
   );
-
   const prevProjectCount = useRef(activeProjects.length);
   useEffect(() => {
     if (prevProjectCount.current > 0 && activeProjects.length === 0) {
       setIsProjectsExpanded(false);
-    } else if (activeProjects.length > 0 && !isProjectsExpanded && prevProjectCount.current === 0) {
+    } else if (
+      activeProjects.length > 0 &&
+      !isProjectsExpanded &&
+      prevProjectCount.current === 0
+    ) {
       setIsProjectsExpanded(true);
     }
-
     prevProjectCount.current = activeProjects.length;
   }, [activeProjects.length, isProjectsExpanded]);
-
   return (
     <>
       <div className="flex-1 min-h-0 -mx-3 px-3 flex flex-col relative">
@@ -135,12 +142,13 @@ export function SidebarProjectsSection({
               {activeProjects.length > 0 ? (
                 renderedActiveProjects
               ) : (
-                <div className="px-3 py-1.5 text-[12px] text-white/30 italic">No projects</div>
+                <div className="px-3 py-1.5 txt-role-body-sm text-white/30 italic">
+                  No projects
+                </div>
               )}
             </div>
           </CollapsibleContent>
         </div>
-
         {completedProjects.length > 0 && (
           <div className="shrink-0 pb-2 flex flex-col min-h-0">
             <div className="mx-3 mb-1 h-px bg-gradient-to-r from-white/[0.06] via-white/[0.04] to-transparent shrink-0" />
@@ -149,10 +157,12 @@ export function SidebarProjectsSection({
               onClick={onOpenCompletedProjectsPopup}
             >
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
+                <span className="txt-role-meta font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
                   Completed
                 </span>
-                <span className="text-[10px] text-white/20 tabular-nums">{completedProjects.length}</span>
+                <span className="txt-role-kbd text-white/20 tabular-nums">
+                  {completedProjects.length}
+                </span>
               </div>
               <div
                 className="p-1 hover:bg-white/10 rounded cursor-pointer transition-all opacity-0 group-hover:opacity-100"
@@ -166,13 +176,27 @@ export function SidebarProjectsSection({
                 <SidebarItem
                   key={activeCompletedProject.id}
                   projectId={activeCompletedProject.id}
-                  icon={<ProjectLogo size={16} category={activeCompletedProject.category} />}
+                  icon={
+                    <ProjectLogo
+                      size={16}
+                      category={activeCompletedProject.category}
+                    />
+                  }
                   label={activeCompletedProject.name}
-                  onClick={() => onNavigate(`project:${activeCompletedProject.id}`)}
+                  onClick={() =>
+                    onNavigate(`project:${activeCompletedProject.id}`)
+                  }
                   isActive
-                  completionDate={activeCompletedProject.completedAt
-                    ? new Date(activeCompletedProject.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                    : ""}
+                  completionDate={
+                    activeCompletedProject.completedAt
+                      ? new Date(
+                          activeCompletedProject.completedAt,
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : ""
+                  }
                 />
               </div>
             )}
