@@ -12,6 +12,10 @@ import { cn } from "../../../lib/utils";
 import { SidebarItem } from "./SidebarItem";
 import { FeedbackPopup } from "../FeedbackPopup";
 import {
+  SIDEBAR_PILL_TRIGGER_CLASS,
+  SIDEBAR_PILL_TRIGGER_INTERACTIVE_CLASS,
+} from "./sidebarChrome";
+import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
@@ -75,7 +79,11 @@ export function SidebarProfileMenu({
         <div className="relative mt-3">
           <div
             ref={profileTriggerRef}
-            className="flex items-center gap-2.5 txt-tone-primary hover:bg-[#E8E8E8]/[0.08] px-2 py-1.5 rounded-[999px] transition-colors cursor-pointer group"
+            className={cn(
+              "flex items-center gap-2.5",
+              SIDEBAR_PILL_TRIGGER_CLASS,
+              SIDEBAR_PILL_TRIGGER_INTERACTIVE_CLASS,
+            )}
             onClick={() => setIsProfileOpen((prev) => !prev)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {

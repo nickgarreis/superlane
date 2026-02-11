@@ -1,6 +1,9 @@
 export const MENU_SURFACE_CLASS =
   "bg-bg-popup border border-popup-border-soft rounded-xl shadow-menu-surface overflow-hidden";
 
+export const FLOATING_SURFACE_BASE_CLASS =
+  "bg-popup-surface-opaque border border-popup-border-medium backdrop-blur-[6px]";
+
 export const MENU_HEADER_CLASS =
   "px-3 pt-2 pb-1 txt-role-kbd text-white/25 uppercase tracking-wider select-none";
 
@@ -10,3 +13,7 @@ export const MENU_ITEM_CLASS =
 export const MENU_ITEM_ACTIVE_CLASS = "text-white bg-white/[0.04]";
 
 export const MENU_CHECK_ICON_CLASS = "w-3.5 h-3.5 txt-tone-accent shrink-0";
+
+export const TOOLTIP_SURFACE_CLASS = `${FLOATING_SURFACE_BASE_CLASS} shadow-menu-surface`;
+
+export const CALENDAR_POPOVER_SURFACE_CLASS = `${FLOATING_SURFACE_BASE_CLASS} shadow-popup-calendar`;

@@ -48,7 +48,7 @@ export function AddTaskRow({
             className={cn(
               "inline-flex items-center gap-2 h-8 px-2.5 rounded-full border transition-colors",
               canCreateTask
-                ? "border-[#58AFFF]/30 bg-[#58AFFF]/10 txt-tone-accent hover:bg-[#58AFFF]/15 cursor-pointer"
+                ? "border-accent-soft-border bg-accent-soft-bg txt-tone-accent hover:bg-accent-soft-bg-hover cursor-pointer"
                 : "border-white/10 bg-white/5 text-white/30 cursor-not-allowed",
             )}
           >
@@ -56,7 +56,7 @@ export function AddTaskRow({
               className={cn(
                 "inline-flex items-center justify-center w-6 h-5 rounded-md border",
                 canCreateTask
-                  ? "border-[#58AFFF]/35 bg-[#58AFFF]/15 txt-tone-accent"
+                  ? "border-accent-soft-border-strong bg-accent-soft-bg-hover txt-tone-accent"
                   : "border-white/10 bg-white/5 text-white/30",
               )}
             >

@@ -14,6 +14,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { safeScrollIntoView } from "../lib/dom";
 import { DeniedAction } from "./permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
+import {
+  DASHBOARD_SEARCH_BORDER_CLASS,
+  DASHBOARD_SEARCH_CONTAINER_CLASS,
+  DASHBOARD_SEARCH_CONTENT_CLASS,
+  DASHBOARD_SEARCH_INPUT_CLASS,
+} from "./ui/dashboardChrome";
 export function ArchivePage({
   onToggleSidebar,
   isSidebarOpen,
@@ -122,16 +128,16 @@ export function ArchivePage({
 
           {/* Search Bar */}
           <div className="flex items-center justify-between mb-6 z-10 relative">
-            <div className="relative w-[384px] h-[36px]">
-              <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />
-              <div className="flex items-center h-full px-3">
+            <div className={DASHBOARD_SEARCH_CONTAINER_CLASS}>
+              <div className={DASHBOARD_SEARCH_BORDER_CLASS} />
+              <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
                 <Search size={16} className="shrink-0 mr-2 opacity-40" />
                 <input
                   type="text"
                   placeholder="Search archived projects"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none txt-role-body-md txt-tone-primary placeholder:txt-tone-faint focus:outline-none"
+                  className={DASHBOARD_SEARCH_INPUT_CLASS}
                 />
               </div>
             </div>

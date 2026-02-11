@@ -5,6 +5,10 @@ import { DeniedAction } from "../permissions/DeniedAction";
 import { getCreateWorkspaceDeniedReason } from "../../lib/permissionRules";
 import type { SidebarWorkspaceSectionProps } from "./types";
 import {
+  SIDEBAR_PILL_TRIGGER_CLASS,
+  SIDEBAR_PILL_TRIGGER_INTERACTIVE_CLASS,
+} from "./sidebarChrome";
+import {
   MENU_CHECK_ICON_CLASS,
   MENU_ITEM_ACTIVE_CLASS,
   MENU_ITEM_CLASS,
@@ -48,7 +52,11 @@ export function SidebarWorkspaceSwitcher({
     <div className="relative z-20 mb-6">
       <button
         type="button"
-        className="w-full flex items-center justify-between gap-2 txt-tone-primary hover:bg-[#E8E8E8]/[0.08] px-2 py-1.5 rounded-[999px] transition-colors group text-left cursor-pointer"
+        className={cn(
+          "w-full flex items-center justify-between gap-2 text-left",
+          SIDEBAR_PILL_TRIGGER_CLASS,
+          SIDEBAR_PILL_TRIGGER_INTERACTIVE_CLASS,
+        )}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -108,13 +116,13 @@ export function SidebarWorkspaceSwitcher({
                     onSwitchWorkspace(workspace.slug);
                     setIsOpen(false);
                   }}
-                    className={cn(
-                      MENU_ITEM_CLASS,
-                      activeWorkspace?.slug === workspace.slug
-                        ? MENU_ITEM_ACTIVE_CLASS
-                        : "txt-tone-muted",
-                    )}
-                  >
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    activeWorkspace?.slug === workspace.slug
+                      ? MENU_ITEM_ACTIVE_CLASS
+                      : "txt-tone-muted",
+                  )}
+                >
                   <div
                     className="size-6 rounded-md flex items-center justify-center shrink-0 shadow-inner relative overflow-hidden"
                     style={getWorkspaceBadgeStyle(workspace.logoColor)}

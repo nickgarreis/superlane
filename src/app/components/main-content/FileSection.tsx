@@ -8,6 +8,13 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
+import {
+  DASHBOARD_SEARCH_BORDER_CLASS,
+  DASHBOARD_SEARCH_CONTAINER_CLASS,
+  DASHBOARD_SEARCH_CONTENT_CLASS,
+  DASHBOARD_SEARCH_ICON_WRAP_CLASS,
+  DASHBOARD_SEARCH_INPUT_CLASS,
+} from "../ui/dashboardChrome";
 type FileSectionProps = {
   activeTab: ProjectFileTab;
   setActiveTab: (value: ProjectFileTab) => void;
@@ -54,7 +61,7 @@ export const FileSection = React.memo(function FileSection({
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Assets"
-                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
@@ -66,7 +73,7 @@ export const FileSection = React.memo(function FileSection({
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Contract"
-                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
@@ -78,7 +85,7 @@ export const FileSection = React.memo(function FileSection({
             className={cn(
               "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Attachments"
-                ? "bg-[rgba(232,232,232,0.05)] txt-tone-primary backdrop-blur-[6px]"
+                ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
             )}
           >
@@ -96,13 +103,13 @@ export const FileSection = React.memo(function FileSection({
             className={cn(
               "flex items-center gap-1 pl-[9px] pr-[13px] py-[7.75px] rounded-full transition-colors",
               canMutateProjectFiles
-                ? "bg-[#E8E8E8] hover:bg-white cursor-pointer"
-                : "bg-[#E8E8E8]/45 text-black/45 cursor-not-allowed",
+                ? "bg-text-tone-primary hover:bg-white txt-tone-inverse cursor-pointer"
+                : "bg-popup-primary-disabled-45 text-text-inverse-strong/45 cursor-not-allowed",
             )}
           >
-            <div className="w-4 h-4 shrink-0">
+            <div className="w-4 h-4 shrink-0 txt-tone-inverse">
               <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                <path d={svgPaths.p34261000} fill="black" fillOpacity="0.667" />
+                <path d={svgPaths.p34261000} fill="currentColor" />
               </svg>
             </div>
             <span className="txt-role-body-md font-medium txt-tone-inverse txt-leading-body">
@@ -124,12 +131,12 @@ export const FileSection = React.memo(function FileSection({
         />
       </div>
       <div className="flex items-center justify-between mb-6 z-10 relative">
-        <div className="relative w-[384px] h-[36px]">
-          <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />
-          <div className="flex items-center h-full px-3">
-            <div className="w-4 h-4 shrink-0 mr-2 opacity-40">
+        <div className={DASHBOARD_SEARCH_CONTAINER_CLASS}>
+          <div className={DASHBOARD_SEARCH_BORDER_CLASS} />
+          <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
+            <div className={DASHBOARD_SEARCH_ICON_WRAP_CLASS}>
               <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                <path d={svgPaths.p3f80a980} fill="#E8E8E8" />
+                <path d={svgPaths.p3f80a980} fill="currentColor" />
               </svg>
             </div>
             <input
@@ -137,7 +144,7 @@ export const FileSection = React.memo(function FileSection({
               placeholder="Search content"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="w-full bg-transparent border-none txt-role-body-md txt-tone-primary placeholder:txt-tone-faint focus:outline-none"
+              className={DASHBOARD_SEARCH_INPUT_CLASS}
             />
           </div>
         </div>
@@ -155,9 +162,9 @@ export const FileSection = React.memo(function FileSection({
             className="flex items-center gap-2 txt-role-body-lg font-medium txt-tone-subtle hover:txt-tone-primary transition-colors cursor-pointer"
           >
             {sortBy === "relevance" ? "Relevance" : "Name (A-Z)"}
-            <div className="w-4 h-4 shrink-0">
+            <div className="w-4 h-4 shrink-0 txt-tone-primary/80">
               <svg className="w-full h-full" viewBox="0 0 16 16" fill="none">
-                <path d={svgPaths.p7659d00} fill="#E8E8E8" fillOpacity="0.8" />
+                <path d={svgPaths.p7659d00} fill="currentColor" />
               </svg>
             </div>
           </button>

@@ -41,7 +41,7 @@ export function MemberRow({
   return (
     <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden shadow-inner">
+        <div className="w-8 h-8 rounded-full bg-bg-avatar-fallback flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden">
           {member.avatarUrl ? (
             <img
               src={member.avatarUrl}

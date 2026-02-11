@@ -23,6 +23,7 @@ import {
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
 } from "./popup/popupChrome";
+import { Z_LAYERS } from "../lib/zLayers";
 import { useSearchPopupData } from "./search-popup/useSearchPopupData";
 import type {
   QuickAction,
@@ -236,7 +237,8 @@ export function SearchPopup({
     <AnimatePresence>
       {isOpen && (
         <div
-          className={`${POPUP_OVERLAY_BASE_CLASS} z-[100] flex items-start justify-center pt-[min(20vh,180px)]`}
+          className={`${POPUP_OVERLAY_BASE_CLASS} flex items-start justify-center pt-[min(20vh,180px)]`}
+          style={{ zIndex: Z_LAYERS.modalPriority }}
           onClick={onClose}
         >
           <motion.div

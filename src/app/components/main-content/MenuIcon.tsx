@@ -35,11 +35,11 @@ export function MenuIcon({
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label="Toggle menu"
-        className="w-9 h-9 rounded-full bg-[#E8E8E8]/[0.06] flex items-center justify-center border border-transparent backdrop-blur-[6px] shrink-0 cursor-pointer hover:bg-[#E8E8E8]/[0.1] transition-colors"
+        className="w-9 h-9 rounded-full bg-popup-control flex items-center justify-center border border-transparent backdrop-blur-[6px] shrink-0 cursor-pointer hover:bg-popup-control-hover transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
-          <path d={svgPaths.p1100df00} fill="#E8E8E8" />
+        <svg className="w-4 h-4 txt-tone-primary" viewBox="0 0 16 16" fill="none">
+          <path d={svgPaths.p1100df00} fill="currentColor" />
         </svg>
       </button>
       {isOpen && (

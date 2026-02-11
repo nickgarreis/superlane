@@ -14,6 +14,7 @@ import type {
   CompanySettingsData,
   NotificationSettingsData,
 } from "../../components/settings-popup/types";
+import { Z_LAYERS } from "../../lib/zLayers";
 export const loadSearchPopupModule = () =>
   import("../../components/SearchPopup");
 export const loadCreateProjectPopupModule = () =>
@@ -39,7 +40,10 @@ const LazySettingsPopup = React.lazy(async () => {
   return { default: module.SettingsPopup };
 });
 const PopupLoadingFallback = (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 backdrop-blur-sm txt-tone-secondary font-app text-sm">
+  <div
+    className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm txt-tone-secondary font-app text-sm"
+    style={{ zIndex: Z_LAYERS.modalPriority }}
+  >
     Loading...
   </div>
 );

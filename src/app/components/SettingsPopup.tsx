@@ -7,6 +7,7 @@ import { BillingTab } from "./settings-popup/BillingTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
 import { NotificationsTab } from "./settings-popup/NotificationsTab";
 import type { SettingsPopupProps, SettingsTab } from "./settings-popup/types";
+import { Z_LAYERS } from "../lib/zLayers";
 import {
   POPUP_CLOSE_BUTTON_CLASS,
   POPUP_OVERLAY_CENTER_CLASS,
@@ -95,7 +96,8 @@ export function SettingsPopup({
   const tabMeta = tabMetaById[activeTab];
   return (
     <div
-      className={`${POPUP_OVERLAY_CENTER_CLASS} z-[100]`}
+      className={POPUP_OVERLAY_CENTER_CLASS}
+      style={{ zIndex: Z_LAYERS.modalPriority }}
       onClick={onClose}
     >
       <div

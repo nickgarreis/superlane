@@ -4,6 +4,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { cn } from "../../../lib/utils";
+import { TOOLTIP_SURFACE_CLASS } from "../ui/menuChrome";
 type DeniedActionProps = {
   denied: boolean;
   reason?: string | null;
@@ -59,7 +60,8 @@ export function DeniedAction({
         <div
           role="tooltip"
           className={cn(
-            "pointer-events-none absolute z-60 w-[min(280px,calc(100vw-24px))] rounded-[10px] border border-[rgba(232,232,232,0.12)] bg-[rgba(30,31,32,0.98)] px-2.5 py-1.5 text-left txt-role-meta txt-leading-compact font-medium txt-tone-muted shadow-[0px_14px_30px_-22px_rgba(0,0,0,0.9)] backdrop-blur-[6px] opacity-0 transition-all duration-200 ease-out",
+            "pointer-events-none absolute z-60 w-[min(280px,calc(100vw-24px))] rounded-[10px] px-2.5 py-1.5 text-left txt-role-meta txt-leading-compact font-medium txt-tone-muted opacity-0 transition-all duration-200 ease-out",
+            TOOLTIP_SURFACE_CLASS,
             TOOLTIP_ALIGN_CLASS[tooltipAlign],
             TOOLTIP_SIDE_CLASS[tooltipSide],
             tooltipSide === "top"

@@ -63,6 +63,13 @@
   --popup-primary-disabled-45: rgba(232, 232, 232, 0.45);
   --popup-icon-stroke-active: rgba(232, 232, 232, 0.35);
   --popup-icon-stroke-muted: rgba(232, 232, 232, 0.2);
+  --accent-soft-bg: rgba(88, 175, 255, 0.1);
+  --accent-soft-bg-hover: rgba(88, 175, 255, 0.15);
+  --accent-soft-border: rgba(88, 175, 255, 0.3);
+  --accent-soft-border-strong: rgba(88, 175, 255, 0.35);
+  --control-surface-soft: rgba(232, 232, 232, 0.05);
+  --control-surface-muted: rgba(232, 232, 232, 0.08);
+  --control-dot-muted: rgba(232, 232, 232, 0.22);
   --bg-avatar-fallback: #222222;
   --review-loading: #f97316;
   --review-loading-soft: rgba(249, 115, 22, 0.1);
@@ -246,6 +253,13 @@
   --color-popup-primary-disabled-45: var(--popup-primary-disabled-45);
   --color-popup-icon-stroke-active: var(--popup-icon-stroke-active);
   --color-popup-icon-stroke-muted: var(--popup-icon-stroke-muted);
+  --color-accent-soft-bg: var(--accent-soft-bg);
+  --color-accent-soft-bg-hover: var(--accent-soft-bg-hover);
+  --color-accent-soft-border: var(--accent-soft-border);
+  --color-accent-soft-border-strong: var(--accent-soft-border-strong);
+  --color-control-surface-soft: var(--control-surface-soft);
+  --color-control-surface-muted: var(--control-surface-muted);
+  --color-control-dot-muted: var(--control-dot-muted);
   --color-bg-avatar-fallback: var(--bg-avatar-fallback);
   --color-review-loading: var(--review-loading);
   --color-review-loading-soft: var(--review-loading-soft);

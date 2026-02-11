@@ -20,6 +20,17 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "./ui/menuChrome";
+import {
+  DASHBOARD_ICON_TRIGGER_ACCENT_CLASS,
+  DASHBOARD_ICON_TRIGGER_CLASS,
+  DASHBOARD_ICON_TRIGGER_IDLE_CLASS,
+  DASHBOARD_ICON_TRIGGER_OPEN_CLASS,
+  DASHBOARD_SEARCH_BORDER_CLASS,
+  DASHBOARD_SEARCH_CONTAINER_CLASS,
+  DASHBOARD_SEARCH_CONTENT_CLASS,
+  DASHBOARD_SEARCH_ICON_WRAP_CLASS,
+  DASHBOARD_SEARCH_INPUT_CLASS,
+} from "./ui/dashboardChrome";
 type TaskSortBy = "dueDate" | "name" | "status";
 const TASK_SORT_OPTIONS: ReadonlyArray<{ id: TaskSortBy; label: string }> = [
   { id: "dueDate", label: "Due Date" },
@@ -191,12 +202,12 @@ export function Tasks({
           {/* Toolbar */}{" "}
           <div className="flex items-center justify-between mb-6 z-10 relative">
             {" "}
-            <div className="relative w-[384px] h-[36px]">
+            <div className={DASHBOARD_SEARCH_CONTAINER_CLASS}>
               {" "}
-              <div className="absolute inset-0 rounded-[18px] border border-[rgba(232,232,232,0.15)] pointer-events-none" />{" "}
-              <div className="flex items-center h-full px-3">
+              <div className={DASHBOARD_SEARCH_BORDER_CLASS} />{" "}
+              <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
                 {" "}
-                <div className="w-4 h-4 shrink-0 mr-2 opacity-40">
+                <div className={DASHBOARD_SEARCH_ICON_WRAP_CLASS}>
                   {" "}
                   <svg
                     className="w-full h-full"
@@ -204,7 +215,7 @@ export function Tasks({
                     fill="none"
                   >
                     {" "}
-                    <path d={svgPaths.p3f80a980} fill="#E8E8E8" />{" "}
+                    <path d={svgPaths.p3f80a980} fill="currentColor" />{" "}
                   </svg>{" "}
                 </div>{" "}
                 <input
@@ -212,7 +223,7 @@ export function Tasks({
                   placeholder="Search tasks"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none txt-role-body-md txt-tone-primary placeholder:txt-tone-faint focus:outline-none"
+                  className={DASHBOARD_SEARCH_INPUT_CLASS}
                 />{" "}
               </div>{" "}
             </div>{" "}
@@ -231,12 +242,12 @@ export function Tasks({
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                   className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 cursor-pointer",
+                    DASHBOARD_ICON_TRIGGER_CLASS,
                     filterProject.length > 0
-                      ? "bg-[#58AFFF]/20 txt-tone-accent"
+                      ? DASHBOARD_ICON_TRIGGER_ACCENT_CLASS
                       : isFilterOpen
-                        ? "bg-white/10 txt-tone-primary"
-                        : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/5",
+                        ? DASHBOARD_ICON_TRIGGER_OPEN_CLASS
+                        : DASHBOARD_ICON_TRIGGER_IDLE_CLASS,
                   )}
                   title="Filter by project"
                 >
@@ -338,10 +349,10 @@ export function Tasks({
                 <button
                   onClick={() => setIsSortOpen(!isSortOpen)}
                   className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 cursor-pointer",
+                    DASHBOARD_ICON_TRIGGER_CLASS,
                     isSortOpen
-                      ? "bg-white/10 txt-tone-primary"
-                      : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/5",
+                      ? DASHBOARD_ICON_TRIGGER_OPEN_CLASS
+                      : DASHBOARD_ICON_TRIGGER_IDLE_CLASS,
                   )}
                   title="Sort tasks"
                 >

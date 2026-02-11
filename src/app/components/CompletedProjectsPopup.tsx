@@ -14,12 +14,19 @@ import { ProjectLogo } from "./ProjectLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { DeniedAction } from "./permissions/DeniedAction";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
+import { Z_LAYERS } from "../lib/zLayers";
 import {
   POPUP_CLOSE_BUTTON_CLASS,
   POPUP_OVERLAY_CENTER_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
 } from "./popup/popupChrome";
+import {
+  DASHBOARD_SEARCH_BORDER_CLASS,
+  DASHBOARD_SEARCH_CONTAINER_CLASS,
+  DASHBOARD_SEARCH_CONTENT_CLASS,
+  DASHBOARD_SEARCH_INPUT_CLASS,
+} from "./ui/dashboardChrome";
 type SortField = "name" | "category" | "completedAt";
 type SortDir = "asc" | "desc";
 export function CompletedProjectsPopup({
@@ -109,7 +116,8 @@ export function CompletedProjectsPopup({
   if (!isOpen) return null;
   return (
     <div
-      className={`${POPUP_OVERLAY_CENTER_CLASS} z-[9999]`}
+      className={POPUP_OVERLAY_CENTER_CLASS}
+      style={{ zIndex: Z_LAYERS.modalPriority }}
       onClick={onClose}
     >
       <div
@@ -137,9 +145,9 @@ export function CompletedProjectsPopup({
         </div>
         {/* Search Bar */}
         <div className="px-8 pt-5 pb-4">
-          <div className="relative w-full h-[36px]">
-            <div className="absolute inset-0 rounded-[18px] border border-popup-border-emphasis pointer-events-none" />
-            <div className="flex items-center h-full px-3">
+          <div className={cn(DASHBOARD_SEARCH_CONTAINER_CLASS, "w-full")}>
+            <div className={DASHBOARD_SEARCH_BORDER_CLASS} />
+            <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
               <Search
                 size={16}
                 className="shrink-0 mr-2 opacity-40 txt-tone-primary"
@@ -149,7 +157,7 @@ export function CompletedProjectsPopup({
                 placeholder="Search completed projects"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none txt-role-body-md txt-tone-primary placeholder:txt-tone-faint focus:outline-none"
+                className={DASHBOARD_SEARCH_INPUT_CLASS}
                 autoFocus
               />
             </div>

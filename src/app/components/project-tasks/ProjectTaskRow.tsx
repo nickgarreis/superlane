@@ -106,7 +106,7 @@ export function ProjectTaskRow({
           className={cn(
             "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all",
             task.completed
-              ? "bg-[#58AFFF] border-[#58AFFF] text-black"
+              ? "bg-text-tone-accent border-text-tone-accent text-text-tone-inverse"
               : taskIsEditable
                 ? "border-white/20 group-hover:border-white/40 bg-transparent"
                 : "border-white/15 bg-transparent",
@@ -141,16 +141,16 @@ export function ProjectTaskRow({
                 "flex items-center gap-1.5 txt-role-body-sm transition-colors py-1 px-2 rounded-md w-full",
                 task.completed || !taskIsEditable
                   ? "text-white/30 pointer-events-none cursor-not-allowed"
-                  : "cursor-pointer hover:txt-tone-primary hover:bg-[rgba(232,232,232,0.08)] txt-tone-faint",
+                  : "cursor-pointer hover:txt-tone-primary hover:bg-control-surface-muted txt-tone-faint",
                 openProjectTaskId === task.id &&
-                  "bg-[rgba(232,232,232,0.08)] txt-tone-primary",
+                  "bg-control-surface-muted txt-tone-primary",
               )}
               title={taskIsEditable ? undefined : editTaskDisabledMessage}
             >
               {selectedProject ? (
                 <ProjectLogo size={12} category={selectedProject.category} />
               ) : (
-                <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
+                <div className="w-3 h-3 rounded-full bg-control-dot-muted" />
               )}
               <span className="truncate">
                 {selectedProject?.name ?? "No project"}
@@ -184,7 +184,7 @@ export function ProjectTaskRow({
                       !task.projectId ? MENU_ITEM_ACTIVE_CLASS : "txt-tone-muted",
                     )}
                   >
-                    <div className="w-3 h-3 rounded-full bg-[rgba(232,232,232,0.22)]" />
+                    <div className="w-3 h-3 rounded-full bg-control-dot-muted" />
                     <span
                       className={cn(
                         "truncate flex-1",

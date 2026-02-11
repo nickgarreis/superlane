@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Lightbulb, Bug, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
+import { Z_LAYERS } from "../lib/zLayers";
 import {
   POPUP_CLOSE_BUTTON_CLASS,
   POPUP_OVERLAY_CENTER_CLASS,
@@ -55,7 +56,8 @@ export function FeedbackPopup({ isOpen, type, onClose }: FeedbackPopupProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`${POPUP_OVERLAY_CENTER_CLASS} z-[200]`}
+          className={POPUP_OVERLAY_CENTER_CLASS}
+          style={{ zIndex: Z_LAYERS.modalPriority }}
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

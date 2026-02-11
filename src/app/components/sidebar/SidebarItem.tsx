@@ -2,6 +2,12 @@ import React, { useRef } from "react";
 import { Archive, ArchiveRestore, Undo2 } from "lucide-react";
 import { useDrag } from "react-dnd";
 import { cn } from "../../../lib/utils";
+import {
+  SIDEBAR_BADGE_CLASS,
+  SIDEBAR_ITEM_ACTIVE_CLASS,
+  SIDEBAR_ITEM_BASE_CLASS,
+  SIDEBAR_ITEM_IDLE_CLASS,
+} from "./sidebarChrome";
 export type SidebarItemProps = {
   icon: React.ReactNode;
   label: string;
@@ -60,11 +66,9 @@ export const SidebarItem = React.memo(function SidebarItem({
       ref={ref}
       style={{ opacity: isDragging ? 0.5 : 1 }}
       className={cn(
-        "h-[34px] flex items-center px-3 rounded-[999px] cursor-pointer transition-all duration-150 group select-none relative shrink-0",
+        SIDEBAR_ITEM_BASE_CLASS,
         className,
-        isActive
-          ? "bg-[#E8E8E8]/[0.08] txt-tone-primary"
-          : "txt-tone-subtle hover:txt-tone-primary hover:bg-[#E8E8E8]/[0.08]",
+        isActive ? SIDEBAR_ITEM_ACTIVE_CLASS : SIDEBAR_ITEM_IDLE_CLASS,
       )}
       onClick={onClick}
       onMouseEnter={onIntent}
@@ -89,7 +93,7 @@ export const SidebarItem = React.memo(function SidebarItem({
         </span>
       )}
       {badge != null && (
-        <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#58AFFF]/10 txt-tone-accent txt-role-meta font-medium ml-2">
+        <span className={SIDEBAR_BADGE_CLASS}>
           {badge}
         </span>
       )}

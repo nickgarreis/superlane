@@ -3,11 +3,13 @@ import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DayPicker } from "react-day-picker";
+import { cn } from "../../../lib/utils";
 import { fromUtcNoonEpochMsToDateOnly } from "../../lib/dates";
 import { Z_LAYERS } from "../../lib/zLayers";
 import type { Task, WorkspaceMember } from "../../types";
 import type { TaskProjectOption } from "./useProjectTaskHandlers";
 import { ProjectTaskRow } from "./ProjectTaskRow";
+import { CALENDAR_POPOVER_SURFACE_CLASS } from "../ui/menuChrome";
 type ProjectTaskRowsProps = {
   initialTasks: Task[];
   sortedTasks: Task[];
@@ -214,7 +216,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
               left: calendarPosition.left,
               zIndex: Z_LAYERS.popover,
             }}
-            className="p-2 bg-[rgba(30,31,32,0.98)] rounded-[14px] shadow-[0px_18px_40px_-28px_rgba(0,0,0,0.9)] border border-[rgba(232,232,232,0.12)]"
+            className={cn("p-2 rounded-[14px]", CALENDAR_POPOVER_SURFACE_CLASS)}
             onClick={(event: React.MouseEvent<HTMLDivElement>) =>
               event.stopPropagation()
             }
