@@ -23,7 +23,7 @@ export function AddTaskRow({
       ref={addTaskRowRef}
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: "auto", opacity: 1 }}
-      className="overflow-hidden border-b border-white/5"
+      className="overflow-hidden"
     >
       <div className="py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">

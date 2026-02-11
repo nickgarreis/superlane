@@ -84,7 +84,7 @@ export function ProjectTaskRow({
       }}
       layout={!disableLayoutAnimation}
       className={cn(
-        "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
+        "project-task-row group flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors relative",
         hasOpenDropdown && "z-50",
       )}
       style={taskRowStyle}

@@ -160,7 +160,7 @@ export function CompletedProjectsPopup({
           {filteredProjects.length > 0 ? (
             <div className="flex flex-col">
               {/* Table Header */}
-              <div className="flex items-center px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30 border-b border-white/5">
+              <div className="flex items-center px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30">
                 <div
                   className="flex-1 min-w-0 flex items-center gap-1.5 cursor-pointer hover:text-white/50 transition-colors select-none"
                   onClick={() => handleSort("name")}
@@ -191,7 +191,7 @@ export function CompletedProjectsPopup({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, height: 0, overflow: "hidden" }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                    className="flex items-center px-4 py-3 hover:bg-white/[0.02] transition-colors group cursor-pointer"
                     onClick={() => {
                       onNavigateToProject(project.id);
                       onClose();
