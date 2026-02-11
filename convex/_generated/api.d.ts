@@ -14,6 +14,7 @@ import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as dateNormalization from "../dateNormalization.js";
+import type * as devSeed from "../devSeed.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dashboard: typeof dashboard;
   dateNormalization: typeof dateNormalization;
+  devSeed: typeof devSeed;
   files: typeof files;
   http: typeof http;
   "lib/auth": typeof lib_auth;

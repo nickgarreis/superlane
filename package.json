@@ -28,7 +28,10 @@
     "security:deps": "node scripts/security/check-dependencies.mjs",
     "security:check": "npm run security:env && npm run security:urls && npm run security:secrets && npm run security:deps",
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "seed:apply": "convex run devSeed:apply",
+    "seed:reset": "convex run devSeed:reset",
+    "seed:reseed": "convex run devSeed:reseed"
   },
   "dependencies": {
     "@convex-dev/resend": "^0.2.3",
