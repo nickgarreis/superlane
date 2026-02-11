@@ -2,11 +2,23 @@ import React from "react";
 import projectSvgPaths from "../../imports/svg-0erue6fqwq";
 import { imgGroup } from "../../imports/svg-p2kdi"; // ── Service icon image imports ────────────────────────────────────
 import imgWebDesign from "../../assets/web-design-service.avif"; // ── Category → icon mapping ───────────────────────────────────────
+import imgBranding from "../../assets/branding-service.avif";
+import imgCustom from "../../assets/custom-service.avif";
+import imgEmailDesign from "../../assets/email-design-service.avif";
+import imgPresentation from "../../assets/presentation-service.avif";
+import imgProductDesign from "../../assets/product-design-service.avif";
 // Maps category strings (case-insensitive) to an image URL.
 // Add new entries here when a service gets its own icon.
 const SERVICE_ICON_MAP: Record<string, string> = {
   "web design": imgWebDesign,
   webdesign: imgWebDesign,
+  branding: imgBranding,
+  "email design": imgEmailDesign,
+  emaildesign: imgEmailDesign,
+  presentation: imgPresentation,
+  "product design": imgProductDesign,
+  productdesign: imgProductDesign,
+  custom: imgCustom,
 }; /** * Resolves a category string to an icon image URL, or null for the default SVG. */
 export function getServiceIconUrl(category?: string): string | null {
   if (!category) return null;
@@ -26,7 +38,7 @@ export function ProjectLogo({
       <img
         src={iconUrl}
         alt={category ?? ""}
-        className="shrink-0 object-cover"
+        className="shrink-0 object-contain"
         style={{ width: size * 1.4, height: size * 1.4, borderRadius }}
       />
     );

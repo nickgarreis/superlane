@@ -1,10 +1,32 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator, type PaginationResult } from "convex/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
 import { logError } from "./lib/logging";
 
 const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
+type ProjectCommentDoc = Doc<"projectComments">;
+type CommentReactionDoc = Doc<"commentReactions">;
+type UserDoc = Doc<"users">;
+type PaginationOpts = { numItems: number; cursor: string | null };
+type PaginatableQuery<T> = {
+  paginate: (opts: PaginationOpts) => Promise<PaginationResult<T>>;
+};
+type ReactionUsers = { users: string[]; userIds: string[] };
+type ReactionSummary = { emoji: string; users: string[]; userIds: string[] };
+type LegacyCommentNode = {
+  id: string;
+  author: { userId: string; name: string; avatar: string };
+  content: string;
+  timestamp: string;
+  replies: LegacyCommentNode[];
+  resolved: boolean;
+  edited: boolean;
+  reactions: ReactionSummary[];
+  __createdAt?: number;
+};
 
 const formatRelativeTime = (timestamp: number, now: number) => {
   const diffSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
@@ -28,6 +50,254 @@ const formatRelativeTime = (timestamp: number, now: number) => {
   });
 };
 
+const paginateCommentsWithFilter = async (
+  args: {
+    paginationOpts: PaginationOpts;
+    makeQuery: () => PaginatableQuery<ProjectCommentDoc>;
+    includeComment: (comment: ProjectCommentDoc) => boolean;
+  },
+) => {
+  const requestedCount = Math.max(0, Math.floor(args.paginationOpts.numItems));
+  let cursor = args.paginationOpts.cursor;
+  const collected: ProjectCommentDoc[] = [];
+  let lastPage: PaginationResult<ProjectCommentDoc> | null = null;
+  let iterationCount = 0;
+  let lastCursor: string | null = null;
+
+  while (collected.length < requestedCount) {
+    if (iterationCount > 1000) {
+      break;
+    }
+    if (iterationCount > 0 && cursor === lastCursor) {
+      break;
+    }
+
+    const remaining = requestedCount - collected.length;
+    const page = await args.makeQuery().paginate({
+      ...args.paginationOpts,
+      cursor,
+      numItems: remaining,
+    });
+
+    lastPage = page;
+    for (const comment of page.page) {
+      if (args.includeComment(comment)) {
+        collected.push(comment);
+      }
+    }
+
+    if (page.isDone) {
+      break;
+    }
+
+    lastCursor = cursor;
+    cursor = page.continueCursor;
+    iterationCount += 1;
+  }
+
+  if (!lastPage) {
+    lastPage = await args.makeQuery().paginate({
+      ...args.paginationOpts,
+      cursor: args.paginationOpts.cursor,
+      numItems: requestedCount,
+    });
+  }
+
+  return {
+    ...lastPage,
+    page: collected,
+  };
+};
+
+const getReactionAndUserMaps = async (
+  ctx: QueryCtx,
+  comments: ProjectCommentDoc[],
+) => {
+  if (comments.length === 0) {
+    return {
+      reactionMap: new Map<string, Map<string, ReactionUsers>>(),
+      userMap: new Map<Id<"users">, UserDoc>(),
+    };
+  }
+
+  const reactionRows: CommentReactionDoc[] = (
+    await Promise.all(
+      comments.map((comment) =>
+        ctx.db
+          .query("commentReactions")
+          .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+          .collect(),
+      ),
+    )
+  ).flat();
+  const userIds = new Set(comments.map((comment) => comment.authorUserId));
+  reactionRows.forEach((reaction) => userIds.add(reaction.userId));
+  const users = await Promise.all(Array.from(userIds).map((userId) => ctx.db.get(userId)));
+  const userMap = new Map(
+    users
+      .filter((user): user is UserDoc => Boolean(user))
+      .map((user) => [user._id, user] as const),
+  );
+
+  const reactionMap = new Map<string, Map<string, ReactionUsers>>();
+  reactionRows.forEach((reaction) => {
+    const user = userMap.get(reaction.userId);
+    const userName = user?.name ?? "Unknown user";
+    const userId = String(reaction.userId);
+    const key = String(reaction.commentId);
+    if (!reactionMap.has(key)) {
+      reactionMap.set(key, new Map());
+    }
+
+    const emojiUsers = reactionMap.get(key)!;
+    if (!emojiUsers.has(reaction.emoji)) {
+      emojiUsers.set(reaction.emoji, { users: [], userIds: [] });
+    }
+    const entry = emojiUsers.get(reaction.emoji)!;
+    entry.users.push(userName);
+    entry.userIds.push(userId);
+  });
+
+  return { reactionMap, userMap };
+};
+
+const getReplyCountMapForParents = async (
+  ctx: QueryCtx,
+  args: { projectPublicId: string; parentIds: string[] },
+) => {
+  const targetParentIds = new Set(args.parentIds);
+  if (targetParentIds.size === 0) {
+    return new Map<string, number>();
+  }
+
+  const projectComments = await ctx.db
+    .query("projectComments")
+    .withIndex("by_projectPublicId", (q) =>
+      q.eq("projectPublicId", args.projectPublicId),
+    )
+    .collect();
+
+  const counts = new Map<string, number>();
+  for (const comment of projectComments) {
+    if (!comment.parentCommentId) {
+      continue;
+    }
+    const parentId = String(comment.parentCommentId);
+    if (!targetParentIds.has(parentId)) {
+      continue;
+    }
+    counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
+  }
+
+  return counts;
+};
+
+const mapCommentFeedRow = (args: {
+  comment: ProjectCommentDoc;
+  userMap: Map<Id<"users">, UserDoc>;
+  reactionMap: Map<string, Map<string, ReactionUsers>>;
+  replyCount: number;
+}) => {
+  const { comment, userMap, reactionMap, replyCount } = args;
+  const author = userMap.get(comment.authorUserId);
+  const reactionByEmoji = reactionMap.get(String(comment._id));
+  return {
+    id: String(comment._id),
+    parentCommentId: comment.parentCommentId ? String(comment.parentCommentId) : null,
+    author: {
+      userId: String(comment.authorUserId),
+      name: comment.authorSnapshotName ?? author?.name ?? "Unknown user",
+      avatar: comment.authorSnapshotAvatarUrl ?? author?.avatarUrl ?? "",
+    },
+    content: comment.content,
+    createdAtEpochMs: comment.createdAt,
+    updatedAtEpochMs: comment.updatedAt,
+    resolved: comment.resolved,
+    edited: comment.edited,
+    replyCount,
+    reactions: reactionByEmoji
+      ? Array.from(reactionByEmoji.entries()).map(([emoji, reaction]) => ({
+          emoji,
+          users: reaction.users,
+          userIds: reaction.userIds,
+        }))
+      : [],
+  };
+};
+
+export const listThreadsPaginated = query({
+  args: {
+    projectPublicId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
+    const paginated = await paginateCommentsWithFilter({
+      paginationOpts: args.paginationOpts,
+      makeQuery: () =>
+        ctx.db
+          .query("projectComments")
+          .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
+          .order("desc"),
+      includeComment: (comment) => comment.parentCommentId == null,
+    });
+
+    const { reactionMap, userMap } = await getReactionAndUserMaps(ctx, paginated.page);
+    const replyCounts = await getReplyCountMapForParents(ctx, {
+      projectPublicId: project.publicId,
+      parentIds: paginated.page.map((comment) => String(comment._id)),
+    });
+
+    return {
+      ...paginated,
+      page: paginated.page.map((comment) =>
+        mapCommentFeedRow({
+          comment,
+          userMap,
+          reactionMap,
+          replyCount: replyCounts.get(String(comment._id)) ?? 0,
+        })),
+    };
+  },
+});
+
+export const listReplies = query({
+  args: {
+    parentCommentId: v.id("projectComments"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const parent = await ctx.db.get(args.parentCommentId);
+    if (!parent) {
+      throw new ConvexError("Comment not found");
+    }
+
+    await requireProjectRoleById(ctx, parent.projectId, "member");
+    const paginated = await ctx.db
+      .query("projectComments")
+      .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", parent._id))
+      .order("asc")
+      .paginate(args.paginationOpts);
+    const { reactionMap, userMap } = await getReactionAndUserMaps(ctx, paginated.page);
+    const replyCounts = await getReplyCountMapForParents(ctx, {
+      projectPublicId: parent.projectPublicId,
+      parentIds: paginated.page.map((comment) => String(comment._id)),
+    });
+
+    return {
+      ...paginated,
+      page: paginated.page.map((comment) =>
+        mapCommentFeedRow({
+          comment,
+          userMap,
+          reactionMap,
+          replyCount: replyCounts.get(String(comment._id)) ?? 0,
+        })),
+    };
+  },
+});
+
+// Legacy full-graph endpoint kept for backward compatibility.
 export const listForProject = query({
   args: {
     projectPublicId: v.string(),
@@ -45,7 +315,7 @@ export const listForProject = query({
 
     let reactionRows = await ctx.db
       .query("commentReactions")
-      .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
+      .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
       .collect();
 
     // Legacy fallback for rows created before reaction denormalization backfill.
@@ -95,16 +365,7 @@ export const listForProject = query({
       id: string;
       parentCommentId?: string;
       createdAt: number;
-      data: {
-        id: string;
-        author: { userId: string; name: string; avatar: string };
-        content: string;
-        timestamp: string;
-        replies: Array<any>;
-        resolved: boolean;
-        edited: boolean;
-        reactions: Array<{ emoji: string; users: string[]; userIds: string[] }>;
-      };
+      data: LegacyCommentNode;
     };
 
     const nodeMap = new Map<string, CommentNode>();
@@ -139,7 +400,7 @@ export const listForProject = query({
       });
     });
 
-    const topLevel: Array<CommentNode["data"] & { __createdAt: number }> = [];
+    const topLevel: LegacyCommentNode[] = [];
 
     const orderedNodes = Array.from(nodeMap.values()).sort((a, b) => a.createdAt - b.createdAt);
     orderedNodes.forEach((node) => {
@@ -151,7 +412,7 @@ export const listForProject = query({
       if (node.parentCommentId) {
         const parent = nodeMap.get(node.parentCommentId);
         if (parent) {
-          (parent.data.replies as Array<any>).push(enrichedNode);
+          parent.data.replies.push(enrichedNode);
           return;
         }
       }
@@ -159,7 +420,7 @@ export const listForProject = query({
       topLevel.push(enrichedNode);
     });
 
-    const sortRepliesByCreatedAt = (list: Array<any>) => {
+    const sortRepliesByCreatedAt = (list: LegacyCommentNode[]) => {
       list.sort((a, b) => (a.__createdAt ?? 0) - (b.__createdAt ?? 0));
       list.forEach((item) => {
         if (item.replies?.length) {
@@ -174,9 +435,9 @@ export const listForProject = query({
       }
     });
 
-    topLevel.sort((a, b) => b.__createdAt - a.__createdAt);
+    topLevel.sort((a, b) => (b.__createdAt ?? 0) - (a.__createdAt ?? 0));
 
-    const stripInternalTimestamp = (list: Array<any>): Array<any> =>
+    const stripInternalTimestamp = (list: LegacyCommentNode[]): LegacyCommentNode[] =>
       list.map((item) => ({
         id: item.id,
         author: item.author,
@@ -185,7 +446,7 @@ export const listForProject = query({
         replies: stripInternalTimestamp(item.replies ?? []),
         resolved: item.resolved,
         edited: item.edited,
-        reactions: (item.reactions ?? []).map((reaction: any) => ({
+        reactions: (item.reactions ?? []).map((reaction) => ({
           emoji: reaction.emoji,
           users: reaction.users ?? [],
           userIds: reaction.userIds ?? [],
@@ -287,10 +548,13 @@ export const update = mutation({
   },
 });
 
-const deleteCommentThread = async (ctx: any, commentId: any) => {
+const deleteCommentThread = async (
+  ctx: MutationCtx,
+  commentId: Id<"projectComments">,
+) => {
   const children = await ctx.db
     .query("projectComments")
-    .withIndex("by_parentCommentId", (q: any) => q.eq("parentCommentId", commentId))
+    .withIndex("by_parentCommentId", (q) => q.eq("parentCommentId", commentId))
     .collect();
 
   for (const child of children) {
@@ -299,10 +563,10 @@ const deleteCommentThread = async (ctx: any, commentId: any) => {
 
   const reactions = await ctx.db
     .query("commentReactions")
-    .withIndex("by_commentId", (q: any) => q.eq("commentId", commentId))
+    .withIndex("by_commentId", (q) => q.eq("commentId", commentId))
     .collect();
 
-  await Promise.all(reactions.map((reaction: any) => ctx.db.delete(reaction._id)));
+  await Promise.all(reactions.map((reaction) => ctx.db.delete(reaction._id)));
   await ctx.db.delete(commentId);
 };
 

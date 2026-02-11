@@ -4,10 +4,11 @@ import { ProjectLogo } from "../ProjectLogo";
 import { formatTaskDueDate } from "../../lib/dates";
 import type { QuickAction, SearchResult } from "./types";
 import type { AppView } from "../../lib/routing";
-import type { ProjectData, ProjectFileData } from "../../types";
+import type { ProjectData, ProjectFileData, Task } from "../../types";
 import { buildSearchIndex, groupSearchResults } from "./searchIndex";
 type UseSearchPopupDataArgs = {
   projects: Record<string, ProjectData>;
+  workspaceTasks?: Task[];
   files: ProjectFileData[];
   query: string;
   deferredQuery: string;
@@ -29,6 +30,7 @@ type UseSearchPopupDataArgs = {
 };
 export const useSearchPopupData = ({
   projects,
+  workspaceTasks = [],
   files,
   query,
   deferredQuery,
@@ -66,6 +68,21 @@ export const useSearchPopupData = ({
     [onClose, onNavigate, onOpenCreateProject, onOpenSettings],
   );
   const projectsList = useMemo(() => Object.values(projects), [projects]);
+  const effectiveWorkspaceTasks = useMemo(() => {
+    if (workspaceTasks.length > 0) {
+      return workspaceTasks;
+    }
+    const flattened: Task[] = [];
+    for (const project of projectsList) {
+      for (const task of project.tasks ?? []) {
+        flattened.push({
+          ...task,
+          projectId: task.projectId ?? project.id,
+        });
+      }
+    }
+    return flattened;
+  }, [projectsList, workspaceTasks]);
   const normalizedDeferredQuery = deferredQuery.toLowerCase().trim();
   const trimmedQuery = query.trim();
   const firstActiveProjectId = useMemo(() => {
@@ -75,8 +92,13 @@ export const useSearchPopupData = ({
     return active?.id || projectsList[0]?.id;
   }, [projectsList]);
   const searchIndex = useMemo(
-    () => buildSearchIndex({ projectsList, files }),
-    [files, projectsList],
+    () =>
+      buildSearchIndex({
+        projectsList,
+        workspaceTasks: effectiveWorkspaceTasks,
+        files,
+      }),
+    [effectiveWorkspaceTasks, files, projectsList],
   );
   const results = useMemo(() => {
     const items: SearchResult[] = [];
@@ -271,36 +293,36 @@ export const useSearchPopupData = ({
       defaultContent.map((item) => item.projectId).filter(Boolean),
     );
     const items: SearchResult[] = [];
+    const projectsById = new Map(projectsList.map((project) => [project.id, project]));
     let taskSuggestionCount = 0;
-    for (const project of projectsList) {
-      if (project.archived || project.status.label === "Completed") {
+    for (const task of effectiveWorkspaceTasks) {
+      const project = task.projectId ? projectsById.get(task.projectId) : null;
+      if (!project || project.archived || project.status.label === "Completed") {
         continue;
       }
-      for (const task of project.tasks || []) {
-        if (task.completed || taskSuggestionCount >= 3) {
-          continue;
-        }
-        taskSuggestionCount += 1;
-        items.push({
-          id: `suggest-task-${project.id}-${task.id}`,
-          type: "task",
-          title: task.title,
-          subtitle: `${formatTaskDueDate(task.dueDateEpochMs)} · in ${project.name}`,
-          icon: <ListChecks size={15} />,
-          projectId: project.id,
-          taskCompleted: false,
-          action: () => {
-            onClose();
-            onNavigate(`project:${project.id}`);
-            if (onHighlightNavigate) {
-              onHighlightNavigate(project.id, {
-                type: "task",
-                taskId: task.id,
-              });
-            }
-          },
-        });
+      if (task.completed || taskSuggestionCount >= 3) {
+        continue;
       }
+      taskSuggestionCount += 1;
+      items.push({
+        id: `suggest-task-${project.id}-${task.id}`,
+        type: "task",
+        title: task.title,
+        subtitle: `${formatTaskDueDate(task.dueDateEpochMs)} · in ${project.name}`,
+        icon: <ListChecks size={15} />,
+        projectId: project.id,
+        taskCompleted: false,
+        action: () => {
+          onClose();
+          onNavigate(`project:${project.id}`);
+          if (onHighlightNavigate) {
+            onHighlightNavigate(project.id, {
+              type: "task",
+              taskId: task.id,
+            });
+          }
+        },
+      });
     }
     projectsList
       .filter(
@@ -360,6 +382,7 @@ export const useSearchPopupData = ({
     onHighlightNavigate,
     onNavigate,
     projectsList,
+    effectiveWorkspaceTasks,
     recentResults,
   ]);
   const combinedDefaultList = useMemo(

@@ -13,6 +13,7 @@ import {
   ProjectData,
   ProjectFileData,
   ProjectFileTab,
+  Task,
   ViewerIdentity,
   WorkspaceMember,
 } from "../types";
@@ -37,6 +38,7 @@ interface MainContentProps {
   isSidebarOpen: boolean;
   layoutMode?: "page" | "popup";
   project: ProjectData;
+  projectTasks: Task[];
   projectFiles: ProjectFileData[];
   projectFilesPaginationStatus:
     | "LoadingFirstPage"
@@ -58,6 +60,7 @@ export function MainContent({
   isSidebarOpen,
   layoutMode = "page",
   project,
+  projectTasks,
   projectFiles,
   projectFilesPaginationStatus,
   loadMoreProjectFiles,
@@ -115,7 +118,7 @@ export function MainContent({
     handleMentionClick,
   } = useMainContentHighlighting({
     projectId: project.id,
-    tasks: project.tasks || [],
+    tasks: projectTasks,
     projectFiles,
     pendingHighlight,
     onClearPendingHighlight,
@@ -217,8 +220,10 @@ export function MainContent({
       }`}
     >
       <div
-        className={`relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${
-          layoutMode === "popup" ? "rounded-[28px]" : ""
+        className={`relative rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${
+          layoutMode === "popup"
+            ? "bg-bg-popup rounded-[28px]"
+            : "bg-bg-surface"
         }`}
       >
         {layoutMode === "page" && (
@@ -244,7 +249,7 @@ export function MainContent({
           />
           <ProjectTasks
             key={project.id}
-            tasks={project.tasks || []}
+            tasks={projectTasks}
             onUpdateTasks={(newTasks) =>
               projectActions.updateProject?.({ tasks: newTasks })
             }
@@ -293,6 +298,7 @@ export function MainContent({
                 isOpen={isChatOpen}
                 onClose={() => setIsChatOpen(false)}
                 activeProject={project}
+                activeProjectTasks={projectTasks}
                 allProjects={allProjects || {}}
                 onSwitchProject={navigationActions?.navigate}
                 onMentionClick={handleMentionClick}

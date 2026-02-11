@@ -1,5 +1,6 @@
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -68,11 +69,12 @@ export function Tasks({
   const [filterProject, setFilterProject] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const isLoadingMoreRef = useRef(false);
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const normalizedSearchQuery = useMemo(
-    () => searchQuery.trim().toLowerCase(),
-    [searchQuery],
+    () => deferredSearchQuery.trim().toLowerCase(),
+    [deferredSearchQuery],
   );
   const selectedProjectIds = useMemo(
     () => new Set(filterProject),

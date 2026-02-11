@@ -3,6 +3,7 @@ import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import {
   mapProjectsToUi,
+  mapTasksByProjectToUi,
   mapWorkspaceFilesToUi,
   mapWorkspaceTasksToUi,
   mapWorkspacesToUi,
@@ -82,6 +83,9 @@ type UseDashboardDataResult = {
   >;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
+  projectsById: Record<string, ProjectData>;
+  tasksByProject: Record<string, Task[]>;
+  visibleProjectIds: string[];
   workspaces: Workspace[];
   projects: Record<string, ProjectData>;
   workspaceTasks: Task[];
@@ -214,6 +218,16 @@ export const useDashboardData = ({
   );
   const workspaceMembersResult = useQuery(
     api.collaboration.listWorkspaceMembers,
+    isAuthenticated &&
+      resolvedWorkspaceSlug &&
+      (currentView === "tasks" ||
+        routeProjectPublicId != null ||
+        completedProjectDetailId != null)
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+  );
+  const workspaceMembersLiteResult = useQuery(
+    api.collaboration.listWorkspaceMembersLite,
     isAuthenticated && resolvedWorkspaceSlug
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
@@ -231,9 +245,17 @@ export const useDashboardData = ({
     () => workspaceMembersResult?.members ?? [],
     [workspaceMembersResult],
   );
+  const workspaceMembersLite = useMemo(
+    () => workspaceMembersLiteResult?.members ?? [],
+    [workspaceMembersLiteResult],
+  );
   const viewerMembership = useMemo(
     () => workspaceMembers.find((member) => member.isViewer),
     [workspaceMembers],
+  );
+  const viewerLiteMembership = useMemo(
+    () => workspaceMembersLite.find((member) => member.isViewer),
+    [workspaceMembersLite],
   );
   const viewerIdentity = useMemo<ViewerIdentity>(
     () => ({
@@ -254,13 +276,14 @@ export const useDashboardData = ({
         viewerMembership?.avatarUrl ??
         snapshot?.viewer?.avatarUrl ??
         viewerFallback.avatarUrl,
-      role: viewerMembership?.role ?? null,
+      role: viewerLiteMembership?.role ?? viewerMembership?.role ?? null,
     }),
     [
       snapshot?.viewer,
       viewerFallback.avatarUrl,
       viewerFallback.email,
       viewerFallback.name,
+      viewerLiteMembership?.role,
       viewerMembership,
     ],
   );
@@ -273,13 +296,16 @@ export const useDashboardData = ({
     () =>
       mapProjectsToUi({
         projects: paginatedProjects as SnapshotProject[],
-        tasks: paginatedWorkspaceTasks as SnapshotTask[],
         workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
       }),
-    [paginatedProjects, paginatedWorkspaceTasks, snapshot?.activeWorkspaceSlug],
+    [paginatedProjects, snapshot?.activeWorkspaceSlug],
   );
   const workspaceTasks = useMemo(
     () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
+    [paginatedWorkspaceTasks],
+  );
+  const tasksByProject = useMemo(
+    () => mapTasksByProjectToUi(paginatedWorkspaceTasks as SnapshotTask[]),
     [paginatedWorkspaceTasks],
   );
   const activeWorkspace = useMemo<Workspace | undefined>(() => {
@@ -307,6 +333,10 @@ export const useDashboardData = ({
       {},
     );
   }, [projects, activeWorkspace]);
+  const visibleProjectIds = useMemo(
+    () => Object.keys(visibleProjects),
+    [visibleProjects],
+  );
   const {
     contentModel,
     toggleSidebar: handleToggleSidebar,
@@ -355,6 +385,9 @@ export const useDashboardData = ({
     workspaceMembersResult,
     workspaceMembers,
     viewerIdentity,
+    projectsById: projects,
+    tasksByProject,
+    visibleProjectIds,
     workspaces,
     projects,
     workspaceTasks,

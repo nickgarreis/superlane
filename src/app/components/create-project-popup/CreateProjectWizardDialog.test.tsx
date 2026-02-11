@@ -201,4 +201,33 @@ describe("CreateProjectPopup", () => {
       expect(onApproveReviewProject).toHaveBeenCalledWith(REVIEW_PROJECT.id);
     });
   });
+
+  test("closes without draft confirmation when clicking backdrop on step 4", async () => {
+    const onCreate = vi
+      .fn()
+      .mockResolvedValue({ publicId: "project-789", mode: "create" });
+    const onClose = vi.fn();
+
+    const { container } = render(
+      <CreateProjectPopup
+        isOpen
+        onClose={onClose}
+        onCreate={onCreate}
+        initialDraftData={STEP_THREE_DRAFT}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Review & submit" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Your Project is in Review" }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(container.firstElementChild as HTMLElement);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Save as draft?")).not.toBeInTheDocument();
+  });
 });

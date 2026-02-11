@@ -226,6 +226,66 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
     ).rejects.toThrow("Forbidden");
   });
 
+  test("listWorkspaceMembersLite falls back for legacy rows and prefers snapshots when present", async () => {
+    const workspace = await seedWorkspace();
+
+    await t.run(async (ctx) => {
+      const memberMembership = await ((ctx.db
+        .query("workspaceMembers") as any)
+        .withIndex("by_workspace_user", (q: any) =>
+          q.eq("workspaceId", workspace.workspaceId).eq("userId", workspace.memberUserId),
+        )
+        .unique());
+      if (memberMembership) {
+        await ctx.db.patch(memberMembership._id, {
+          nameSnapshot: "Snapshot Member",
+          updatedAt: Date.now(),
+        });
+      }
+    });
+
+    const result = await asOwner().query(api.collaboration.listWorkspaceMembersLite, {
+      workspaceSlug: workspace.workspaceSlug,
+    });
+
+    expect(result.members).toHaveLength(3);
+    expect(
+      result.members.find((member: any) => member.userId === String(workspace.memberUserId))
+        ?.name,
+    ).toBe("Snapshot Member");
+    expect(
+      result.members.find((member: any) => member.userId === String(workspace.ownerUserId))
+        ?.name,
+    ).toBe("Owner User");
+  });
+
+  test("backfillWorkspaceMemberSnapshots fills missing snapshot fields", async () => {
+    const workspace = await seedWorkspace();
+
+    const backfillResult = await asOwner().mutation(
+      api.performanceBackfills.backfillWorkspaceMemberSnapshots,
+      {
+        workspaceSlug: workspace.workspaceSlug,
+        limit: 100,
+      },
+    );
+    expect(backfillResult.patchedMemberships).toBeGreaterThan(0);
+
+    await t.run(async (ctx) => {
+      const memberships = await ((ctx.db
+        .query("workspaceMembers") as any)
+        .withIndex("by_workspace_status_joinedAt", (q: any) =>
+          q.eq("workspaceId", workspace.workspaceId).eq("status", "active"),
+        )
+        .collect());
+      memberships.forEach((membership: any) => {
+        expect(membership.nameSnapshot).toBeTypeOf("string");
+        expect(membership.emailSnapshot).toBeTypeOf("string");
+        expect(membership.avatarUrlSnapshot === null || typeof membership.avatarUrlSnapshot === "string").toBe(true);
+      });
+    });
+  });
+
   test("comments and dashboard include stable user ids for identity attribution", async () => {
     const workspace = await seedWorkspace();
 

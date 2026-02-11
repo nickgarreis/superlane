@@ -1,17 +1,8 @@
 import type { Task, ViewerIdentity } from "../../types";
-const CATEGORY_TO_SERVICE: Record<string, string> = {
-  webdesign: "Web Design",
-  "web design": "Web Design",
-  automation: "AI Automation",
-  "ai automation": "AI Automation",
-  marketing: "Marketing Campaigns",
-  "marketing campaigns": "Marketing Campaigns",
-  presentation: "Presentation",
-  "ai consulting": "AI Consulting",
-  "creative strategy & concept": "Creative Strategy & Concept",
-};
+import { normalizeServiceName } from "../../lib/projectServices";
+
 export const categoryToService = (category: string): string =>
-  CATEGORY_TO_SERVICE[category.toLowerCase()] || category;
+  normalizeServiceName(category);
 const toBaseMutationTask = (task: Task, viewerIdentity: ViewerIdentity) => ({
   id: String(task.id),
   title: task.title,

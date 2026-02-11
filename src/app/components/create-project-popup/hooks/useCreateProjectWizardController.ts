@@ -2,6 +2,7 @@ import type {
   CreateProjectPayload,
   CreateProjectResult,
 } from "../../../dashboard/types";
+import { SERVICE_NAME_ALIASES } from "../../../lib/projectServices";
 import type {
   ProjectDraftData,
   ProjectData,
@@ -12,17 +13,7 @@ import { useDraftAttachments } from "../useDraftAttachments";
 import { useWizardEffects } from "./useWizardEffects";
 import { useWizardState } from "./useWizardState";
 import { useWizardSubmission } from "./useWizardSubmission";
-const REVIEW_CATEGORY_LABELS: Record<string, string> = {
-  webdesign: "Web Design",
-  "web design": "Web Design",
-  automation: "AI Automation",
-  "ai automation": "AI Automation",
-  marketing: "Marketing Campaigns",
-  "marketing campaigns": "Marketing Campaigns",
-  presentation: "Presentation",
-  "ai consulting": "AI Consulting",
-  "creative strategy & concept": "Creative Strategy & Concept",
-};
+const REVIEW_CATEGORY_LABELS: Record<string, string> = SERVICE_NAME_ALIASES;
 export type CreateProjectPopupUser = {
   userId?: string;
   name: string;

@@ -200,6 +200,115 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
     ).rejects.toThrow("Forbidden");
   });
 
+  test("listThreadsPaginated and listReplies return ordered thread/reply payloads", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    const inserted = await t.run(async (ctx) => {
+      const project = await ((ctx.db
+        .query("projects") as any)
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", seeded.projectPublicId))
+        .unique());
+      if (!project) {
+        throw new Error("Project not found for pagination test");
+      }
+
+      const baseTs = Date.now() + 1_000;
+      const resolvedThreadId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Resolved thread",
+        resolved: true,
+        edited: false,
+        createdAt: baseTs + 1,
+        updatedAt: baseTs + 1,
+      });
+      const newestThreadId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        authorUserId: seeded.memberTwoUserId,
+        authorSnapshotName: "Member Two User",
+        content: "Newest thread",
+        resolved: false,
+        edited: false,
+        createdAt: baseTs + 2,
+        updatedAt: baseTs + 2,
+      });
+      await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: newestThreadId,
+        authorUserId: seeded.memberUserId,
+        authorSnapshotName: "Member User",
+        content: "Reply A",
+        resolved: false,
+        edited: false,
+        createdAt: baseTs + 3,
+        updatedAt: baseTs + 3,
+      });
+      await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: newestThreadId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Reply B",
+        resolved: false,
+        edited: false,
+        createdAt: baseTs + 4,
+        updatedAt: baseTs + 4,
+      });
+
+      return {
+        resolvedThreadId,
+        newestThreadId,
+      };
+    });
+
+    const threads = await asMember().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(threads.page).toHaveLength(3);
+    expect(threads.page.map((comment: any) => comment.content)).toEqual([
+      "Newest thread",
+      "Resolved thread",
+      "Initial comment",
+    ]);
+    expect(
+      threads.page.every((comment: any) => comment.parentCommentId === null),
+    ).toBe(true);
+    expect(
+      threads.page.find((comment: any) => comment.id === String(inserted.newestThreadId))
+        ?.replyCount,
+    ).toBe(2);
+    expect(
+      threads.page.find((comment: any) => comment.id === String(inserted.resolvedThreadId))
+        ?.resolved,
+    ).toBe(true);
+
+    const replies = await asMember().query(api.comments.listReplies, {
+      parentCommentId: inserted.newestThreadId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(replies.page).toHaveLength(2);
+    expect(replies.page.map((comment: any) => comment.content)).toEqual([
+      "Reply A",
+      "Reply B",
+    ]);
+    expect(
+      replies.page.every(
+        (comment: any) =>
+          comment.parentCommentId === String(inserted.newestThreadId),
+      ),
+    ).toBe(true);
+  });
+
   test("discardPendingUploadsForSession removes only current uploader rows and is idempotent", async () => {
     const seeded = await seedWorkspaceWithProjectComment();
 

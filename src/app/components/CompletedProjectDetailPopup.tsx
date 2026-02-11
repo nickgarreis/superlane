@@ -1,6 +1,5 @@
-import React, { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { X } from "lucide-react";
-import { MainContent } from "./MainContent";
 import {
   POPUP_CLOSE_BUTTON_CLASS,
   POPUP_OVERLAY_CENTER_CLASS,
@@ -16,15 +15,23 @@ import type {
 import type {
   ProjectData,
   ProjectFileData,
+  Task,
   ViewerIdentity,
   WorkspaceMember,
 } from "../types";
+
+const loadMainContentModule = () => import("./MainContent");
+const LazyMainContent = React.lazy(async () => {
+  const module = await loadMainContentModule();
+  return { default: module.MainContent };
+});
 
 type CompletedProjectDetailPopupProps = {
   isOpen: boolean;
   onClose: () => void;
   onBackToCompletedProjects: () => void;
   project: ProjectData;
+  projectTasks?: Task[];
   projects: Record<string, ProjectData>;
   projectFiles: ProjectFileData[];
   projectFilesPaginationStatus:
@@ -45,6 +52,7 @@ export function CompletedProjectDetailPopup({
   onClose,
   onBackToCompletedProjects,
   project,
+  projectTasks,
   projects,
   projectFiles,
   projectFilesPaginationStatus,
@@ -94,23 +102,26 @@ export function CompletedProjectDetailPopup({
           </button>
         </div>
         <div className="flex-1 min-h-0">
-          <MainContent
-            onToggleSidebar={() => {}}
-            isSidebarOpen={false}
-            layoutMode="popup"
-            project={project}
-            projectFiles={projectFiles}
-            projectFilesPaginationStatus={projectFilesPaginationStatus}
-            loadMoreProjectFiles={loadMoreProjectFiles}
-            workspaceMembers={workspaceMembers}
-            viewerIdentity={viewerIdentity}
-            fileActions={fileActions}
-            projectActions={projectActions}
-            navigationActions={popupNavigationActions}
-            allProjects={projects}
-            pendingHighlight={null}
-            onClearPendingHighlight={undefined}
-          />
+          <Suspense fallback={null}>
+            <LazyMainContent
+              onToggleSidebar={() => {}}
+              isSidebarOpen={false}
+              layoutMode="popup"
+              project={project}
+              projectTasks={projectTasks ?? project.tasks ?? []}
+              projectFiles={projectFiles}
+              projectFilesPaginationStatus={projectFilesPaginationStatus}
+              loadMoreProjectFiles={loadMoreProjectFiles}
+              workspaceMembers={workspaceMembers}
+              viewerIdentity={viewerIdentity}
+              fileActions={fileActions}
+              projectActions={projectActions}
+              navigationActions={popupNavigationActions}
+              allProjects={projects}
+              pendingHighlight={null}
+              onClearPendingHighlight={undefined}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

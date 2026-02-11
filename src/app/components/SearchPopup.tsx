@@ -71,6 +71,7 @@ export function SearchPopup({
   isOpen,
   onClose,
   projects,
+  workspaceTasks = [],
   files,
   workspaceFilesPaginationStatus = "Exhausted",
   loadMoreWorkspaceFiles,
@@ -99,6 +100,7 @@ export function SearchPopup({
     trimmedQuery,
   } = useSearchPopupData({
     projects,
+    workspaceTasks,
     files,
     query,
     deferredQuery,

@@ -30,6 +30,7 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
   const projectActions = useDashboardProjectActions({
     activeWorkspaceId: data.activeWorkspace?.id,
     projects: data.projects,
+    tasksByProject: data.tasksByProject,
     visibleProjects: data.visibleProjects,
     workspaceTasks: data.workspaceTasks,
     currentView: navigation.currentView,

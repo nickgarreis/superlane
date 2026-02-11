@@ -69,3 +69,62 @@ export const listWorkspaceMembersPaginated = query({
     };
   },
 });
+
+export const listWorkspaceMembersLite = query({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q) => q.eq("slug", args.workspaceSlug))
+      .unique();
+
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_status_joinedAt", (q) =>
+        q.eq("workspaceId", workspace._id).eq("status", "active"))
+      .collect();
+    const missingSnapshotUserIds = Array.from(
+      new Set(
+        memberships
+          .filter((membership) => !membership.nameSnapshot)
+          .map((membership) => String(membership.userId)),
+      ),
+    );
+    const userFallbackRows = await Promise.all(
+      missingSnapshotUserIds.map(async (userId) => {
+        const membership = memberships.find(
+          (candidate) => String(candidate.userId) === userId,
+        );
+        if (!membership) {
+          return null;
+        }
+        const user = await ctx.db.get(membership.userId);
+        return user ? ([userId, user.name] as const) : null;
+      }),
+    );
+    const fallbackNameByUserId = new Map(
+      userFallbackRows.filter(
+        (entry): entry is readonly [string, string] => entry !== null,
+      ),
+    );
+
+    const members = memberships.map((membership) => ({
+      userId: String(membership.userId),
+      name:
+        membership.nameSnapshot ??
+        fallbackNameByUserId.get(String(membership.userId)) ??
+        "Unknown user",
+      role: membership.role,
+      isViewer: String(membership.userId) === String(appUser._id),
+    }));
+
+    return { members };
+  },
+});

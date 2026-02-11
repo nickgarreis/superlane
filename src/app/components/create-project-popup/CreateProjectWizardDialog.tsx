@@ -136,7 +136,10 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
             {step === 1 && (
               <StepService
                 selectedService={selectedService}
-                onSelectService={setSelectedService}
+                onSelectService={(service) => {
+                  setSelectedService(service);
+                  setSelectedJob(null);
+                }}
               />
             )}
             {(step === 2 || step === 3) && (

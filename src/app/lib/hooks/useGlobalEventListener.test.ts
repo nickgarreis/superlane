@@ -72,4 +72,42 @@ describe("useGlobalEventListener", () => {
     unmount();
     expect(removeEventListener).toHaveBeenCalledTimes(2);
   });
+
+  test("supports ref targets and rebinds when ref current changes", () => {
+    const firstTarget = new EventTarget();
+    const secondTarget = new EventTarget();
+    const addFirst = vi.spyOn(firstTarget, "addEventListener");
+    const removeFirst = vi.spyOn(firstTarget, "removeEventListener");
+    const addSecond = vi.spyOn(secondTarget, "addEventListener");
+    const removeSecond = vi.spyOn(secondTarget, "removeEventListener");
+    const listener = vi.fn();
+    const targetRef: { current: EventTarget | null } = { current: firstTarget };
+
+    const { rerender, unmount } = renderHook(() =>
+      useGlobalEventListener({
+        target: targetRef,
+        type: "test-event",
+        listener,
+        enabled: true,
+      }),
+    );
+
+    expect(addFirst).toHaveBeenCalledTimes(1);
+    expect(addSecond).toHaveBeenCalledTimes(0);
+
+    targetRef.current = secondTarget;
+    rerender();
+
+    expect(removeFirst).toHaveBeenCalledTimes(1);
+    expect(addSecond).toHaveBeenCalledTimes(1);
+
+    firstTarget.dispatchEvent(new Event("test-event"));
+    expect(listener).toHaveBeenCalledTimes(0);
+
+    secondTarget.dispatchEvent(new Event("test-event"));
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(removeSecond).toHaveBeenCalledTimes(1);
+  });
 });

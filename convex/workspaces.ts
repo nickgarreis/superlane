@@ -327,9 +327,13 @@ export const internalCreateWorkspaceWithOrganization = internalMutation({
       updatedAt: now,
     });
 
+    const ownerUser = await ctx.db.get(args.ownerUserId);
     await ctx.db.insert("workspaceMembers", {
       workspaceId,
       userId: args.ownerUserId,
+      nameSnapshot: ownerUser?.name ?? "Unknown user",
+      emailSnapshot: ownerUser?.email ?? "",
+      avatarUrlSnapshot: ownerUser?.avatarUrl ?? null,
       role: "owner",
       status: "active",
       joinedAt: now,

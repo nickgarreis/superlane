@@ -52,7 +52,7 @@ export const CommentItem = React.memo(function CommentItem({
   const commentAuthorDeniedReason = getCommentAuthorDeniedReason(isOwn);
   const isEditing = editingComment === comment.id;
   const isCollapsed = collapsedThreads.has(comment.id);
-  const replyCount = comment.replies.length;
+  const replyCount = Math.max(comment.replyCount ?? 0, comment.replies.length);
   const hasReplies = replyCount > 0;
   return (
     <div

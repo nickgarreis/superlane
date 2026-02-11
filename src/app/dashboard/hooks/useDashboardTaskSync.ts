@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { api } from "../../../../convex/_generated/api";
 import type { DashboardMutationHandler } from "../types";
-import type { ProjectData, Task, ViewerIdentity } from "../../types";
+import type { Task, ViewerIdentity } from "../../types";
 import {
   toProjectMutationTasks,
   toWorkspaceMutationTasks,
@@ -51,7 +51,7 @@ const areComparableTasksEqual = (left: ComparableTask, right: ComparableTask) =>
   (left.projectPublicId ?? null) === (right.projectPublicId ?? null);
 type UseDashboardTaskSyncArgs = {
   activeWorkspaceId: string | null | undefined;
-  projects: Record<string, ProjectData>;
+  tasksByProject?: Record<string, Task[]>;
   workspaceTasks: Task[];
   canReorderWorkspaceTasks: boolean;
   viewerIdentity: ViewerIdentity;
@@ -59,7 +59,7 @@ type UseDashboardTaskSyncArgs = {
 };
 export const useDashboardTaskSync = ({
   activeWorkspaceId,
-  projects,
+  tasksByProject = {},
   workspaceTasks,
   canReorderWorkspaceTasks,
   viewerIdentity,
@@ -71,7 +71,7 @@ export const useDashboardTaskSync = ({
         throw new Error("Select a workspace before updating tasks");
       }
       const previous = toProjectMutationTasks(
-        projects[projectPublicId]?.tasks ?? [],
+        tasksByProject[projectPublicId] ?? [],
         viewerIdentity,
       ).map((task) => normalizeComparableTask({ ...task, projectPublicId }));
       const next = toProjectMutationTasks(nextTasks, viewerIdentity).map(
@@ -122,7 +122,7 @@ export const useDashboardTaskSync = ({
         removes,
       });
     },
-    [activeWorkspaceId, applyTaskDiffMutation, projects, viewerIdentity],
+    [activeWorkspaceId, applyTaskDiffMutation, tasksByProject, viewerIdentity],
   );
   const syncWorkspaceTasks = useCallback(
     async (nextTasks: Task[]) => {

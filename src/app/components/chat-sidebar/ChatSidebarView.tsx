@@ -30,6 +30,7 @@ type ChatSidebarViewProps = {
   showResolvedThreads: boolean;
   onToggleResolvedThreads: () => void;
   scrollRef: React.RefObject<HTMLDivElement>;
+  onCommentsScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   shouldOptimizeCommentRows: boolean;
   currentUserName: string;
   currentUserAvatar: string;
@@ -67,6 +68,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
   showResolvedThreads,
   onToggleResolvedThreads,
   scrollRef,
+  onCommentsScroll,
   shouldOptimizeCommentRows,
   currentUserName,
   currentUserAvatar,
@@ -193,6 +195,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
           <div
             ref={scrollRef}
             className="chat-comment-list flex-1 overflow-y-auto px-1.5 pb-8"
+            onScroll={onCommentsScroll}
             style={
               shouldOptimizeCommentRows
                 ? ({

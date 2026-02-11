@@ -6,7 +6,7 @@ type StepDetailsStep2Props = {
   projectName: string;
   onProjectNameChange: (value: string) => void;
   jobLabel: string;
-  jobOptions: string[];
+  jobOptions: readonly string[];
   jobIcons: Record<string, string> | null;
   selectedJob: string | null;
   onSelectJob: (job: string) => void;
@@ -28,6 +28,7 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
   selectedJob,
   onSelectJob,
 }: StepDetailsStep2Props) {
+  const showJobSelection = jobOptions.length > 0;
   return (
     <div className="pt-[29px] flex flex-col items-center gap-[32px] w-full">
       <div className="flex flex-col items-center gap-4 pt-[20px]">
@@ -73,42 +74,44 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
             />
           </div>
         </motion.div>
-        <motion.div
-          initial={{ y: 8, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.35, duration: 0.35 }}
-          className="w-full pt-[16px]"
-        >
-          <div className="pb-[8px] w-full">
-            <p className="font-medium txt-role-body-lg txt-tone-subtle txt-leading-body">
-              {jobLabel}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-[6px] items-start w-full">
-            {jobOptions.map((job, idx) => (
-              <motion.div
-                key={job}
-                initial={{ y: 6, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.42 + idx * 0.04, duration: 0.3 }}
-                onClick={() => onSelectJob(job)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event: KeyboardEvent) =>
-                  handleKeyDown(event, () => onSelectJob(job))
-                }
-                className={` backdrop-blur-[6px] bg-popup-surface-soft content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-popup-surface-soft hover:bg-white/5 txt-tone-primary"} `}
-              >
-                <p className="font-medium txt-role-body-lg txt-leading-body whitespace-nowrap">
-                  {jobIcons?.[job] && (
-                    <span className="mr-[6px]">{jobIcons[job]}</span>
-                  )}
-                  {job}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        {showJobSelection && (
+          <motion.div
+            initial={{ y: 8, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.35 }}
+            className="w-full pt-[16px]"
+          >
+            <div className="pb-[8px] w-full">
+              <p className="font-medium txt-role-body-lg txt-tone-subtle txt-leading-body">
+                {jobLabel}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-[6px] items-start w-full">
+              {jobOptions.map((job, idx) => (
+                <motion.div
+                  key={job}
+                  initial={{ y: 6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.42 + idx * 0.04, duration: 0.3 }}
+                  onClick={() => onSelectJob(job)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event: KeyboardEvent) =>
+                    handleKeyDown(event, () => onSelectJob(job))
+                  }
+                  className={` backdrop-blur-[6px] bg-popup-surface-soft content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-popup-surface-soft hover:bg-white/5 txt-tone-primary"} `}
+                >
+                  <p className="font-medium txt-role-body-lg txt-leading-body whitespace-nowrap">
+                    {jobIcons?.[job] && (
+                      <span className="mr-[6px]">{jobIcons[job]}</span>
+                    )}
+                    {job}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

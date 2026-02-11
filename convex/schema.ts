@@ -57,6 +57,9 @@ export default defineSchema({
   workspaceMembers: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),
+    nameSnapshot: v.optional(v.string()),
+    emailSnapshot: v.optional(v.string()),
+    avatarUrlSnapshot: v.optional(v.union(v.string(), v.null())),
     role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
     status: v.union(v.literal("active"), v.literal("invited"), v.literal("removed")),
     pendingRemovalAt: v.optional(v.union(v.number(), v.null())),

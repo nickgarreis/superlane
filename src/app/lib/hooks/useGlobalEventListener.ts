@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 type SupportedTarget = EventTarget | null | undefined;
+type TargetRef = { readonly current: SupportedTarget };
+const isRefTarget = (target: SupportedTarget | TargetRef): target is TargetRef =>
+  typeof target === "object" && target !== null && "current" in target;
 type UseGlobalEventListenerArgs = {
-  target: SupportedTarget;
+  target: SupportedTarget | TargetRef;
   type: string;
   listener: (event: Event) => void;
   options?: AddEventListenerOptions | boolean;
@@ -45,6 +48,7 @@ export function useGlobalEventListener({
   const listenerRef = useRef(listener);
   const optionsRef = useRef(options);
   const optionsKey = getOptionsKey(options);
+  const resolvedTarget = isRefTarget(target) ? target.current : target;
   useEffect(() => {
     listenerRef.current = listener;
   }, [listener]);
@@ -52,16 +56,20 @@ export function useGlobalEventListener({
     optionsRef.current = options;
   }, [options]);
   useEffect(() => {
-    if (!enabled || !target || typeof target.addEventListener !== "function") {
+    if (
+      !enabled ||
+      !resolvedTarget ||
+      typeof resolvedTarget.addEventListener !== "function"
+    ) {
       return;
     }
     const wrappedListener: EventListener = (event) => {
       listenerRef.current(event);
     };
     const listenerOptions = optionsRef.current;
-    target.addEventListener(type, wrappedListener, listenerOptions);
+    resolvedTarget.addEventListener(type, wrappedListener, listenerOptions);
     return () => {
-      target.removeEventListener(type, wrappedListener, listenerOptions);
+      resolvedTarget.removeEventListener(type, wrappedListener, listenerOptions);
     };
-  }, [enabled, optionsKey, target, type]);
+  }, [enabled, optionsKey, resolvedTarget, type]);
 }

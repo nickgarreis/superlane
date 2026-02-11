@@ -1,5 +1,5 @@
 import type React from "react";
-import type { ProjectData, ProjectFileData } from "../../types";
+import type { ProjectData, ProjectFileData, Task } from "../../types";
 import type { AppView } from "../../lib/routing";
 export interface SearchResult {
   id: string;
@@ -42,6 +42,7 @@ export interface SearchPopupProps {
   isOpen: boolean;
   onClose: () => void;
   projects: Record<string, ProjectData>;
+  workspaceTasks?: Task[];
   files: ProjectFileData[];
   workspaceFilesPaginationStatus?:
     | "LoadingFirstPage"

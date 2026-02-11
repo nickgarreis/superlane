@@ -24,6 +24,7 @@ import type {
 type UseDashboardProjectActionsArgs = {
   activeWorkspaceId: string | null | undefined;
   projects: Record<string, ProjectData>;
+  tasksByProject?: Record<string, Task[]>;
   visibleProjects: Record<string, ProjectData>;
   workspaceTasks: Task[];
   currentView: AppView;
@@ -56,6 +57,7 @@ type UseDashboardProjectActionsArgs = {
 export const useDashboardProjectActions = ({
   activeWorkspaceId,
   projects,
+  tasksByProject = {},
   visibleProjects,
   workspaceTasks,
   currentView,
@@ -81,7 +83,7 @@ export const useDashboardProjectActions = ({
 }: UseDashboardProjectActionsArgs): DashboardProjectActions => {
   const { syncProjectTasks, syncWorkspaceTasks } = useDashboardTaskSync({
     activeWorkspaceId,
-    projects,
+    tasksByProject,
     workspaceTasks,
     canReorderWorkspaceTasks,
     viewerIdentity,

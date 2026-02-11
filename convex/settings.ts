@@ -100,6 +100,32 @@ const getResolvedAvatarUrl = async (ctx: QueryCtx, user: UserDoc): Promise<strin
   return null;
 };
 
+const patchWorkspaceMemberSnapshotsForUser = async (
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    nameSnapshot: string;
+    emailSnapshot: string;
+    avatarUrlSnapshot: string | null;
+  },
+) => {
+  const memberships = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+    .collect();
+
+  await Promise.all(
+    memberships.map((membership) =>
+      ctx.db.patch(membership._id, {
+        nameSnapshot: args.nameSnapshot,
+        emailSnapshot: args.emailSnapshot,
+        avatarUrlSnapshot: args.avatarUrlSnapshot,
+        updatedAt: Date.now(),
+      }),
+    ),
+  );
+};
+
 const workspaceRoleValidator = v.union(v.literal("admin"), v.literal("member"));
 
 const resolveCompanySettingsAccess = async (
@@ -133,24 +159,38 @@ const mapCompanySummary = (workspace: WorkspaceDoc, role: "owner" | "admin" | "m
 });
 
 const mapMembershipRowsToMembers = async (ctx: QueryCtx, membershipRows: WorkspaceMemberDoc[]) => {
-  const uniqueUserIds = Array.from(new Set(membershipRows.map((membership) => String(membership.userId))));
-  const userRows = await Promise.all(uniqueUserIds.map(async (userId) => {
-    const sampleMembership = membershipRows.find((membership) => String(membership.userId) === userId);
-    if (!sampleMembership) {
-      return null;
-    }
-    const user = await ctx.db.get(sampleMembership.userId);
-    if (!user) {
-      return null;
-    }
-    return [userId, user] as const;
-  }));
-  const userById = new Map(userRows.filter((entry): entry is readonly [string, UserDoc] => entry !== null));
+  if (membershipRows.length === 0) {
+    return [];
+  }
+
+  const membershipByUserId = new Map<string, WorkspaceMemberDoc>();
+  for (const membership of membershipRows) {
+    membershipByUserId.set(String(membership.userId), membership);
+  }
+  const userRows = await Promise.all(
+    Array.from(membershipByUserId.entries()).map(async ([userId, membership]) => {
+      const user = await ctx.db.get(membership.userId);
+      if (!user) {
+        return null;
+      }
+      return [userId, user] as const;
+    }),
+  );
+  const userById = new Map(
+    userRows.filter(
+      (entry): entry is readonly [string, UserDoc] => entry !== null,
+    ),
+  );
   const avatarByUserId = new Map<string, string | null>(
-    await Promise.all(Array.from(userById.entries()).map(async ([userId, user]) => [
-      userId,
-      await getResolvedAvatarUrl(ctx, user),
-    ] as const)),
+    await Promise.all(
+      Array.from(userById.entries()).map(async ([userId, user]) => {
+        const membership = membershipByUserId.get(userId);
+        if (membership && membership.avatarUrlSnapshot !== undefined) {
+          return [userId, membership.avatarUrlSnapshot ?? null] as const;
+        }
+        return [userId, await getResolvedAvatarUrl(ctx, user)] as const;
+      }),
+    ),
   );
 
   return membershipRows.map((membership) => {
@@ -160,8 +200,8 @@ const mapMembershipRowsToMembers = async (ctx: QueryCtx, membershipRows: Workspa
     }
     return {
       userId: String(user._id),
-      name: user.name,
-      email: user.email ?? "",
+      name: membership.nameSnapshot ?? user.name,
+      email: membership.emailSnapshot ?? user.email ?? "",
       role: membership.role,
       status: membership.status,
       avatarUrl: avatarByUserId.get(String(membership.userId)) ?? null,
@@ -292,6 +332,12 @@ export const finalizeAvatarUpload = mutation({
         avatarUrl: resolvedUrl,
         updatedAt: now,
       });
+      await patchWorkspaceMemberSnapshotsForUser(ctx, {
+        userId: appUser._id,
+        nameSnapshot: appUser.name,
+        emailSnapshot: appUser.email ?? "",
+        avatarUrlSnapshot: resolvedUrl ?? null,
+      });
 
       if (previousStorageId && String(previousStorageId) !== String(args.storageId)) {
         await ctx.storage.delete(previousStorageId);
@@ -317,6 +363,12 @@ export const removeAvatar = mutation({
       avatarStorageId: undefined,
       avatarUrl: undefined,
       updatedAt: Date.now(),
+    });
+    await patchWorkspaceMemberSnapshotsForUser(ctx, {
+      userId: appUser._id,
+      nameSnapshot: appUser.name,
+      emailSnapshot: appUser.email ?? "",
+      avatarUrlSnapshot: null,
     });
 
     if (previousStorageId) {
@@ -755,7 +807,8 @@ export const internalGetWorkspaceRoleChangeContext = internalQuery({
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     const { membership: actorMembership } = await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
 
-    if (!workspace.workosOrganizationId) {
+    const workosOrganizationId = workspace.workosOrganizationId;
+    if (!workosOrganizationId) {
       throw new ConvexError("Workspace is not linked to WorkOS organization");
     }
 
@@ -780,7 +833,7 @@ export const internalGetWorkspaceRoleChangeContext = internalQuery({
     const orgMembership = await ctx.db
       .query("workosOrganizationMemberships")
       .withIndex("by_workosOrganizationId_workosUserId", (q) =>
-        q.eq("workosOrganizationId", workspace.workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
+        q.eq("workosOrganizationId", workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
       )
       .unique();
 
@@ -805,7 +858,8 @@ export const internalGetWorkspaceRemovalContext = internalQuery({
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     const { membership: actorMembership } = await requireWorkspaceRole(ctx, workspace._id, "admin", { workspace });
 
-    if (!workspace.workosOrganizationId) {
+    const workosOrganizationId = workspace.workosOrganizationId;
+    if (!workosOrganizationId) {
       throw new ConvexError("Workspace is not linked to WorkOS organization");
     }
 
@@ -834,7 +888,7 @@ export const internalGetWorkspaceRemovalContext = internalQuery({
     const orgMembership = await ctx.db
       .query("workosOrganizationMemberships")
       .withIndex("by_workosOrganizationId_workosUserId", (q) =>
-        q.eq("workosOrganizationId", workspace.workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
+        q.eq("workosOrganizationId", workosOrganizationId).eq("workosUserId", targetUser.workosUserId),
       )
       .unique();
 
@@ -845,7 +899,7 @@ export const internalGetWorkspaceRemovalContext = internalQuery({
     return {
       workspaceSlug: workspace.slug,
       workspaceId: workspace._id,
-      workosOrganizationId: workspace.workosOrganizationId,
+      workosOrganizationId,
       targetUserId: targetUser._id,
       targetWorkosUserId: targetUser.workosUserId,
       targetRole: targetMembership.role,
@@ -882,13 +936,26 @@ export const internalApplyAccountProfileUpdate = internalMutation({
     const firstName = args.firstName ?? current.firstName;
     const lastName = args.lastName ?? current.lastName;
     const email = args.email ?? current.email;
+    const displayName = computeDisplayName(firstName, lastName, email);
+    const avatarUrlSnapshot =
+      typeof current.avatarUrl === "string" && current.avatarUrl.trim().length > 0
+        ? current.avatarUrl
+        : current.avatarStorageId
+          ? (await ctx.storage.getUrl(current.avatarStorageId)) ?? null
+          : null;
 
     await ctx.db.patch(args.userId, {
       firstName,
       lastName,
       email,
-      name: computeDisplayName(firstName, lastName, email),
+      name: displayName,
       updatedAt: Date.now(),
+    });
+    await patchWorkspaceMemberSnapshotsForUser(ctx, {
+      userId: args.userId,
+      nameSnapshot: displayName,
+      emailSnapshot: email ?? "",
+      avatarUrlSnapshot,
     });
   },
 });

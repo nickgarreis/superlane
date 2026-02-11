@@ -1,5 +1,5 @@
 import { formatFileDisplayDate, formatTaskDueDate } from "../../lib/dates";
-import type { ProjectData, ProjectFileData } from "../../types";
+import type { ProjectData, ProjectFileData, Task } from "../../types";
 import type {
   SearchIndexedFile,
   SearchIndexedProject,
@@ -19,13 +19,18 @@ export type GroupedSearchResults = {
 };
 export const buildSearchIndex = ({
   projectsList,
+  workspaceTasks = [],
   files,
 }: {
   projectsList: ProjectData[];
+  workspaceTasks?: Task[];
   files: ProjectFileData[];
 }): SearchIndex => {
   const projectIndex: SearchIndexedProject[] = [];
   const taskIndex: SearchIndexedTask[] = [];
+  const projectById = new Map(
+    projectsList.map((project) => [project.id, project] as const),
+  );
   for (const project of projectsList) {
     const projectSearchable = [
       project.name,
@@ -37,21 +42,27 @@ export const buildSearchIndex = ({
       .join(" ")
       .toLowerCase();
     projectIndex.push({ project, searchable: projectSearchable });
-    for (const task of project.tasks ?? []) {
-      const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
-      const assigneeName = task.assignee?.name?.trim() || "Unassigned";
-      taskIndex.push({
-        projectId: project.id,
-        projectName: project.name,
-        taskId: task.id,
-        title: task.title,
-        assigneeName,
-        dueDateLabel,
-        completed: task.completed,
-        searchable:
-          `${task.title} ${assigneeName} ${dueDateLabel}`.toLowerCase(),
-      });
+  }
+  for (const task of workspaceTasks) {
+    if (!task.projectId) {
+      continue;
     }
+    const project = projectById.get(task.projectId);
+    if (!project) {
+      continue;
+    }
+    const dueDateLabel = formatTaskDueDate(task.dueDateEpochMs);
+    const assigneeName = task.assignee?.name?.trim() || "Unassigned";
+    taskIndex.push({
+      projectId: project.id,
+      projectName: project.name,
+      taskId: task.id,
+      title: task.title,
+      assigneeName,
+      dueDateLabel,
+      completed: task.completed,
+      searchable: `${task.title} ${assigneeName} ${dueDateLabel}`.toLowerCase(),
+    });
   }
   const fileIndex: SearchIndexedFile[] = [];
   const seen = new Set<string>();

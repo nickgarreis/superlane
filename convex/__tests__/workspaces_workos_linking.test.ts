@@ -2,7 +2,6 @@ import { convexTest } from "convex-test";
 import workosAuthKitTest from "@convex-dev/workos-authkit/test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import { authKit } from "../auth";
 import schema from "../schema";
 import { syncWorkspaceMemberFromOrganizationMembership } from "../lib/workosOrganization";
@@ -636,6 +635,45 @@ describe("workspace WorkOS organization linking", () => {
         .unique();
       expect(membershipRow?.role).toBe("owner");
       expect(membershipRow?.status).toBe("active");
+    });
+  });
+
+  test("organization sync fails fast when user row is missing", async () => {
+    await t.run(async (ctx) => {
+      const createdAt = now();
+      const ownerUserId = await ctx.db.insert("users", {
+        workosUserId: IDENTITIES.owner.subject,
+        name: "Owner User",
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      const workspaceId = await ctx.db.insert("workspaces", {
+        slug: "missing-sync-user-workspace",
+        name: "Missing Sync User Workspace",
+        plan: "Pro",
+        ownerUserId,
+        workosOrganizationId: "org_missing_sync_user",
+        createdAt,
+        updatedAt: createdAt,
+      });
+      const missingUserId = await ctx.db.insert("users", {
+        workosUserId: "missing-sync-user-workos-id",
+        name: "Missing Sync User",
+        createdAt,
+        updatedAt: createdAt,
+      });
+      await ctx.db.delete(missingUserId);
+
+      await expect(
+        syncWorkspaceMemberFromOrganizationMembership(ctx, {
+          workspaceId,
+          userId: missingUserId,
+          roleSlug: "member",
+          status: "active",
+          now: createdAt + 1,
+        }),
+      ).rejects.toThrow(`User not found: ${missingUserId}`);
     });
   });
 });

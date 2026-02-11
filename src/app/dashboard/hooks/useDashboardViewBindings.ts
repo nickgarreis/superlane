@@ -11,12 +11,14 @@ import { useDashboardPopupBindings } from "./useDashboardPopupBindings";
 import { useDashboardSettingsData } from "./useDashboardSettingsData";
 import type { DashboardActionLayer } from "./useDashboardActionLayer";
 import type { DashboardDataLayer } from "./useDashboardDataLayer";
+import type { ProjectData } from "../../types";
 type DashboardViewBindings = {
   hasSnapshot: boolean;
   popupsProps: ComponentProps<typeof DashboardPopups>;
   chromeProps: ComponentProps<typeof DashboardChrome>;
   contentProps: ComponentProps<typeof DashboardContent>;
 };
+const EMPTY_PROJECTS: Record<string, ProjectData> = {};
 export function useDashboardViewBindings(
   dataLayer: DashboardDataLayer,
   actionLayer: DashboardActionLayer,
@@ -70,11 +72,27 @@ export function useDashboardViewBindings(
       data.viewerIdentity.avatarUrl ?? viewerFallback.avatarUrl,
     user,
   });
+  const popupProjects = useMemo(
+    () =>
+      navigation.isSearchOpen ||
+      navigation.isCreateProjectOpen ||
+      navigation.isCompletedProjectsOpen
+        ? data.projectsById
+        : EMPTY_PROJECTS,
+    [
+      data.projectsById,
+      navigation.isCompletedProjectsOpen,
+      navigation.isCreateProjectOpen,
+      navigation.isSearchOpen,
+    ],
+  );
   const popupsProps = useMemo<ComponentProps<typeof DashboardPopups>>(
     () => ({
       isSearchOpen: navigation.isSearchOpen,
       setIsSearchOpen: navigation.setIsSearchOpen,
-      projects: data.projects,
+      projects: popupProjects,
+      workspaceTasks: data.workspaceTasks,
+      tasksByProject: data.tasksByProject,
       allWorkspaceFiles: data.allWorkspaceFiles,
       workspaceFilesPaginationStatus: data.workspaceFilesPaginationStatus,
       loadMoreWorkspaceFiles: data.loadMoreWorkspaceFiles,
@@ -141,13 +159,15 @@ export function useDashboardViewBindings(
       data.allWorkspaceFiles,
       data.loadMoreWorkspaceFiles,
       data.companySummary,
-      data.projects,
+      data.tasksByProject,
+      popupProjects,
       data.projectFilesByProject,
       data.projectFilesPaginationStatus,
       data.resolvedWorkspaceSlug,
       data.workspaceFilesPaginationStatus,
       data.loadMoreProjectFiles,
       data.workspaceMembers,
+      data.workspaceTasks,
       data.viewerIdentity,
       navigation.closeCreateProject,
       navigation.closeCreateWorkspace,
@@ -243,6 +263,7 @@ export function useDashboardViewBindings(
       handleToggleSidebar: data.handleToggleSidebar,
       isSidebarOpen: navigation.isSidebarOpen,
       visibleProjects: data.visibleProjects,
+      tasksByProject: data.tasksByProject,
       workspaceTasks: data.workspaceTasks,
       tasksPaginationStatus: data.tasksPaginationStatus,
       loadMoreWorkspaceTasks: data.loadMoreWorkspaceTasks,
@@ -270,6 +291,7 @@ export function useDashboardViewBindings(
       data.clearPendingHighlight,
       data.contentModel,
       data.handleToggleSidebar,
+      data.tasksByProject,
       data.projectFilesByProject,
       data.projectFilesPaginationStatus,
       data.loadMoreProjectFiles,

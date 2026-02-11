@@ -145,6 +145,13 @@ export async function syncWorkspaceMemberFromOrganizationMembership(
   const now = args.now ?? Date.now();
   const workspaceStatus = mapStatusToWorkspaceStatus(normalizeStatus(args.status));
   const workspaceRole = mapRoleToWorkspaceRole(args.roleSlug);
+  const targetUser = await ctx.db.get(args.userId);
+  if (!targetUser) {
+    throw new Error(`User not found: ${args.userId}`);
+  }
+  const nameSnapshot = targetUser.name ?? "";
+  const emailSnapshot = targetUser.email ?? "";
+  const avatarUrlSnapshot = targetUser.avatarUrl ?? null;
 
   const existing = await ctx.db
     .query("workspaceMembers")
@@ -158,6 +165,9 @@ export async function syncWorkspaceMemberFromOrganizationMembership(
     await ctx.db.patch(existing._id, {
       role: nextRole,
       status: workspaceStatus,
+      nameSnapshot,
+      emailSnapshot,
+      avatarUrlSnapshot,
       updatedAt: now,
     });
     return { created: false, role: nextRole, status: workspaceStatus };
@@ -166,6 +176,9 @@ export async function syncWorkspaceMemberFromOrganizationMembership(
   await ctx.db.insert("workspaceMembers", {
     workspaceId: args.workspaceId,
     userId: args.userId,
+    nameSnapshot,
+    emailSnapshot,
+    avatarUrlSnapshot,
     role: workspaceRole,
     status: workspaceStatus,
     joinedAt: now,

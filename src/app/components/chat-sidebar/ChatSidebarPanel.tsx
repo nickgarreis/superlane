@@ -6,29 +6,34 @@ import React, {
   useState,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import type {
   CollaborationComment,
   ProjectData,
+  Task,
   ViewerIdentity,
   WorkspaceMember,
 } from "../../types";
 import type { AppView } from "../../lib/routing";
 import { formatTaskDueDate } from "../../lib/dates";
-import { reportUiError } from "../../lib/errors";
-import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
 import type { MentionItem as MentionItemType } from "../mentions/types";
 import { CommentItem } from "./CommentItem";
+import {
+  formatRoleLabel,
+  mapFeedCommentToUi,
+  type CommentFeedRow,
+} from "./commentFeed";
+import { useChatSidebarCommentActions } from "./useChatSidebarCommentActions";
 import { useChatSidebarState } from "./useChatSidebarState";
 import { ChatSidebarView } from "./ChatSidebarView";
-const formatRoleLabel = (role: WorkspaceMember["role"]) =>
-  role.charAt(0).toUpperCase() + role.slice(1); // ── Chat Sidebar ──────────────────────────────────────────────────
+
 interface ChatSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   activeProject: ProjectData;
+  activeProjectTasks: Task[];
   allProjects: Record<string, ProjectData>;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
@@ -36,10 +41,12 @@ interface ChatSidebarProps {
   onMentionClick?: (type: "task" | "file" | "user", label: string) => void;
   allFiles?: Array<{ id: number | string; name: string; type: string }>;
 }
+
 export function ChatSidebar({
   isOpen,
   onClose,
   activeProject,
+  activeProjectTasks,
   allProjects,
   workspaceMembers,
   viewerIdentity,
@@ -72,22 +79,51 @@ export function ChatSidebar({
     setInputFocused,
   } = useChatSidebarState(activeProject.id);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [outsideClickReady, setOutsideClickReady] = useState(false);
+  const initializedCollapsedThreadsRef = useRef(false);
+  const [repliesByParentId, setRepliesByParentId] = useState<
+    Record<string, CollaborationComment[]>
+  >({});
+  const convex = useConvex();
   const currentUserName = viewerIdentity.name || "Unknown user";
   const currentUserAvatar = viewerIdentity.avatarUrl || "";
   const currentUserId = viewerIdentity.userId;
-  const comments = useQuery(api.comments.listForProject, {
-    projectPublicId: activeProject.id,
-  });
+  const {
+    results: paginatedThreads,
+    status: threadsPaginationStatus,
+    loadMore: loadMoreThreads,
+  } = usePaginatedQuery(
+    api.comments.listThreadsPaginated,
+    { projectPublicId: activeProject.id },
+    { initialNumItems: 100 },
+  );
   const createCommentMutation = useMutation(api.comments.create);
   const updateCommentMutation = useMutation(api.comments.update);
   const removeCommentMutation = useMutation(api.comments.remove);
   const toggleResolvedMutation = useMutation(api.comments.toggleResolved);
   const toggleReactionMutation = useMutation(api.comments.toggleReaction);
   const currentComments = useMemo(
-    () => (comments ?? []) as CollaborationComment[],
-    [comments],
+    () =>
+      ((paginatedThreads ?? []) as CommentFeedRow[]).map((thread) =>
+        mapFeedCommentToUi(thread, repliesByParentId[String(thread.id)] ?? []),
+      ),
+    [paginatedThreads, repliesByParentId],
   );
+  useEffect(() => {
+    setRepliesByParentId({});
+    initializedCollapsedThreadsRef.current = false;
+  }, [activeProject.id]);
+  useEffect(() => {
+    if (initializedCollapsedThreadsRef.current || currentComments.length === 0) {
+      return;
+    }
+    const threadIdsWithReplies = currentComments
+      .filter((comment) => (comment.replyCount ?? 0) > 0)
+      .map((comment) => comment.id);
+    if (threadIdsWithReplies.length > 0) {
+      setCollapsedThreads(new Set(threadIdsWithReplies));
+    }
+    initializedCollapsedThreadsRef.current = true;
+  }, [currentComments, setCollapsedThreads]);
   const { unresolvedComments, resolvedComments } = useMemo(() => {
     const unresolved: CollaborationComment[] = [];
     const resolved: CollaborationComment[] = [];
@@ -100,7 +136,14 @@ export function ChatSidebar({
     }
     return { unresolvedComments: unresolved, resolvedComments: resolved };
   }, [currentComments]);
-  const totalThreadCount = currentComments.length;
+  const totalThreadCount = useMemo(
+    () =>
+      currentComments.reduce(
+        (sum, comment) => sum + 1 + (comment.replyCount ?? comment.replies.length),
+        0,
+      ),
+    [currentComments],
+  );
   const resolvedCount = resolvedComments.length;
   const shouldOptimizeCommentRows = currentComments.length > 40;
   const shouldVirtualizeUnresolvedComments = unresolvedComments.length > 80;
@@ -121,7 +164,7 @@ export function ChatSidebar({
     overscan: 8,
   });
   const mentionItemGroups = useMemo(() => {
-    const taskItems: MentionItemType[] = (activeProject.tasks ?? []).map(
+    const taskItems: MentionItemType[] = activeProjectTasks.map(
       (task) => ({
         type: "task",
         id: task.id,
@@ -143,7 +186,7 @@ export function ChatSidebar({
       meta: formatRoleLabel(member.role),
     }));
     return { taskItems, fileItems, userItems };
-  }, [activeProject.tasks, allFiles, workspaceMembers]);
+  }, [activeProjectTasks, allFiles, workspaceMembers]);
   const mentionItems: MentionItemType[] = useMemo(
     () => [
       ...mentionItemGroups.taskItems,
@@ -152,165 +195,91 @@ export function ChatSidebar({
     ],
     [mentionItemGroups],
   );
-  const hasOpenMenu = Boolean(activeReactionPicker || activeMoreMenu);
-  const handleCloseOpenMenus = useCallback(() => {
-    setActiveReactionPicker(null);
-    setActiveMoreMenu(null);
-  }, [setActiveMoreMenu, setActiveReactionPicker]);
-  useEffect(() => {
-    if (!hasOpenMenu) {
-      setOutsideClickReady(false);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setOutsideClickReady(true);
-    }, 0);
-    return () => {
-      window.clearTimeout(timer);
-      setOutsideClickReady(false);
-    };
-  }, [hasOpenMenu]);
-  useGlobalEventListener({
-    target: document,
-    type: "click",
-    listener: handleCloseOpenMenus,
-    enabled: hasOpenMenu && outsideClickReady,
-  });
-  useGlobalEventListener({
-    target: window,
-    type: "scroll",
-    listener: handleCloseOpenMenus,
-    enabled: hasOpenMenu,
-    options: { passive: true },
-  });
-  useGlobalEventListener({
-    target: scrollRef.current,
-    type: "scroll",
-    listener: handleCloseOpenMenus,
-    enabled: hasOpenMenu,
-    options: { passive: true },
-  });
-  const handleAddComment = useCallback(
-    (e?: React.FormEvent) => {
-      e?.preventDefault();
-      if (!inputValue.trim()) return;
-      void createCommentMutation({
-        projectPublicId: activeProject.id,
-        content: inputValue.trim(),
-      })
-        .then(() => {
-          setInputValue("");
-          setTimeout(
-            () => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" }),
-            100,
-          );
-        })
-        .catch((error) => {
-          reportUiError("chatSidebar.addComment", error, { showToast: false });
-        });
-    },
-    [inputValue, activeProject.id, createCommentMutation, setInputValue],
-  );
-  const handleReply = useCallback(
-    (parentId: string, e?: React.FormEvent) => {
-      e?.preventDefault();
-      if (!replyValue.trim()) return;
-      void createCommentMutation({
-        projectPublicId: activeProject.id,
-        parentCommentId: parentId as Id<"projectComments">,
-        content: replyValue.trim(),
-      })
-        .then(() => {
-          setCollapsedThreads((prev) => {
-            const next = new Set(prev);
-            next.delete(parentId);
-            return next;
-          });
-          setReplyingTo(null);
-          setReplyValue("");
-        })
-        .catch((error) => {
-          reportUiError("chatSidebar.replyComment", error, {
-            showToast: false,
-          });
-        });
-    },
-    [
-      replyValue,
-      activeProject.id,
-      createCommentMutation,
-      setCollapsedThreads,
-      setReplyingTo,
-      setReplyValue,
-    ],
-  );
-  const handleResolve = useCallback(
-    (commentId: string) => {
-      void toggleResolvedMutation({
-        commentId: commentId as Id<"projectComments">,
-      }).catch((error) => {
-        reportUiError("chatSidebar.toggleResolved", error, {
-          showToast: false,
-        });
+  const loadRepliesForParent = useCallback(
+    async (parentCommentId: string, force = false) => {
+      if (!force && repliesByParentId[parentCommentId]) return;
+      const paginated = await convex.query(api.comments.listReplies, {
+        parentCommentId: parentCommentId as Id<"projectComments">,
+        paginationOpts: {
+          cursor: null,
+          numItems: 250,
+        },
+      });
+      const mappedReplies = (paginated.page as CommentFeedRow[]).map((reply) =>
+        mapFeedCommentToUi(reply, []),
+      );
+      setRepliesByParentId((prev) => {
+        if (!force && prev[parentCommentId]) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [parentCommentId]: mappedReplies,
+        };
       });
     },
-    [toggleResolvedMutation],
+    [convex, repliesByParentId],
   );
-  const handleEditComment = useCallback(
-    (commentId: string) => {
-      if (!editValue.trim()) return;
-      void updateCommentMutation({
-        commentId: commentId as Id<"projectComments">,
-        content: editValue.trim(),
-      })
-        .then(() => {
-          setEditingComment(null);
-          setEditValue("");
-        })
-        .catch((error) => {
-          reportUiError("chatSidebar.editComment", error, { showToast: false });
-        });
-    },
-    [editValue, updateCommentMutation, setEditingComment, setEditValue],
+  const currentCommentsById = useMemo(
+    () => new Map(currentComments.map((comment) => [comment.id, comment] as const)),
+    [currentComments],
   );
-  const handleDeleteComment = useCallback(
-    (commentId: string) => {
-      void removeCommentMutation({
-        commentId: commentId as Id<"projectComments">,
-      }).catch((error) => {
-        reportUiError("chatSidebar.deleteComment", error, { showToast: false });
+  const replyParentByReplyId = useMemo(() => {
+    const parentByReply = new Map<string, string>();
+    Object.entries(repliesByParentId).forEach(([parentId, replies]) => {
+      replies.forEach((reply) => {
+        parentByReply.set(reply.id, parentId);
       });
+    });
+    return parentByReply;
+  }, [repliesByParentId]);
+  const refreshRepliesForComment = useCallback(
+    (commentId: string) => {
+      const parentId = currentCommentsById.has(commentId)
+        ? commentId
+        : replyParentByReplyId.get(commentId);
+      if (!parentId) {
+        return;
+      }
+      void loadRepliesForParent(parentId, true).catch(() => undefined);
     },
-    [removeCommentMutation],
+    [currentCommentsById, loadRepliesForParent, replyParentByReplyId],
   );
-  const handleToggleReaction = useCallback(
-    (commentId: string, emoji: string) => {
-      void toggleReactionMutation({
-        commentId: commentId as Id<"projectComments">,
-        emoji,
-      })
-        .then(() => {
-          setActiveReactionPicker(null);
-        })
-        .catch((error) => {
-          reportUiError("chatSidebar.toggleReaction", error, {
-            showToast: false,
-          });
-        });
-    },
-    [toggleReactionMutation, setActiveReactionPicker],
-  );
-  const toggleThread = useCallback(
-    (id: string) => {
-      setCollapsedThreads((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-    },
-    [setCollapsedThreads],
-  );
+  const {
+    handleCommentsScroll,
+    handleAddComment,
+    handleReply,
+    handleResolve,
+    handleEditComment,
+    handleDeleteComment,
+    handleToggleReaction,
+    toggleThread,
+  } = useChatSidebarCommentActions({
+    activeProjectId: activeProject.id,
+    inputValue,
+    setInputValue,
+    replyValue,
+    setReplyValue,
+    setReplyingTo,
+    editValue,
+    setEditValue,
+    setEditingComment,
+    setCollapsedThreads,
+    setActiveReactionPicker,
+    setActiveMoreMenu,
+    activeReactionPicker,
+    activeMoreMenu,
+    threadsPaginationStatus,
+    loadMoreThreads,
+    scrollRef,
+    loadRepliesForParent,
+    refreshRepliesForComment,
+    createCommentMutation,
+    updateCommentMutation,
+    removeCommentMutation,
+    toggleResolvedMutation,
+    toggleReactionMutation,
+  });
   const renderComment = useCallback(
     (comment: CollaborationComment) => (
       <CommentItem
@@ -445,6 +414,7 @@ export function ChatSidebar({
         setShowResolvedThreads(!showResolvedThreads)
       }
       scrollRef={scrollRef}
+      onCommentsScroll={handleCommentsScroll}
       shouldOptimizeCommentRows={shouldOptimizeCommentRows}
       currentUserName={currentUserName}
       currentUserAvatar={currentUserAvatar}

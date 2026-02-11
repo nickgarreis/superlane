@@ -19,10 +19,12 @@ const PROJECT_COUNT = 50;
 const TASKS_PER_PROJECT = 100;
 const FILES_PER_PROJECT = 40;
 const COMMENT_COUNT = 1000;
+const REPLIES_PER_SEEDED_THREAD = 3;
 
 type SeededWorkspace = {
   workspaceSlug: string;
   projectPublicIds: string[];
+  replyParentCommentId: Id<"projectComments">;
 };
 
 describe("performance scaling query contracts", () => {
@@ -137,6 +139,7 @@ describe("performance scaling query contracts", () => {
       }
 
       const commentsProject = projectRows[0];
+      const replyParentCommentIds: Id<"projectComments">[] = [];
       for (let index = 0; index < COMMENT_COUNT; index += 1) {
         const commentId = await ctx.db.insert("projectComments", {
           workspaceId,
@@ -151,6 +154,9 @@ describe("performance scaling query contracts", () => {
           createdAt: createdAt + index,
           updatedAt: createdAt + index,
         });
+        if (index % 200 === 0) {
+          replyParentCommentIds.push(commentId);
+        }
 
         if (index % 20 === 0) {
           await ctx.db.insert("commentReactions", {
@@ -163,10 +169,30 @@ describe("performance scaling query contracts", () => {
           });
         }
       }
+      for (const [threadIndex, parentCommentId] of replyParentCommentIds.entries()) {
+        for (let replyIndex = 0; replyIndex < REPLIES_PER_SEEDED_THREAD; replyIndex += 1) {
+          const ts = createdAt + COMMENT_COUNT + threadIndex * 10 + replyIndex;
+          await ctx.db.insert("projectComments", {
+            workspaceId,
+            projectId: commentsProject.id,
+            projectPublicId: commentsProject.publicId,
+            parentCommentId,
+            authorUserId: ownerUserId,
+            authorSnapshotName: "Performance Owner",
+            authorSnapshotAvatarUrl: "",
+            content: `Perf reply ${threadIndex + 1}-${replyIndex + 1}`,
+            resolved: false,
+            edited: false,
+            createdAt: ts,
+            updatedAt: ts,
+          });
+        }
+      }
 
       return {
         workspaceSlug,
         projectPublicIds: projectRows.map((project) => project.publicId),
+        replyParentCommentId: replyParentCommentIds[0],
       };
     });
 
@@ -225,5 +251,95 @@ describe("performance scaling query contracts", () => {
     expect(comments.some((comment: any) =>
       comment.reactions.some((reaction: any) =>
         reaction.emoji === "👍" && reaction.userIds.length > 0))).toBe(true);
+
+    const paginatedThreadsFirstPage = await asOwner().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicIds[0],
+      paginationOpts: { cursor: null, numItems: 250 },
+    });
+    expect(paginatedThreadsFirstPage.page).toHaveLength(250);
+    expect(paginatedThreadsFirstPage.page[0]?.content).toBe(`Perf comment ${COMMENT_COUNT}`);
+    expect(paginatedThreadsFirstPage.page[0]?.parentCommentId).toBeNull();
+    expect(paginatedThreadsFirstPage.isDone).toBe(false);
+    expect(paginatedThreadsFirstPage.continueCursor).toBeTypeOf("string");
+
+    const paginatedThreadsSecondPage = await asOwner().query(api.comments.listThreadsPaginated, {
+      projectPublicId: seeded.projectPublicIds[0],
+      paginationOpts: { cursor: paginatedThreadsFirstPage.continueCursor, numItems: 250 },
+    });
+    expect(paginatedThreadsSecondPage.page).toHaveLength(250);
+    expect(paginatedThreadsSecondPage.page[0]?.content).toBe(`Perf comment ${COMMENT_COUNT - 250}`);
+
+    const paginatedReplies = await asOwner().query(api.comments.listReplies, {
+      parentCommentId: seeded.replyParentCommentId,
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(paginatedReplies.page).toHaveLength(REPLIES_PER_SEEDED_THREAD);
+    expect(
+      paginatedReplies.page.every(
+        (reply: any) => reply.parentCommentId === String(seeded.replyParentCommentId),
+      ),
+    ).toBe(true);
   }, 30_000);
+
+  test("filters workspace bootstrap access across many org-linked memberships", async () => {
+    const seeded = await t.run(async (ctx) => {
+      const createdAt = Date.now();
+      const ownerUserId = await ctx.db.insert("users", {
+        workosUserId: IDENTITIES.owner.subject,
+        name: "Multi Workspace Owner",
+        email: "multi-owner@example.com",
+        createdAt,
+        updatedAt: createdAt,
+      });
+      const expectedAccessibleSlugs: string[] = [];
+
+      for (let index = 0; index < 24; index += 1) {
+        const workspaceSlug = `workspace-multi-${index + 1}`;
+        const workosOrganizationId = `org-${index + 1}`;
+        const workspaceId = await ctx.db.insert("workspaces", {
+          slug: workspaceSlug,
+          name: `Workspace Multi ${index + 1}`,
+          plan: "Pro",
+          ownerUserId,
+          workosOrganizationId,
+          createdAt,
+          updatedAt: createdAt,
+        });
+        await ctx.db.insert("workspaceMembers", {
+          workspaceId,
+          userId: ownerUserId,
+          role: "owner",
+          status: "active",
+          joinedAt: createdAt + index,
+          createdAt: createdAt + index,
+          updatedAt: createdAt + index,
+        });
+
+        const membershipStatus = index % 2 === 0 ? "active" : "inactive";
+        if (membershipStatus === "active") {
+          expectedAccessibleSlugs.push(workspaceSlug);
+        }
+        await ctx.db.insert("workosOrganizationMemberships", {
+          membershipId: `membership-${index + 1}`,
+          workosOrganizationId,
+          workosUserId: IDENTITIES.owner.subject,
+          organizationName: `Org ${index + 1}`,
+          roleSlug: "admin",
+          status: membershipStatus,
+          createdAt: createdAt + index,
+          updatedAt: createdAt + index,
+        });
+      }
+
+      return { expectedAccessibleSlugs };
+    });
+
+    const snapshot = await asOwner().query(api.dashboard.getWorkspaceBootstrap, {
+      activeWorkspaceSlug: seeded.expectedAccessibleSlugs[0],
+    });
+    expect(snapshot.workspaces.map((workspace: any) => workspace.slug)).toEqual(
+      [...seeded.expectedAccessibleSlugs].sort((a, b) => a.localeCompare(b)),
+    );
+    expect(snapshot.activeWorkspaceSlug).toBe(seeded.expectedAccessibleSlugs[0]);
+  });
 });

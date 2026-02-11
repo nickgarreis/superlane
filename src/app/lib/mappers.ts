@@ -67,33 +67,11 @@ export const mapWorkspacesToUi = (
   }));
 export const mapProjectsToUi = ({
   projects,
-  tasks,
   workspaceSlug,
 }: {
   projects: SnapshotProject[];
-  tasks: SnapshotTask[];
   workspaceSlug: string | null;
 }): Record<string, ProjectData> => {
-  const tasksByProject = tasks.reduce<Record<string, Task[]>>((acc, task) => {
-    if (!task.projectPublicId) {
-      return acc;
-    }
-    if (!acc[task.projectPublicId]) {
-      acc[task.projectPublicId] = [];
-    }
-    acc[task.projectPublicId].push({
-      id: task.taskId,
-      title: task.title,
-      assignee: {
-        userId: task.assignee.userId,
-        name: task.assignee.name,
-        avatar: task.assignee.avatar,
-      },
-      dueDateEpochMs: task.dueDateEpochMs ?? null,
-      completed: task.completed,
-    });
-    return acc;
-  }, {});
   return projects.reduce<Record<string, ProjectData>>((acc, project) => {
     const status = getStatusStyle(project.status);
     const previousStatus = project.previousStatus
@@ -125,24 +103,37 @@ export const mapProjectsToUi = ({
       draftData: project.draftData ?? undefined,
       attachments: project.attachments,
       comments: project.reviewComments,
-      tasks: tasksByProject[project.publicId] ?? [],
     };
     return acc;
   }, {});
 };
+const mapTaskSnapshotToUi = (task: SnapshotTask): Task => ({
+  id: task.taskId,
+  title: task.title,
+  projectId: task.projectPublicId ?? undefined,
+  assignee: {
+    userId: task.assignee.userId,
+    name: task.assignee.name,
+    avatar: task.assignee.avatar,
+  },
+  dueDateEpochMs: task.dueDateEpochMs ?? null,
+  completed: task.completed,
+});
 export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
-  tasks.map((task) => ({
-    id: task.taskId,
-    title: task.title,
-    projectId: task.projectPublicId ?? undefined,
-    assignee: {
-      userId: task.assignee.userId,
-      name: task.assignee.name,
-      avatar: task.assignee.avatar,
-    },
-    dueDateEpochMs: task.dueDateEpochMs ?? null,
-    completed: task.completed,
-  }));
+  tasks.map(mapTaskSnapshotToUi);
+export const mapTasksByProjectToUi = (
+  tasks: SnapshotTask[],
+): Record<string, Task[]> =>
+  tasks.reduce<Record<string, Task[]>>((acc, task) => {
+    if (!task.projectPublicId) {
+      return acc;
+    }
+    if (!acc[task.projectPublicId]) {
+      acc[task.projectPublicId] = [];
+    }
+    acc[task.projectPublicId].push(mapTaskSnapshotToUi(task));
+    return acc;
+  }, {});
 export const mapWorkspaceFilesToUi = (
   files: SnapshotWorkspaceFile[],
 ): ProjectFileData[] =>

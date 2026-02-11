@@ -35,6 +35,8 @@ export interface CollaborationComment {
   author: { userId: string; name: string; avatar: string };
   content: string;
   timestamp: string;
+  timestampEpochMs?: number;
+  replyCount?: number;
   replies: CollaborationComment[];
   resolved?: boolean;
   edited?: boolean;

@@ -229,3 +229,87 @@ export const backfillWorkspaceDenormalizedFields = mutation({
     };
   },
 });
+
+export const backfillWorkspaceMemberSnapshots = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
+      .unique();
+
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    await requireWorkspaceRole(ctx, workspace._id, "owner", { workspace });
+    const maxPatches = clampLimit(args.limit);
+    let remaining = maxPatches;
+
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    const uniqueUserIds = Array.from(
+      new Set(memberships.map((membership: any) => String(membership.userId))),
+    );
+    const usersById = new Map(
+      (
+        await Promise.all(
+          uniqueUserIds.map(async (userId) => {
+            const membership = memberships.find(
+              (candidate: any) => String(candidate.userId) === userId,
+            );
+            if (!membership) {
+              return null;
+            }
+            const user = await ctx.db.get(membership.userId);
+            return user ? ([userId, user] as const) : null;
+          }),
+        )
+      ).filter((entry): entry is readonly [string, any] => entry !== null),
+    );
+
+    let patchedMemberships = 0;
+    for (const membership of memberships) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const needsName = membership.nameSnapshot === undefined;
+      const needsEmail = membership.emailSnapshot === undefined;
+      const needsAvatar = membership.avatarUrlSnapshot === undefined;
+      if (!needsName && !needsEmail && !needsAvatar) {
+        continue;
+      }
+
+      const user = usersById.get(String(membership.userId));
+      const patch: Record<string, unknown> = {};
+      if (needsName) {
+        patch.nameSnapshot = user?.name ?? "Unknown user";
+      }
+      if (needsEmail) {
+        patch.emailSnapshot = user?.email ?? "";
+      }
+      if (needsAvatar) {
+        const resolvedAvatar = await resolveUserAvatarForBackfill(ctx, user);
+        patch.avatarUrlSnapshot = resolvedAvatar || null;
+      }
+
+      await ctx.db.patch(membership._id, patch);
+      patchedMemberships += 1;
+      remaining -= 1;
+    }
+
+    return {
+      workspaceSlug: workspace.slug,
+      maxPatches,
+      patchedMemberships,
+      exhaustedLimit: remaining === 0,
+    };
+  },
+});

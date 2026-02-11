@@ -7,14 +7,20 @@ import { getFunctionName } from "convex/server";
 import { ChatSidebar } from "./ChatSidebarPanel";
 import type { ProjectData, ViewerIdentity, WorkspaceMember } from "../../types";
 
-const { mockUseQuery, mockUseMutation } = vi.hoisted(() => ({
-  mockUseQuery: vi.fn(),
+const {
+  mockUsePaginatedQuery,
+  mockUseMutation,
+  mockUseConvex,
+} = vi.hoisted(() => ({
+  mockUsePaginatedQuery: vi.fn(),
   mockUseMutation: vi.fn(),
+  mockUseConvex: vi.fn(),
 }));
 
 vi.mock("convex/react", () => ({
-  useQuery: mockUseQuery,
+  usePaginatedQuery: mockUsePaginatedQuery,
   useMutation: mockUseMutation,
+  useConvex: mockUseConvex,
 }));
 
 const viewerIdentity: ViewerIdentity = {
@@ -66,8 +72,16 @@ describe("ChatSidebar reactions", () => {
       writable: true,
       configurable: true,
     });
-    mockUseQuery.mockReset();
+    mockUsePaginatedQuery.mockReset();
     mockUseMutation.mockReset();
+    mockUseConvex.mockReset();
+    mockUseConvex.mockReturnValue({
+      query: vi.fn().mockResolvedValue({
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      }),
+    });
   });
 
   test("toggles reactions for existing comments", async () => {
@@ -77,27 +91,32 @@ describe("ChatSidebar reactions", () => {
     const toggleResolvedMutation = vi.fn().mockResolvedValue({});
     const toggleReactionMutation = vi.fn().mockResolvedValue({});
 
-    mockUseQuery.mockReturnValue([
-      {
-        id: "comment-1",
-        author: {
-          userId: "viewer-user-id",
-          name: "Jordan Viewer",
-          avatar: "",
-        },
-        content: "Looks good",
-        timestamp: "now",
-        replies: [],
-        resolved: false,
-        reactions: [
-          {
-            emoji: "👍",
-            users: ["Jordan Viewer"],
-            userIds: ["viewer-user-id"],
+    mockUsePaginatedQuery.mockReturnValue({
+      results: [
+        {
+          id: "comment-1",
+          author: {
+            userId: "viewer-user-id",
+            name: "Jordan Viewer",
+            avatar: "",
           },
-        ],
-      },
-    ]);
+          content: "Looks good",
+          createdAtEpochMs: Date.now(),
+          resolved: false,
+          edited: false,
+          replyCount: 0,
+          reactions: [
+            {
+              emoji: "👍",
+              users: ["Jordan Viewer"],
+              userIds: ["viewer-user-id"],
+            },
+          ],
+        },
+      ],
+      status: "Exhausted",
+      loadMore: vi.fn(),
+    });
 
     mockUseMutation.mockImplementation((mutationRef: unknown) => {
       const functionName = getFunctionName(mutationRef as any);
@@ -126,6 +145,7 @@ describe("ChatSidebar reactions", () => {
         isOpen
         onClose={vi.fn()}
         activeProject={activeProject}
+        activeProjectTasks={[]}
         allProjects={{ [activeProject.id]: activeProject }}
         workspaceMembers={workspaceMembers}
         viewerIdentity={viewerIdentity}
@@ -143,21 +163,26 @@ describe("ChatSidebar reactions", () => {
   });
 
   test("toggles resolved thread visibility", async () => {
-    mockUseQuery.mockReturnValue([
-      {
-        id: "comment-resolved-1",
-        author: {
-          userId: "viewer-user-id",
-          name: "Jordan Viewer",
-          avatar: "",
+    mockUsePaginatedQuery.mockReturnValue({
+      results: [
+        {
+          id: "comment-resolved-1",
+          author: {
+            userId: "viewer-user-id",
+            name: "Jordan Viewer",
+            avatar: "",
+          },
+          content: "Resolved comment",
+          createdAtEpochMs: Date.now(),
+          resolved: true,
+          edited: false,
+          replyCount: 0,
+          reactions: [],
         },
-        content: "Resolved comment",
-        timestamp: "now",
-        replies: [],
-        resolved: true,
-        reactions: [],
-      },
-    ]);
+      ],
+      status: "Exhausted",
+      loadMore: vi.fn(),
+    });
 
     mockUseMutation.mockImplementation(() => vi.fn().mockResolvedValue({}));
 
@@ -166,6 +191,7 @@ describe("ChatSidebar reactions", () => {
         isOpen
         onClose={vi.fn()}
         activeProject={activeProject}
+        activeProjectTasks={[]}
         allProjects={{ [activeProject.id]: activeProject }}
         workspaceMembers={workspaceMembers}
         viewerIdentity={viewerIdentity}

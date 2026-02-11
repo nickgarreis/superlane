@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { fromUtcNoonEpochMsToDateOnly } from "../../../lib/dates";
+import { normalizeServiceName } from "../../../lib/projectServices";
 import type { ProjectDraftData, ProjectData } from "../../../types";
 import { createDraftSessionId, type WizardStateValues } from "./useWizardState";
 type UseWizardEffectsArgs = {
@@ -41,7 +42,8 @@ export const useWizardEffects = ({
     if (reviewProject) {
       const category = reviewProject.category.toLowerCase();
       setSelectedService(
-        reviewCategoryLabels[category] || reviewProject.category,
+        reviewCategoryLabels[category] ||
+          normalizeServiceName(reviewProject.category),
       );
       setProjectName(reviewProject.name);
       setSelectedJob(reviewProject.scope || null);
@@ -55,7 +57,7 @@ export const useWizardEffects = ({
     if (!initialDraftData) {
       return;
     }
-    setSelectedService(initialDraftData.selectedService);
+    setSelectedService(normalizeServiceName(initialDraftData.selectedService));
     setProjectName(initialDraftData.projectName);
     setSelectedJob(initialDraftData.selectedJob);
     setDescription(initialDraftData.description);

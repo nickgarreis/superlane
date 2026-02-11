@@ -2,6 +2,10 @@ import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { toUtcNoonEpochMsFromDateOnly } from "../../../lib/dates";
 import { reportUiError } from "../../../lib/errors";
+import {
+  getServiceJobLabel,
+  serviceRequiresJobSelection,
+} from "../../../lib/projectServices";
 import type {
   CreateProjectPayload,
   CreateProjectResult,
@@ -72,14 +76,17 @@ export const useWizardSubmission = ({
     if (!selectedService) {
       return undefined;
     }
-    return selectedService === "Web Design" ? "Scope" : "Job";
+    return getServiceJobLabel(selectedService);
   }, [selectedService]);
   const isStepValid = useMemo(() => {
     if (step === 1) {
       return Boolean(selectedService);
     }
     if (step === 2) {
-      return Boolean(projectName.trim()) && Boolean(selectedJob);
+      return (
+        Boolean(projectName.trim()) &&
+        (!serviceRequiresJobSelection(selectedService) || Boolean(selectedJob))
+      );
     }
     return true;
   }, [projectName, selectedJob, selectedService, step]);
@@ -288,7 +295,7 @@ export const useWizardSubmission = ({
     reviewProject?.id,
   ]);
   const handleCloseClick = useCallback(() => {
-    if (reviewProject) {
+    if (reviewProject || step === 4) {
       handleCancel();
       return;
     }
@@ -297,7 +304,7 @@ export const useWizardSubmission = ({
       return;
     }
     handleCancel();
-  }, [handleCancel, hasUnsavedWork, patchWizardState, reviewProject]);
+  }, [handleCancel, hasUnsavedWork, patchWizardState, reviewProject, step]);
   const reviewActions = useWizardReviewActions({
     commentInput,
     setCommentInput,

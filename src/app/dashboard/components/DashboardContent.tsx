@@ -39,6 +39,7 @@ type DashboardContentProps = {
   handleToggleSidebar: () => void;
   isSidebarOpen: boolean;
   visibleProjects: Record<string, ProjectData>;
+  tasksByProject?: Record<string, Task[]>;
   workspaceTasks: Task[];
   tasksPaginationStatus:
     | "LoadingFirstPage"
@@ -75,6 +76,7 @@ export const DashboardContent = React.memo(function DashboardContent({
   handleToggleSidebar,
   isSidebarOpen,
   visibleProjects,
+  tasksByProject = {},
   workspaceTasks,
   tasksPaginationStatus,
   loadMoreWorkspaceTasks,
@@ -132,6 +134,7 @@ export const DashboardContent = React.memo(function DashboardContent({
   }
   if (contentModel.kind === "main") {
     const project = contentModel.project;
+    const projectTasks = tasksByProject[project.id] ?? [];
     const navigationActions: MainContentNavigationActions = contentModel.backTo
       ? {
           ...baseMainContentNavigationActions,
@@ -145,6 +148,7 @@ export const DashboardContent = React.memo(function DashboardContent({
           onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isSidebarOpen}
           project={project}
+          projectTasks={projectTasks}
           projectFiles={projectFilesByProject[project.id] ?? []}
           projectFilesPaginationStatus={projectFilesPaginationStatus}
           loadMoreProjectFiles={loadMoreProjectFiles}

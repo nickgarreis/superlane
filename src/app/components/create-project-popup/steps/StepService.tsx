@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from "react";
 import { motion } from "motion/react";
 import { ProjectLogo } from "../../ProjectLogo";
-const SERVICES = ["Web Design"] as const;
+import { CREATE_PROJECT_SERVICES } from "../../../lib/projectServices";
 type StepServiceProps = {
   selectedService: string | null;
   onSelectService: (service: string) => void;
@@ -16,6 +16,12 @@ export function StepService({
   selectedService,
   onSelectService,
 }: StepServiceProps) {
+  const handleServiceSelect = (service: string) => {
+    if (selectedService === service) {
+      return;
+    }
+    onSelectService(service);
+  };
   return (
     <>
       <motion.div
@@ -34,17 +40,17 @@ export function StepService({
         </div>
       </motion.div>
       <div className="flex flex-wrap gap-4 w-full mb-8">
-        {SERVICES.map((service, idx) => (
+        {CREATE_PROJECT_SERVICES.map((service, idx) => (
           <motion.div
             key={service}
             initial={{ y: 6, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.12 + idx * 0.05, duration: 0.3 }}
-            onClick={() => onSelectService(service)}
+            onClick={() => handleServiceSelect(service)}
             role="button"
             tabIndex={0}
             onKeyDown={(event: KeyboardEvent) =>
-              handleKeyDown(event, () => onSelectService(service))
+              handleKeyDown(event, () => handleServiceSelect(service))
             }
             className={` content-stretch flex gap-[8px] h-[36px] items-center px-[14px] relative rounded-full shrink-0 cursor-pointer transition-all border outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedService === service ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-transparent hover:bg-white/5 txt-tone-primary"} `}
           >

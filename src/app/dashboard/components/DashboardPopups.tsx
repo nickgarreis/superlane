@@ -12,6 +12,7 @@ import type {
   ProjectDraftData,
   ProjectFileData,
   ReviewComment,
+  Task,
   ViewerIdentity,
   WorkspaceRole,
   WorkspaceMember,
@@ -23,8 +24,6 @@ import type {
   NotificationSettingsData,
 } from "../../components/settings-popup/types";
 import { Z_LAYERS } from "../../lib/zLayers";
-import { CompletedProjectDetailPopup } from "../../components/CompletedProjectDetailPopup";
-import { CompletedProjectsPopup } from "../../components/CompletedProjectsPopup";
 export const loadSearchPopupModule = () =>
   import("../../components/SearchPopup");
 export const loadCreateProjectPopupModule = () =>
@@ -33,6 +32,10 @@ export const loadCreateWorkspacePopupModule = () =>
   import("../../components/CreateWorkspacePopup");
 export const loadSettingsPopupModule = () =>
   import("../../components/SettingsPopup");
+export const loadCompletedProjectsPopupModule = () =>
+  import("../../components/CompletedProjectsPopup");
+export const loadCompletedProjectDetailPopupModule = () =>
+  import("../../components/CompletedProjectDetailPopup");
 const LazySearchPopup = React.lazy(async () => {
   const module = await loadSearchPopupModule();
   return { default: module.SearchPopup };
@@ -48,6 +51,14 @@ const LazyCreateWorkspacePopup = React.lazy(async () => {
 const LazySettingsPopup = React.lazy(async () => {
   const module = await loadSettingsPopupModule();
   return { default: module.SettingsPopup };
+});
+const LazyCompletedProjectsPopup = React.lazy(async () => {
+  const module = await loadCompletedProjectsPopupModule();
+  return { default: module.CompletedProjectsPopup };
+});
+const LazyCompletedProjectDetailPopup = React.lazy(async () => {
+  const module = await loadCompletedProjectDetailPopupModule();
+  return { default: module.CompletedProjectDetailPopup };
 });
 const PopupLoadingFallback = (
   <div
@@ -67,6 +78,8 @@ type DashboardPopupsProps = {
   isSearchOpen: boolean;
   setIsSearchOpen: (value: boolean) => void;
   projects: Record<string, ProjectData>;
+  workspaceTasks: Task[];
+  tasksByProject: Record<string, Task[]>;
   allWorkspaceFiles: ProjectFileData[];
   workspaceFilesPaginationStatus:
     | "LoadingFirstPage"
@@ -166,6 +179,8 @@ export function DashboardPopups({
   isSearchOpen,
   setIsSearchOpen,
   projects,
+  workspaceTasks,
+  tasksByProject,
   allWorkspaceFiles,
   workspaceFilesPaginationStatus,
   loadMoreWorkspaceFiles,
@@ -226,6 +241,7 @@ export function DashboardPopups({
             isOpen={isSearchOpen}
             onClose={() => setIsSearchOpen(false)}
             projects={projects}
+            workspaceTasks={workspaceTasks}
             files={allWorkspaceFiles}
             workspaceFilesPaginationStatus={workspaceFilesPaginationStatus}
             loadMoreWorkspaceFiles={loadMoreWorkspaceFiles}
@@ -269,35 +285,40 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isCompletedProjectsOpen && (
-        <CompletedProjectsPopup
-          isOpen={isCompletedProjectsOpen}
-          onClose={closeCompletedProjectsPopup}
-          projects={projects}
-          viewerRole={viewerIdentity.role}
-          completedProjectDetailId={completedProjectDetailId}
-          onOpenProjectDetail={openCompletedProjectDetail}
-          onBackToCompletedProjects={backToCompletedProjectsList}
-          onUncompleteProject={(id) =>
-            dashboardCommands.project.updateProjectStatus(id, "Active")
-          }
-          renderDetail={(project) => (
-            <CompletedProjectDetailPopup
-              isOpen={isCompletedProjectsOpen}
-              onClose={closeCompletedProjectsPopup}
-              onBackToCompletedProjects={backToCompletedProjectsList}
-              project={project}
-              projects={projects}
-              projectFiles={projectFilesByProject[project.id] ?? []}
-              projectFilesPaginationStatus={projectFilesPaginationStatus}
-              loadMoreProjectFiles={loadMoreProjectFiles}
-              workspaceMembers={workspaceMembers}
-              viewerIdentity={viewerIdentity}
-              fileActions={mainContentFileActions}
-              projectActions={createMainContentProjectActions(project.id)}
-              navigationActions={baseMainContentNavigationActions}
-            />
-          )}
-        />
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazyCompletedProjectsPopup
+            isOpen={isCompletedProjectsOpen}
+            onClose={closeCompletedProjectsPopup}
+            projects={projects}
+            viewerRole={viewerIdentity.role}
+            completedProjectDetailId={completedProjectDetailId}
+            onOpenProjectDetail={openCompletedProjectDetail}
+            onBackToCompletedProjects={backToCompletedProjectsList}
+            onUncompleteProject={(id) =>
+              dashboardCommands.project.updateProjectStatus(id, "Active")
+            }
+            renderDetail={(project) => (
+              <Suspense fallback={PopupLoadingFallback}>
+                <LazyCompletedProjectDetailPopup
+                  isOpen={isCompletedProjectsOpen}
+                  onClose={closeCompletedProjectsPopup}
+                  onBackToCompletedProjects={backToCompletedProjectsList}
+                  project={project}
+                  projectTasks={tasksByProject[project.id] ?? []}
+                  projects={projects}
+                  projectFiles={projectFilesByProject[project.id] ?? []}
+                  projectFilesPaginationStatus={projectFilesPaginationStatus}
+                  loadMoreProjectFiles={loadMoreProjectFiles}
+                  workspaceMembers={workspaceMembers}
+                  viewerIdentity={viewerIdentity}
+                  fileActions={mainContentFileActions}
+                  projectActions={createMainContentProjectActions(project.id)}
+                  navigationActions={baseMainContentNavigationActions}
+                />
+              </Suspense>
+            )}
+          />
+        </Suspense>
       )}
       {isSettingsOpen && (
         <Suspense fallback={PopupLoadingFallback}>
