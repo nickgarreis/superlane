@@ -7,6 +7,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AuthCallbackPage, sanitizeReturnTo } from "./AuthCallbackPage";
 import { ensureSafeReturnTo } from "./AuthPage";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { RootPage } from "./RootPage";
 import {
   clearStoredAuthMode,
   clearStoredReturnTo,
@@ -182,6 +183,75 @@ describe("auth + protected routing behavior", () => {
     await waitFor(() => {
       expect(screen.getByTestId("location").textContent).toBe(
         "/login?returnTo=%2Ftasks",
+      );
+    });
+  });
+
+  test("root route redirects unauthenticated users to login", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<RootPage isAuthenticated={false} />} />
+          <Route path="/login" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe(
+        "/login?returnTo=%2Ftasks",
+      );
+    });
+  });
+
+  test("root route redirects authenticated users to tasks", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<RootPage isAuthenticated />} />
+          <Route path="/tasks" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe("/tasks");
+    });
+  });
+
+  test("root route forwards callback code to /auth/callback", async () => {
+    render(
+      <MemoryRouter initialEntries={["/?code=abc&state=123"]}>
+        <Routes>
+          <Route path="/" element={<RootPage isAuthenticated={false} />} />
+          <Route path="/auth/callback" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe(
+        "/auth/callback?code=abc&state=123",
+      );
+    });
+  });
+
+  test("root route sends oauth errors to the attempted auth mode", async () => {
+    storeReturnTo("/archive");
+    storeAuthMode("signup");
+
+    render(
+      <MemoryRouter initialEntries={["/?error=access_denied"]}>
+        <Routes>
+          <Route path="/" element={<RootPage isAuthenticated={false} />} />
+          <Route path="/signup" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe(
+        "/signup?returnTo=%2Farchive&error=access_denied",
       );
     });
   });

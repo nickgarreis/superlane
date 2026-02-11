@@ -1,14 +1,13 @@
-import { useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import {
   clearStoredAuthMode,
   readStoredAuthMode,
   readStoredReturnTo,
 } from "../lib/authReturnTo";
-import { MarketingPage } from "./MarketingPage";
+
 export function RootPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const searchParams = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
@@ -16,14 +15,23 @@ export function RootPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   const hasCode = searchParams.has("code");
   const workosError = searchParams.get("error");
   const workosErrorDescription = searchParams.get("error_description");
+  const attemptedModeRef = useRef(readStoredAuthMode());
+
   useEffect(() => {
     if (hasCode || !workosError) {
       return;
     }
-    const returnTo = readStoredReturnTo() ?? "/tasks";
-    const attemptedMode = readStoredAuthMode();
     clearStoredAuthMode();
-    const destination = attemptedMode === "signup" ? "/signup" : "/login";
+  }, [hasCode, workosError]);
+
+  if (hasCode) {
+    return <Navigate to={`/auth/callback${location.search}`} replace />;
+  }
+
+  if (workosError) {
+    const returnTo = readStoredReturnTo() ?? "/tasks";
+    const destination =
+      attemptedModeRef.current === "signup" ? "/signup" : "/login";
     const destinationSearch = new URLSearchParams({
       returnTo,
       error: workosError,
@@ -31,9 +39,12 @@ export function RootPage({ isAuthenticated }: { isAuthenticated: boolean }) {
     if (workosErrorDescription) {
       destinationSearch.set("error_description", workosErrorDescription);
     }
-    navigate(`${destination}?${destinationSearch.toString()}`, {
-      replace: true,
-    });
-  }, [hasCode, navigate, workosError, workosErrorDescription]);
-  return <MarketingPage isAuthenticated={isAuthenticated} />;
+    return <Navigate to={`${destination}?${destinationSearch.toString()}`} replace />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/tasks" replace />;
+  }
+
+  return <Navigate to="/login?returnTo=%2Ftasks" replace />;
 }
