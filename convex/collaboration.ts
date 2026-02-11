@@ -3,10 +3,13 @@ import { query } from "./_generated/server";
 import { requireWorkspaceRole } from "./lib/auth";
 
 const resolveAvatarUrl = async (ctx: any, user: any) => {
+  if (typeof user.avatarUrl === "string" && user.avatarUrl.trim().length > 0) {
+    return user.avatarUrl;
+  }
   if (user.avatarStorageId) {
     return (await ctx.storage.getUrl(user.avatarStorageId)) ?? null;
   }
-  return user.avatarUrl ?? null;
+  return null;
 };
 
 export const listWorkspaceMembers = query({

@@ -43,16 +43,24 @@ export const listForProject = query({
       return [];
     }
 
-    const reactionRows = (
-      await Promise.all(
-        comments.map((comment) =>
-          ctx.db
-            .query("commentReactions")
-            .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
-            .collect(),
-        ),
-      )
-    ).flat();
+    let reactionRows = await ctx.db
+      .query("commentReactions")
+      .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
+      .collect();
+
+    // Legacy fallback for rows created before reaction denormalization backfill.
+    if (reactionRows.length === 0) {
+      reactionRows = (
+        await Promise.all(
+          comments.map((comment) =>
+            ctx.db
+              .query("commentReactions")
+              .withIndex("by_commentId", (q) => q.eq("commentId", comment._id))
+              .collect(),
+          ),
+        )
+      ).flat();
+    }
 
     const userIds = new Set(comments.map((comment) => comment.authorUserId));
     reactionRows.forEach((reaction) => userIds.add(reaction.userId));
@@ -112,8 +120,8 @@ export const listForProject = query({
           id: String(comment._id),
           author: {
             userId: String(comment.authorUserId),
-            name: author?.name ?? "Unknown user",
-            avatar: author?.avatarUrl ?? "",
+            name: comment.authorSnapshotName ?? author?.name ?? "Unknown user",
+            avatar: comment.authorSnapshotAvatarUrl ?? author?.avatarUrl ?? "",
           },
           content: comment.content,
           timestamp: formatRelativeTime(comment.createdAt, now),
@@ -217,6 +225,8 @@ export const create = mutation({
       projectPublicId: project.publicId,
       parentCommentId: args.parentCommentId,
       authorUserId: appUser._id,
+      authorSnapshotName: appUser.name ?? "Unknown user",
+      authorSnapshotAvatarUrl: appUser.avatarUrl ?? undefined,
       content: trimmedContent,
       resolved: false,
       edited: false,
@@ -370,6 +380,8 @@ export const toggleReaction = mutation({
 
     await ctx.db.insert("commentReactions", {
       commentId: comment._id,
+      projectPublicId: comment.projectPublicId,
+      workspaceId: comment.workspaceId,
       emoji: args.emoji,
       userId: appUser._id,
       createdAt: Date.now(),

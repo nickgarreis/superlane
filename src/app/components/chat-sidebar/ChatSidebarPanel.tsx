@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -104,6 +105,7 @@ export function ChatSidebar({
   const totalThreadCount = currentComments.length;
   const resolvedCount = resolvedComments.length;
   const shouldOptimizeCommentRows = currentComments.length > 40;
+  const shouldVirtualizeUnresolvedComments = unresolvedComments.length > 80;
   const commentRowStyle = useMemo(
     () => (
       shouldOptimizeCommentRows
@@ -112,6 +114,12 @@ export function ChatSidebar({
     ),
     [shouldOptimizeCommentRows],
   );
+  const unresolvedCommentVirtualizer = useVirtualizer({
+    count: unresolvedComments.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 120,
+    overscan: 8,
+  });
 
   const mentionItemGroups = useMemo(() => {
     const taskItems: MentionItemType[] = (activeProject.tasks ?? []).map((task) => ({
@@ -313,40 +321,39 @@ export function ChatSidebar({
     });
   }, [setCollapsedThreads]);
 
-  const renderComments = useCallback(
-    (comments: CollaborationComment[]) =>
-      comments.map((comment) => (
-        <CommentItem
-          key={comment.id}
-          comment={comment}
-          isTopLevel
-          currentUserId={currentUserId}
-          currentUserName={currentUserName}
-          currentUserAvatar={currentUserAvatar}
-          mentionItems={mentionItems}
-          onMentionClick={onMentionClick}
-          performanceStyle={commentRowStyle}
-          replyingTo={replyingTo}
-          editingComment={editingComment}
-          editValue={editValue}
-          activeReactionPicker={activeReactionPicker}
-          activeMoreMenu={activeMoreMenu}
-          collapsedThreads={collapsedThreads}
-          onSetReplyingTo={setReplyingTo}
-          onSetReplyValue={setReplyValue}
-          replyValue={replyValue}
-          onSetEditingComment={setEditingComment}
-          onSetEditValue={setEditValue}
-          onSetActiveReactionPicker={setActiveReactionPicker}
-          onSetActiveMoreMenu={setActiveMoreMenu}
-          onReply={handleReply}
-          onEditComment={handleEditComment}
-          onDeleteComment={handleDeleteComment}
-          onResolve={handleResolve}
-          onToggleReaction={handleToggleReaction}
-          onToggleThread={toggleThread}
-        />
-      )),
+  const renderComment = useCallback(
+    (comment: CollaborationComment) => (
+      <CommentItem
+        key={comment.id}
+        comment={comment}
+        isTopLevel
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        currentUserAvatar={currentUserAvatar}
+        mentionItems={mentionItems}
+        onMentionClick={onMentionClick}
+        performanceStyle={commentRowStyle}
+        replyingTo={replyingTo}
+        editingComment={editingComment}
+        editValue={editValue}
+        activeReactionPicker={activeReactionPicker}
+        activeMoreMenu={activeMoreMenu}
+        collapsedThreads={collapsedThreads}
+        onSetReplyingTo={setReplyingTo}
+        onSetReplyValue={setReplyValue}
+        replyValue={replyValue}
+        onSetEditingComment={setEditingComment}
+        onSetEditValue={setEditValue}
+        onSetActiveReactionPicker={setActiveReactionPicker}
+        onSetActiveMoreMenu={setActiveMoreMenu}
+        onReply={handleReply}
+        onEditComment={handleEditComment}
+        onDeleteComment={handleDeleteComment}
+        onResolve={handleResolve}
+        onToggleReaction={handleToggleReaction}
+        onToggleThread={toggleThread}
+      />
+    ),
     [
       activeMoreMenu,
       activeReactionPicker,
@@ -377,13 +384,54 @@ export function ChatSidebar({
   );
 
   const unresolvedCommentItems = useMemo(
-    () => renderComments(unresolvedComments),
-    [renderComments, unresolvedComments],
+    () => {
+      if (!shouldVirtualizeUnresolvedComments) {
+        return unresolvedComments.map(renderComment);
+      }
+
+      return (
+        <div
+          style={{
+            height: unresolvedCommentVirtualizer.getTotalSize(),
+            position: "relative",
+          }}
+        >
+          {unresolvedCommentVirtualizer.getVirtualItems().map((virtualItem) => {
+            const comment = unresolvedComments[virtualItem.index];
+            if (!comment) {
+              return null;
+            }
+            return (
+              <div
+                key={comment.id}
+                ref={unresolvedCommentVirtualizer.measureElement}
+                data-index={virtualItem.index}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+              >
+                {renderComment(comment)}
+              </div>
+            );
+          })}
+        </div>
+      );
+    },
+    [
+      renderComment,
+      unresolvedComments,
+      unresolvedCommentVirtualizer,
+      shouldVirtualizeUnresolvedComments,
+    ],
   );
 
   const resolvedCommentItems = useMemo(
-    () => renderComments(resolvedComments),
-    [renderComments, resolvedComments],
+    () => resolvedComments.map(renderComment),
+    [renderComment, resolvedComments],
   );
 
   const sortedProjects = useMemo(

@@ -200,6 +200,7 @@ export function SearchPopup({
               hasSearchQuery={hasSearchQuery}
               hasResults={hasResults}
               query={query}
+              flatResults={flatResults}
               grouped={grouped}
               activeIndex={activeIndex}
               setActiveIndex={setActiveIndex}

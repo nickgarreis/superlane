@@ -8,6 +8,7 @@ export const projectStatusValidator = v.union(
 );
 
 export const taskAssigneeValidator = v.object({
+  userId: v.optional(v.string()),
   name: v.string(),
   avatar: v.string(),
 });

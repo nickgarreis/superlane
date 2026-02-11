@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import {
   draftDataValidator,
@@ -48,6 +49,102 @@ const normalizeOptionalEpochMs = (
   }
   return assertFiniteEpochMs(value, label);
 };
+
+const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
+  const workspace = await ctx.db
+    .query("workspaces")
+    .withIndex("by_slug", (q: any) => q.eq("slug", workspaceSlug))
+    .unique();
+
+  if (!workspace || workspace.deletedAt != null) {
+    throw new ConvexError("Workspace not found");
+  }
+
+  return workspace;
+};
+
+const resolveCreatorAvatar = async (ctx: any, creatorRow: any) => {
+  if (typeof creatorRow?.avatarUrl === "string" && creatorRow.avatarUrl.trim().length > 0) {
+    return creatorRow.avatarUrl;
+  }
+  if (creatorRow?.avatarStorageId) {
+    return (await ctx.storage.getUrl(creatorRow.avatarStorageId)) ?? "";
+  }
+  return "";
+};
+
+export const listForWorkspace = query({
+  args: {
+    workspaceSlug: v.string(),
+    includeArchived: v.optional(v.boolean()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const includeArchived = args.includeArchived ?? false;
+    const paginated = includeArchived
+      ? await ctx.db
+          .query("projects")
+          .withIndex("by_workspace_deletedAt_updatedAt_createdAt", (q: any) =>
+            q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+          .order("desc")
+          .paginate(args.paginationOpts)
+      : await ctx.db
+          .query("projects")
+          .withIndex("by_workspace_archived_deletedAt_updatedAt_createdAt", (q: any) =>
+            q.eq("workspaceId", workspace._id).eq("archived", false).eq("deletedAt", null))
+          .order("desc")
+          .paginate(args.paginationOpts);
+
+    const creatorIdsToResolve = Array.from(
+      new Set(
+        paginated.page
+          .filter((project: any) => !project.creatorSnapshotName)
+          .map((project: any) => project.creatorUserId),
+      ),
+    );
+    const creatorRows = await Promise.all(
+      creatorIdsToResolve.map(async (creatorUserId) => {
+        if (!creatorUserId) {
+          return null;
+        }
+
+        try {
+          const creator = await ctx.db.get(creatorUserId);
+          return creator ? [String(creatorUserId), creator] : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const creatorById = new Map(
+      creatorRows.filter((entry): entry is [string, any] => entry !== null),
+    );
+
+    const page = await Promise.all(paginated.page.map(async (project: any) => {
+      const creatorRow = creatorById.get(String(project.creatorUserId));
+      const creatorName = project.creatorSnapshotName ?? creatorRow?.name ?? "Unknown user";
+      const creatorAvatarUrl = project.creatorSnapshotAvatarUrl
+        ?? (creatorRow ? await resolveCreatorAvatar(ctx, creatorRow) : "");
+
+      return {
+        ...project,
+        creator: {
+          userId: String(project.creatorUserId),
+          name: creatorName,
+          avatarUrl: creatorAvatarUrl || "",
+        },
+      };
+    }));
+
+    return {
+      ...paginated,
+      page,
+    };
+  },
+});
 
 const resolveLifecycleEventType = (previousStatus: string | null, nextStatus: string) => {
   if (nextStatus === "Review" && previousStatus !== "Review") {
@@ -290,6 +387,8 @@ export const create = mutation({
       publicId,
       workspaceId: workspace._id,
       creatorUserId: appUser._id,
+      creatorSnapshotName: appUser.name ?? "Unknown user",
+      creatorSnapshotAvatarUrl: appUser.avatarUrl ?? undefined,
       name: args.name,
       description: args.description ?? "",
       category: args.category,

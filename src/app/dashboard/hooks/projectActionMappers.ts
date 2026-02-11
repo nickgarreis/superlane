@@ -19,6 +19,7 @@ const toBaseMutationTask = (task: Task, viewerIdentity: ViewerIdentity) => ({
   id: String(task.id),
   title: task.title,
   assignee: {
+    userId: task.assignee?.userId,
     name: task.assignee?.name || viewerIdentity.name,
     avatar: task.assignee?.avatar || viewerIdentity.avatarUrl || "",
   },

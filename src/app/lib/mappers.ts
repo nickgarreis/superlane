@@ -97,6 +97,7 @@ export const mapProjectsToUi = ({
       id: task.taskId,
       title: task.title,
       assignee: {
+        userId: task.assignee.userId,
         name: task.assignee.name,
         avatar: task.assignee.avatar,
       },
@@ -146,6 +147,7 @@ export const mapWorkspaceTasksToUi = (tasks: SnapshotTask[]): Task[] =>
     title: task.title,
     projectId: task.projectPublicId ?? undefined,
     assignee: {
+      userId: task.assignee.userId,
       name: task.assignee.name,
       avatar: task.assignee.avatar,
     },

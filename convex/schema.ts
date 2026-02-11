@@ -46,6 +46,7 @@ export default defineSchema({
     deletedAt: v.optional(v.union(v.number(), v.null())),
     deletedByUserId: v.optional(v.id("users")),
     updatedByUserId: v.optional(v.id("users")),
+    nextTaskPosition: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -146,6 +147,8 @@ export default defineSchema({
     publicId: v.string(),
     workspaceId: v.id("workspaces"),
     creatorUserId: v.id("users"),
+    creatorSnapshotName: v.optional(v.string()),
+    creatorSnapshotAvatarUrl: v.optional(v.string()),
     name: v.string(),
     description: v.string(),
     category: v.string(),
@@ -174,6 +177,14 @@ export default defineSchema({
     .index("by_workspaceId", ["workspaceId"])
     .index("by_workspace_status", ["workspaceId", "status"])
     .index("by_workspace_archived", ["workspaceId", "archived"])
+    .index("by_workspace_deletedAt_updatedAt_createdAt", ["workspaceId", "deletedAt", "updatedAt", "createdAt"])
+    .index("by_workspace_archived_deletedAt_updatedAt_createdAt", [
+      "workspaceId",
+      "archived",
+      "deletedAt",
+      "updatedAt",
+      "createdAt",
+    ])
     .index("by_workspace_deadlineEpochMs", ["workspaceId", "deadlineEpochMs"]),
 
   tasks: defineTable({
@@ -194,7 +205,10 @@ export default defineSchema({
     .index("by_projectId", ["projectId"])
     .index("by_projectPublicId", ["projectPublicId"])
     .index("by_workspaceId", ["workspaceId"])
+    .index("by_workspace_taskId", ["workspaceId", "taskId"])
+    .index("by_workspace_position", ["workspaceId", "position"])
     .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
+    .index("by_projectPublicId_position", ["projectPublicId", "position"])
     .index("by_project_dueDateEpochMs", ["projectId", "dueDateEpochMs"])
     .index("by_workspace_dueDateEpochMs", ["workspaceId", "dueDateEpochMs"]),
 
@@ -224,7 +238,14 @@ export default defineSchema({
     .index("by_projectId_deletedAt", ["projectId", "deletedAt"])
     .index("by_projectPublicId", ["projectPublicId"])
     .index("by_workspaceId", ["workspaceId"])
+    .index("by_workspace_deletedAt_displayDateEpochMs", ["workspaceId", "deletedAt", "displayDateEpochMs"])
     .index("by_workspace_projectPublicId", ["workspaceId", "projectPublicId"])
+    .index("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", [
+      "workspaceId",
+      "projectPublicId",
+      "deletedAt",
+      "displayDateEpochMs",
+    ])
     .index("by_workspace_tab", ["workspaceId", "tab"])
     .index("by_purgeAfterAt", ["purgeAfterAt"])
     .index("by_workspace_displayDateEpochMs", ["workspaceId", "displayDateEpochMs"]),
@@ -255,6 +276,8 @@ export default defineSchema({
     projectPublicId: v.string(),
     parentCommentId: v.optional(v.id("projectComments")),
     authorUserId: v.id("users"),
+    authorSnapshotName: v.optional(v.string()),
+    authorSnapshotAvatarUrl: v.optional(v.string()),
     resolvedByUserId: v.optional(v.id("users")),
     content: v.string(),
     resolved: v.boolean(),
@@ -270,11 +293,15 @@ export default defineSchema({
 
   commentReactions: defineTable({
     commentId: v.id("projectComments"),
+    projectPublicId: v.optional(v.string()),
+    workspaceId: v.optional(v.id("workspaces")),
     emoji: v.string(),
     userId: v.id("users"),
     createdAt: v.number(),
   })
     .index("by_commentId", ["commentId"])
+    .index("by_projectPublicId", ["projectPublicId"])
+    .index("by_workspaceId", ["workspaceId"])
     .index("by_comment_emoji", ["commentId", "emoji"])
     .index("by_comment_emoji_user", ["commentId", "emoji", "userId"])
     .index("by_userId", ["userId"]),

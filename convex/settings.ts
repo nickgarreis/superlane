@@ -84,10 +84,13 @@ const validateStorageMetadata = async (
 };
 
 const getResolvedAvatarUrl = async (ctx: any, user: any): Promise<string | null> => {
+  if (typeof user.avatarUrl === "string" && user.avatarUrl.trim().length > 0) {
+    return user.avatarUrl;
+  }
   if (user.avatarStorageId) {
     return (await ctx.storage.getUrl(user.avatarStorageId)) ?? null;
   }
-  return user.avatarUrl ?? null;
+  return null;
 };
 
 const workspaceRoleValidator = v.union(v.literal("admin"), v.literal("member"));

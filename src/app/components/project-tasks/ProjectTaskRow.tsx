@@ -6,6 +6,7 @@ import { formatTaskDueDate } from "../../lib/dates";
 import { ProjectLogo } from "../ProjectLogo";
 import type { Task, WorkspaceMember } from "../../types";
 import type { TaskProjectOption } from "./useProjectTaskHandlers";
+import { getAssigneeInitials, resolveSelectedAssigneeUserId } from "./taskRowHelpers";
 
 type ProjectTaskRowProps = {
   task: Task;
@@ -30,29 +31,7 @@ type ProjectTaskRowProps = {
   editTaskDisabledMessage: string;
   taskRowRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   taskRowStyle?: React.CSSProperties;
-};
-
-const getInitials = (name: string) => {
-  const normalizedName = String(name ?? "").trim();
-  const parts = normalizedName.split(/\s+/).filter(Boolean);
-
-  if (parts.length === 0) {
-    return "?";
-  }
-
-  if (parts.length === 1) {
-    const singlePart = parts[0];
-    const firstTwoChars = singlePart.slice(0, 2).toUpperCase();
-    return firstTwoChars || "?";
-  }
-
-  const initials = parts
-    .slice(0, 2)
-    .map((entry) => entry.charAt(0))
-    .join("")
-    .toUpperCase();
-
-  return initials || "?";
+  disableLayoutAnimation?: boolean;
 };
 
 export function ProjectTaskRow({
@@ -78,14 +57,10 @@ export function ProjectTaskRow({
   editTaskDisabledMessage,
   taskRowRefs,
   taskRowStyle,
+  disableLayoutAnimation = false,
 }: ProjectTaskRowProps) {
   const selectedProject = task.projectId ? projectById.get(task.projectId) : undefined;
-  const selectedAssigneeUserId = task.assignee.userId
-    ?? assignableMembers.find(
-      (member) =>
-        member.name === task.assignee.name
-        && (member.avatarUrl || "") === (task.assignee.avatar || ""),
-    )?.userId;
+  const selectedAssigneeUserId = resolveSelectedAssigneeUserId(task, assignableMembers);
   const isSelectedAssignee = (member: WorkspaceMember) =>
     selectedAssigneeUserId != null && selectedAssigneeUserId === member.userId;
 
@@ -93,7 +68,7 @@ export function ProjectTaskRow({
     <motion.div
       key={task.id}
       ref={(el: HTMLDivElement | null) => { taskRowRefs.current[task.id] = el; }}
-      layout
+      layout={!disableLayoutAnimation}
       className={cn(
         "project-task-row group flex items-center justify-between py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors relative",
         hasOpenDropdown && "z-50",
@@ -284,7 +259,7 @@ export function ProjectTaskRow({
               />
             ) : (
               <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
-                {getInitials(task.assignee.name)}
+                {getAssigneeInitials(task.assignee.name)}
               </div>
             )}
           </div>
@@ -324,7 +299,7 @@ export function ProjectTaskRow({
                         />
                       ) : (
                         <div className="w-full h-full bg-[#333] flex items-center justify-center text-[9px] font-medium text-white">
-                          {getInitials(member.name)}
+                          {getAssigneeInitials(member.name)}
                         </div>
                       )}
                     </div>

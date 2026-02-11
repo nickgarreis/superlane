@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useDashboardData } from "./useDashboardData";
 
 const useQueryMock = vi.fn();
+const usePaginatedQueryMock = vi.fn();
 const useDashboardControllerMock = vi.fn();
 
 vi.mock("convex/react", () => ({
   useQuery: (...args: unknown[]) => useQueryMock(...args),
+  usePaginatedQuery: (...args: unknown[]) => usePaginatedQueryMock(...args),
 }));
 
 vi.mock("./useDashboardController", () => ({
@@ -35,6 +37,7 @@ const createBaseArgs = () => ({
 describe("useDashboardData", () => {
   beforeEach(() => {
     useQueryMock.mockReset();
+    usePaginatedQueryMock.mockReset();
     useDashboardControllerMock.mockReset();
     useDashboardControllerMock.mockReturnValue({
       contentModel: { kind: "tasks" },
@@ -46,6 +49,7 @@ describe("useDashboardData", () => {
   test("maps snapshot data, derives viewer identity, and syncs workspace slug", async () => {
     const args = createBaseArgs();
     const queryArgs: unknown[] = [];
+    const paginatedQueryArgs: unknown[] = [];
 
     const snapshot = {
       activeWorkspaceSlug: "alpha",
@@ -56,21 +60,14 @@ describe("useDashboardData", () => {
         email: "snapshot@example.com",
         avatarUrl: "https://img.example/avatar.png",
       },
+      activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
       workspaces: [
         { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
       ],
-      workspaceMembers: [
-        {
-          userId: "member-1",
-          workosUserId: "workos-member-1",
-          name: "Snapshot Member",
-          email: "member@example.com",
-          avatarUrl: null,
-          role: "owner",
-          isViewer: true,
-        },
-      ],
-      projects: [
+    };
+
+    const projectsResult = {
+      results: [
         {
           publicId: "project-1",
           name: "Project One",
@@ -81,7 +78,10 @@ describe("useDashboardData", () => {
           creator: { userId: "viewer-1", name: "Snapshot User", avatarUrl: "" },
         },
       ],
-      tasks: [
+    };
+
+    const tasksResult = {
+      results: [
         {
           taskId: "task-1",
           title: "Ship",
@@ -103,18 +103,40 @@ describe("useDashboardData", () => {
       },
     ];
 
+    const workspaceMembers = {
+      members: [
+        {
+          userId: "member-1",
+          workosUserId: "workos-member-1",
+          name: "Snapshot Member",
+          email: "member@example.com",
+          avatarUrl: null,
+          role: "owner",
+          isViewer: true,
+        },
+      ],
+    };
+
     const queryResults = [
       snapshot,
-      workspaceFiles,
       {},
       { events: { eventNotifications: true, teamActivities: true, productUpdates: true } },
       {},
-      undefined,
+      workspaceMembers,
+    ];
+    const paginatedQueryResults = [
+      { ...projectsResult, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
+      { ...tasksResult, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
+      { results: workspaceFiles, status: "Exhausted", isLoading: false, loadMore: vi.fn() },
     ];
 
     useQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
       queryArgs.push(queryArg);
       return queryResults[queryArgs.length - 1];
+    });
+    usePaginatedQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
+      paginatedQueryArgs.push(queryArg);
+      return paginatedQueryResults[paginatedQueryArgs.length - 1];
     });
 
     const { result } = renderHook(() => useDashboardData(args));
@@ -125,7 +147,10 @@ describe("useDashboardData", () => {
     expect(result.current.visibleProjects["project-1"]?.name).toBe("Project One");
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
-    expect(queryArgs[5]).toBe("skip");
+    expect(queryArgs[4]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[0]).toEqual({ workspaceSlug: "alpha", includeArchived: true });
+    expect(paginatedQueryArgs[1]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[2]).toEqual({ workspaceSlug: "alpha" });
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith("alpha");
@@ -141,11 +166,26 @@ describe("useDashboardData", () => {
   });
 
   test("skips workspace file query when search is closed and view is not project", () => {
-    const callArgs: unknown[] = [];
+    const queryCallArgs: unknown[] = [];
+    const paginatedCallArgs: unknown[] = [];
 
     useQueryMock.mockImplementation((_query: unknown, args: unknown) => {
-      callArgs.push(args);
+      queryCallArgs.push(args);
+      if (queryCallArgs.length === 1) {
+        return {
+          activeWorkspaceSlug: "alpha",
+          viewer: null,
+          activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
+          workspaces: [
+            { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
+          ],
+        };
+      }
       return undefined;
+    });
+    usePaginatedQueryMock.mockImplementation((_query: unknown, args: unknown) => {
+      paginatedCallArgs.push(args);
+      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
     });
 
     const args = {
@@ -157,15 +197,16 @@ describe("useDashboardData", () => {
 
     renderHook(() => useDashboardData(args));
 
-    expect(callArgs[1]).toBe("skip");
+    expect(paginatedCallArgs[2]).toBe("skip");
   });
 
   test("falls back to workspace members query when snapshot has no members payload", () => {
-    const callArgs: unknown[] = [];
+    const queryCallArgs: unknown[] = [];
+    const paginatedCallArgs: unknown[] = [];
 
     useQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
-      callArgs.push(queryArg);
-      if (callArgs.length === 1) {
+      queryCallArgs.push(queryArg);
+      if (queryCallArgs.length === 1) {
         return {
           activeWorkspaceSlug: "alpha",
           viewer: {
@@ -175,14 +216,13 @@ describe("useDashboardData", () => {
             email: "snapshot@example.com",
             avatarUrl: null,
           },
+          activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
           workspaces: [
             { slug: "alpha", name: "Alpha", plan: "Free", logo: "", logoColor: "", logoText: "A" },
           ],
-          projects: [],
-          tasks: [],
         };
       }
-      if (callArgs.length === 6) {
+      if (queryCallArgs.length === 5) {
         return {
           members: [
             {
@@ -199,10 +239,15 @@ describe("useDashboardData", () => {
       }
       return undefined;
     });
+    usePaginatedQueryMock.mockImplementation((_query: unknown, queryArg: unknown) => {
+      paginatedCallArgs.push(queryArg);
+      return { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() };
+    });
 
     const { result } = renderHook(() => useDashboardData(createBaseArgs()));
 
-    expect(callArgs[5]).toEqual({ workspaceSlug: "alpha" });
+    expect(queryCallArgs[4]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedCallArgs[0]).toEqual({ workspaceSlug: "alpha", includeArchived: true });
     expect(result.current.viewerIdentity.name).toBe("Fallback Member");
   });
 });

@@ -6,6 +6,7 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { SectionLabel, SearchPopupQuickActionItem, SearchPopupResultItem } from "./SearchPopupListItems";
 import type { QuickAction, SearchResult } from "./types";
 
@@ -23,6 +24,7 @@ type SearchPopupResultsProps = {
   hasSearchQuery: boolean;
   hasResults: boolean;
   query: string;
+  flatResults: SearchResult[];
   grouped: GroupedSearchResults;
   activeIndex: number;
   setActiveIndex: Dispatch<SetStateAction<number>>;
@@ -44,6 +46,7 @@ export function SearchPopupResults({
   hasSearchQuery,
   hasResults,
   query,
+  flatResults,
   grouped,
   activeIndex,
   setActiveIndex,
@@ -57,6 +60,14 @@ export function SearchPopupResults({
   quickActions,
   actionHandlers,
 }: SearchPopupResultsProps) {
+  const shouldVirtualizeSearchResults = hasSearchQuery && hasResults && flatResults.length > 80;
+  const searchVirtualizer = useVirtualizer({
+    count: flatResults.length,
+    getScrollElement: () => resultsRef.current,
+    estimateSize: () => 44,
+    overscan: 10,
+  });
+
   const projectOffset = 0;
   const taskOffset = grouped.projectResults.length;
   const fileOffset = taskOffset + grouped.taskResults.length;
@@ -70,80 +81,121 @@ export function SearchPopupResults({
     >
       {hasSearchQuery ? (
         hasResults ? (
-          <>
-            {grouped.projectResults.length > 0 && (
-              <div className="mb-1">
-                <SectionLabel label="Projects" count={grouped.projectResults.length} />
-                {grouped.projectResults.map((item, index) => (
-                  <SearchPopupResultItem
+          shouldVirtualizeSearchResults ? (
+            <div
+              style={{
+                height: searchVirtualizer.getTotalSize(),
+                position: "relative",
+              }}
+            >
+              {searchVirtualizer.getVirtualItems().map((virtualItem) => {
+                const item = flatResults[virtualItem.index];
+                if (!item) {
+                  return null;
+                }
+                return (
+                  <div
                     key={item.id}
-                    item={item}
-                    index={projectOffset + index}
-                    activeIndex={activeIndex}
-                    setActiveIndex={setActiveIndex}
-                    handleItemClick={handleItemClick}
-                    hasSearchQuery={hasSearchQuery}
-                    query={query}
-                    itemPerformanceStyle={itemPerformanceStyle}
-                  />
-                ))}
-              </div>
-            )}
-            {grouped.taskResults.length > 0 && (
-              <div className="mb-1">
-                <SectionLabel label="Tasks" count={grouped.taskResults.length} />
-                {grouped.taskResults.map((item, index) => (
-                  <SearchPopupResultItem
-                    key={item.id}
-                    item={item}
-                    index={taskOffset + index}
-                    activeIndex={activeIndex}
-                    setActiveIndex={setActiveIndex}
-                    handleItemClick={handleItemClick}
-                    hasSearchQuery={hasSearchQuery}
-                    query={query}
-                    itemPerformanceStyle={itemPerformanceStyle}
-                  />
-                ))}
-              </div>
-            )}
-            {grouped.fileResults.length > 0 && (
-              <div className="mb-1">
-                <SectionLabel label="Files" count={grouped.fileResults.length} />
-                {grouped.fileResults.map((item, index) => (
-                  <SearchPopupResultItem
-                    key={item.id}
-                    item={item}
-                    index={fileOffset + index}
-                    activeIndex={activeIndex}
-                    setActiveIndex={setActiveIndex}
-                    handleItemClick={handleItemClick}
-                    hasSearchQuery={hasSearchQuery}
-                    query={query}
-                    itemPerformanceStyle={itemPerformanceStyle}
-                  />
-                ))}
-              </div>
-            )}
-            {grouped.actionResults.length > 0 && (
-              <div className="mb-1">
-                <SectionLabel label="Quick Actions" />
-                {grouped.actionResults.map((item, index) => (
-                  <SearchPopupResultItem
-                    key={item.id}
-                    item={item}
-                    index={actionOffset + index}
-                    activeIndex={activeIndex}
-                    setActiveIndex={setActiveIndex}
-                    handleItemClick={handleItemClick}
-                    hasSearchQuery={hasSearchQuery}
-                    query={query}
-                    itemPerformanceStyle={itemPerformanceStyle}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+                    data-index={virtualItem.index}
+                    ref={searchVirtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <SearchPopupResultItem
+                      item={item}
+                      index={virtualItem.index}
+                      activeIndex={activeIndex}
+                      setActiveIndex={setActiveIndex}
+                      handleItemClick={handleItemClick}
+                      hasSearchQuery={hasSearchQuery}
+                      query={query}
+                      itemPerformanceStyle={itemPerformanceStyle}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              {grouped.projectResults.length > 0 && (
+                <div className="mb-1">
+                  <SectionLabel label="Projects" count={grouped.projectResults.length} />
+                  {grouped.projectResults.map((item, index) => (
+                    <SearchPopupResultItem
+                      key={item.id}
+                      item={item}
+                      index={projectOffset + index}
+                      activeIndex={activeIndex}
+                      setActiveIndex={setActiveIndex}
+                      handleItemClick={handleItemClick}
+                      hasSearchQuery={hasSearchQuery}
+                      query={query}
+                      itemPerformanceStyle={itemPerformanceStyle}
+                    />
+                  ))}
+                </div>
+              )}
+              {grouped.taskResults.length > 0 && (
+                <div className="mb-1">
+                  <SectionLabel label="Tasks" count={grouped.taskResults.length} />
+                  {grouped.taskResults.map((item, index) => (
+                    <SearchPopupResultItem
+                      key={item.id}
+                      item={item}
+                      index={taskOffset + index}
+                      activeIndex={activeIndex}
+                      setActiveIndex={setActiveIndex}
+                      handleItemClick={handleItemClick}
+                      hasSearchQuery={hasSearchQuery}
+                      query={query}
+                      itemPerformanceStyle={itemPerformanceStyle}
+                    />
+                  ))}
+                </div>
+              )}
+              {grouped.fileResults.length > 0 && (
+                <div className="mb-1">
+                  <SectionLabel label="Files" count={grouped.fileResults.length} />
+                  {grouped.fileResults.map((item, index) => (
+                    <SearchPopupResultItem
+                      key={item.id}
+                      item={item}
+                      index={fileOffset + index}
+                      activeIndex={activeIndex}
+                      setActiveIndex={setActiveIndex}
+                      handleItemClick={handleItemClick}
+                      hasSearchQuery={hasSearchQuery}
+                      query={query}
+                      itemPerformanceStyle={itemPerformanceStyle}
+                    />
+                  ))}
+                </div>
+              )}
+              {grouped.actionResults.length > 0 && (
+                <div className="mb-1">
+                  <SectionLabel label="Quick Actions" />
+                  {grouped.actionResults.map((item, index) => (
+                    <SearchPopupResultItem
+                      key={item.id}
+                      item={item}
+                      index={actionOffset + index}
+                      activeIndex={activeIndex}
+                      setActiveIndex={setActiveIndex}
+                      handleItemClick={handleItemClick}
+                      hasSearchQuery={hasSearchQuery}
+                      query={query}
+                      itemPerformanceStyle={itemPerformanceStyle}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center py-12 px-6">
             <div className="size-10 rounded-xl bg-white/[0.04] flex items-center justify-center mb-3">

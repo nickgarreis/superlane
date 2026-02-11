@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
-import { useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import {
   mapProjectsToUi,
@@ -41,7 +41,7 @@ type UseDashboardDataArgs = {
 };
 
 type UseDashboardDataResult = {
-  snapshot: ReturnType<typeof useQuery<typeof api.dashboard.getSnapshot>>;
+  snapshot: ReturnType<typeof useQuery<typeof api.dashboard.getWorkspaceContext>>;
   resolvedWorkspaceSlug: string | null;
   accountSettings: ReturnType<typeof useQuery<typeof api.settings.getAccountSettings>>;
   notificationSettings: ReturnType<typeof useQuery<typeof api.settings.getNotificationPreferences>>;
@@ -61,6 +61,8 @@ type UseDashboardDataResult = {
   clearPendingHighlight: ReturnType<typeof useDashboardController>["clearPendingHighlight"];
 };
 
+const PAGINATION_PAGE_SIZE = 100;
+
 export const useDashboardData = ({
   isAuthenticated,
   activeWorkspaceSlug,
@@ -74,22 +76,53 @@ export const useDashboardData = ({
   navigateView,
 }: UseDashboardDataArgs): UseDashboardDataResult => {
   const snapshot = useQuery(
-    api.dashboard.getSnapshot,
+    api.dashboard.getWorkspaceContext,
     isAuthenticated ? { activeWorkspaceSlug: activeWorkspaceSlug ?? undefined } : "skip",
   );
 
   const resolvedWorkspaceSlug = snapshot?.activeWorkspaceSlug ?? activeWorkspaceSlug ?? null;
+  const projectsResult = usePaginatedQuery(
+    api.projects.listForWorkspace,
+    isAuthenticated && resolvedWorkspaceSlug
+      ? { workspaceSlug: resolvedWorkspaceSlug, includeArchived: true }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
+  );
+
+  const workspaceTasksResult = usePaginatedQuery(
+    api.tasks.listForWorkspace,
+    isAuthenticated && resolvedWorkspaceSlug
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
+  );
 
   const shouldLoadWorkspaceFiles = isSearchOpen
     || currentView.startsWith("project:")
     || currentView.startsWith("archive-project:");
 
-  const workspaceFiles = useQuery(
+  const workspaceFiles = usePaginatedQuery(
     api.files.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug && shouldLoadWorkspaceFiles
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
+    { initialNumItems: PAGINATION_PAGE_SIZE },
   );
+  const {
+    results: paginatedProjects,
+    status: projectsPaginationStatus,
+    loadMore: loadMoreProjects,
+  } = projectsResult;
+  const {
+    results: paginatedWorkspaceTasks,
+    status: tasksPaginationStatus,
+    loadMore: loadMoreWorkspaceTasks,
+  } = workspaceTasksResult;
+  const {
+    results: paginatedWorkspaceFiles,
+    status: filesPaginationStatus,
+    loadMore: loadMoreWorkspaceFiles,
+  } = workspaceFiles;
 
   const accountSettings = useQuery(
     api.settings.getAccountSettings,
@@ -108,13 +141,11 @@ export const useDashboardData = ({
       : "skip",
   );
 
-  const hasSnapshotWorkspaceMembers = Array.isArray(snapshot?.workspaceMembers);
   const workspaceMembersResult = useQuery(
     api.collaboration.listWorkspaceMembers,
     isAuthenticated
       && resolvedWorkspaceSlug
       && snapshot !== undefined
-      && !hasSnapshotWorkspaceMembers
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
@@ -128,14 +159,27 @@ export const useDashboardData = ({
     }
   }, [snapshot, activeWorkspaceSlug, setActiveWorkspaceSlug]);
 
+  useEffect(() => {
+    if (projectsPaginationStatus === "CanLoadMore") {
+      loadMoreProjects(PAGINATION_PAGE_SIZE);
+    }
+  }, [loadMoreProjects, projectsPaginationStatus]);
+
+  useEffect(() => {
+    if (tasksPaginationStatus === "CanLoadMore") {
+      loadMoreWorkspaceTasks(PAGINATION_PAGE_SIZE);
+    }
+  }, [loadMoreWorkspaceTasks, tasksPaginationStatus]);
+
+  useEffect(() => {
+    if (filesPaginationStatus === "CanLoadMore") {
+      loadMoreWorkspaceFiles(PAGINATION_PAGE_SIZE);
+    }
+  }, [filesPaginationStatus, loadMoreWorkspaceFiles]);
+
   const workspaceMembers = useMemo<WorkspaceMember[]>(
-    () => {
-      if (hasSnapshotWorkspaceMembers) {
-        return (snapshot?.workspaceMembers ?? []) as WorkspaceMember[];
-      }
-      return workspaceMembersResult?.members ?? [];
-    },
-    [hasSnapshotWorkspaceMembers, snapshot?.workspaceMembers, workspaceMembersResult],
+    () => workspaceMembersResult?.members ?? [],
+    [workspaceMembersResult],
   );
 
   const viewerMembership = useMemo(
@@ -160,16 +204,16 @@ export const useDashboardData = ({
   const projects = useMemo(
     () =>
       mapProjectsToUi({
-        projects: (snapshot?.projects ?? []) as SnapshotProject[],
-        tasks: (snapshot?.tasks ?? []) as SnapshotTask[],
+        projects: paginatedProjects as SnapshotProject[],
+        tasks: paginatedWorkspaceTasks as SnapshotTask[],
         workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
       }),
-    [snapshot?.projects, snapshot?.tasks, snapshot?.activeWorkspaceSlug],
+    [paginatedProjects, paginatedWorkspaceTasks, snapshot?.activeWorkspaceSlug],
   );
 
   const workspaceTasks = useMemo(
-    () => mapWorkspaceTasksToUi((snapshot?.tasks ?? []) as SnapshotTask[]),
-    [snapshot?.tasks],
+    () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
+    [paginatedWorkspaceTasks],
   );
 
   const activeWorkspace = useMemo<Workspace | undefined>(() => {
@@ -208,8 +252,11 @@ export const useDashboardData = ({
   });
 
   const allWorkspaceFiles = useMemo<ProjectFileData[]>(
-    () => mapWorkspaceFilesToUi((workspaceFiles ?? []) as SnapshotWorkspaceFile[]),
-    [workspaceFiles],
+    () =>
+      mapWorkspaceFilesToUi(
+        paginatedWorkspaceFiles as SnapshotWorkspaceFile[],
+      ),
+    [paginatedWorkspaceFiles],
   );
 
   const projectFilesByProject = useMemo(

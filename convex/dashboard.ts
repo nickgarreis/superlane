@@ -1,221 +1,205 @@
 import { ConvexError, v } from "convex/values";
 import { query } from "./_generated/server";
-import { getResolvedAuthUser, requireAuthUser } from "./lib/auth";
-import { hasActiveOrganizationMembershipForWorkspace } from "./lib/workosOrganization";
+import { requireWorkspaceRole } from "./lib/auth";
+import {
+  buildProvisioningContext,
+  buildProvisioningSnapshot,
+  getAccessibleWorkspaceContext,
+  listWorkspaceMembers,
+  resolveAvatarUrl,
+} from "./lib/dashboardContext";
 
-const buildProvisioningSnapshot = (authUser: {
-  id: string;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  profilePictureUrl?: string | null;
-}) => {
-  const name =
-    [authUser.firstName, authUser.lastName].filter(Boolean).join(" ").trim() ||
-    authUser.email ||
-    "Unknown user";
+const loadActiveProjectsForWorkspace = async (ctx: any, workspaceId: any) => {
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspaceId))
+    .collect();
 
-  return {
-    viewer: {
-      id: null,
-      workosUserId: authUser.id,
-      name,
-      email: authUser.email ?? null,
-      avatarUrl: authUser.profilePictureUrl ?? null,
-    },
-    workspaces: [],
-    activeWorkspace: null,
-    activeWorkspaceSlug: null,
-    projects: [],
-    tasks: [],
-    workspaceMembers: [],
-  };
+  return projects.filter((project: any) => project.deletedAt == null);
 };
 
-const resolveAvatarUrl = async (ctx: any, appUser: any) => {
-  if (appUser.avatarStorageId) {
-    return (await ctx.storage.getUrl(appUser.avatarStorageId)) ?? null;
-  }
-  return appUser.avatarUrl ?? null;
+const loadVisibleWorkspaceTasks = async (
+  ctx: any,
+  workspaceId: any,
+  activeProjectIds: Set<string>,
+) => {
+  const tasks = await ctx.db
+    .query("tasks")
+    .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", workspaceId))
+    .collect();
+
+  return tasks.filter((task: any) =>
+    task.projectId == null || activeProjectIds.has(String(task.projectId)));
 };
 
-type SnapshotWorkspaceMember = {
-  userId: string;
-  workosUserId: string;
-  name: string;
-  email: string;
-  avatarUrl: string | null;
-  role: "owner" | "admin" | "member";
-  isViewer: boolean;
+const hydrateProjectCreators = async (ctx: any, activeProjects: any[]) => {
+  const creatorUserIdsToResolve = Array.from(
+    new Set(
+      activeProjects
+        .filter((project: any) => !project.creatorSnapshotName)
+        .map((project: any) => project.creatorUserId),
+    ),
+  );
+
+  const creatorRows = await Promise.all(
+    creatorUserIdsToResolve.map(async (creatorUserId) => {
+      if (!creatorUserId) {
+        return null;
+      }
+
+      try {
+        const creatorUser = await ctx.db.get(creatorUserId);
+        return creatorUser ? [String(creatorUserId), creatorUser] : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  const creatorRowById = new Map(
+    creatorRows.filter((entry): entry is [string, any] => entry !== null),
+  );
+
+  return Promise.all(activeProjects.map(async (project: any) => {
+    const creatorRow = creatorRowById.get(String(project.creatorUserId));
+    const creatorName = project.creatorSnapshotName ?? creatorRow?.name ?? "Unknown user";
+    const creatorAvatar = project.creatorSnapshotAvatarUrl
+      ?? (creatorRow ? await resolveAvatarUrl(ctx, creatorRow) : null)
+      ?? "";
+
+    return {
+      ...project,
+      creator: {
+        userId: String(project.creatorUserId),
+        name: creatorName,
+        avatarUrl: creatorAvatar,
+      },
+    };
+  }));
 };
+
+export const getWorkspaceContext = query({
+  args: {
+    activeWorkspaceSlug: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const access = await getAccessibleWorkspaceContext(ctx, args);
+
+    if (!access.provisioned) {
+      return buildProvisioningContext(access.authUser);
+    }
+
+    return {
+      viewer: {
+        id: access.appUser._id,
+        workosUserId: access.appUser.workosUserId,
+        name: access.appUser.name,
+        email: access.appUser.email ?? null,
+        avatarUrl: await resolveAvatarUrl(ctx, access.appUser),
+      },
+      workspaces: access.workspaces,
+      activeWorkspace: access.activeWorkspace,
+      activeWorkspaceSlug: access.activeWorkspace?.slug ?? null,
+    };
+  },
+});
+
+export const getActiveWorkspaceSummary = query({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
+      .unique();
+
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    const access = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const activeProjects = await loadActiveProjectsForWorkspace(ctx, workspace._id);
+    const activeProjectIds = new Set<string>(
+      activeProjects.map((project: any) => String(project._id)),
+    );
+    const visibleTasks = await loadVisibleWorkspaceTasks(ctx, workspace._id, activeProjectIds);
+
+    const members = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    const files = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
+        q.eq("workspaceId", workspace._id).eq("deletedAt", null),
+      )
+      .collect();
+
+    return {
+      workspace: {
+        id: String(workspace._id),
+        slug: workspace.slug,
+        name: workspace.name,
+        plan: workspace.plan,
+      },
+      counts: {
+        activeProjects: activeProjects.length,
+        visibleTasks: visibleTasks.length,
+        activeMembers: members.filter((member: any) => member.status === "active").length,
+        activeFiles: files.filter((file: any) => file.storageId != null).length,
+      },
+      viewerRole: access.membership.role,
+    };
+  },
+});
 
 export const getSnapshot = query({
   args: {
     activeWorkspaceSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let appUser: any;
-    try {
-      ({ appUser } = await requireAuthUser(ctx));
-    } catch (error) {
-      if (
-        error instanceof ConvexError &&
-        error.message === "Authenticated user is not provisioned"
-      ) {
-        const authUser = await getResolvedAuthUser(ctx);
-        if (!authUser) {
-          throw new ConvexError("Unauthorized");
-        }
-        return buildProvisioningSnapshot(authUser);
-      }
-      throw error;
+    const access = await getAccessibleWorkspaceContext(ctx, args);
+
+    if (!access.provisioned) {
+      return buildProvisioningSnapshot(access.authUser);
     }
 
-    const memberships = await ctx.db
-      .query("workspaceMembers")
-      .withIndex("by_userId", (q) => q.eq("userId", appUser._id))
-      .collect();
-
-    const activeMemberships = memberships.filter((membership) => membership.status === "active");
-
-    const workspaceCandidates = (
-      await Promise.all(activeMemberships.map((membership) => ctx.db.get(membership.workspaceId)))
-    ).filter((workspace: any) => Boolean(workspace) && workspace.deletedAt == null);
-
-    const workspacesWithOrgAccess = await Promise.all(
-      workspaceCandidates.map(async (workspace: any) => {
-        const hasOrgAccess = await hasActiveOrganizationMembershipForWorkspace(
-          ctx,
-          workspace,
-          appUser.workosUserId,
-        );
-
-        return hasOrgAccess ? workspace : null;
-      }),
-    );
-
-    const workspaces = workspacesWithOrgAccess
-      .filter(Boolean)
-      .sort((a: any, b: any) => a.name.localeCompare(b.name));
-
-    const desiredWorkspace = args.activeWorkspaceSlug
-      ? workspaces.find((workspace: any) => workspace.slug === args.activeWorkspaceSlug)
-      : undefined;
-
-    const activeWorkspace = desiredWorkspace ?? workspaces[0] ?? null;
-
-    let workspaceMembers: SnapshotWorkspaceMember[] = [];
-    if (activeWorkspace) {
-      const workspaceMemberships = await ctx.db
-        .query("workspaceMembers")
-        .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", activeWorkspace._id))
-        .collect();
-      const activeWorkspaceMemberships = workspaceMemberships.filter(
-        (membership: any) => membership.status === "active",
-      );
-      const members = await Promise.all(
-        activeWorkspaceMemberships.map(async (membership) => {
-          const memberUser = await ctx.db.get(membership.userId);
-          if (!memberUser) {
-            return null;
-          }
-
-          return {
-            userId: String(memberUser._id),
-            workosUserId: memberUser.workosUserId,
-            name: memberUser.name,
-            email: memberUser.email ?? "",
-            avatarUrl: await resolveAvatarUrl(ctx, memberUser),
-            role: membership.role,
-            isViewer: String(memberUser._id) === String(appUser._id),
-          } satisfies SnapshotWorkspaceMember;
-        }),
-      );
-
-      workspaceMembers = members
-        .filter(
-          (member): member is SnapshotWorkspaceMember => member !== null,
-        )
-        .sort((a, b) => {
-          if (a.isViewer && !b.isViewer) return -1;
-          if (!a.isViewer && b.isViewer) return 1;
-          return a.name.localeCompare(b.name);
-        });
-    }
-
-    const projects = activeWorkspace
-      ? await ctx.db
-          .query("projects")
-          .withIndex("by_workspaceId", (q) => q.eq("workspaceId", activeWorkspace._id))
-          .collect()
-      : [];
-    const activeProjects = projects.filter((project) => project.deletedAt == null);
-    const activeProjectIds = new Set(activeProjects.map((project) => String(project._id)));
-
-    const tasks = activeWorkspace
-      ? await ctx.db
-          .query("tasks")
-          .withIndex("by_workspaceId", (q) => q.eq("workspaceId", activeWorkspace._id))
-          .collect()
-      : [];
-    const visibleTasks = tasks.filter((task) =>
-      task.projectId == null || activeProjectIds.has(String(task.projectId)),
-    );
-
-    activeProjects.sort((a, b) => {
-      const updatedAtA = typeof a.updatedAt === "number" ? a.updatedAt : 0;
-      const updatedAtB = typeof b.updatedAt === "number" ? b.updatedAt : 0;
-      return updatedAtB - updatedAtA;
+    const workspaceMembers = await listWorkspaceMembers(ctx, {
+      activeWorkspace: access.activeWorkspace,
+      appUser: access.appUser,
     });
-    visibleTasks.sort((a, b) => {
+
+    const activeProjects = access.activeWorkspace
+      ? await loadActiveProjectsForWorkspace(ctx, access.activeWorkspace._id)
+      : [];
+    activeProjects.sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+
+    const activeProjectIds = new Set<string>(
+      activeProjects.map((project: any) => String(project._id)),
+    );
+    const visibleTasks = access.activeWorkspace
+      ? await loadVisibleWorkspaceTasks(ctx, access.activeWorkspace._id, activeProjectIds)
+      : [];
+    visibleTasks.sort((a: any, b: any) => {
       const positionA = typeof a.position === "number" ? a.position : Number.POSITIVE_INFINITY;
       const positionB = typeof b.position === "number" ? b.position : Number.POSITIVE_INFINITY;
       return positionA - positionB;
     });
 
-    const creatorById = new Map<string, { userId: string; name: string; avatarUrl: string | null }>();
-    const uniqueCreatorUserIds = Array.from(
-      new Set(activeProjects.map((project) => project.creatorUserId)),
-    );
-    await Promise.all(uniqueCreatorUserIds.map(async (creatorUserId) => {
-      const creatorId = String(creatorUserId);
-      const creatorUser = await ctx.db.get(creatorUserId);
-      if (!creatorUser) {
-        creatorById.set(creatorId, {
-          userId: creatorId,
-          name: "Unknown user",
-          avatarUrl: null,
-        });
-        return;
-      }
-
-      creatorById.set(creatorId, {
-        userId: creatorId,
-        name: creatorUser.name,
-        avatarUrl: await resolveAvatarUrl(ctx, creatorUser),
-      });
-    }));
-
-    const projectsWithCreators = activeProjects.map((project) => ({
-      ...project,
-      creator: creatorById.get(String(project.creatorUserId)) ?? {
-        userId: String(project.creatorUserId),
-        name: "Unknown user",
-        avatarUrl: null,
-      },
-    }));
+    const projectsWithCreators = await hydrateProjectCreators(ctx, activeProjects);
 
     return {
       viewer: {
-        id: appUser._id,
-        workosUserId: appUser.workosUserId,
-        name: appUser.name,
-        email: appUser.email ?? null,
-        avatarUrl: await resolveAvatarUrl(ctx, appUser),
+        id: access.appUser._id,
+        workosUserId: access.appUser.workosUserId,
+        name: access.appUser.name,
+        email: access.appUser.email ?? null,
+        avatarUrl: await resolveAvatarUrl(ctx, access.appUser),
       },
-      workspaces,
-      activeWorkspace,
-      activeWorkspaceSlug: activeWorkspace?.slug ?? null,
+      workspaces: access.workspaces,
+      activeWorkspace: access.activeWorkspace,
+      activeWorkspaceSlug: access.activeWorkspace?.slug ?? null,
       projects: projectsWithCreators,
       tasks: visibleTasks,
       workspaceMembers,

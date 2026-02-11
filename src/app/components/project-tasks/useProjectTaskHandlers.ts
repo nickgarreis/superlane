@@ -105,6 +105,7 @@ export function useProjectTaskHandlers({
       title: newTaskTitle,
       projectId: resolvedProjectId,
       assignee: {
+        userId: defaultAssignee?.userId,
         name: defaultAssignee?.name ?? viewerIdentity.name ?? "Unassigned",
         avatar: defaultAssignee?.avatarUrl ?? viewerIdentity.avatarUrl ?? "",
       },
@@ -161,6 +162,7 @@ export function useProjectTaskHandlers({
         ? {
             ...entry,
             assignee: {
+              userId: member.userId,
               name: member.name,
               avatar: member.avatarUrl ?? "",
             },

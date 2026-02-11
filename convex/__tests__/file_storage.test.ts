@@ -356,8 +356,9 @@ describe("P0.2 file storage pipeline", () => {
 
     const listed = await asMember().query(api.files.listForWorkspace, {
       workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 200 },
     });
-    expect(listed).toHaveLength(0);
+    expect(listed.page).toHaveLength(0);
 
     await expect(
       asMember().query(api.files.getDownloadUrl, { fileId: uploaded.fileId }),

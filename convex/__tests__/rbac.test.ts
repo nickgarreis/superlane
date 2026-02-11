@@ -324,8 +324,9 @@ describe("P0.1 RBAC and soft-delete", () => {
 
     const files = await asOwner().query(api.files.listForWorkspace, {
       workspaceSlug: workspace.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 200 },
     });
-    expect(files).toHaveLength(0);
+    expect(files.page).toHaveLength(0);
 
     await expect(
       asOwner().mutation(api.tasks.replaceForProject, {

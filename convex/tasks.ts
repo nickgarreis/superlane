@@ -1,53 +1,271 @@
 import { ConvexError, v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { taskInputValidator, workspaceTaskInputValidator } from "./lib/validators";
+import { paginationOptsValidator } from "convex/server";
+import { mutation, query } from "./_generated/server";
+import { taskInputValidator, workspaceTaskInputValidator, taskAssigneeValidator } from "./lib/validators";
 import { requireProjectRole, requireWorkspaceRole } from "./lib/auth";
-import { assertFiniteEpochMs } from "./lib/dateNormalization";
+import { paginateWorkspaceTasksWithFilter, reserveTaskPosition } from "./lib/taskPagination";
+import {
+  assertTaskProjectMutationAccess,
+  getWorkspaceBySlug,
+  getWorkspaceTaskRowByTaskId,
+  mapTaskForClient,
+  normalizeOptionalEpochMs,
+  normalizeOptionalProjectPublicId,
+  normalizeTaskAssignee,
+  normalizeTaskTitle,
+  replaceProjectTasks,
+  replaceWorkspaceTasksLegacy,
+  resolveTaskTargetProject,
+} from "./lib/taskMutations";
 
-const projectAllowsTaskMutations = (project: any) =>
-  project.deletedAt == null
-  && project.archived !== true
-  && project.status === "Active"
-  && project.completedAt == null;
+export const listForWorkspace = query({
+  args: {
+    workspaceSlug: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
-const assertProjectAllowsTaskMutations = (project: any) => {
-  if (!projectAllowsTaskMutations(project)) {
-    throw new ConvexError("Tasks can only be modified for active projects");
-  }
-};
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const activeProjectIds = new Set(
+      projects
+        .filter((project: any) => project.deletedAt == null)
+        .map((project: any) => String(project._id)),
+    );
+    const paginated = await paginateWorkspaceTasksWithFilter({
+      paginationOpts: args.paginationOpts,
+      makeQuery: () =>
+        ctx.db
+          .query("tasks")
+          .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", workspace._id)),
+      includeTask: (task: any) =>
+        task.projectId == null || activeProjectIds.has(String(task.projectId)),
+    });
 
-const replaceProjectTasks = async (ctx: any, project: any, tasks: Array<any>) => {
-  assertProjectAllowsTaskMutations(project);
+    return {
+      ...paginated,
+      page: paginated.page.map(mapTaskForClient),
+    };
+  },
+});
 
-  const existing = await ctx.db
-    .query("tasks")
-    .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
-    .collect();
+export const listForProject = query({
+  args: {
+    projectPublicId: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
 
-  await Promise.all(existing.map((task: any) => ctx.db.delete(task._id)));
+    const paginated = await ctx.db
+      .query("tasks")
+      .withIndex("by_projectPublicId_position", (q: any) =>
+        q.eq("projectPublicId", project.publicId),
+      )
+      .paginate(args.paginationOpts);
 
-  const now = Date.now();
-  await Promise.all(
-    tasks.map((task, index) =>
-      ctx.db.insert("tasks", {
-        workspaceId: project.workspaceId,
-        projectId: project._id,
-        projectPublicId: project.publicId,
-        taskId: task.id,
-        title: task.title,
-        assignee: task.assignee,
-        dueDateEpochMs:
-          task.dueDateEpochMs === undefined || task.dueDateEpochMs === null
-            ? null
-            : assertFiniteEpochMs(task.dueDateEpochMs, "dueDateEpochMs"),
-        completed: task.completed,
+    return {
+      ...paginated,
+      page: paginated.page.map(mapTaskForClient),
+    };
+  },
+});
+
+export const create = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    id: v.optional(v.string()),
+    title: v.string(),
+    assignee: taskAssigneeValidator,
+    dueDateEpochMs: v.optional(v.union(v.number(), v.null())),
+    completed: v.optional(v.boolean()),
+    projectPublicId: v.optional(v.union(v.string(), v.null())),
+    position: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const requestedTaskId = (args.id ?? "").trim();
+    const taskId = requestedTaskId.length > 0
+      ? requestedTaskId
+      : `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const existingTask = await getWorkspaceTaskRowByTaskId(ctx, {
+      workspaceId: workspace._id,
+      taskId,
+    });
+    if (existingTask) {
+      throw new ConvexError("Task id already exists in workspace");
+    }
+
+    const normalizedProjectPublicId = normalizeOptionalProjectPublicId(args.projectPublicId);
+    const targetProject = await resolveTaskTargetProject(ctx, {
+      workspaceId: workspace._id,
+      projectPublicId: normalizedProjectPublicId,
+    });
+
+    const position = await reserveTaskPosition(ctx, {
+      workspaceId: workspace._id,
+      requestedPosition: args.position,
+    });
+
+    const now = Date.now();
+    await ctx.db.insert("tasks", {
+      workspaceId: workspace._id,
+      projectId: targetProject?._id ?? null,
+      projectPublicId: targetProject?.publicId ?? null,
+      taskId,
+      title: normalizeTaskTitle(args.title),
+      assignee: normalizeTaskAssignee(args.assignee),
+      dueDateEpochMs: normalizeOptionalEpochMs(args.dueDateEpochMs),
+      completed: args.completed ?? false,
+      position,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { taskId };
+  },
+});
+
+export const update = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    taskId: v.string(),
+    title: v.optional(v.string()),
+    assignee: v.optional(taskAssigneeValidator),
+    dueDateEpochMs: v.optional(v.union(v.number(), v.null())),
+    completed: v.optional(v.boolean()),
+    projectPublicId: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const task = await getWorkspaceTaskRowByTaskId(ctx, {
+      workspaceId: workspace._id,
+      taskId: args.taskId,
+    });
+    if (!task) {
+      throw new ConvexError("Task not found");
+    }
+
+    await assertTaskProjectMutationAccess(ctx, {
+      workspaceId: workspace._id,
+      task,
+    });
+
+    const patch: Record<string, unknown> = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.title !== undefined) {
+      patch.title = normalizeTaskTitle(args.title);
+    }
+    if (args.assignee !== undefined) {
+      patch.assignee = normalizeTaskAssignee(args.assignee);
+    }
+    if (args.dueDateEpochMs !== undefined) {
+      patch.dueDateEpochMs = normalizeOptionalEpochMs(args.dueDateEpochMs);
+    }
+    if (args.completed !== undefined) {
+      patch.completed = args.completed;
+    }
+    if (args.projectPublicId !== undefined) {
+      const normalizedProjectPublicId = normalizeOptionalProjectPublicId(args.projectPublicId);
+      const targetProject = await resolveTaskTargetProject(ctx, {
+        workspaceId: workspace._id,
+        projectPublicId: normalizedProjectPublicId,
+      });
+      patch.projectId = targetProject?._id ?? null;
+      patch.projectPublicId = targetProject?.publicId ?? null;
+    }
+
+    await ctx.db.patch(task._id, patch);
+    return { taskId: args.taskId };
+  },
+});
+
+export const remove = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    taskId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const task = await getWorkspaceTaskRowByTaskId(ctx, {
+      workspaceId: workspace._id,
+      taskId: args.taskId,
+    });
+    if (!task) {
+      return { removed: false };
+    }
+
+    await assertTaskProjectMutationAccess(ctx, {
+      workspaceId: workspace._id,
+      task,
+    });
+
+    await ctx.db.delete(task._id);
+    return { removed: true };
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    orderedTaskIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const orderedTaskIds = args.orderedTaskIds.map((taskId) => taskId.trim()).filter(Boolean);
+    const uniqueTaskIds = new Set(orderedTaskIds);
+    if (uniqueTaskIds.size !== orderedTaskIds.length) {
+      throw new ConvexError("Duplicate task id in reorder payload");
+    }
+
+    const workspaceTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace_position", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const taskById = new Map(workspaceTasks.map((task: any) => [String(task.taskId), task]));
+    const projectAccessCache = new Map<string, any>();
+
+    const tasksToReorder = orderedTaskIds.map((taskId) => {
+      const task = taskById.get(taskId);
+      if (!task) {
+        throw new ConvexError(`Task not found: ${taskId}`);
+      }
+      return task;
+    });
+
+    await Promise.all(tasksToReorder.map((task: any) => assertTaskProjectMutationAccess(ctx, {
+      workspaceId: workspace._id,
+      task,
+      projectAccessCache,
+    })));
+
+    const now = Date.now();
+    await Promise.all(orderedTaskIds.map((taskId, index) => {
+      const task = taskById.get(taskId)!;
+      return ctx.db.patch(task._id, {
         position: index,
-        createdAt: now,
         updatedAt: now,
-      }),
-    ),
-  );
-};
+      });
+    }));
+
+    return { updated: orderedTaskIds.length };
+  },
+});
 
 export const replaceForProject = mutation({
   args: {
@@ -57,7 +275,6 @@ export const replaceForProject = mutation({
   handler: async (ctx, args) => {
     const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
     await replaceProjectTasks(ctx, project, args.tasks);
-
     return { projectPublicId: project.publicId };
   },
 });
@@ -68,113 +285,12 @@ export const replaceForWorkspace = mutation({
     tasks: v.array(workspaceTaskInputValidator),
   },
   handler: async (ctx, args) => {
-    const workspace = await ctx.db
-      .query("workspaces")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
-      .unique();
-
-    if (!workspace) {
-      throw new ConvexError("Workspace not found");
-    }
-
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
-
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
-    const activeProjectsByPublicId = new Map(
-      projects
-        .filter((project: any) => projectAllowsTaskMutations(project))
-        .map((project: any) => [project.publicId, project]),
-    );
-    const inactiveProjectPublicIds = new Set(
-      projects
-        .filter((project: any) => project.deletedAt == null && !projectAllowsTaskMutations(project))
-        .map((project: any) => project.publicId),
-    );
-
-    const existing = await ctx.db
-      .query("tasks")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
-    const preservedInactiveProjectTasks = existing.filter(
-      (task: any) =>
-        typeof task.projectPublicId === "string"
-        && inactiveProjectPublicIds.has(task.projectPublicId),
-    );
-    const preservedInactiveTaskIds = new Set(
-      preservedInactiveProjectTasks.map((task: any) => task.taskId),
-    );
-    const preservedInactiveRowIds = new Set(
-      preservedInactiveProjectTasks.map((task: any) => String(task._id)),
-    );
-
-    for (const task of args.tasks) {
-      const requestedProjectPublicId =
-        typeof task.projectPublicId === "string" && task.projectPublicId.trim().length > 0
-          ? task.projectPublicId.trim()
-          : null;
-      const project = requestedProjectPublicId
-        ? activeProjectsByPublicId.get(requestedProjectPublicId)
-        : null;
-
-      if (requestedProjectPublicId && !project) {
-        if (inactiveProjectPublicIds.has(requestedProjectPublicId)) {
-          throw new ConvexError("Tasks can only be modified for active projects");
-        }
-        throw new ConvexError(
-          `Project not found in workspace or not active: ${requestedProjectPublicId}`,
-        );
-      }
-
-      if (preservedInactiveTaskIds.has(task.id)) {
-        throw new ConvexError("Tasks can only be modified for active projects");
-      }
-    }
-
-    await Promise.all(
-      existing
-        .filter((task: any) => !preservedInactiveRowIds.has(String(task._id)))
-        .map((task: any) => ctx.db.delete(task._id)),
-    );
-
-    const now = Date.now();
-    await Promise.all(
-      args.tasks.map(async (task, index) => {
-        const requestedProjectPublicId =
-          typeof task.projectPublicId === "string" && task.projectPublicId.trim().length > 0
-            ? task.projectPublicId.trim()
-            : null;
-        const project = requestedProjectPublicId
-          ? activeProjectsByPublicId.get(requestedProjectPublicId)
-          : null;
-
-        if (requestedProjectPublicId && !project) {
-          throw new ConvexError(
-            `Project not found in workspace or not active: ${requestedProjectPublicId}`,
-          );
-        }
-
-        await ctx.db.insert("tasks", {
-          workspaceId: workspace._id,
-          projectId: project?._id ?? null,
-          projectPublicId: project?.publicId ?? null,
-          taskId: task.id,
-          title: task.title,
-          assignee: task.assignee,
-          dueDateEpochMs:
-            task.dueDateEpochMs === undefined || task.dueDateEpochMs === null
-              ? null
-              : assertFiniteEpochMs(task.dueDateEpochMs, "dueDateEpochMs"),
-          completed: task.completed,
-          position: index,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }),
-    );
-
+    await replaceWorkspaceTasksLegacy(ctx, {
+      workspace,
+      tasks: args.tasks,
+    });
     return { updatedTasks: args.tasks.length };
   },
 });
@@ -190,27 +306,24 @@ export const bulkReplaceForWorkspace = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const workspace = await ctx.db
-      .query("workspaces")
-      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
-      .unique();
-
-    if (!workspace) {
-      throw new ConvexError("Workspace not found");
-    }
-
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
     await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
 
-    for (const update of args.updates) {
-      const project = await ctx.db
-        .query("projects")
-        .withIndex("by_publicId", (q: any) => q.eq("publicId", update.projectPublicId))
-        .unique();
+    const workspaceProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const projectByPublicId = new Map(
+      workspaceProjects
+        .filter((project: any) => project.deletedAt == null)
+        .map((project: any) => [project.publicId, project]),
+    );
 
-      if (!project || project.workspaceId !== workspace._id || project.deletedAt != null) {
+    for (const update of args.updates) {
+      const project = projectByPublicId.get(update.projectPublicId);
+      if (!project) {
         throw new ConvexError(`Project not found in workspace: ${update.projectPublicId}`);
       }
-
       await replaceProjectTasks(ctx, project, update.tasks);
     }
 

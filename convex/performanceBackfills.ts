@@ -1,0 +1,178 @@
+import { ConvexError, v } from "convex/values";
+import { mutation } from "./_generated/server";
+import { requireWorkspaceRole } from "./lib/auth";
+
+const clampLimit = (value: number | undefined) => {
+  const normalized = Math.floor(Number(value ?? 5000));
+  if (!Number.isFinite(normalized) || normalized <= 0) {
+    return 5000;
+  }
+  return Math.min(normalized, 20000);
+};
+
+const resolveUserAvatarForBackfill = async (ctx: any, user: any) => {
+  if (typeof user?.avatarUrl === "string" && user.avatarUrl.trim().length > 0) {
+    return user.avatarUrl;
+  }
+  if (user?.avatarStorageId) {
+    return (await ctx.storage.getUrl(user.avatarStorageId)) ?? "";
+  }
+  return "";
+};
+
+export const backfillWorkspaceDenormalizedFields = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q: any) => q.eq("slug", args.workspaceSlug))
+      .unique();
+
+    if (!workspace || workspace.deletedAt != null) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    await requireWorkspaceRole(ctx, workspace._id, "owner", { workspace });
+    const maxPatches = clampLimit(args.limit);
+    let remaining = maxPatches;
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const comments = await ctx.db
+      .query("projectComments")
+      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    const userIds = new Set([
+      ...projects.map((project: any) => String(project.creatorUserId)),
+      ...comments.map((comment: any) => String(comment.authorUserId)),
+    ]);
+    const userRows = await Promise.all(
+      Array.from(userIds).map(async (userId) => {
+        const matchedProject = projects.find((project: any) => String(project.creatorUserId) === userId);
+        if (matchedProject) {
+          const user = await ctx.db.get(matchedProject.creatorUserId);
+          return user ? [userId, user] : null;
+        }
+
+        const matchedComment = comments.find((comment: any) => String(comment.authorUserId) === userId);
+        if (!matchedComment) {
+          return null;
+        }
+        const user = await ctx.db.get(matchedComment.authorUserId);
+        return user ? [userId, user] : null;
+      }),
+    );
+    const usersById = new Map(
+      userRows.filter((entry): entry is [string, any] => entry !== null),
+    );
+
+    let patchedProjects = 0;
+    for (const project of projects) {
+      if (remaining <= 0) {
+        break;
+      }
+      const needsName = typeof project.creatorSnapshotName !== "string" || project.creatorSnapshotName.trim().length === 0;
+      const needsAvatar = typeof project.creatorSnapshotAvatarUrl !== "string";
+      if (!needsName && !needsAvatar) {
+        continue;
+      }
+
+      const creator = usersById.get(String(project.creatorUserId));
+      const patch: Record<string, unknown> = {};
+      if (needsName) {
+        patch.creatorSnapshotName = creator?.name ?? "Unknown user";
+      }
+      if (needsAvatar) {
+        patch.creatorSnapshotAvatarUrl = await resolveUserAvatarForBackfill(ctx, creator);
+      }
+
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(project._id, patch);
+        patchedProjects += 1;
+        remaining -= 1;
+      }
+    }
+
+    let patchedComments = 0;
+    for (const comment of comments) {
+      if (remaining <= 0) {
+        break;
+      }
+      const needsName = typeof comment.authorSnapshotName !== "string" || comment.authorSnapshotName.trim().length === 0;
+      const needsAvatar = typeof comment.authorSnapshotAvatarUrl !== "string";
+      if (!needsName && !needsAvatar) {
+        continue;
+      }
+
+      const author = usersById.get(String(comment.authorUserId));
+      const patch: Record<string, unknown> = {};
+      if (needsName) {
+        patch.authorSnapshotName = author?.name ?? "Unknown user";
+      }
+      if (needsAvatar) {
+        patch.authorSnapshotAvatarUrl = await resolveUserAvatarForBackfill(ctx, author);
+      }
+
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(comment._id, patch);
+        patchedComments += 1;
+        remaining -= 1;
+      }
+    }
+
+    const commentsById = new Map(
+      comments.map((comment: any) => [String(comment._id), comment]),
+    );
+    const reactionGroups = await Promise.all(
+      comments.map((comment: any) =>
+        ctx.db
+          .query("commentReactions")
+          .withIndex("by_commentId", (q: any) => q.eq("commentId", comment._id))
+          .collect()),
+    );
+    const reactions = reactionGroups.flat();
+    let patchedReactions = 0;
+    for (const reaction of reactions) {
+      if (remaining <= 0) {
+        break;
+      }
+      const comment = commentsById.get(String(reaction.commentId));
+      if (!comment) {
+        continue;
+      }
+      const needsProjectPublicId = typeof reaction.projectPublicId !== "string" || reaction.projectPublicId.trim().length === 0;
+      const needsWorkspaceId = reaction.workspaceId == null;
+      if (!needsProjectPublicId && !needsWorkspaceId) {
+        continue;
+      }
+
+      const patch: Record<string, unknown> = {};
+      if (needsProjectPublicId) {
+        patch.projectPublicId = comment.projectPublicId;
+      }
+      if (needsWorkspaceId) {
+        patch.workspaceId = comment.workspaceId;
+      }
+
+      await ctx.db.patch(reaction._id, patch);
+      patchedReactions += 1;
+      remaining -= 1;
+    }
+
+    return {
+      workspaceSlug: workspace.slug,
+      maxPatches,
+      applied: patchedProjects + patchedComments + patchedReactions,
+      patchedProjects,
+      patchedComments,
+      patchedReactions,
+      exhaustedLimit: remaining === 0,
+    };
+  },
+});

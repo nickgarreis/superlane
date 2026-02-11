@@ -210,7 +210,7 @@ describe("P1.2/P1.3 identity propagation contracts", () => {
 
     const adminMember = result.members.find((entry: any) => entry.userId === String(workspace.adminUserId));
     expect(adminMember?.avatarUrl).toContain("http");
-    expect(adminMember?.avatarUrl).not.toBe("https://example.com/admin-fallback-avatar.png");
+    expect(adminMember?.avatarUrl).toBe("https://example.com/admin-fallback-avatar.png");
 
     const ownerMember = result.members.find((entry: any) => entry.userId === String(workspace.ownerUserId));
     expect(ownerMember?.avatarUrl).toBe("https://example.com/owner-avatar.png");

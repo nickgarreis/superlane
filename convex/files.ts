@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { makeFunctionReference } from "convex/server";
+import { makeFunctionReference, paginationOptsValidator } from "convex/server";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { requireProjectRole, requireProjectRoleById, requireWorkspaceRole } from "./lib/auth";
 import {
@@ -251,9 +251,70 @@ const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
   return workspace;
 };
 
+const paginateProjectFilesWithFilter = async (
+  args: {
+    paginationOpts: { numItems: number; cursor: string | null };
+    makeQuery: () => any;
+    includeFile: (file: any) => boolean;
+  },
+) => {
+  const requestedCount = Math.max(0, Math.floor(args.paginationOpts.numItems));
+  let cursor = args.paginationOpts.cursor;
+  const collected: any[] = [];
+  let lastPage: any = null;
+  let iterationCount = 0;
+  let lastCursor: string | null = null;
+
+  while (collected.length < requestedCount) {
+    if (iterationCount > 1000) {
+      break;
+    }
+    if (iterationCount > 0 && cursor === lastCursor) {
+      break;
+    }
+
+    const remaining = requestedCount - collected.length;
+    const page = await args.makeQuery().paginate({
+      ...args.paginationOpts,
+      cursor,
+      numItems: remaining,
+    });
+
+    lastPage = page;
+    for (const file of page.page) {
+      if (args.includeFile(file)) {
+        collected.push(file);
+      }
+    }
+
+    if (page.isDone) {
+      break;
+    }
+
+    lastCursor = cursor;
+    cursor = page.continueCursor;
+    iterationCount += 1;
+  }
+
+  if (!lastPage) {
+    lastPage = await args.makeQuery().paginate({
+      ...args.paginationOpts,
+      cursor: args.paginationOpts.cursor,
+      numItems: requestedCount,
+    });
+  }
+
+  return {
+    ...lastPage,
+    page: collected,
+  };
+};
+
 export const listForWorkspace = query({
   args: {
     workspaceSlug: v.string(),
+    projectPublicId: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
@@ -263,25 +324,55 @@ export const listForWorkspace = query({
       .query("projects")
       .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
       .collect();
+    const activeProjects = projects.filter((project: any) => project.deletedAt == null);
     const activeProjectIds = new Set(
-      projects.filter((project: any) => project.deletedAt == null).map((project: any) => String(project._id)),
+      activeProjects.map((project: any) => String(project._id)),
+    );
+    const activeProjectByPublicId = new Map(
+      activeProjects.map((project: any) => [project.publicId, project]),
     );
 
-    const files = await ctx.db
-      .query("projectFiles")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
+    const normalizedProjectPublicId = typeof args.projectPublicId === "string"
+      ? args.projectPublicId.trim()
+      : "";
+    const activeProjectForPublicId = normalizedProjectPublicId.length > 0
+      ? activeProjectByPublicId.get(normalizedProjectPublicId) ?? null
+      : null;
+    const paginated = normalizedProjectPublicId.length > 0
+      ? await paginateProjectFilesWithFilter({
+          paginationOpts: args.paginationOpts,
+          makeQuery: () =>
+            ctx.db
+              .query("projectFiles")
+              .withIndex("by_workspace_projectPublicId_deletedAt_displayDateEpochMs", (q: any) =>
+                q.eq("workspaceId", workspace._id)
+                  .eq("projectPublicId", normalizedProjectPublicId)
+                  .eq("deletedAt", null))
+              .order("desc"),
+          includeFile: (file: any) =>
+            Boolean(
+              activeProjectForPublicId
+              && activeProjectIds.has(String(file.projectId))
+              && String(file.projectId) === String(activeProjectForPublicId._id)
+              && file.storageId != null,
+            ),
+        })
+      : await paginateProjectFilesWithFilter({
+          paginationOpts: args.paginationOpts,
+          makeQuery: () =>
+            ctx.db
+              .query("projectFiles")
+              .withIndex("by_workspace_deletedAt_displayDateEpochMs", (q: any) =>
+                q.eq("workspaceId", workspace._id).eq("deletedAt", null))
+              .order("desc"),
+          includeFile: (file: any) =>
+            activeProjectIds.has(String(file.projectId)) && file.storageId != null,
+        });
 
-    const visibleFiles = files
-      .filter(
-        (file: any) =>
-          activeProjectIds.has(String(file.projectId)) &&
-          file.deletedAt == null &&
-          file.storageId != null,
-      )
-      .sort((a: any, b: any) => (b.displayDateEpochMs ?? b.createdAt) - (a.displayDateEpochMs ?? a.createdAt));
-
-    return visibleFiles.map(mapProjectFile);
+    return {
+      ...paginated,
+      page: paginated.page.map(mapProjectFile),
+    };
   },
 });
 

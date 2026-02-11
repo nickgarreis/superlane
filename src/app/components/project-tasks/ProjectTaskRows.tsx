@@ -1,6 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { DayPicker } from "react-day-picker";
 import { fromUtcNoonEpochMsToDateOnly } from "../../lib/dates";
 import type { Task, WorkspaceMember } from "../../types";
@@ -60,6 +61,28 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
   editTaskDisabledMessage,
   isTaskEditable,
 }: ProjectTaskRowsProps) {
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  const rowsRootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!rowsRootRef.current) {
+      setScrollElement(null);
+      return;
+    }
+
+    let parent = rowsRootRef.current.parentElement;
+    while (parent) {
+      const overflowY = window.getComputedStyle(parent).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") {
+        setScrollElement(parent);
+        return;
+      }
+      parent = parent.parentElement;
+    }
+
+    setScrollElement(null);
+  }, [sortedTasks.length]);
+
   const projectById = useMemo(
     () => new Map(projectOptions.map((project) => [project.id, project] as const)),
     [projectOptions],
@@ -71,40 +94,110 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
   );
 
   const activeCalendarTask = openCalendarTaskId ? tasksById.get(openCalendarTaskId) : null;
+  const shouldVirtualizeRows = sortedTasks.length > 80 && Boolean(scrollElement);
+  const rowVirtualizer = useVirtualizer({
+    count: sortedTasks.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 56,
+    overscan: 8,
+  });
 
   return (
     <>
-      {sortedTasks.map((task) => (
-        <ProjectTaskRow
-          key={task.id}
-          task={task}
-          taskIsEditable={isTaskEditable(task)}
-          hasOpenDropdown={
-            openCalendarTaskId === task.id
-            || openAssigneeTaskId === task.id
-            || openProjectTaskId === task.id
-          }
-          showProjectColumn={showProjectColumn}
-          projectOptions={projectOptions}
-          projectById={projectById}
-          assignableMembers={assignableMembers}
-          openCalendarTaskId={openCalendarTaskId}
-          setOpenCalendarTaskId={setOpenCalendarTaskId}
-          setCalendarPosition={setCalendarPosition}
-          openAssigneeTaskId={openAssigneeTaskId}
-          setOpenAssigneeTaskId={setOpenAssigneeTaskId}
-          openProjectTaskId={openProjectTaskId}
-          setOpenProjectTaskId={setOpenProjectTaskId}
-          closeAllDropdowns={closeAllDropdowns}
-          handleToggle={handleToggle}
-          handleDelete={handleDelete}
-          handleAssigneeSelect={handleAssigneeSelect}
-          handleProjectSelect={handleProjectSelect}
-          editTaskDisabledMessage={editTaskDisabledMessage}
-          taskRowRefs={taskRowRefs}
-          taskRowStyle={taskRowStyle}
-        />
-      ))}
+      <div ref={rowsRootRef}>
+        {shouldVirtualizeRows ? (
+          <div
+            style={{
+              height: rowVirtualizer.getTotalSize(),
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const task = sortedTasks[virtualItem.index];
+              if (!task) {
+                return null;
+              }
+
+              return (
+                <div
+                  key={task.id}
+                  data-index={virtualItem.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <ProjectTaskRow
+                    task={task}
+                    taskIsEditable={isTaskEditable(task)}
+                    hasOpenDropdown={
+                      openCalendarTaskId === task.id
+                      || openAssigneeTaskId === task.id
+                      || openProjectTaskId === task.id
+                    }
+                    showProjectColumn={showProjectColumn}
+                    projectOptions={projectOptions}
+                    projectById={projectById}
+                    assignableMembers={assignableMembers}
+                    openCalendarTaskId={openCalendarTaskId}
+                    setOpenCalendarTaskId={setOpenCalendarTaskId}
+                    setCalendarPosition={setCalendarPosition}
+                    openAssigneeTaskId={openAssigneeTaskId}
+                    setOpenAssigneeTaskId={setOpenAssigneeTaskId}
+                    openProjectTaskId={openProjectTaskId}
+                    setOpenProjectTaskId={setOpenProjectTaskId}
+                    closeAllDropdowns={closeAllDropdowns}
+                    handleToggle={handleToggle}
+                    handleDelete={handleDelete}
+                    handleAssigneeSelect={handleAssigneeSelect}
+                    handleProjectSelect={handleProjectSelect}
+                    editTaskDisabledMessage={editTaskDisabledMessage}
+                    taskRowRefs={taskRowRefs}
+                    taskRowStyle={taskRowStyle}
+                    disableLayoutAnimation
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          sortedTasks.map((task) => (
+            <ProjectTaskRow
+              key={task.id}
+              task={task}
+              taskIsEditable={isTaskEditable(task)}
+              hasOpenDropdown={
+                openCalendarTaskId === task.id
+                || openAssigneeTaskId === task.id
+                || openProjectTaskId === task.id
+              }
+              showProjectColumn={showProjectColumn}
+              projectOptions={projectOptions}
+              projectById={projectById}
+              assignableMembers={assignableMembers}
+              openCalendarTaskId={openCalendarTaskId}
+              setOpenCalendarTaskId={setOpenCalendarTaskId}
+              setCalendarPosition={setCalendarPosition}
+              openAssigneeTaskId={openAssigneeTaskId}
+              setOpenAssigneeTaskId={setOpenAssigneeTaskId}
+              openProjectTaskId={openProjectTaskId}
+              setOpenProjectTaskId={setOpenProjectTaskId}
+              closeAllDropdowns={closeAllDropdowns}
+              handleToggle={handleToggle}
+              handleDelete={handleDelete}
+              handleAssigneeSelect={handleAssigneeSelect}
+              handleProjectSelect={handleProjectSelect}
+              editTaskDisabledMessage={editTaskDisabledMessage}
+              taskRowRefs={taskRowRefs}
+              taskRowStyle={taskRowStyle}
+            />
+          ))
+        )}
+      </div>
 
       {initialTasks.length === 0 && !isAdding && (
         <div className="py-8 text-center text-[13px] text-white/20 italic">

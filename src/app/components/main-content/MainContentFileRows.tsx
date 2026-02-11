@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Download, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "../../../lib/utils";
 import { formatFileDisplayDate } from "../../lib/dates";
 import type { MainContentFileActions } from "../../dashboard/types";
@@ -43,62 +44,177 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
   onRemoveFile,
   fileRowStyle,
 }: MainContentFileRowsProps) {
-  return (
-    <>
-      {filteredFiles.map((file) => (
-        <motion.div
-          key={file.id}
-          ref={(el: HTMLDivElement | null) => { fileRowRefs.current[file.id] = el; }}
-          layout
-          exit={{ opacity: 0 }}
-          className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
-          style={fileRowStyle}
-        >
-          <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
-            <img
-              src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
-            <div className="flex items-center gap-2 text-xs text-white/40">
-              <span className="uppercase">{file.type}</span>
-              <span>•</span>
-              <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
-            </div>
-          </div>
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  const rowsRootRef = useRef<HTMLDivElement | null>(null);
 
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-            {file.downloadable !== false && (
-              <button
-                title="Download"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  fileActions.download(file.id);
+  useEffect(() => {
+    if (!rowsRootRef.current) {
+      setScrollElement(null);
+      return;
+    }
+
+    let parent = rowsRootRef.current.parentElement;
+    while (parent) {
+      const overflowY = window.getComputedStyle(parent).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") {
+        setScrollElement(parent);
+        return;
+      }
+      parent = parent.parentElement;
+    }
+
+    setScrollElement(null);
+  }, [filteredFiles.length]);
+
+  const shouldVirtualizeRows = filteredFiles.length > 80 && Boolean(scrollElement);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredFiles.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 72,
+    overscan: 8,
+  });
+
+  return (
+    <div ref={rowsRootRef}>
+      {shouldVirtualizeRows ? (
+        <div
+          style={{
+            height: rowVirtualizer.getTotalSize(),
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const file = filteredFiles[virtualItem.index];
+            if (!file) {
+              return null;
+            }
+
+            return (
+              <div
+                key={file.id}
+                data-index={virtualItem.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualItem.start}px)`,
                 }}
-                className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
               >
-                <Download size={14} />
-              </button>
-            )}
-            <button
-              title={canMutateProjectFiles ? "Remove" : fileMutationDisabledMessage}
-              onClick={(event) => onRemoveFile(file.id, event)}
-              disabled={!canMutateProjectFiles}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                canMutateProjectFiles
-                  ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
-                  : "text-white/10 cursor-not-allowed",
-              )}
+                <motion.div
+                  ref={(el: HTMLDivElement | null) => { fileRowRefs.current[file.id] = el; }}
+                  layout={false}
+                  exit={{ opacity: 0 }}
+                  className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+                  style={fileRowStyle}
+                >
+                  <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
+                    <img
+                      src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-white/40">
+                      <span className="uppercase">{file.type}</span>
+                      <span>•</span>
+                      <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
+                    </div>
+                  </div>
+
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                    {file.downloadable !== false && (
+                      <button
+                        title="Download"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          fileActions.download(file.id);
+                        }}
+                        className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
+                      >
+                        <Download size={14} />
+                      </button>
+                    )}
+                    <button
+                      title={canMutateProjectFiles ? "Remove" : fileMutationDisabledMessage}
+                      onClick={(event) => onRemoveFile(file.id, event)}
+                      disabled={!canMutateProjectFiles}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-colors",
+                        canMutateProjectFiles
+                          ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
+                          : "text-white/10 cursor-not-allowed",
+                      )}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          {filteredFiles.map((file) => (
+            <motion.div
+              key={file.id}
+              ref={(el: HTMLDivElement | null) => { fileRowRefs.current[file.id] = el; }}
+              layout
+              exit={{ opacity: 0 }}
+              className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+              style={fileRowStyle}
             >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        </motion.div>
-      ))}
-    </>
+              <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
+                <img
+                  src={file.thumbnailRef || FILE_THUMBNAIL_BY_TYPE[file.type] || imgFile4}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">{file.name}</h3>
+                <div className="flex items-center gap-2 text-xs text-white/40">
+                  <span className="uppercase">{file.type}</span>
+                  <span>•</span>
+                  <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
+                </div>
+              </div>
+
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                {file.downloadable !== false && (
+                  <button
+                    title="Download"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      fileActions.download(file.id);
+                    }}
+                    className="text-[#58AFFF] hover:text-[#7fc0ff] transition-colors cursor-pointer"
+                  >
+                    <Download size={14} />
+                  </button>
+                )}
+                <button
+                  title={canMutateProjectFiles ? "Remove" : fileMutationDisabledMessage}
+                  onClick={(event) => onRemoveFile(file.id, event)}
+                  disabled={!canMutateProjectFiles}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors",
+                    canMutateProjectFiles
+                      ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
+                      : "text-white/10 cursor-not-allowed",
+                  )}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </>
+      )}
+    </div>
   );
 });

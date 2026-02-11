@@ -10,6 +10,38 @@ const BUDGET_PATH = path.join(ROOT, "config", "performance", "bundle-budgets.jso
 const REPORT_DIR = path.join(ROOT, "performance-reports");
 const REPORT_PATH = path.join(REPORT_DIR, "bundle-budget-report.json");
 const reportOnly = process.argv.includes("--report-only");
+const BUNDLE_CHECK_DEFS = [
+  {
+    key: "dashboardChunkGzipKb",
+    label: "DashboardApp chunk gzip",
+    chunkLabel: "DashboardApp",
+    pattern: /^DashboardApp-[A-Za-z0-9_-]+\.js$/,
+  },
+  {
+    key: "vendorMiscChunkGzipKb",
+    label: "vendor-misc chunk gzip",
+    chunkLabel: "vendor-misc",
+    pattern: /^vendor-misc-[A-Za-z0-9_-]+\.js$/,
+  },
+  {
+    key: "searchPopupChunkGzipKb",
+    label: "SearchPopup chunk gzip",
+    chunkLabel: "SearchPopup",
+    pattern: /^SearchPopup-[A-Za-z0-9_-]+\.js$/,
+  },
+  {
+    key: "chatSidebarChunkGzipKb",
+    label: "ChatSidebar chunk gzip",
+    chunkLabel: "ChatSidebar",
+    pattern: /^ChatSidebar-[A-Za-z0-9_-]+\.js$/,
+  },
+  {
+    key: "createProjectPopupChunkGzipKb",
+    label: "CreateProjectPopup chunk gzip",
+    chunkLabel: "CreateProjectPopup",
+    pattern: /^CreateProjectPopup-[A-Za-z0-9_-]+\.js$/,
+  },
+];
 
 const toKb = (bytes) => Number((bytes / 1024).toFixed(2));
 
@@ -45,50 +77,28 @@ const parseFiniteBudget = (metrics, key) => {
 };
 
 const budgetsJson = requireJson(BUDGET_PATH, `${BUDGET_PATH} not found`);
-const dashboardBudgetKb = parseFiniteBudget(budgetsJson.metrics, "dashboardChunkGzipKb");
-const vendorMiscBudgetKb = parseFiniteBudget(budgetsJson.metrics, "vendorMiscChunkGzipKb");
+const checks = BUNDLE_CHECK_DEFS.map((definition) => {
+  const budgetKb = parseFiniteBudget(budgetsJson.metrics, definition.key);
+  const chunkName = findChunkByPattern(definition.pattern, definition.chunkLabel);
+  const chunkPath = path.join(DIST_ASSETS_DIR, chunkName);
 
-const dashboardChunkName = findChunkByPattern(/^DashboardApp-[A-Za-z0-9_-]+\.js$/, "DashboardApp");
-const vendorMiscChunkName = findChunkByPattern(/^vendor-misc-[A-Za-z0-9_-]+\.js$/, "vendor-misc");
-
-const dashboardChunkPath = path.join(DIST_ASSETS_DIR, dashboardChunkName);
-const vendorMiscChunkPath = path.join(DIST_ASSETS_DIR, vendorMiscChunkName);
-
-const measuredDashboardKb = toKb(gzipSize(dashboardChunkPath));
-const measuredVendorMiscKb = toKb(gzipSize(vendorMiscChunkPath));
-
-const checks = [
-  {
-    key: "dashboardChunkGzipKb",
-    label: "DashboardApp chunk gzip",
-    measuredKb: measuredDashboardKb,
-    budgetKb: dashboardBudgetKb,
-  },
-  {
-    key: "vendorMiscChunkGzipKb",
-    label: "vendor-misc chunk gzip",
-    measuredKb: measuredVendorMiscKb,
-    budgetKb: vendorMiscBudgetKb,
-  },
-];
+  return {
+    key: definition.key,
+    label: definition.label,
+    budgetKb,
+    measuredKb: toKb(gzipSize(chunkPath)),
+    chunkName,
+  };
+});
 
 const failures = checks.filter((check) => check.measuredKb > check.budgetKb);
 
 const report = {
   generatedAt: new Date().toISOString(),
   reportOnly,
-  budgets: {
-    dashboardChunkGzipKb: dashboardBudgetKb,
-    vendorMiscChunkGzipKb: vendorMiscBudgetKb,
-  },
-  measured: {
-    dashboardChunkGzipKb: measuredDashboardKb,
-    vendorMiscChunkGzipKb: measuredVendorMiscKb,
-  },
-  chunks: {
-    dashboardChunkName,
-    vendorMiscChunkName,
-  },
+  budgets: Object.fromEntries(checks.map((check) => [check.key, check.budgetKb])),
+  measured: Object.fromEntries(checks.map((check) => [check.key, check.measuredKb])),
+  chunks: Object.fromEntries(checks.map((check) => [check.key, check.chunkName])),
   pass: failures.length === 0,
   failures,
 };

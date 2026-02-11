@@ -46,6 +46,7 @@ const createBaseArgs = () => ({
   activeWorkspaceId: "workspace-1",
   projects: { "project-1": baseProject },
   visibleProjects: { "project-1": baseProject },
+  workspaceTasks: [],
   currentView: "project:project-1" as const,
   viewerIdentity,
   setEditProjectId: vi.fn(),
@@ -62,8 +63,10 @@ const createBaseArgs = () => ({
   removeProjectMutation: vi.fn().mockResolvedValue({}),
   setProjectStatusMutation: vi.fn().mockResolvedValue({}),
   updateReviewCommentsMutation: vi.fn().mockResolvedValue({}),
-  replaceProjectTasksMutation: vi.fn().mockResolvedValue({}),
-  replaceWorkspaceTasksMutation: vi.fn().mockResolvedValue({}),
+  createTaskMutation: vi.fn().mockResolvedValue({}),
+  updateTaskMutation: vi.fn().mockResolvedValue({}),
+  removeTaskMutation: vi.fn().mockResolvedValue({}),
+  reorderTasksMutation: vi.fn().mockResolvedValue({}),
   asPendingUploadId: vi.fn((value: string) => value as any),
   omitUndefined: <T extends Record<string, unknown>>(value: T) => value,
 });
@@ -152,8 +155,11 @@ describe("useDashboardProjectActions", () => {
 
     expect(args.setEditProjectId).toHaveBeenCalledWith("project-1");
     expect(args.setReviewProject).toHaveBeenCalledWith(baseProject);
-    expect(args.replaceProjectTasksMutation).toHaveBeenCalled();
-    expect(args.replaceWorkspaceTasksMutation).toHaveBeenCalled();
+    expect(args.createTaskMutation).toHaveBeenCalled();
+    expect(args.reorderTasksMutation).toHaveBeenCalledWith({
+      workspaceSlug: "workspace-1",
+      orderedTaskIds: ["task-1"],
+    });
   });
 
   test("approves review projects", async () => {

@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "metrics": {
     "dashboardChunkGzipKb": 40.0,
-    "vendorMiscChunkGzipKb": 70.0
+    "vendorMiscChunkGzipKb": 70.0,
+    "searchPopupChunkGzipKb": 12.0,
+    "chatSidebarChunkGzipKb": 16.0,
+    "createProjectPopupChunkGzipKb": 18.0
   }
 }

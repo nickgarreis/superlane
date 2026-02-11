@@ -14,6 +14,10 @@ export const useDashboardApiHandlers = () => {
   const updateReviewCommentsMutation = useMutation(api.projects.updateReviewComments);
   const replaceProjectTasksMutation = useMutation(api.tasks.replaceForProject);
   const replaceWorkspaceTasksMutation = useMutation(api.tasks.replaceForWorkspace);
+  const createTaskMutation = useMutation(api.tasks.create);
+  const updateTaskMutation = useMutation(api.tasks.update);
+  const removeTaskMutation = useMutation(api.tasks.remove);
+  const reorderTasksMutation = useMutation(api.tasks.reorder);
   const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
   const finalizeProjectUploadAction = useAction(api.files.finalizeProjectUpload);
   const finalizePendingDraftAttachmentUploadAction = useAction(api.files.finalizePendingDraftAttachmentUpload);
@@ -56,6 +60,10 @@ export const useDashboardApiHandlers = () => {
       updateReviewCommentsMutation,
       replaceProjectTasksMutation,
       replaceWorkspaceTasksMutation,
+      createTaskMutation,
+      updateTaskMutation,
+      removeTaskMutation,
+      reorderTasksMutation,
       generateUploadUrlMutation,
       finalizeProjectUploadAction,
       finalizePendingDraftAttachmentUploadAction,
@@ -87,6 +95,7 @@ export const useDashboardApiHandlers = () => {
       archiveProjectMutation,
       changeWorkspaceMemberRoleAction,
       createProjectMutation,
+      createTaskMutation,
       createWorkspaceMutation,
       discardPendingUploadMutation,
       discardPendingUploadsForSessionMutation,
@@ -108,7 +117,9 @@ export const useDashboardApiHandlers = () => {
       removeBrandAssetMutation,
       removeProjectFileMutation,
       removeProjectMutation,
+      removeTaskMutation,
       removeWorkspaceMemberAction,
+      reorderTasksMutation,
       replaceProjectTasksMutation,
       replaceWorkspaceTasksMutation,
       resendWorkspaceInvitationAction,
@@ -119,6 +130,7 @@ export const useDashboardApiHandlers = () => {
       unarchiveProjectMutation,
       updateAccountProfileAction,
       updateProjectMutation,
+      updateTaskMutation,
       updateReviewCommentsMutation,
       updateWorkspaceGeneralMutation,
     ],
