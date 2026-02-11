@@ -16,12 +16,12 @@ vi.mock("../../components/Sidebar", () => ({
     onOpenCreateProjectIntent: () => void;
     onOpenSettingsIntent: () => void;
     onLogout: () => void;
+    onOpenCompletedProjectsPopup: () => void;
     onSwitchWorkspace: (workspaceSlug: string) => void;
     onCreateWorkspace: () => void;
     onOpenSettings: (
       tab?: "Account" | "Notifications" | "Company" | "Billing",
     ) => void;
-    onUpdateProjectStatus: (projectId: string, newStatus: string) => void;
     onEditProject: (project: ProjectData) => void;
     onViewReviewProject: (project: ProjectData) => void;
     projects: Record<string, ProjectData>;
@@ -31,6 +31,9 @@ vi.mock("../../components/Sidebar", () => ({
       <button onClick={props.onOpenCreateProjectIntent}>
         create-project-intent
       </button>
+      <button onClick={props.onOpenCompletedProjectsPopup}>
+        open-completed-popup
+      </button>
       <button onClick={props.onOpenSettingsIntent}>settings-intent</button>
       <button onClick={props.onLogout}>logout</button>
       <button onClick={() => props.onSwitchWorkspace("workspace-b")}>
@@ -39,11 +42,6 @@ vi.mock("../../components/Sidebar", () => ({
       <button onClick={props.onCreateWorkspace}>create-workspace</button>
       <button onClick={() => props.onOpenSettings("Company")}>
         open-settings-company
-      </button>
-      <button
-        onClick={() => props.onUpdateProjectStatus("project-1", "Completed")}
-      >
-        update-status
       </button>
       <button onClick={() => props.onEditProject(props.projects["project-1"])}>
         edit-project
@@ -105,9 +103,9 @@ const baseProps = () => ({
   onSwitchWorkspace: vi.fn(),
   onCreateWorkspace: vi.fn(),
   onOpenSettings: vi.fn(),
-  onUpdateProjectStatus: vi.fn(),
   onEditProject: vi.fn(),
   onViewReviewProject: vi.fn(),
+  onOpenCompletedProjectsPopup: vi.fn(),
 });
 
 describe("DashboardChrome", () => {
@@ -123,6 +121,9 @@ describe("DashboardChrome", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "create-project-intent" }),
     );
+    fireEvent.click(
+      screen.getByRole("button", { name: "open-completed-popup" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "settings-intent" }));
     fireEvent.click(screen.getByRole("button", { name: "logout" }));
     fireEvent.click(screen.getByRole("button", { name: "switch-workspace" }));
@@ -130,21 +131,17 @@ describe("DashboardChrome", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "open-settings-company" }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "update-status" }));
     fireEvent.click(screen.getByRole("button", { name: "edit-project" }));
     fireEvent.click(screen.getByRole("button", { name: "review-project" }));
 
     expect(props.handleSearchIntent).toHaveBeenCalledTimes(1);
     expect(props.handleCreateProjectIntent).toHaveBeenCalledTimes(1);
+    expect(props.onOpenCompletedProjectsPopup).toHaveBeenCalledTimes(1);
     expect(props.handleSettingsIntent).toHaveBeenCalledTimes(1);
     expect(props.handleSignOut).toHaveBeenCalledTimes(1);
     expect(props.onSwitchWorkspace).toHaveBeenCalledWith("workspace-b");
     expect(props.onCreateWorkspace).toHaveBeenCalledTimes(1);
     expect(props.onOpenSettings).toHaveBeenCalledWith("Company");
-    expect(props.onUpdateProjectStatus).toHaveBeenCalledWith(
-      "project-1",
-      "Completed",
-    );
     expect(props.onEditProject).toHaveBeenCalledWith(PROJECT);
     expect(props.onViewReviewProject).toHaveBeenCalledWith(PROJECT);
   });

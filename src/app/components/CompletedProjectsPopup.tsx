@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   X,
   Search,
@@ -34,15 +34,21 @@ export function CompletedProjectsPopup({
   onClose,
   projects,
   viewerRole,
-  onNavigateToProject,
+  completedProjectDetailId,
+  onOpenProjectDetail,
+  onBackToCompletedProjects,
   onUncompleteProject,
+  renderDetail,
 }: {
   isOpen: boolean;
   onClose: () => void;
   projects: Record<string, ProjectData>;
   viewerRole?: WorkspaceRole | null;
-  onNavigateToProject: (id: string) => void;
+  completedProjectDetailId: string | null;
+  onOpenProjectDetail: (id: string) => void;
+  onBackToCompletedProjects: () => void;
   onUncompleteProject: (id: string) => void;
+  renderDetail: (project: ProjectData) => ReactNode;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("completedAt");
@@ -81,6 +87,29 @@ export function CompletedProjectsPopup({
         }),
     [completedProjects, normalizedQuery, sortDir, sortField],
   );
+  const completedProjectDetail = useMemo(() => {
+    if (!completedProjectDetailId) {
+      return null;
+    }
+    const project = projects[completedProjectDetailId];
+    if (!project || project.archived || project.status.label !== "Completed") {
+      return null;
+    }
+    return project;
+  }, [completedProjectDetailId, projects]);
+  useEffect(() => {
+    if (!isOpen || !completedProjectDetailId) {
+      return;
+    }
+    if (!completedProjectDetail) {
+      onBackToCompletedProjects();
+    }
+  }, [
+    isOpen,
+    completedProjectDetailId,
+    completedProjectDetail,
+    onBackToCompletedProjects,
+  ]);
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -114,6 +143,9 @@ export function CompletedProjectsPopup({
     );
   };
   if (!isOpen) return null;
+  if (completedProjectDetail) {
+    return <>{renderDetail(completedProjectDetail)}</>;
+  }
   return (
     <div
       className={POPUP_OVERLAY_CENTER_CLASS}
@@ -201,8 +233,7 @@ export function CompletedProjectsPopup({
                     transition={{ duration: 0.2 }}
                     className="flex items-center px-4 py-3 hover:bg-white/[0.02] transition-colors group cursor-pointer"
                     onClick={() => {
-                      onNavigateToProject(project.id);
-                      onClose();
+                      onOpenProjectDetail(project.id);
                     }}
                   >
                     <div className="flex-1 min-w-0 flex items-center gap-3">

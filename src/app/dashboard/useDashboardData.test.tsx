@@ -26,6 +26,7 @@ const createBaseArgs = () => ({
   settingsTab: "Company" as const,
   isSearchOpen: true,
   currentView: "project:project-1" as const,
+  completedProjectDetailId: null as string | null,
   viewerFallback: {
     name: "Fallback User",
     email: "fallback@example.com",
@@ -325,6 +326,55 @@ describe("useDashboardData", () => {
     expect(paginatedCallArgs[4]).toBe("skip");
     expect(paginatedCallArgs[5]).toBe("skip");
     expect(paginatedCallArgs[6]).toBe("skip");
+  });
+
+  test("loads project files for completed-project popup detail without route navigation", () => {
+    const paginatedCallArgs: unknown[] = [];
+
+    useQueryMock.mockImplementation((_query: unknown, args: unknown) => {
+      if (args === "skip") {
+        return undefined;
+      }
+      return {
+        activeWorkspaceSlug: "alpha",
+        viewer: null,
+        activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
+        workspaces: [
+          {
+            slug: "alpha",
+            name: "Alpha",
+            plan: "Free",
+            logo: "",
+            logoColor: "",
+            logoText: "A",
+          },
+        ],
+      };
+    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        paginatedCallArgs.push(queryArg);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
+
+    const args = {
+      ...createBaseArgs(),
+      isSearchOpen: false,
+      isSettingsOpen: false,
+      currentView: "tasks" as const,
+      completedProjectDetailId: "completed-42",
+    };
+
+    renderHook(() => useDashboardData(args));
+
+    expect(paginatedCallArgs[2]).toBe("skip");
+    expect(paginatedCallArgs[3]).toEqual({ projectPublicId: "completed-42" });
   });
 
   test("loads company settings queries while settings is open even when tab is Account", () => {

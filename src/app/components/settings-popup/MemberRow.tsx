@@ -12,6 +12,10 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
+import {
+  GHOST_ICON_BUTTON_CLASS,
+  ROW_HOVER_CLASS,
+} from "../ui/controlChrome";
 type MemberRowProps = {
   member: CompanyMember;
   viewerRole?: WorkspaceRole;
@@ -39,7 +43,7 @@ export function MemberRow({
   const avatarAlt =
     member.name?.trim() || member.email?.trim() || "User avatar";
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+    <div className={`flex items-center justify-between py-3 ${ROW_HOVER_CLASS}`}>
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-bg-avatar-fallback flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden">
           {member.avatarUrl ? (
@@ -101,13 +105,16 @@ export function MemberRow({
                   setIsRoleDropdownOpen((current) => !current);
                 }}
                 disabled={isMemberManagementDenied}
-                className="flex items-center gap-1.5 px-2 py-1 txt-role-body-sm txt-tone-muted rounded-md transition-colors cursor-pointer hover:bg-white/[0.04] disabled:opacity-50 disabled:hover:bg-transparent"
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 txt-role-body-sm txt-tone-muted rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-transparent",
+                  "hover:bg-surface-hover-soft",
+                )}
               >
                 {member.role}
                 <ChevronDown
                   size={12}
                   className={cn(
-                    "text-white/30 transition-transform duration-200",
+                    "text-text-muted-medium transition-transform duration-200",
                     isRoleDropdownOpen && "rotate-180",
                   )}
                 />
@@ -179,7 +186,10 @@ export function MemberRow({
             <button
               type="button"
               title="Remove member"
-              className="p-1.5 hover:bg-red-500/10 hover:text-red-500 text-white/20 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className={cn(
+                "p-1.5 text-text-muted-weak hover:bg-red-500/10 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-50",
+                GHOST_ICON_BUTTON_CLASS,
+              )}
               disabled={isMemberManagementDenied}
               onClick={async () => {
                 if (isMemberManagementDenied) {

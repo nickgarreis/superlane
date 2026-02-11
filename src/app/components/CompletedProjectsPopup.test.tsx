@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { CompletedProjectsPopup } from "./CompletedProjectsPopup";
 import type { ProjectData } from "../types";
@@ -26,16 +26,26 @@ const buildProject = (
   tasks: args.tasks ?? [],
 });
 
+const buildProps = () => ({
+  isOpen: true,
+  onClose: vi.fn(),
+  projects: {},
+  viewerRole: "owner" as const,
+  completedProjectDetailId: null as string | null,
+  onOpenProjectDetail: vi.fn(),
+  onBackToCompletedProjects: vi.fn(),
+  onUncompleteProject: vi.fn(),
+  renderDetail: vi.fn(() => <div>Detail</div>),
+});
+
 describe("CompletedProjectsPopup", () => {
   test("does not render when closed", () => {
+    const props = buildProps();
+
     render(
       <CompletedProjectsPopup
+        {...props}
         isOpen={false}
-        onClose={vi.fn()}
-        projects={{}}
-        viewerRole="owner"
-        onNavigateToProject={vi.fn()}
-        onUncompleteProject={vi.fn()}
       />,
     );
 
@@ -43,45 +53,36 @@ describe("CompletedProjectsPopup", () => {
   });
 
   test("filters/sorts projects and blocks lifecycle action when denied", () => {
-    const onClose = vi.fn();
-    const onNavigateToProject = vi.fn();
-    const onUncompleteProject = vi.fn();
+    const props = buildProps();
+    props.viewerRole = "member";
+    props.projects = {
+      "project-1": buildProject({
+        id: "project-1",
+        name: "Brand Refresh",
+        category: "Brand",
+        status: {
+          label: "Completed",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+        completedAt: Date.now(),
+      }),
+      "project-2": buildProject({
+        id: "project-2",
+        name: "Active Landing",
+        category: "Web",
+      }),
+    };
 
-    render(
-      <CompletedProjectsPopup
-        isOpen
-        onClose={onClose}
-        projects={{
-          "project-1": buildProject({
-            id: "project-1",
-            name: "Brand Refresh",
-            category: "Brand",
-            status: {
-              label: "Completed",
-              color: "#fff",
-              bgColor: "#000",
-              dotColor: "#fff",
-            },
-            completedAt: Date.now(),
-          }),
-          "project-2": buildProject({
-            id: "project-2",
-            name: "Active Landing",
-            category: "Web",
-          }),
-        }}
-        viewerRole="member"
-        onNavigateToProject={onNavigateToProject}
-        onUncompleteProject={onUncompleteProject}
-      />,
-    );
+    render(<CompletedProjectsPopup {...props} />);
 
     fireEvent.click(screen.getByText("Brand Refresh"));
-    expect(onNavigateToProject).toHaveBeenCalledWith("project-1");
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(props.onOpenProjectDetail).toHaveBeenCalledWith("project-1");
+    expect(props.onClose).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTitle("Revert to Active"));
-    expect(onUncompleteProject).not.toHaveBeenCalled();
+    expect(props.onUncompleteProject).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Project"));
     fireEvent.click(screen.getByText("Project"));
@@ -95,33 +96,73 @@ describe("CompletedProjectsPopup", () => {
   });
 
   test("allows reverting lifecycle when viewer can manage completed projects", () => {
-    const onUncompleteProject = vi.fn();
+    const props = buildProps();
+    props.projects = {
+      "project-1": buildProject({
+        id: "project-1",
+        name: "Brand Refresh",
+        category: "Brand",
+        status: {
+          label: "Completed",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+        completedAt: Date.now(),
+      }),
+    };
 
-    render(
+    render(<CompletedProjectsPopup {...props} />);
+
+    fireEvent.click(screen.getByTitle("Revert to Active"));
+    expect(props.onUncompleteProject).toHaveBeenCalledWith("project-1");
+  });
+
+  test("renders detail mode and returns to list when selected project is no longer valid", async () => {
+    const props = buildProps();
+    props.projects = {
+      "project-1": buildProject({
+        id: "project-1",
+        name: "Brand Refresh",
+        category: "Brand",
+        status: {
+          label: "Completed",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+        completedAt: Date.now(),
+      }),
+    };
+    props.completedProjectDetailId = "project-1";
+    props.renderDetail = vi.fn(() => <div>Detail panel</div>);
+
+    const { rerender } = render(<CompletedProjectsPopup {...props} />);
+
+    expect(props.renderDetail).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Detail panel")).toBeInTheDocument();
+
+    rerender(
       <CompletedProjectsPopup
-        isOpen
-        onClose={vi.fn()}
+        {...props}
         projects={{
           "project-1": buildProject({
             id: "project-1",
             name: "Brand Refresh",
             category: "Brand",
             status: {
-              label: "Completed",
+              label: "Active",
               color: "#fff",
               bgColor: "#000",
               dotColor: "#fff",
             },
-            completedAt: Date.now(),
           }),
         }}
-        viewerRole="owner"
-        onNavigateToProject={vi.fn()}
-        onUncompleteProject={onUncompleteProject}
       />,
     );
 
-    fireEvent.click(screen.getByTitle("Revert to Active"));
-    expect(onUncompleteProject).toHaveBeenCalledWith("project-1");
+    await waitFor(() => {
+      expect(props.onBackToCompletedProjects).toHaveBeenCalledTimes(1);
+    });
   });
 });

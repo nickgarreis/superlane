@@ -1,12 +1,20 @@
 import React, { Suspense } from "react";
 import type { AppView } from "../../lib/routing";
-import type { DashboardCommands, SettingsTab } from "../types";
+import type {
+  DashboardCommands,
+  MainContentFileActions,
+  MainContentNavigationActions,
+  MainContentProjectActions,
+  SettingsTab,
+} from "../types";
 import type {
   ProjectData,
   ProjectDraftData,
   ProjectFileData,
   ReviewComment,
+  ViewerIdentity,
   WorkspaceRole,
+  WorkspaceMember,
   Workspace,
 } from "../../types";
 import type {
@@ -15,6 +23,8 @@ import type {
   NotificationSettingsData,
 } from "../../components/settings-popup/types";
 import { Z_LAYERS } from "../../lib/zLayers";
+import { CompletedProjectDetailPopup } from "../../components/CompletedProjectDetailPopup";
+import { CompletedProjectsPopup } from "../../components/CompletedProjectsPopup";
 export const loadSearchPopupModule = () =>
   import("../../components/SearchPopup");
 export const loadCreateProjectPopupModule = () =>
@@ -94,6 +104,25 @@ type DashboardPopupsProps = {
     name: string;
     logoFile?: File | null;
   }) => Promise<void>;
+  isCompletedProjectsOpen: boolean;
+  closeCompletedProjectsPopup: () => void;
+  completedProjectDetailId: string | null;
+  openCompletedProjectDetail: (projectId: string) => void;
+  backToCompletedProjectsList: () => void;
+  projectFilesByProject: Record<string, ProjectFileData[]>;
+  projectFilesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
+  loadMoreProjectFiles: (numItems: number) => void;
+  workspaceMembers: WorkspaceMember[];
+  viewerIdentity: ViewerIdentity;
+  mainContentFileActions: MainContentFileActions;
+  createMainContentProjectActions: (
+    projectId: string,
+  ) => MainContentProjectActions;
+  baseMainContentNavigationActions: MainContentNavigationActions;
   isSettingsOpen: boolean;
   settingsTab: SettingsTab;
   activeWorkspace: Workspace | undefined;
@@ -156,6 +185,19 @@ export function DashboardPopups({
   isCreateWorkspaceOpen,
   closeCreateWorkspace,
   handleCreateWorkspaceSubmit,
+  isCompletedProjectsOpen,
+  closeCompletedProjectsPopup,
+  completedProjectDetailId,
+  openCompletedProjectDetail,
+  backToCompletedProjectsList,
+  projectFilesByProject,
+  projectFilesPaginationStatus,
+  loadMoreProjectFiles,
+  workspaceMembers,
+  viewerIdentity,
+  mainContentFileActions,
+  createMainContentProjectActions,
+  baseMainContentNavigationActions,
   isSettingsOpen,
   settingsTab,
   activeWorkspace,
@@ -225,6 +267,37 @@ export function DashboardPopups({
             onCreate={handleCreateWorkspaceSubmit}
           />
         </Suspense>
+      )}
+      {isCompletedProjectsOpen && (
+        <CompletedProjectsPopup
+          isOpen={isCompletedProjectsOpen}
+          onClose={closeCompletedProjectsPopup}
+          projects={projects}
+          viewerRole={viewerIdentity.role}
+          completedProjectDetailId={completedProjectDetailId}
+          onOpenProjectDetail={openCompletedProjectDetail}
+          onBackToCompletedProjects={backToCompletedProjectsList}
+          onUncompleteProject={(id) =>
+            dashboardCommands.project.updateProjectStatus(id, "Active")
+          }
+          renderDetail={(project) => (
+            <CompletedProjectDetailPopup
+              isOpen={isCompletedProjectsOpen}
+              onClose={closeCompletedProjectsPopup}
+              onBackToCompletedProjects={backToCompletedProjectsList}
+              project={project}
+              projects={projects}
+              projectFiles={projectFilesByProject[project.id] ?? []}
+              projectFilesPaginationStatus={projectFilesPaginationStatus}
+              loadMoreProjectFiles={loadMoreProjectFiles}
+              workspaceMembers={workspaceMembers}
+              viewerIdentity={viewerIdentity}
+              fileActions={mainContentFileActions}
+              projectActions={createMainContentProjectActions(project.id)}
+              navigationActions={baseMainContentNavigationActions}
+            />
+          )}
+        />
       )}
       {isSettingsOpen && (
         <Suspense fallback={PopupLoadingFallback}>

@@ -53,9 +53,9 @@ describe("Sidebar workspace permissions", () => {
         onCreateWorkspace={onCreateWorkspace}
         canCreateWorkspace={false}
         onOpenSettings={vi.fn()}
-        onUpdateProjectStatus={vi.fn()}
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
@@ -83,9 +83,9 @@ describe("Sidebar workspace permissions", () => {
         onCreateWorkspace={vi.fn()}
         canCreateWorkspace={true}
         onOpenSettings={vi.fn()}
-        onUpdateProjectStatus={vi.fn()}
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );

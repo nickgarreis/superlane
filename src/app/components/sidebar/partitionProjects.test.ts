@@ -42,7 +42,7 @@ describe("partitionSidebarProjects", () => {
       }),
     };
 
-    const result = partitionSidebarProjects(projects, "tasks");
+    const result = partitionSidebarProjects(projects);
 
     expect(result.activeProjects.map((project) => project.id)).toEqual([
       "active",
@@ -52,16 +52,4 @@ describe("partitionSidebarProjects", () => {
     ]);
   });
 
-  test("returns currently viewed completed project when the route matches", () => {
-    const projects = {
-      completed: createProject({
-        id: "completed",
-        status: { label: "Completed", color: "", bgColor: "", dotColor: "" },
-      }),
-    };
-
-    const result = partitionSidebarProjects(projects, "project:completed");
-
-    expect(result.activeCompletedProject?.id).toBe("completed");
-  });
 });

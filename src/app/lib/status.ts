@@ -5,27 +5,27 @@ export const PROJECT_STATUS_STYLES: Record<
 > = {
   Draft: {
     label: "Draft",
-    color: "#58AFFF",
-    bgColor: "rgba(0,122,187,0.1)",
-    dotColor: "#0087d5",
+    color: "var(--status-draft)",
+    bgColor: "var(--status-draft-soft)",
+    dotColor: "var(--status-draft-dot)",
   },
   Review: {
     label: "Review",
-    color: "#FF5F1F",
-    bgColor: "rgba(255, 95, 31, 0.1)",
-    dotColor: "#FF5F1F",
+    color: "var(--status-review)",
+    bgColor: "var(--status-review-soft)",
+    dotColor: "var(--status-review-dot)",
   },
   Active: {
     label: "Active",
-    color: "#a6f4c5",
-    bgColor: "rgba(16,185,129,0.1)",
-    dotColor: "#10b981",
+    color: "var(--status-active)",
+    bgColor: "var(--status-active-soft)",
+    dotColor: "var(--status-active-dot)",
   },
   Completed: {
     label: "Completed",
-    color: "#22c55e",
-    bgColor: "rgba(34,197,94,0.1)",
-    dotColor: "#16a34a",
+    color: "var(--status-completed)",
+    bgColor: "var(--status-completed-soft)",
+    dotColor: "var(--status-completed-dot)",
   },
 };
 export const parseProjectStatus = (

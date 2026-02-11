@@ -62,11 +62,11 @@ export const CommentItem = React.memo(function CommentItem({
       <div
         className={cn(
           "relative flex items-start gap-2.5 py-2.5 px-3 rounded-xl transition-colors duration-150",
-          "hover:bg-white/[0.02]",
+          "hover:bg-surface-hover-subtle",
         )}
       >
         <div className="shrink-0 pt-0.5">
-          <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
+          <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-border-soft">
             {comment.author.avatar ? (
               <img
                 src={comment.author.avatar}
@@ -74,7 +74,7 @@ export const CommentItem = React.memo(function CommentItem({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-kbd font-medium text-white/80">
+              <div className="w-full h-full bg-surface-active-soft flex items-center justify-center txt-role-kbd font-medium txt-tone-primary">
                 {getInitials(comment.author.name)}
               </div>
             )}
@@ -85,11 +85,11 @@ export const CommentItem = React.memo(function CommentItem({
             <span className="txt-role-body-md txt-tone-primary">
               {comment.author.name}
             </span>
-            <span className="txt-role-meta text-white/25 select-none">
+            <span className="txt-role-meta text-text-muted-weak select-none">
               {comment.timestamp}
             </span>
             {comment.edited && (
-              <span className="txt-role-kbd text-white/20 select-none italic">
+              <span className="txt-role-kbd text-text-muted-weak select-none italic">
                 edited
               </span>
             )}

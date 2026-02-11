@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "../../../lib/utils";
 import type { ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
+import { Z_LAYERS } from "../../lib/zLayers";
 import { ProjectLogo } from "../ProjectLogo";
 import {
   MENU_CHECK_ICON_CLASS,
@@ -46,7 +47,7 @@ export function ProjectDropdown({
         aria-expanded={isOpen}
         aria-haspopup="menu"
         aria-label={`Open project dropdown. Current project: ${activeProject.name}`}
-        className="flex items-center gap-2 txt-tone-primary txt-role-body-lg hover:bg-white/[0.04] px-2 py-1.5 -ml-2 rounded-lg transition-colors group cursor-pointer"
+        className="flex items-center gap-2 txt-tone-primary txt-role-body-lg hover:bg-surface-hover-soft px-2 py-1.5 -ml-2 rounded-lg transition-colors group cursor-pointer"
       >
         <div className={cn("shrink-0", activeProject.archived && "opacity-60")}>
           <ProjectLogo size={18} category={activeProject.category} />
@@ -65,7 +66,8 @@ export function ProjectDropdown({
         {isOpen && (
           <>
             <div
-              className="fixed inset-0 z-40"
+              className="fixed inset-0"
+              style={{ zIndex: Z_LAYERS.overlay }}
               onClick={() => onOpenChange(false)}
             />
             <motion.div
@@ -74,9 +76,10 @@ export function ProjectDropdown({
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.12 }}
               className={cn(
-                "absolute top-full left-0 mt-1 w-[220px] z-50",
+                "absolute top-full left-0 mt-1 w-[220px]",
                 MENU_SURFACE_CLASS,
               )}
+              style={{ zIndex: Z_LAYERS.dropdown }}
             >
               <div className="max-h-[200px] overflow-y-auto py-1">
                 {sortedProjects.map((project) => (
@@ -116,7 +119,7 @@ export function ProjectDropdown({
                       <Check className={MENU_CHECK_ICON_CLASS} />
                     )}
                     {project.archived && (
-                      <span className="txt-role-micro text-white/25 uppercase tracking-wider shrink-0">
+                      <span className="txt-role-micro text-text-muted-weak uppercase tracking-wider shrink-0">
                         Archived
                       </span>
                     )}

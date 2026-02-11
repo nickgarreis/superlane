@@ -24,9 +24,9 @@ type DashboardChromeProps = {
   onOpenSettings: (
     tab?: "Account" | "Notifications" | "Company" | "Billing",
   ) => void;
-  onUpdateProjectStatus: (projectId: string, newStatus: string) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
+  onOpenCompletedProjectsPopup: () => void;
 };
 export const DashboardChrome = React.memo(function DashboardChrome({
   isSidebarOpen,
@@ -46,9 +46,9 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   onSwitchWorkspace,
   onCreateWorkspace,
   onOpenSettings,
-  onUpdateProjectStatus,
   onEditProject,
   onViewReviewProject,
+  onOpenCompletedProjectsPopup,
 }: DashboardChromeProps) {
   return (
     <>
@@ -95,9 +95,9 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                 canCreateWorkspace={canCreateWorkspace}
                 onOpenSettings={onOpenSettings}
                 onOpenSettingsIntent={handleSettingsIntent}
-                onUpdateProjectStatus={onUpdateProjectStatus}
                 onEditProject={onEditProject}
                 onViewReviewProject={onViewReviewProject}
+                onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
                 onLogout={handleSignOut}
               />
             </div>

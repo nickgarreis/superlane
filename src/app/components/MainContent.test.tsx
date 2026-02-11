@@ -275,6 +275,23 @@ describe("MainContent", () => {
     expect(back).toHaveBeenCalledTimes(1);
   });
 
+  test("uses explicit back label override for completed popup detail", () => {
+    const back = vi.fn();
+
+    renderMainContent({
+      navigationActions: {
+        backTo: "archive",
+        backLabel: "completed projects",
+        back,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to completed projects" }),
+    );
+    expect(back).toHaveBeenCalledTimes(1);
+  });
+
   test("preserves project detail scroll position when switching file tabs", () => {
     const rafSpy = vi
       .spyOn(window, "requestAnimationFrame")

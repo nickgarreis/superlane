@@ -53,6 +53,44 @@ vi.mock("../../components/SettingsPopup", () => ({
   ),
 }));
 
+vi.mock("../../components/CompletedProjectsPopup", () => ({
+  CompletedProjectsPopup: ({
+    onClose,
+    onOpenProjectDetail,
+  }: {
+    onClose: () => void;
+    onOpenProjectDetail: (projectId: string) => void;
+  }) => (
+    <div data-testid="completed-projects-popup">
+      <button type="button" onClick={onClose}>
+        Close Completed
+      </button>
+      <button type="button" onClick={() => onOpenProjectDetail("project-1")}>
+        Open Completed Detail
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock("../../components/CompletedProjectDetailPopup", () => ({
+  CompletedProjectDetailPopup: ({
+    onClose,
+    onBackToCompletedProjects,
+  }: {
+    onClose: () => void;
+    onBackToCompletedProjects: () => void;
+  }) => (
+    <div data-testid="completed-project-detail-popup">
+      <button type="button" onClick={onBackToCompletedProjects}>
+        Back Completed
+      </button>
+      <button type="button" onClick={onClose}>
+        Close Completed Detail
+      </button>
+    </div>
+  ),
+}));
+
 const PROJECT: ProjectData = {
   id: "project-1",
   name: "Project",
@@ -130,6 +168,23 @@ const baseProps = () => ({
   isCreateWorkspaceOpen: false,
   closeCreateWorkspace: vi.fn(),
   handleCreateWorkspaceSubmit: vi.fn(),
+  isCompletedProjectsOpen: false,
+  closeCompletedProjectsPopup: vi.fn(),
+  completedProjectDetailId: null,
+  openCompletedProjectDetail: vi.fn(),
+  backToCompletedProjectsList: vi.fn(),
+  projectFilesByProject: { [PROJECT.id]: [] },
+  projectFilesPaginationStatus: "Exhausted" as const,
+  loadMoreProjectFiles: vi.fn(),
+  workspaceMembers: [],
+  viewerIdentity: viewer,
+  mainContentFileActions: {
+    create: vi.fn(),
+    remove: vi.fn(),
+    download: vi.fn(),
+  },
+  createMainContentProjectActions: vi.fn().mockReturnValue({}),
+  baseMainContentNavigationActions: { navigate: vi.fn() },
   isSettingsOpen: false,
   settingsTab: "Account" as const,
   activeWorkspace: WORKSPACE,
@@ -163,6 +218,9 @@ describe("DashboardPopups", () => {
       screen.queryByTestId("create-workspace-popup"),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("settings-popup")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("completed-projects-popup"),
+    ).not.toBeInTheDocument();
   });
 
   test("renders enabled popups and wires close/settings callbacks", async () => {
@@ -172,6 +230,7 @@ describe("DashboardPopups", () => {
       isCreateProjectOpen: true,
       isCreateWorkspaceOpen: true,
       isSettingsOpen: true,
+      isCompletedProjectsOpen: true,
     };
 
     render(<DashboardPopups {...props} />);
@@ -194,5 +253,15 @@ describe("DashboardPopups", () => {
     expect(
       props.dashboardCommands.settings.closeSettings,
     ).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Completed Detail" }),
+    );
+    expect(props.openCompletedProjectDetail).toHaveBeenCalledWith("project-1");
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Close Completed" }),
+    );
+    expect(props.closeCompletedProjectsPopup).toHaveBeenCalledTimes(1);
   });
 });

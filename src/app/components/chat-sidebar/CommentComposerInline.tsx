@@ -1,6 +1,11 @@
 import React from "react";
 import { MentionTextarea } from "../MentionTextarea";
 import type { MentionItem as MentionItemType } from "../mentions/types";
+import {
+  PRIMARY_ACTION_BUTTON_CLASS,
+  SECONDARY_ACTION_BUTTON_CLASS,
+  SOFT_INPUT_CLASS,
+} from "../ui/controlChrome";
 type EditComposerProps = {
   commentId: string;
   editValue: string;
@@ -27,7 +32,7 @@ export function EditCommentComposer({
         onChange={onSetEditValue}
         items={mentionItems}
         onMentionClick={onMentionClick}
-        className="w-full bg-white/[0.04] border border-white/10 rounded-lg p-2.5 txt-role-body-md txt-tone-primary focus:outline-none focus:border-white/20 leading-relaxed transition-colors"
+        className={`w-full rounded-lg p-2.5 txt-role-body-md leading-relaxed ${SOFT_INPUT_CLASS}`}
         style={{ minHeight: 36, maxHeight: 160 }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -44,7 +49,7 @@ export function EditCommentComposer({
         <button
           onClick={() => onEditComment(commentId)}
           disabled={!editValue.trim()}
-          className="px-2.5 py-1 txt-role-meta bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className={`px-2.5 py-1 txt-role-meta rounded-md cursor-pointer ${PRIMARY_ACTION_BUTTON_CLASS}`}
         >
           Save
         </button>
@@ -53,11 +58,11 @@ export function EditCommentComposer({
             onSetEditingComment(null);
             onSetEditValue("");
           }}
-          className="px-2.5 py-1 txt-role-meta text-white/40 hover:text-white/60 transition-colors cursor-pointer"
+          className={`px-2.5 py-1 txt-role-meta cursor-pointer ${SECONDARY_ACTION_BUTTON_CLASS}`}
         >
           Cancel
         </button>
-        <span className="txt-role-kbd text-white/15 ml-auto">
+        <span className="txt-role-kbd text-text-muted-weak ml-auto">
           ⌘Enter to save · @ to mention
         </span>
       </div>
@@ -100,7 +105,7 @@ export function ReplyCommentComposer({
       className="mt-3 flex items-start gap-2"
     >
       <div className="shrink-0 pt-0.5">
-        <div className="w-5 h-5 rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
+        <div className="w-5 h-5 rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-border-soft">
           {currentUserAvatar ? (
             <img
               src={currentUserAvatar}
@@ -108,7 +113,7 @@ export function ReplyCommentComposer({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-micro font-medium text-white/80">
+            <div className="w-full h-full bg-surface-active-soft flex items-center justify-center txt-role-micro font-medium txt-tone-primary">
               {getInitials(currentUserName)}
             </div>
           )}
@@ -121,7 +126,7 @@ export function ReplyCommentComposer({
           onChange={onSetReplyValue}
           items={mentionItems}
           placeholder=""
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 txt-role-body-md txt-tone-primary placeholder:text-white/20 focus:outline-none focus:border-white/15 leading-relaxed transition-colors"
+          className={`w-full rounded-lg px-3 py-2 txt-role-body-md leading-relaxed ${SOFT_INPUT_CLASS}`}
           style={{ minHeight: 32, maxHeight: 140 }}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -139,7 +144,7 @@ export function ReplyCommentComposer({
           <button
             type="submit"
             disabled={!replyValue.trim()}
-            className="px-2.5 py-1 txt-role-meta bg-white/10 hover:bg-white/15 text-white rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            className={`px-2.5 py-1 txt-role-meta rounded-md cursor-pointer ${PRIMARY_ACTION_BUTTON_CLASS}`}
           >
             Reply
           </button>
@@ -149,11 +154,11 @@ export function ReplyCommentComposer({
               onSetReplyingTo(null);
               onSetReplyValue("");
             }}
-            className="txt-role-meta text-white/30 hover:text-white/50 transition-colors cursor-pointer"
+            className={`px-2.5 py-1 txt-role-meta rounded-md cursor-pointer ${SECONDARY_ACTION_BUTTON_CLASS}`}
           >
             Cancel
           </button>
-          <span className="txt-role-kbd text-white/15 ml-auto">⌘Enter</span>
+          <span className="txt-role-kbd text-text-muted-weak ml-auto">⌘Enter</span>
         </div>
       </div>
     </form>

@@ -23,6 +23,7 @@ import {
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
 } from "./popup/popupChrome";
+import { KBD_PILL_CLASS } from "./ui/controlChrome";
 import { Z_LAYERS } from "../lib/zLayers";
 import { useSearchPopupData } from "./search-popup/useSearchPopupData";
 import type {
@@ -281,32 +282,32 @@ export function SearchPopup({
               quickActions={QUICK_ACTIONS}
               actionHandlers={actionHandlers}
             />
-            <div className="flex items-center gap-4 px-4 h-[36px] shrink-0 border-t border-white/[0.04] bg-white/[0.015]">
-              <div className="flex items-center gap-1.5 txt-role-kbd text-white/20">
+            <div className="flex items-center gap-4 px-4 h-[36px] shrink-0 border-t border-border-subtle-soft bg-surface-hover-subtle">
+              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
                 <span className="flex items-center gap-0.5">
-                  <kbd className="inline-flex items-center justify-center size-4 rounded bg-white/[0.06] border border-white/[0.06]">
+                  <kbd className={`${KBD_PILL_CLASS} size-4`}>
                     <ChevronUp size={9} />
                   </kbd>
-                  <kbd className="inline-flex items-center justify-center size-4 rounded bg-white/[0.06] border border-white/[0.06]">
+                  <kbd className={`${KBD_PILL_CLASS} size-4`}>
                     <ChevronDown size={9} />
                   </kbd>
                 </span>
                 navigate
               </div>
-              <div className="flex items-center gap-1.5 txt-role-kbd text-white/20">
-                <kbd className="inline-flex items-center justify-center h-4 px-1 rounded bg-white/[0.06] border border-white/[0.06]">
+              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
+                <kbd className={`${KBD_PILL_CLASS} h-4 px-1`}>
                   <CornerDownLeft size={9} />
                 </kbd>
                 open
               </div>
-              <div className="flex items-center gap-1.5 txt-role-kbd text-white/20">
-                <kbd className="px-1 h-4 inline-flex items-center rounded bg-white/[0.06] border border-white/[0.06] txt-role-micro">
+              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
+                <kbd className={`${KBD_PILL_CLASS} px-1 h-4 txt-role-micro`}>
                   esc
                 </kbd>
                 close
               </div>
               {hasSearchQuery && hasResults && (
-                <span className="ml-auto txt-role-kbd text-white/15 tabular-nums">
+                <span className="ml-auto txt-role-kbd text-text-muted-weak tabular-nums">
                   {flatResults.length} result
                   {flatResults.length !== 1 ? "s" : ""}
                 </span>

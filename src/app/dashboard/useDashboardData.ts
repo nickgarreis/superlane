@@ -30,6 +30,7 @@ type UseDashboardDataArgs = {
   settingsTab: SettingsTab;
   isSearchOpen: boolean;
   currentView: AppView;
+  completedProjectDetailId: string | null;
   viewerFallback: { name: string; email: string; avatarUrl: string | null };
   setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
   setPendingHighlight: Dispatch<SetStateAction<PendingHighlight | null>>;
@@ -104,6 +105,7 @@ export const useDashboardData = ({
   isSettingsOpen,
   isSearchOpen,
   currentView,
+  completedProjectDetailId,
   viewerFallback,
   setIsSidebarOpen,
   setPendingHighlight,
@@ -133,10 +135,16 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
+  const routeProjectPublicId = currentView.startsWith("project:")
+    ? currentView.slice("project:".length)
+    : currentView.startsWith("archive-project:")
+      ? currentView.slice("archive-project:".length)
+      : null;
   const shouldLoadWorkspaceFiles =
     isSearchOpen ||
-    currentView.startsWith("project:") ||
-    currentView.startsWith("archive-project:");
+    routeProjectPublicId != null ||
+    completedProjectDetailId != null;
+  const activeProjectPublicId = routeProjectPublicId ?? completedProjectDetailId;
   const workspaceFiles = usePaginatedQuery(
     api.files.listForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug && isSearchOpen
@@ -144,11 +152,6 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PAGINATION_PAGE_SIZE },
   );
-  const activeProjectPublicId = currentView.startsWith("project:")
-    ? currentView.slice("project:".length)
-    : currentView.startsWith("archive-project:")
-      ? currentView.slice("archive-project:".length)
-      : null;
   const projectFiles = usePaginatedQuery(
     api.files.listForProjectPaginated,
     isAuthenticated && shouldLoadWorkspaceFiles && activeProjectPublicId

@@ -1,5 +1,6 @@
 import { RotateCcw, X } from "lucide-react";
 import { DeniedAction } from "../permissions/DeniedAction";
+import { GHOST_ICON_BUTTON_CLASS, ROW_HOVER_CLASS } from "../ui/controlChrome";
 import type { CompanyPendingInvitation } from "./types";
 type PendingInvitationRowProps = {
   invitation: CompanyPendingInvitation;
@@ -16,9 +17,9 @@ export function PendingInvitationRow({
   onRevokeInvitation,
 }: PendingInvitationRowProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+    <div className={`flex items-center justify-between py-3 ${ROW_HOVER_CLASS}`}>
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center txt-role-body-sm font-medium text-white/60 overflow-hidden shadow-inner border border-dashed border-white/20">
+        <div className="w-8 h-8 rounded-full bg-bg-avatar-fallback flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden border border-border-soft">
           {invitation.email.charAt(0).toUpperCase()}
         </div>
         <div className="flex flex-col">
@@ -44,7 +45,7 @@ export function PendingInvitationRow({
         >
           <button
             title="Resend invitation"
-            className="p-1.5 hover:bg-white/10 txt-tone-faint hover:txt-tone-accent rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className={`${GHOST_ICON_BUTTON_CLASS} p-1.5 txt-tone-faint hover:txt-tone-accent cursor-pointer disabled:opacity-50`}
             disabled={isMemberManagementDenied}
             onClick={() => {
               if (isMemberManagementDenied) {
@@ -65,7 +66,7 @@ export function PendingInvitationRow({
         >
           <button
             title="Revoke invitation"
-            className="p-1.5 hover:bg-red-500/10 txt-tone-faint hover:text-red-400 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className={`${GHOST_ICON_BUTTON_CLASS} p-1.5 txt-tone-faint hover:bg-red-500/10 hover:text-red-400 cursor-pointer disabled:opacity-50`}
             disabled={isMemberManagementDenied}
             onClick={() => {
               if (isMemberManagementDenied) {

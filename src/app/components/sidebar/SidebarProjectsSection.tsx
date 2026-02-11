@@ -72,9 +72,9 @@ export function SidebarProjectsSection({
   onOpenCompletedProjectsPopup,
 }: SidebarProjectsSectionProps) {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
-  const { activeProjects, completedProjects, activeCompletedProject } = useMemo(
-    () => partitionSidebarProjects(projects, currentView),
-    [projects, currentView],
+  const { activeProjects, completedProjects } = useMemo(
+    () => partitionSidebarProjects(projects),
+    [projects],
   );
   const renderedActiveProjects = useMemo(
     () =>
@@ -171,35 +171,6 @@ export function SidebarProjectsSection({
                 <Maximize2 size={12} className="text-white/40" />
               </div>
             </div>
-            {activeCompletedProject && (
-              <div className="flex flex-col gap-0.5">
-                <SidebarItem
-                  key={activeCompletedProject.id}
-                  projectId={activeCompletedProject.id}
-                  icon={
-                    <ProjectLogo
-                      size={16}
-                      category={activeCompletedProject.category}
-                    />
-                  }
-                  label={activeCompletedProject.name}
-                  onClick={() =>
-                    onNavigate(`project:${activeCompletedProject.id}`)
-                  }
-                  isActive
-                  completionDate={
-                    activeCompletedProject.completedAt
-                      ? new Date(
-                          activeCompletedProject.completedAt,
-                        ).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : ""
-                  }
-                />
-              </div>
-            )}
           </div>
         )}
       </div>

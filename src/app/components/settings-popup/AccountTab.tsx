@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { User } from "lucide-react";
 import { toast } from "sonner";
 import { reportUiError } from "../../lib/errors";
+import {
+  PRIMARY_ACTION_BUTTON_CLASS,
+  SECONDARY_ACTION_BUTTON_CLASS,
+  UNDERLINE_INPUT_CLASS,
+} from "../ui/controlChrome";
 import type { AccountSettingsData } from "./types";
 type AccountTabProps = {
   data: AccountSettingsData;
@@ -87,7 +92,7 @@ export function AccountTab({
   };
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-start gap-6 pb-8 border-b border-white/5">
+      <div className="flex items-start gap-6 pb-8 border-b border-border-subtle-soft">
         <input
           type="file"
           ref={fileInputRef}
@@ -96,7 +101,7 @@ export function AccountTab({
           onChange={handleAvatarFile}
         />
         <div
-          className="w-[100px] h-[100px] rounded-full overflow-hidden border border-white/10 shrink-0 group relative cursor-pointer bg-bg-muted-surface"
+          className="w-[100px] h-[100px] rounded-full overflow-hidden border border-border-soft shrink-0 group relative cursor-pointer bg-bg-muted-surface"
           onClick={() => fileInputRef.current?.click()}
           onKeyDown={handleAvatarKeyDown}
           tabIndex={0}
@@ -128,14 +133,14 @@ export function AccountTab({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarBusy}
-              className="cursor-pointer px-4 py-2 bg-text-tone-primary text-bg-base rounded-full txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-60"
+              className={`cursor-pointer px-4 py-2 rounded-full txt-role-body-md font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
             >
               Upload new
             </button>
             <button
               onClick={handleRemoveAvatar}
               disabled={!data.avatarUrl || avatarBusy}
-              className="cursor-pointer px-4 py-2 bg-white/5 txt-tone-primary border border-white/10 rounded-full txt-role-body-md font-medium hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`cursor-pointer px-4 py-2 rounded-full txt-role-body-md font-medium ${SECONDARY_ACTION_BUTTON_CLASS}`}
             >
               Remove
             </button>
@@ -159,7 +164,7 @@ export function AccountTab({
               type="text"
               value={firstName}
               onChange={(event) => setFirstName(event.target.value)}
-              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 txt-role-body-lg txt-tone-primary focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+              className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -174,7 +179,7 @@ export function AccountTab({
               type="text"
               value={lastName}
               onChange={(event) => setLastName(event.target.value)}
-              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 txt-role-body-lg txt-tone-primary focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+              className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
             />
           </div>
         </div>
@@ -190,7 +195,7 @@ export function AccountTab({
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 txt-role-body-lg txt-tone-primary focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+            className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
           />
         </div>
       </div>
@@ -198,7 +203,7 @@ export function AccountTab({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-text-tone-primary hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className={`cursor-pointer px-6 py-2.5 rounded-full txt-role-body-lg font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

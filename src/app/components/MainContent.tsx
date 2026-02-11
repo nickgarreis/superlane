@@ -35,6 +35,7 @@ const LazyChatSidebar = React.lazy(async () => {
 interface MainContentProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
+  layoutMode?: "page" | "popup";
   project: ProjectData;
   projectFiles: ProjectFileData[];
   projectFilesPaginationStatus:
@@ -55,6 +56,7 @@ interface MainContentProps {
 export function MainContent({
   onToggleSidebar,
   isSidebarOpen,
+  layoutMode = "page",
   project,
   projectFiles,
   projectFilesPaginationStatus,
@@ -209,17 +211,29 @@ export function MainContent({
     [loadMoreProjectFiles, projectFilesPaginationStatus],
   );
   return (
-    <div className="flex-1 h-full bg-bg-base txt-tone-primary overflow-hidden font-app flex flex-col relative">
-      <div className="relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
-        <div className="w-full h-[57px] shrink-0">
-          <HorizontalBorder
-            onToggleSidebar={onToggleSidebar}
-            onToggleChat={handleOpenChat}
-          />
-        </div>
+    <div
+      className={`flex-1 h-full txt-tone-primary overflow-hidden font-app flex flex-col relative ${
+        layoutMode === "popup" ? "bg-transparent" : "bg-bg-base"
+      }`}
+    >
+      <div
+        className={`relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${
+          layoutMode === "popup" ? "rounded-[28px]" : ""
+        }`}
+      >
+        {layoutMode === "page" && (
+          <div className="w-full h-[57px] shrink-0">
+            <HorizontalBorder
+              onToggleSidebar={onToggleSidebar}
+              onToggleChat={handleOpenChat}
+            />
+          </div>
+        )}
         <div
           ref={contentScrollRef}
-          className="flex-1 overflow-y-auto px-[80px] py-[40px]"
+          className={`flex-1 overflow-y-auto py-[40px] ${
+            layoutMode === "popup" ? "px-[56px]" : "px-[80px]"
+          }`}
           onScroll={handleMainContentScroll}
         >
           <ProjectOverview

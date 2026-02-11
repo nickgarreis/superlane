@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "../../../lib/utils";
 import {
   SectionLabel,
   SearchPopupQuickActionItem,
@@ -210,13 +211,13 @@ export function SearchPopupResults({
           )
         ) : (
           <div className="flex flex-col items-center justify-center py-12 px-6">
-            <div className="size-10 rounded-xl bg-white/[0.04] flex items-center justify-center mb-3">
-              <Search size={18} className="text-white/20" />
+            <div className="size-10 rounded-xl bg-surface-muted-soft flex items-center justify-center mb-3">
+              <Search size={18} className="text-text-muted-weak" />
             </div>
-            <p className="txt-role-body-md text-white/40 mb-1">
+            <p className="txt-role-body-md text-text-muted-medium mb-1">
               No results for &ldquo;{query}&rdquo;
             </p>
-            <p className="txt-role-meta text-white/20">
+            <p className="txt-role-meta text-text-muted-weak">
               Try a project name, task, file, or category
             </p>
           </div>
@@ -226,11 +227,14 @@ export function SearchPopupResults({
           {recentSearches.length > 0 && (
             <div className="px-4 pt-1 pb-2">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Clock size={11} className="text-white/20 shrink-0" />
+                <Clock size={11} className="text-text-muted-weak shrink-0" />
                 {recentSearches.map((search, index) => (
                   <button
                     key={`${search}-${index}`}
-                    className="txt-role-meta text-white/35 hover:text-white/60 bg-white/[0.04] hover:bg-white/[0.07] px-2 py-0.5 rounded-md transition-colors"
+                    className={cn(
+                      "txt-role-meta px-2 py-0.5 rounded-md transition-colors",
+                      "text-text-muted-medium hover:text-text-tone-primary bg-surface-muted-soft hover:bg-surface-active-soft",
+                    )}
                     onClick={() => {
                       startTransition(() => {
                         onRecentSearchClick(search);

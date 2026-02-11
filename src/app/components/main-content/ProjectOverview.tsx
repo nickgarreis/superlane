@@ -22,12 +22,14 @@ export function ProjectOverview({
   projectActions,
   navigationActions,
 }: ProjectOverviewProps) {
-  const backToLabel = navigationActions?.backTo
-    ? `${navigationActions.backTo.charAt(0).toUpperCase()}${navigationActions.backTo.slice(1)}`
-    : "Archive";
+  const backToLabel = navigationActions?.backLabel
+    ? navigationActions.backLabel
+    : navigationActions?.backTo
+      ? `${navigationActions.backTo.charAt(0).toUpperCase()}${navigationActions.backTo.slice(1)}`
+      : "Archive";
   const statusColor = project.archived
     ? "var(--file-type-default)"
-    : (project.status.color ?? "var(--status-review)");
+    : (project.status.color ?? "var(--status-draft)");
   return (
     <>
       {navigationActions?.back && (

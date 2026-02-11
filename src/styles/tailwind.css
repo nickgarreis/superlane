@@ -2,6 +2,7 @@
 @source '../main.tsx';
 @source '../app/**/*.{js,ts,jsx,tsx}';
 @source not '../app/components/ui/**/*.{js,ts,jsx,tsx}';
+@source '../app/components/ui/controlChrome.ts';
 @source '../imports/**/*.{js,ts,jsx,tsx}';
 
 @import 'tw-animate-css';

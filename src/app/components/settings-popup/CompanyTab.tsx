@@ -17,6 +17,7 @@ import {
   getWorkspaceDeleteDeniedReason,
   getWorkspaceGeneralDeniedReason,
 } from "../../lib/permissionRules";
+import { DIVIDER_SUBTLE_CLASS, UNDERLINE_INPUT_CLASS } from "../ui/controlChrome";
 type CompanyTabProps = {
   activeWorkspace?: Workspace;
   company: CompanySettingsData | null;
@@ -217,7 +218,7 @@ export function CompanyTab({
             tooltipAlign="left"
           >
             <div
-              className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-white/10 bg-blue-600 overflow-hidden group relative cursor-pointer"
+              className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-border-soft bg-brand-avatar overflow-hidden group relative cursor-pointer"
               style={
                 company?.workspace.logoColor
                   ? { backgroundColor: company.workspace.logoColor }
@@ -279,13 +280,13 @@ export function CompanyTab({
                   hasEditedRef.current = true;
                   setNameDraft(event.target.value);
                 }}
-                className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2 txt-role-body-lg txt-tone-primary focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+                className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
               />
             </DeniedAction>
           </div>
         </div>
       </div>
-      <div className="w-full h-px bg-white/5" />
+      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
       <CompanyMembersSection
         members={members}
         pendingInvitations={pendingInvitations}
@@ -298,7 +299,7 @@ export function CompanyTab({
         onResendInvitation={onResendInvitation}
         onRevokeInvitation={onRevokeInvitation}
       />
-      <div className="w-full h-px bg-white/5" />
+      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
       <CompanyBrandAssetsSection
         brandAssets={brandAssets}
         canManageBrandAssets={canManageBrandAssets}
@@ -307,7 +308,7 @@ export function CompanyTab({
         onRemoveBrandAsset={onRemoveBrandAsset}
         onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
       />
-      <div className="w-full h-px bg-white/5" />
+      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
       <div className="flex flex-col gap-4">
         <h3 className="txt-role-body-xl font-medium text-red-400">
           Danger Zone

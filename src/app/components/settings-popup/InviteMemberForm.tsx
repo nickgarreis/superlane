@@ -8,6 +8,10 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
+import {
+  PRIMARY_ACTION_BUTTON_CLASS,
+  UNDERLINE_INPUT_CLASS,
+} from "../ui/controlChrome";
 type InviteMemberFormProps = {
   inviteEmail: string;
   onInviteEmailChange: (value: string) => void;
@@ -61,7 +65,7 @@ export function InviteMemberForm({
               placeholder="Email address"
               value={inviteEmail}
               onChange={(event) => onInviteEmailChange(event.target.value)}
-              className="w-full bg-transparent border-b border-white/10 rounded-none px-0 py-2.5 txt-role-body-lg txt-tone-primary focus:outline-none focus:border-white/40 transition-colors placeholder:text-white/20"
+              className={`${UNDERLINE_INPUT_CLASS} py-2.5 txt-role-body-lg`}
               disabled={isMemberManagementDenied || inviting}
             />
           </DeniedAction>
@@ -95,14 +99,14 @@ export function InviteMemberForm({
                 "h-[42px] px-3 bg-transparent txt-role-body-md font-medium flex items-center gap-2 min-w-[100px] justify-between rounded-lg transition-colors relative z-20 disabled:opacity-50 disabled:cursor-not-allowed",
                 isMemberManagementDenied
                   ? "opacity-50 cursor-not-allowed txt-tone-faint"
-                  : "cursor-pointer txt-tone-primary hover:bg-white/[0.04]",
+                  : "cursor-pointer txt-tone-primary hover:bg-surface-hover-soft",
               )}
             >
               {inviteRole}
               <ChevronDown
                 size={14}
                 className={cn(
-                  "text-white/40 transition-transform duration-200",
+                  "text-text-muted-medium transition-transform duration-200",
                   isInviteRoleOpen && "rotate-180",
                 )}
               />
@@ -162,7 +166,7 @@ export function InviteMemberForm({
           <button
             onClick={onInvite}
             disabled={!inviteEmail || isMemberManagementDenied || inviting}
-            className="h-[42px] px-5 bg-text-tone-primary text-bg-base hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg txt-role-body-md font-medium transition-colors cursor-pointer"
+            className={`h-[42px] px-5 rounded-lg txt-role-body-md font-medium cursor-pointer ${PRIMARY_ACTION_BUTTON_CLASS}`}
           >
             {inviting ? "Inviting..." : "Invite"}
           </button>

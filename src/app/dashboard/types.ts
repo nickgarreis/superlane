@@ -173,6 +173,7 @@ export type NavigationDestination = "archive";
 export interface MainContentNavigationActions {
   navigate?: (view: AppView) => void;
   backTo?: NavigationDestination;
+  backLabel?: string;
   back?: () => void;
 }
 export type DashboardContentModel =

@@ -56,6 +56,8 @@ export type DashboardNavigationState = {
   setIsCreateProjectOpen: Dispatch<SetStateAction<boolean>>;
   isCreateWorkspaceOpen: boolean;
   setIsCreateWorkspaceOpen: Dispatch<SetStateAction<boolean>>;
+  isCompletedProjectsOpen: boolean;
+  completedProjectDetailId: string | null;
   highlightedArchiveProjectId: string | null;
   setHighlightedArchiveProjectId: Dispatch<SetStateAction<string | null>>;
   pendingHighlight: PendingHighlight | null;
@@ -74,6 +76,10 @@ export type DashboardNavigationState = {
   closeCreateProject: () => void;
   openCreateWorkspace: () => void;
   closeCreateWorkspace: () => void;
+  openCompletedProjectsPopup: () => void;
+  closeCompletedProjectsPopup: () => void;
+  openCompletedProjectDetail: (projectId: string) => void;
+  backToCompletedProjectsList: () => void;
   handleOpenSettings: (tab?: SettingsTab) => void;
   handleCloseSettings: () => void;
 };
@@ -94,6 +100,10 @@ export const useDashboardNavigation = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
+  const [isCompletedProjectsOpen, setIsCompletedProjectsOpen] = useState(false);
+  const [completedProjectDetailId, setCompletedProjectDetailId] = useState<
+    string | null
+  >(null);
   const [highlightedArchiveProjectId, setHighlightedArchiveProjectId] =
     useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] =
@@ -179,6 +189,21 @@ export const useDashboardNavigation = ({
   const closeCreateWorkspace = useCallback(() => {
     setIsCreateWorkspaceOpen(false);
   }, []);
+  const openCompletedProjectsPopup = useCallback(() => {
+    setCompletedProjectDetailId(null);
+    setIsCompletedProjectsOpen(true);
+  }, []);
+  const closeCompletedProjectsPopup = useCallback(() => {
+    setCompletedProjectDetailId(null);
+    setIsCompletedProjectsOpen(false);
+  }, []);
+  const openCompletedProjectDetail = useCallback((projectId: string) => {
+    setCompletedProjectDetailId(projectId);
+    setIsCompletedProjectsOpen(true);
+  }, []);
+  const backToCompletedProjectsList = useCallback(() => {
+    setCompletedProjectDetailId(null);
+  }, []);
   const handleOpenSettings = useCallback(
     (tab: SettingsTab = "Account") => {
       preloadSettingsPopup();
@@ -209,6 +234,8 @@ export const useDashboardNavigation = ({
     setIsCreateProjectOpen,
     isCreateWorkspaceOpen,
     setIsCreateWorkspaceOpen,
+    isCompletedProjectsOpen,
+    completedProjectDetailId,
     highlightedArchiveProjectId,
     setHighlightedArchiveProjectId,
     pendingHighlight,
@@ -227,6 +254,10 @@ export const useDashboardNavigation = ({
     closeCreateProject,
     openCreateWorkspace,
     closeCreateWorkspace,
+    openCompletedProjectsPopup,
+    closeCompletedProjectsPopup,
+    openCompletedProjectDetail,
+    backToCompletedProjectsList,
     handleOpenSettings,
     handleCloseSettings,
   };

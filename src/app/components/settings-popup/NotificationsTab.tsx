@@ -3,6 +3,9 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "../../../lib/utils";
 import { reportUiError } from "../../lib/errors";
+import {
+  PRIMARY_ACTION_BUTTON_CLASS,
+} from "../ui/controlChrome";
 import type { NotificationSettingsData } from "./types";
 type ToggleRowProps = {
   label: string;
@@ -13,11 +16,11 @@ type ToggleRowProps = {
 function ToggleRow({ label, description, checked, onToggle }: ToggleRowProps) {
   const labelId = useId();
   return (
-    <div className="flex items-start justify-between py-5 border-b border-white/5 last:border-0 group">
+    <div className="flex items-start justify-between py-5 border-b border-border-subtle-soft last:border-0 group">
       <div className="flex flex-col gap-1 pr-8">
         <span
           id={labelId}
-          className="txt-role-body-lg font-medium txt-tone-secondary group-hover:text-white transition-colors"
+          className="txt-role-body-lg font-medium txt-tone-secondary group-hover:txt-tone-primary transition-colors"
         >
           {label}
         </span>
@@ -30,7 +33,7 @@ function ToggleRow({ label, description, checked, onToggle }: ToggleRowProps) {
         aria-labelledby={labelId}
         className={cn(
           "w-[44px] h-[24px] rounded-full relative transition-colors shrink-0 cursor-pointer",
-          checked ? "bg-toggle-on" : "bg-white/10",
+          checked ? "bg-toggle-on" : "bg-surface-active-soft",
         )}
       >
         <motion.div
@@ -145,7 +148,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="cursor-pointer px-6 py-2.5 bg-text-tone-primary hover:bg-white text-bg-base rounded-full txt-role-body-lg font-medium transition-colors shadow-lg shadow-white/5 disabled:opacity-60"
+          className={`cursor-pointer px-6 py-2.5 rounded-full txt-role-body-lg font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

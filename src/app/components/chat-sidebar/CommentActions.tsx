@@ -18,6 +18,7 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
+import { GHOST_ICON_BUTTON_CLASS } from "../ui/controlChrome";
 import { ReactionPicker } from "./ReactionPicker";
 type CommentActionsProps = {
   comment: CollaborationComment;
@@ -119,7 +120,7 @@ export function CommentActions({
                 "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md txt-role-body-sm transition-all cursor-pointer select-none",
                 isActive
                   ? "bg-blue-500/15 border border-blue-500/20 text-blue-300"
-                  : "bg-white/[0.04] border border-white/[0.06] text-white/50 hover:bg-white/[0.06] hover:border-white/10",
+                  : "bg-surface-muted-soft border border-border-soft text-text-muted-medium hover:bg-surface-hover-soft",
               )}
             >
               <span>{reaction.emoji}</span>
@@ -135,9 +136,9 @@ export function CommentActions({
                 activeReactionPicker === comment.id ? null : comment.id,
               );
             }}
-            className="w-6 h-6 rounded-md bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer"
+            className="w-6 h-6 rounded-md bg-surface-muted-soft border border-border-soft flex items-center justify-center hover:bg-surface-hover-soft transition-all cursor-pointer"
           >
-            <SmilePlus className="w-3 h-3 text-white/30" />
+            <SmilePlus className="w-3 h-3 text-text-muted-medium" />
           </button>
           <ReactionPicker
             commentId={comment.id}
@@ -149,7 +150,7 @@ export function CommentActions({
           onClick={() =>
             onSetReplyingTo(replyingTo === comment.id ? null : comment.id)
           }
-          className="txt-role-meta text-white/30 hover:text-white/60 flex items-center gap-1 transition-all px-1.5 py-0.5 rounded hover:bg-white/[0.04] cursor-pointer opacity-0 group-hover/comment:opacity-100 duration-150"
+          className="txt-role-meta text-text-muted-medium hover:txt-tone-primary flex items-center gap-1 transition-all px-1.5 py-0.5 rounded hover:bg-surface-hover-soft cursor-pointer opacity-0 group-hover/comment:opacity-100 duration-150"
         >
           <CornerDownRight className="w-3 h-3" /> Reply
         </button>
@@ -174,8 +175,8 @@ export function CommentActions({
                     ? "text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-500/[0.06]"
                     : "text-emerald-400/35"
                   : isOwn
-                    ? "text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
-                    : "text-white/20",
+                    ? "text-text-muted-medium hover:txt-tone-primary hover:bg-surface-hover-soft"
+                    : "text-text-muted-weak",
               )}
             >
               {comment.resolved ? (
@@ -200,7 +201,10 @@ export function CommentActions({
                 setMenuPos({ top: rect.bottom + 4, left: rect.right - 120 });
                 onSetActiveMoreMenu(comment.id);
               }}
-              className="text-white/20 hover:text-white/50 p-0.5 rounded hover:bg-white/[0.04] transition-colors cursor-pointer"
+              className={cn(
+                "p-0.5 text-text-muted-weak hover:text-text-muted-medium cursor-pointer",
+                GHOST_ICON_BUTTON_CLASS,
+              )}
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </button>
@@ -214,7 +218,7 @@ export function CommentActions({
             <div className="relative ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150">
               <button
                 type="button"
-                className="text-white/15 p-0.5 rounded cursor-not-allowed"
+                className="text-text-muted-weak p-0.5 rounded cursor-not-allowed"
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
@@ -251,7 +255,7 @@ export function CommentActions({
                   }}
                   className={cn(MENU_ITEM_CLASS, "txt-tone-muted")}
                 >
-                  <Pencil className="w-3.5 h-3.5 shrink-0 text-white/60" />
+                  <Pencil className="w-3.5 h-3.5 shrink-0 text-text-muted-medium" />
                   <span className="group-hover:text-white transition-colors">
                     Edit
                   </span>

@@ -4,8 +4,14 @@ import { X, ChevronDown, CheckCheck, MessageSquare, Send } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import type { CollaborationComment, ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
+import { Z_LAYERS } from "../../lib/zLayers";
 import { MentionTextarea } from "../MentionTextarea";
 import type { MentionItem as MentionItemType } from "../mentions/types";
+import {
+  DIVIDER_SUBTLE_CLASS,
+  GHOST_ICON_BUTTON_CLASS,
+  PRIMARY_ACTION_BUTTON_CLASS,
+} from "../ui/controlChrome";
 import { ProjectDropdown } from "./ProjectDropdown";
 type ChatSidebarViewProps = {
   isOpen: boolean;
@@ -80,9 +86,10 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute top-0 right-0 bottom-0 w-[420px] bg-bg-surface border-l border-white/[0.05] shadow-2xl z-50 flex flex-col overflow-hidden pointer-events-auto"
+          className="absolute top-0 right-0 bottom-0 w-[420px] bg-bg-surface border-l border-border-subtle-soft shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+          style={{ zIndex: Z_LAYERS.dropdown }}
         >
-          <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-white/[0.05] bg-bg-surface relative z-20">
+          <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20">
             <div className="flex items-center w-full pr-10">
               <ProjectDropdown
                 activeProject={activeProject}
@@ -92,7 +99,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                 onSwitchProject={onSwitchProject}
               />
               {totalThreadCount > 0 && (
-                <div className="ml-auto flex items-center gap-1.5 txt-role-meta text-white/25 select-none mr-2">
+                <div className="ml-auto flex items-center gap-1.5 txt-role-meta text-text-muted-weak select-none mr-2">
                   <MessageSquare className="w-3 h-3" />
                   <span>{totalThreadCount}</span>
                 </div>
@@ -101,23 +108,26 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
             <button
               onClick={onClose}
               aria-label="Close sidebar"
-              className="absolute top-1/2 -translate-y-1/2 right-3 p-2 hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 right-3 p-2 text-text-muted-medium hover:text-text-tone-primary cursor-pointer",
+                GHOST_ICON_BUTTON_CLASS,
+              )}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="shrink-0 px-4 pt-4 pb-3 border-b border-white/[0.04]">
+          <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border-subtle-soft">
             <form onSubmit={onSubmitComment}>
               <div
                 className={cn(
                   "flex items-start gap-2.5 rounded-xl p-3 transition-all duration-200 border",
                   inputFocused
-                    ? "bg-white/[0.03] border-white/[0.08]"
-                    : "bg-transparent border-transparent hover:bg-white/[0.02]",
+                    ? "bg-surface-muted-soft border-border-soft"
+                    : "bg-transparent border-transparent hover:bg-surface-hover-subtle",
                 )}
               >
                 <div className="shrink-0 pt-0.5">
-                  <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-white/[0.06]">
+                  <div className="w-[26px] h-[26px] rounded-full overflow-hidden bg-bg-avatar-fallback ring-1 ring-border-soft">
                     {currentUserAvatar ? (
                       <img
                         src={currentUserAvatar}
@@ -125,7 +135,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-white/10 flex items-center justify-center txt-role-kbd font-medium text-white/80">
+                      <div className="w-full h-full bg-surface-active-soft flex items-center justify-center txt-role-kbd font-medium txt-tone-primary">
                         {getInitials(currentUserName)}
                       </div>
                     )}
@@ -139,7 +149,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                     onFocus={() => onInputFocusChange(true)}
                     onBlur={() => onInputFocusChange(false)}
                     placeholder="Leave a comment... (@ to mention)"
-                    className="w-full bg-transparent border-none p-0 txt-role-body-md txt-tone-primary placeholder:text-white/20 focus:outline-none resize-none leading-normal min-h-[22px]"
+                    className="w-full bg-transparent border-none p-0 txt-role-body-md txt-tone-primary placeholder:text-text-muted-weak focus:outline-none resize-none leading-normal min-h-[22px]"
                     rows={1}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -158,7 +168,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                         transition={{ duration: 0.12 }}
                         className="flex items-center justify-between mt-2 overflow-hidden"
                       >
-                        <span className="txt-role-kbd text-white/15 select-none">
+                        <span className="txt-role-kbd text-text-muted-weak select-none">
                           ⌘Enter to send · @ to mention
                         </span>
                         <button
@@ -167,8 +177,8 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-1 rounded-lg txt-role-meta transition-all cursor-pointer",
                             inputValue.trim()
-                              ? "bg-white/90 text-bg-base hover:bg-white"
-                              : "bg-white/[0.06] text-white/20 cursor-not-allowed",
+                              ? PRIMARY_ACTION_BUTTON_CLASS
+                              : "bg-surface-active-soft text-text-muted-weak cursor-not-allowed",
                           )}
                         >
                           <Send className="w-3 h-3" /> Send
@@ -194,13 +204,13 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
           >
             {currentComments.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-4">
-                  <MessageSquare className="w-5 h-5 text-white/15" />
+                <div className="w-12 h-12 rounded-xl bg-surface-muted-soft border border-border-subtle-soft flex items-center justify-center mb-4">
+                  <MessageSquare className="w-5 h-5 text-text-muted-weak" />
                 </div>
-                <p className="txt-role-body-md text-white/25 mb-1">
+                <p className="txt-role-body-md text-text-muted-medium mb-1">
                   No comments yet
                 </p>
-                <p className="txt-role-body-sm text-white/12 max-w-[200px]">
+                <p className="txt-role-body-sm text-text-muted-weak max-w-[200px]">
                   Start a conversation about {activeProject.name}
                 </p>
               </div>
@@ -220,9 +230,9 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                           ? "Collapse resolved threads"
                           : "Expand resolved threads"
                       }
-                      className="w-full flex items-center gap-2 px-3 py-2 txt-role-meta text-white/20 hover:text-white/35 transition-colors cursor-pointer select-none"
+                      className="w-full flex items-center gap-2 px-3 py-2 txt-role-meta text-text-muted-weak hover:text-text-muted-medium transition-colors cursor-pointer select-none"
                     >
-                      <div className="flex-1 h-px bg-white/[0.04]" />
+                      <div className={`flex-1 h-px ${DIVIDER_SUBTLE_CLASS}`} />
                       <div className="flex items-center gap-1.5 shrink-0">
                         <CheckCheck className="w-3 h-3" />
                         <span>
@@ -236,7 +246,7 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
                           )}
                         />
                       </div>
-                      <div className="flex-1 h-px bg-white/[0.04]" />
+                      <div className={`flex-1 h-px ${DIVIDER_SUBTLE_CLASS}`} />
                     </button>
                     <AnimatePresence>
                       {showResolvedThreads && (

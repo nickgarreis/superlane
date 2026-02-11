@@ -14,6 +14,7 @@ import {
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
 } from "./popup/popupChrome";
+import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
 const SETTINGS_TABS: Array<{
   id: SettingsTab;
   icon: typeof User;
@@ -119,8 +120,8 @@ export function SettingsPopup({
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg txt-role-body-lg font-medium transition-all group outline-none cursor-pointer",
                   activeTab === item.id
-                    ? "bg-white/10 txt-tone-primary"
-                    : "txt-tone-subtle hover:txt-tone-primary hover:bg-white/5",
+                    ? "bg-surface-active-soft txt-tone-primary"
+                    : "txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
                 )}
               >
                 <item.icon
@@ -137,7 +138,7 @@ export function SettingsPopup({
                 {activeTab === item.id && (
                   <motion.div
                     layoutId="activeTabIndicator"
-                    className="ml-auto w-1 h-1 rounded-full bg-white"
+                    className="ml-auto w-1 h-1 rounded-full bg-text-tone-primary"
                     transition={{ duration: 0.2 }}
                   />
                 )}
@@ -149,7 +150,11 @@ export function SettingsPopup({
           <div className="absolute top-4 right-4 z-10">
             <button
               onClick={onClose}
-              className={`${POPUP_CLOSE_BUTTON_CLASS} p-2 text-white/40 hover:text-white outline-none`}
+              className={cn(
+                POPUP_CLOSE_BUTTON_CLASS,
+                GHOST_ICON_BUTTON_CLASS,
+                "p-2 text-text-muted-medium hover:text-text-tone-primary",
+              )}
             >
               <X size={20} />
             </button>
