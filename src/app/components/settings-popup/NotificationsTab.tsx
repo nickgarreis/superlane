@@ -51,20 +51,13 @@ type NotificationsTabProps = {
 };
 export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
   const [state, setState] = useState<NotificationSettingsData>(data);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<
-    "idle" | "pending" | "saving" | "saved"
-  >("idle");
   const hasEditedRef = useRef(false);
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const statusResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveRunIdRef = useRef(0);
   useEffect(
     () => () => {
       if (saveDebounceRef.current) {
         clearTimeout(saveDebounceRef.current);
-      }
-      if (statusResetRef.current) {
-        clearTimeout(statusResetRef.current);
       }
     },
     [],
@@ -78,7 +71,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
       return;
     }
     saveRunIdRef.current += 1;
-    setAutoSaveStatus("idle");
     setState({
       events: {
         eventNotifications: data.events.eventNotifications,
@@ -97,17 +89,14 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
     }
     if (isSyncedWithSource) {
       hasEditedRef.current = false;
-      setAutoSaveStatus("idle");
       return;
     }
-    setAutoSaveStatus("pending");
     if (saveDebounceRef.current) {
       clearTimeout(saveDebounceRef.current);
     }
     const runId = saveRunIdRef.current + 1;
     saveRunIdRef.current = runId;
     saveDebounceRef.current = setTimeout(() => {
-      setAutoSaveStatus("saving");
       void (async () => {
         try {
           await onSave(state);
@@ -115,15 +104,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
             return;
           }
           hasEditedRef.current = false;
-          setAutoSaveStatus("saved");
-          if (statusResetRef.current) {
-            clearTimeout(statusResetRef.current);
-          }
-          statusResetRef.current = setTimeout(() => {
-            if (runId === saveRunIdRef.current) {
-              setAutoSaveStatus("idle");
-            }
-          }, 1500);
         } catch (error) {
           if (runId !== saveRunIdRef.current) {
             return;
@@ -132,7 +112,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
             showToast: false,
           });
           toast.error("Failed to update notification preferences");
-          setAutoSaveStatus("pending");
         }
       })();
     }, 700);
@@ -190,15 +169,6 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
             }));
           }}
         />
-      </div>
-      <div className="pt-2 flex justify-end min-h-6">
-        {autoSaveStatus !== "idle" && (
-          <span className="txt-role-body-sm txt-tone-faint">
-            {autoSaveStatus === "pending" && "Changes pending..."}
-            {autoSaveStatus === "saving" && "Auto-saving..."}
-            {autoSaveStatus === "saved" && "Saved"}
-          </span>
-        )}
       </div>
     </div>
   );

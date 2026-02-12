@@ -58,6 +58,8 @@ describe("useDashboardController", () => {
   test("returns expected content model for tasks/archive/activities/project routes", () => {
     const project = buildProject("project-1", false);
     const archivedProject = buildProject("project-2", true);
+    const draftProject = buildProject("project-3", false, "Draft");
+    const reviewProject = buildProject("project-4", false, "Review");
     const navigateView = vi.fn();
 
     const tasksHook = renderHook(() =>
@@ -113,6 +115,34 @@ describe("useDashboardController", () => {
     expect(projectHook.result.current.contentModel).toMatchObject({
       kind: "main",
       project,
+    });
+
+    const draftProjectHook = renderHook(() =>
+      useDashboardController({
+        currentView: "project:project-3",
+        projects: { "project-3": draftProject },
+        visibleProjects: { "project-3": draftProject },
+        setIsSidebarOpen: vi.fn(),
+        setPendingHighlight: vi.fn(),
+        navigateView,
+      }),
+    );
+    expect(draftProjectHook.result.current.contentModel).toEqual({
+      kind: "empty",
+    });
+
+    const reviewProjectHook = renderHook(() =>
+      useDashboardController({
+        currentView: "project:project-4",
+        projects: { "project-4": reviewProject },
+        visibleProjects: { "project-4": reviewProject },
+        setIsSidebarOpen: vi.fn(),
+        setPendingHighlight: vi.fn(),
+        navigateView,
+      }),
+    );
+    expect(reviewProjectHook.result.current.contentModel).toEqual({
+      kind: "empty",
     });
 
     const archiveProjectHook = renderHook(() =>

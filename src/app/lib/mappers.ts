@@ -149,5 +149,5 @@ export const mapWorkspaceFilesToUi = (
     thumbnailRef: file.thumbnailRef ?? null,
     mimeType: file.mimeType ?? null,
     sizeBytes: file.sizeBytes ?? null,
-    downloadable: file.downloadable ?? false,
+    downloadable: file.downloadable,
   }));

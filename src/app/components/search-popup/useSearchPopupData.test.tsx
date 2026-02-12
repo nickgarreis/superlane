@@ -63,7 +63,7 @@ const PROJECTS: Record<string, ProjectData> = {
     tasks: [
       {
         id: "task-1",
-        title: "Draft homepage wireframe",
+        title: "Homepage wireframe",
         assignee: { name: "Alex", avatar: "" },
         dueDateEpochMs: null,
         completed: false,
@@ -83,7 +83,38 @@ const PROJECTS: Record<string, ProjectData> = {
     },
     category: "Ops",
     archived: false,
-    tasks: [],
+    tasks: [
+      {
+        id: "task-2",
+        title: "Draft restricted task",
+        assignee: { name: "Alex", avatar: "" },
+        dueDateEpochMs: null,
+        completed: false,
+      },
+    ],
+  },
+  "project-3": {
+    id: "project-3",
+    name: "Brand Approval",
+    description: "Review queue",
+    creator: { name: "Owner", avatar: "" },
+    status: {
+      label: "Review",
+      color: "#F6DD79",
+      bgColor: "rgba(246,221,121,0.12)",
+      dotColor: "#F6DD79",
+    },
+    category: "Brand",
+    archived: false,
+    tasks: [
+      {
+        id: "task-3",
+        title: "Review restricted task",
+        assignee: { name: "Casey", avatar: "" },
+        dueDateEpochMs: null,
+        completed: false,
+      },
+    ],
   },
 };
 
@@ -101,6 +132,22 @@ const FILES: ProjectFileData[] = [
     projectPublicId: "",
     tab: "Assets",
     name: "hero-logo.png",
+    type: "PNG",
+    displayDateEpochMs: 1700000000000,
+  },
+  {
+    id: "file-3",
+    projectPublicId: "project-2",
+    tab: "Attachments",
+    name: "draft-hidden.pdf",
+    type: "PDF",
+    displayDateEpochMs: 1700000000000,
+  },
+  {
+    id: "file-4",
+    projectPublicId: "project-3",
+    tab: "Assets",
+    name: "review-hidden.png",
     type: "PNG",
     displayDateEpochMs: 1700000000000,
   },
@@ -204,6 +251,71 @@ describe("useSearchPopupData", () => {
       fileName: "brief.pdf",
       fileTab: "Attachments",
     });
+  });
+
+  test("keeps draft/review project hits but filters draft/review task and file hits", () => {
+    const onClose = vi.fn();
+    const onNavigate = vi.fn();
+
+    const baseArgs = {
+      projects: PROJECTS,
+      files: FILES,
+      query: "draft",
+      deferredQuery: "draft",
+      recentResults: [],
+      onClose,
+      onNavigate,
+      onOpenInbox: vi.fn(),
+      onOpenCreateProject: vi.fn(),
+      onOpenSettings: vi.fn(),
+      quickActions: QUICK_ACTIONS,
+    };
+
+    const { result, rerender } = renderHook(
+      (props: typeof baseArgs) => useSearchPopupData(props),
+      { initialProps: baseArgs },
+    );
+
+    const draftProjectResult = result.current.flatResults.find(
+      (entry) => entry.type === "project" && entry.projectId === "project-2",
+    );
+    expect(draftProjectResult).toBeDefined();
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "task" && entry.projectId === "project-2",
+      ),
+    ).toBe(false);
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "file" && entry.projectId === "project-2",
+      ),
+    ).toBe(false);
+
+    draftProjectResult?.action();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledWith("project:project-2");
+
+    rerender({
+      ...baseArgs,
+      query: "review",
+      deferredQuery: "review",
+    });
+
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "project" && entry.projectId === "project-3",
+      ),
+    ).toBe(true);
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "task" && entry.projectId === "project-3",
+      ),
+    ).toBe(false);
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "file" && entry.projectId === "project-3",
+      ),
+    ).toBe(false);
   });
 
   test("builds default content and suggestions when query is empty", () => {

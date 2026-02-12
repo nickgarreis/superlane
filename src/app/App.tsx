@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthCallbackPage } from "./components/AuthCallbackPage";
 import { AuthPage } from "./components/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { RootPage } from "./components/RootPage";
 import { getPageTitle } from "./lib/seo";
 
@@ -35,6 +36,7 @@ export default function App() {
       <Route path="/login" element={<AuthPage mode="signin" />} />
       <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/dashboard" element={<Navigate to="/tasks" replace />} />
       <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
       <Route path="/activities" element={<Navigate to="/tasks" replace />} />

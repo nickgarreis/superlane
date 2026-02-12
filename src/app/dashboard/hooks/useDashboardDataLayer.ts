@@ -62,6 +62,7 @@ export function useDashboardDataLayer() {
   const {
     ensureDefaultWorkspaceAction,
     createWorkspaceMutation,
+    requestPasswordResetAction,
     updateAccountProfileAction,
     generateAvatarUploadUrlMutation,
     finalizeAvatarUploadMutation,
@@ -187,6 +188,7 @@ export function useDashboardDataLayer() {
     reconcileWorkspaceInvitationsAction,
     reconcileWorkspaceOrganizationMembershipsAction,
     updateAccountProfileAction,
+    requestPasswordResetAction,
     generateAvatarUploadUrlMutation,
     finalizeAvatarUploadMutation,
     removeAvatarMutation,

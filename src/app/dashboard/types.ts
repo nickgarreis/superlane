@@ -247,6 +247,7 @@ export interface SettingsCommands {
     lastName: string;
     email: string;
   }) => Promise<void>;
+  requestPasswordReset: () => Promise<void>;
   uploadAccountAvatar: (file: File) => Promise<void>;
   removeAccountAvatar: () => Promise<void>;
   saveNotifications: (payload: {

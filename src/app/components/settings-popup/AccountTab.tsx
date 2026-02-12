@@ -11,12 +11,13 @@ type AccountTabProps = {
     lastName: string;
     email: string;
   }) => Promise<void>;
+  onRequestPasswordReset: () => Promise<void>;
   onUploadAvatar: (file: File) => Promise<void>;
-  onRemoveAvatar: () => Promise<void>;
 };
 export function AccountTab({
   data,
   onSave,
+  onRequestPasswordReset,
   onUploadAvatar,
 }: AccountTabProps) {
   const [firstName, setFirstName] = useState(data.firstName);
@@ -24,6 +25,9 @@ export function AccountTab({
   const [email, setEmail] = useState(data.email);
   const [autoSaveStatus, setAutoSaveStatus] = useState<
     "idle" | "pending" | "saving" | "saved"
+  >("idle");
+  const [passwordResetStatus, setPasswordResetStatus] = useState<
+    "idle" | "sending" | "sent" | "error"
   >("idle");
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -53,6 +57,7 @@ export function AccountTab({
     setFirstName(data.firstName);
     setLastName(data.lastName);
     setEmail(data.email);
+    setPasswordResetStatus("idle");
   }, [data.firstName, data.lastName, data.email]);
   useEffect(() => {
     if (!hasEditedRef.current) {
@@ -142,6 +147,21 @@ export function AccountTab({
       if (!avatarBusy) {
         fileInputRef.current?.click();
       }
+    }
+  };
+  const handleSendPasswordReset = async () => {
+    if (passwordResetStatus === "sending") {
+      return;
+    }
+    setPasswordResetStatus("sending");
+    try {
+      await onRequestPasswordReset();
+      setPasswordResetStatus("sent");
+    } catch (error) {
+      reportUiError("settings.account.passwordReset", error, {
+        showToast: false,
+      });
+      setPasswordResetStatus("error");
     }
   };
   return (
@@ -240,6 +260,40 @@ export function AccountTab({
               />
             </div>
           </div>
+        </div>
+      </div>
+      <div className="rounded-xl border border-border-soft bg-surface-muted-soft px-4 py-4 flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h4 className="txt-role-body-md font-medium txt-tone-primary">
+            Security
+          </h4>
+          <p className="txt-role-body-sm txt-tone-faint">
+            Send a secure password reset link to your account email.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              void handleSendPasswordReset();
+            }}
+            disabled={passwordResetStatus === "sending"}
+            className="h-[38px] rounded-lg border border-border-soft bg-surface-hover-soft px-3 txt-role-body-sm txt-tone-primary hover:bg-surface-active-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {passwordResetStatus === "sending"
+              ? "Sending reset link..."
+              : "Send password reset link"}
+          </button>
+          {passwordResetStatus === "sent" && (
+            <span className="txt-role-body-sm txt-tone-faint">
+              Reset link sent to your account email.
+            </span>
+          )}
+          {passwordResetStatus === "error" && (
+            <span className="txt-role-body-sm txt-tone-faint">
+              Could not send reset link. Please try again.
+            </span>
+          )}
         </div>
       </div>
       <div className="pt-2 flex justify-end min-h-6">

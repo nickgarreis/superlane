@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import { useDashboardFileActions } from "./useDashboardFileActions";
 import { useDashboardProjectActions } from "./useDashboardProjectActions";
+import { useDraftReviewProjectRouteGuard } from "./useDraftReviewProjectRouteGuard";
 import {
   asPendingUploadId,
   asProjectFileId,
@@ -91,6 +92,7 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     handleOpenSettings: navigation.handleOpenSettings,
     handleCloseSettings: navigation.handleCloseSettings,
     handleSaveAccountSettings: workspaceActions.handleSaveAccountSettings,
+    handleRequestPasswordReset: workspaceActions.handleRequestPasswordReset,
     handleUploadAccountAvatar: workspaceActions.handleUploadAccountAvatar,
     handleRemoveAccountAvatar: workspaceActions.handleRemoveAccountAvatar,
     handleSaveSettingsNotifications:
@@ -108,6 +110,18 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     deleteProject,
     updateProjectStatus,
   } = projectCommands;
+
+  useDraftReviewProjectRouteGuard({
+    currentView: navigation.currentView,
+    locationPathname: navigation.location.pathname,
+    projects: data.projects,
+    projectsPaginationStatus: data.projectsPaginationStatus,
+    editProject: projectCommands.editProject,
+    viewReviewProject: projectCommands.viewReviewProject,
+    navigateToPath: (path, replace = false) =>
+      navigation.navigate(path, { replace }),
+  });
+
   const mainContentFileActions = useMemo<MainContentFileActions>(
     () => ({
       create: createProjectFile,

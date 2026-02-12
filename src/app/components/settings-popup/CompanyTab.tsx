@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Camera } from "lucide-react";
+import { ArrowUpRight, Camera } from "lucide-react";
 import { toast } from "sonner";
 import type { Workspace } from "../../types";
 import type { SettingsFocusTarget } from "../../dashboard/types";
@@ -237,9 +237,15 @@ export function CompanyTab({
             <button
               type="button"
               onClick={() => toast("Billing management is coming soon")}
-              className={`mt-2 w-fit cursor-pointer px-3 py-1.5 rounded-full txt-role-body-sm font-medium ${SECONDARY_ACTION_BUTTON_CLASS}`}
+              className={`mt-2 w-fit cursor-pointer px-3 py-1.5 rounded-full txt-role-body-sm font-medium inline-flex items-center gap-1 ${SECONDARY_ACTION_BUTTON_CLASS}`}
             >
               Manage billing
+              <ArrowUpRight
+                size={14}
+                strokeWidth={2}
+                aria-hidden="true"
+                className="pointer-events-none shrink-0"
+              />
             </button>
           </div>
         </div>

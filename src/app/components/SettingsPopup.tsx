@@ -67,8 +67,8 @@ export function SettingsPopup({
   company,
   loadingCompany,
   onSaveAccount,
+  onRequestPasswordReset,
   onUploadAvatar,
-  onRemoveAvatar,
   onSaveNotifications,
   onUpdateWorkspaceGeneral,
   onUploadWorkspaceLogo,
@@ -248,8 +248,8 @@ export function SettingsPopup({
                       <AccountTab
                         data={account}
                         onSave={onSaveAccount}
+                        onRequestPasswordReset={onRequestPasswordReset}
                         onUploadAvatar={onUploadAvatar}
-                        onRemoveAvatar={onRemoveAvatar}
                       />
                     )}
                     {section.id === "Notifications" && notifications && (

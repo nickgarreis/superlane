@@ -1,13 +1,17 @@
 import React, {
   useCallback,
   useEffect,
+  type FormEvent,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "@workos-inc/authkit-react";
-import { Link, useLocation } from "react-router-dom";
+import { useAction } from "convex/react";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { api } from "../../../convex/_generated/api";
+import { reportUiError } from "../lib/errors";
 import { storeAuthMode, storeReturnTo } from "../lib/authReturnTo";
 type AuthMode = "signin" | "signup";
 const CONTROL_CHARS_PATTERN = /[\u0000-\u001F\u007F]/;
@@ -38,9 +42,16 @@ export function AuthPage({
   mode: AuthMode;
   defaultReturnTo?: string;
 }) {
+  const requestPasswordResetAction = useAction(api.auth.requestPasswordReset);
   const { signIn, signUp, isLoading, user } = useAuth();
   const location = useLocation();
   const [pendingAction, setPendingAction] = useState<AuthMode | null>(null);
+  const [isSendingResetLink, setIsSendingResetLink] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetStatus, setResetStatus] = useState<"idle" | "sent" | "error">(
+    "idle",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const configuredRedirect = import.meta.env.VITE_WORKOS_REDIRECT_URI;
   const autoStartedRef = useRef(false);
@@ -57,6 +68,20 @@ export function AuthPage({
   const callbackErrorMessage = workosError
     ? `WorkOS error: ${workosError}${workosErrorDescription ? ` (${workosErrorDescription})` : ""}`
     : null;
+  const isSignIn = mode === "signin";
+  const authenticatedDestination = useMemo(() => {
+    const safeReturnTo = returnTo ?? defaultReturnTo;
+    const destinationPathname = safeReturnTo.split(/[?#]/, 1)[0] ?? safeReturnTo;
+    if (
+      destinationPathname === "/login" ||
+      destinationPathname === "/signup" ||
+      destinationPathname === "/auth/callback" ||
+      destinationPathname === "/reset-password"
+    ) {
+      return "/tasks";
+    }
+    return safeReturnTo;
+  }, [defaultReturnTo, returnTo]);
   let redirectOriginMismatch = false;
   if (configuredRedirect) {
     try {
@@ -92,15 +117,64 @@ export function AuthPage({
     },
     [pendingAction, isLoading, returnTo, signIn, signUp],
   );
+
+  const handleForgotPasswordSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (isSendingResetLink || isLoading) {
+        return;
+      }
+      const normalizedEmail = resetEmail.trim().toLowerCase();
+      if (normalizedEmail.length === 0) {
+        setResetStatus("error");
+        return;
+      }
+      setResetStatus("idle");
+      setIsSendingResetLink(true);
+      try {
+        await requestPasswordResetAction({
+          source: "login",
+          email: normalizedEmail,
+        });
+        setResetStatus("sent");
+      } catch (error) {
+        reportUiError("auth.passwordReset.request", error, { showToast: false });
+        setResetStatus("error");
+      } finally {
+        setIsSendingResetLink(false);
+      }
+    },
+    [isLoading, isSendingResetLink, requestPasswordResetAction, resetEmail],
+  );
+
   useEffect(() => {
-    if (user || isLoading || callbackErrorMessage || autoStartedRef.current) {
+    if (
+      isSignIn ||
+      user ||
+      isLoading ||
+      callbackErrorMessage ||
+      autoStartedRef.current
+    ) {
       return;
     }
     autoStartedRef.current = true;
-    void handleAction(mode);
-  }, [user, isLoading, callbackErrorMessage, handleAction, mode]);
+    void handleAction("signup");
+  }, [isSignIn, user, isLoading, callbackErrorMessage, handleAction]);
+
+  useEffect(() => {
+    if (isSignIn) {
+      return;
+    }
+    setIsForgotPasswordOpen(false);
+    setResetStatus("idle");
+    setResetEmail("");
+  }, [isSignIn]);
+
+  if (user) {
+    return <Navigate to={authenticatedDestination} replace />;
+  }
+
   const isBusy = isLoading || pendingAction !== null;
-  const isSignIn = mode === "signin";
   return (
     <div className="min-h-screen w-full bg-bg-base flex items-center justify-center p-4 font-app">
       <motion.div
@@ -135,6 +209,64 @@ export function AuthPage({
                 ? "Continue to sign in"
                 : "Continue to sign up"}
           </button>
+          {isSignIn && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPasswordOpen((current) => !current);
+                  setResetStatus("idle");
+                }}
+                className="self-start txt-role-body-sm txt-tone-subtle hover:txt-tone-primary transition-colors cursor-pointer"
+              >
+                Forgot password?
+              </button>
+              {isForgotPasswordOpen && (
+                <form onSubmit={handleForgotPasswordSubmit} className="flex flex-col gap-2">
+                  <label
+                    htmlFor="forgot-password-email"
+                    className="txt-role-body-sm txt-tone-faint"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="forgot-password-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(event) => {
+                      setResetEmail(event.target.value);
+                      if (resetStatus !== "idle") {
+                        setResetStatus("idle");
+                      }
+                    }}
+                    disabled={isSendingResetLink}
+                    className="w-full h-[42px] rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 txt-role-body-md txt-tone-primary placeholder:text-white/35 focus:outline-none focus:border-white/30 transition-colors disabled:opacity-60"
+                    placeholder="you@company.com"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSendingResetLink}
+                    className="w-full h-[40px] rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-200 txt-role-body-md txt-tone-secondary cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSendingResetLink
+                      ? "Sending link..."
+                      : "Send password reset link"}
+                  </button>
+                  {resetStatus === "sent" && (
+                    <p className="txt-role-body-sm txt-tone-muted" role="status">
+                      If an account exists for this email, a reset link has been sent.
+                    </p>
+                  )}
+                  {resetStatus === "error" && (
+                    <p className="txt-role-body-sm txt-tone-muted" role="alert">
+                      Unable to send reset link right now. Please try again.
+                    </p>
+                  )}
+                </form>
+              )}
+            </>
+          )}
           <Link
             to={
               isSignIn

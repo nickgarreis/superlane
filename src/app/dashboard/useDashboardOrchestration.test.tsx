@@ -187,6 +187,7 @@ const buildApiHandlers = () => ({
   finalizeBrandAssetUploadMutation: vi.fn(),
   removeBrandAssetMutation: vi.fn(),
   softDeleteWorkspaceMutation: vi.fn(),
+  requestPasswordResetAction: vi.fn(),
   updateAccountProfileAction: vi.fn(),
   inviteWorkspaceMemberAction: vi.fn(),
   resendWorkspaceInvitationAction: vi.fn(),
@@ -233,6 +234,7 @@ const buildDashboardCommandsState = () => ({
     openSettings: vi.fn(),
     closeSettings: vi.fn(),
     saveAccount: vi.fn(),
+    requestPasswordReset: vi.fn(),
     uploadAccountAvatar: vi.fn(),
     removeAccountAvatar: vi.fn(),
     saveNotifications: vi.fn(),
@@ -331,6 +333,7 @@ beforeEach(() => {
   useDashboardWorkspaceActionsMock.mockReturnValue({
     runWorkspaceSettingsReconciliation: vi.fn(),
     handleSaveAccountSettings: vi.fn(),
+    handleRequestPasswordReset: vi.fn(),
     handleUploadAccountAvatar: vi.fn(),
     handleRemoveAccountAvatar: vi.fn(),
     handleSaveSettingsNotifications: vi.fn(),

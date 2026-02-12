@@ -6,6 +6,9 @@ describe("getPageTitle", () => {
     expect(getPageTitle("/login")).toBe("Sign In | Build Design");
     expect(getPageTitle("/signup")).toBe("Sign Up | Build Design");
     expect(getPageTitle("/auth/callback")).toBe("Signing In | Build Design");
+    expect(getPageTitle("/reset-password")).toBe(
+      "Reset Password | Build Design",
+    );
   });
 
   test("returns dashboard titles", () => {

@@ -1,13 +1,14 @@
 import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
-import { query } from "./_generated/server";
+import { action, internalQuery, query } from "./_generated/server";
 import type { DataModel } from "./_generated/dataModel";
 import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
 } from "./lib/workosOrganization";
-import { getWorkosRuntimeEnv } from "./lib/env";
+import { getAppOriginEnv, getWorkosRuntimeEnv } from "./lib/env";
+import { logError, logInfo } from "./lib/logging";
 
 const authFunctions: AuthFunctions = internal.auth;
 const workosEnv = getWorkosRuntimeEnv();
@@ -38,6 +39,35 @@ const fullName = (firstName?: string | null, lastName?: string | null, email?: s
     return name;
   }
   return email ?? "Unknown user";
+};
+
+const normalizeEmail = (value: string | null | undefined): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0 || !normalized.includes("@")) {
+    return null;
+  }
+  return normalized;
+};
+
+const maskEmailForLogs = (value: string): string => {
+  const [localPart = "", domainPart = ""] = value.split("@");
+  if (!domainPart) {
+    return "***";
+  }
+  const maskedLocal = localPart.length <= 2 ? "***" : `${localPart.slice(0, 2)}***`;
+  return `${maskedLocal}@${domainPart}`;
+};
+
+const PASSWORD_RESET_RETURN_TO_BY_SOURCE = {
+  login: "/tasks",
+  settings: "/settings?tab=Account",
+} as const;
+
+type IndexEqQuery = {
+  eq: (field: string, value: string) => unknown;
 };
 
 const syncOrganizationMembershipEvent = async (
@@ -79,7 +109,9 @@ const syncOrganizationMembershipEvent = async (
 
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_workosOrganizationId", (q: any) => q.eq("workosOrganizationId", workosOrganizationId))
+    .withIndex("by_workosOrganizationId", (q: IndexEqQuery) =>
+      q.eq("workosOrganizationId", workosOrganizationId),
+    )
     .unique();
 
   if (!workspace) {
@@ -88,7 +120,9 @@ const syncOrganizationMembershipEvent = async (
 
   const appUser = await ctx.db
     .query("users")
-    .withIndex("by_workosUserId", (q: any) => q.eq("workosUserId", workosUserId))
+    .withIndex("by_workosUserId", (q: IndexEqQuery) =>
+      q.eq("workosUserId", workosUserId),
+    )
     .unique();
 
   if (!appUser) {
@@ -123,13 +157,13 @@ const syncOrganizationNameEvent = async (
   const now = Date.now();
   const memberships = await ctx.db
     .query("workosOrganizationMemberships")
-    .withIndex("by_workosOrganizationId", (q: any) =>
+    .withIndex("by_workosOrganizationId", (q: IndexEqQuery) =>
       q.eq("workosOrganizationId", workosOrganizationId),
     )
     .collect();
 
   await Promise.all(
-    memberships.map((membership: any) =>
+    memberships.map((membership: { _id: string }) =>
       ctx.db.patch(membership._id, {
         organizationName,
         updatedAt: now,
@@ -163,7 +197,9 @@ const syncInvitationEvent = async (
 
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_workosOrganizationId", (q: any) => q.eq("workosOrganizationId", organizationId))
+    .withIndex("by_workosOrganizationId", (q: IndexEqQuery) =>
+      q.eq("workosOrganizationId", organizationId),
+    )
     .unique();
 
   if (!workspace) {
@@ -173,7 +209,9 @@ const syncInvitationEvent = async (
   const now = Date.now();
   const existing = await ctx.db
     .query("workspaceInvitations")
-    .withIndex("by_invitationId", (q: any) => q.eq("invitationId", invitationId))
+    .withIndex("by_invitationId", (q: IndexEqQuery) =>
+      q.eq("invitationId", invitationId),
+    )
     .unique();
 
   const patch = {
@@ -298,11 +336,11 @@ export const { authKitEvent } = authKit.events({
     const now = Date.now();
     const organizationMemberships = await ctx.db
       .query("workosOrganizationMemberships")
-      .withIndex("by_workosOrganizationId", (q: any) => q.eq("workosOrganizationId", workosOrganizationId))
+      .withIndex("by_workosOrganizationId", (q) => q.eq("workosOrganizationId", workosOrganizationId))
       .collect();
 
     await Promise.all(
-      organizationMemberships.map((membership: any) =>
+      organizationMemberships.map((membership) =>
         ctx.db.patch(membership._id, {
           status: "removed",
           updatedAt: now,
@@ -312,7 +350,7 @@ export const { authKitEvent } = authKit.events({
 
     const workspace = await ctx.db
       .query("workspaces")
-      .withIndex("by_workosOrganizationId", (q: any) => q.eq("workosOrganizationId", workosOrganizationId))
+      .withIndex("by_workosOrganizationId", (q) => q.eq("workosOrganizationId", workosOrganizationId))
       .unique();
 
     if (!workspace) {
@@ -321,11 +359,11 @@ export const { authKitEvent } = authKit.events({
 
     const workspaceMembers = await ctx.db
       .query("workspaceMembers")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", workspace._id))
       .collect();
 
     await Promise.all(
-      workspaceMembers.map((membership: any) =>
+      workspaceMembers.map((membership) =>
         ctx.db.patch(membership._id, {
           status: "removed",
           updatedAt: now,
@@ -378,5 +416,88 @@ export const getCurrentUser = query({
     }
 
     return user;
+  },
+});
+
+export const getUserByWorkosUserId = internalQuery({
+  args: {
+    workosUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_workosUserId", (q) => q.eq("workosUserId", args.workosUserId))
+      .unique();
+  },
+});
+
+export const requestPasswordReset = action({
+  args: v.object({
+    source: v.union(v.literal("login"), v.literal("settings")),
+    email: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const { appOrigin } = getAppOriginEnv();
+    const passwordResetUrl = new URL("/reset-password", appOrigin);
+    passwordResetUrl.searchParams.set(
+      "returnTo",
+      PASSWORD_RESET_RETURN_TO_BY_SOURCE[args.source],
+    );
+
+    let targetEmail: string | null = null;
+    if (args.source === "login") {
+      targetEmail = normalizeEmail(args.email);
+      if (!targetEmail) {
+        logInfo(
+          "auth.requestPasswordReset",
+          "Skipped password reset request from login due to missing normalized email",
+          { source: args.source },
+        );
+        return { accepted: true } as const;
+      }
+    } else {
+      const identity = await ctx.auth.getUserIdentity();
+      const workosUserId = identity?.subject;
+      if (!workosUserId) {
+        logInfo(
+          "auth.requestPasswordReset",
+          "Skipped settings password reset request due to missing auth identity",
+          { source: args.source },
+        );
+        return { accepted: true } as const;
+      }
+      const currentUser = await ctx.runQuery(internal.auth.getUserByWorkosUserId, {
+        workosUserId,
+      });
+      targetEmail = normalizeEmail(currentUser?.email);
+    }
+
+    if (!targetEmail) {
+      logInfo(
+        "auth.requestPasswordReset",
+        "Skipped password reset request due to missing normalized email",
+        { source: args.source },
+      );
+      return { accepted: true } as const;
+    }
+
+    try {
+      await authKit.workos.userManagement.sendPasswordResetEmail({
+        email: targetEmail,
+        passwordResetUrl: passwordResetUrl.toString(),
+      });
+    } catch (error) {
+      logError(
+        "auth.requestPasswordReset",
+        "Failed to dispatch password reset email",
+        {
+          source: args.source,
+          email: maskEmailForLogs(targetEmail),
+          error,
+        },
+      );
+    }
+
+    return { accepted: true } as const;
   },
 });

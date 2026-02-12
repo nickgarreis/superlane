@@ -22,6 +22,9 @@ type UseDashboardWorkspaceActionsArgs = {
   reconcileWorkspaceOrganizationMembershipsAction: DashboardActionHandler<
     typeof api.organizationSync.reconcileWorkspaceOrganizationMemberships
   >;
+  requestPasswordResetAction: DashboardActionHandler<
+    typeof api.auth.requestPasswordReset
+  >;
   updateAccountProfileAction: DashboardActionHandler<
     typeof api.settings.updateAccountProfile
   >;
@@ -94,6 +97,7 @@ export const useDashboardWorkspaceActions = ({
   createWorkspaceMutation,
   reconcileWorkspaceInvitationsAction,
   reconcileWorkspaceOrganizationMembershipsAction,
+  requestPasswordResetAction,
   updateAccountProfileAction,
   generateAvatarUploadUrlMutation,
   finalizeAvatarUploadMutation,
@@ -153,6 +157,11 @@ export const useDashboardWorkspaceActions = ({
     },
     [updateAccountProfileAction],
   );
+  const handleRequestPasswordReset = useCallback(async () => {
+    await requestPasswordResetAction({
+      source: "settings",
+    });
+  }, [requestPasswordResetAction]);
   const handleUploadAccountAvatar = useCallback(
     async (file: File) => {
       const { checksumSha256, uploadUrl } = await prepareUpload(
@@ -388,6 +397,7 @@ export const useDashboardWorkspaceActions = ({
   return {
     runWorkspaceSettingsReconciliation,
     handleSaveAccountSettings,
+    handleRequestPasswordReset,
     handleUploadAccountAvatar,
     handleRemoveAccountAvatar,
     handleSaveSettingsNotifications,

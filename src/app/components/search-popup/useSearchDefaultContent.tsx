@@ -96,7 +96,13 @@ export function useSearchDefaultContent({
     let taskSuggestionCount = 0;
     for (const task of effectiveWorkspaceTasks) {
       const project = task.projectId ? projectsById.get(task.projectId) : null;
-      if (!project || project.archived || project.status.label === "Completed") {
+      if (
+        !project ||
+        project.archived ||
+        project.status.label === "Completed" ||
+        project.status.label === "Draft" ||
+        project.status.label === "Review"
+      ) {
         continue;
       }
       if (task.completed || taskSuggestionCount >= 3) {

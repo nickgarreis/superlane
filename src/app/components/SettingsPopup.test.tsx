@@ -56,6 +56,7 @@ const buildProps = (
   },
   loadingCompany: false,
   onSaveAccount: vi.fn().mockResolvedValue(undefined),
+  onRequestPasswordReset: vi.fn().mockResolvedValue(undefined),
   onUploadAvatar: vi.fn().mockResolvedValue(undefined),
   onRemoveAvatar: vi.fn().mockResolvedValue(undefined),
   onSaveNotifications: vi.fn().mockResolvedValue(undefined),

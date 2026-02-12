@@ -37,6 +37,7 @@ const createBaseArgs = () => ({
   reconcileWorkspaceOrganizationMembershipsAction: vi
     .fn()
     .mockResolvedValue({}),
+  requestPasswordResetAction: vi.fn().mockResolvedValue({ accepted: true }),
   updateAccountProfileAction: vi.fn().mockResolvedValue({}),
   generateAvatarUploadUrlMutation: vi
     .fn()
@@ -179,6 +180,7 @@ describe("useDashboardWorkspaceActions", () => {
       lastName: "User",
       email: "nick@example.com",
     });
+    await result.current.handleRequestPasswordReset();
     await result.current.handleUploadAccountAvatar(file);
     await result.current.handleRemoveAccountAvatar();
     await result.current.handleSaveSettingsNotifications({
@@ -219,6 +221,9 @@ describe("useDashboardWorkspaceActions", () => {
       firstName: "Nick",
       lastName: "User",
       email: "nick@example.com",
+    });
+    expect(args.requestPasswordResetAction).toHaveBeenCalledWith({
+      source: "settings",
     });
     expect(args.finalizeAvatarUploadMutation).toHaveBeenCalled();
     expect(args.removeAvatarMutation).toHaveBeenCalledWith({});

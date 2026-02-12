@@ -15,6 +15,10 @@ export const getPageTitle = (pathname: string): string => {
     return `Signing In | ${APP_NAME}`;
   }
 
+  if (pathname === "/reset-password") {
+    return `Reset Password | ${APP_NAME}`;
+  }
+
   if (pathname === "/tasks" || pathname === "/dashboard" || pathname === "/inbox") {
     return `Tasks | ${APP_NAME}`;
   }

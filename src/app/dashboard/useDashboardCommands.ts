@@ -45,6 +45,7 @@ type UseDashboardCommandsArgs = {
     lastName: string;
     email: string;
   }) => Promise<void>;
+  handleRequestPasswordReset: () => Promise<void>;
   handleUploadAccountAvatar: (file: File) => Promise<void>;
   handleRemoveAccountAvatar: () => Promise<void>;
   handleSaveSettingsNotifications: (payload: {
@@ -74,6 +75,7 @@ export const useDashboardCommands = ({
   handleOpenSettings,
   handleCloseSettings,
   handleSaveAccountSettings,
+  handleRequestPasswordReset,
   handleUploadAccountAvatar,
   handleRemoveAccountAvatar,
   handleSaveSettingsNotifications,
@@ -104,6 +106,7 @@ export const useDashboardCommands = ({
           handleOpenSettings,
           handleCloseSettings,
           handleSaveAccountSettings,
+          handleRequestPasswordReset,
           handleUploadAccountAvatar,
           handleRemoveAccountAvatar,
           handleSaveSettingsNotifications,
@@ -125,6 +128,7 @@ export const useDashboardCommands = ({
       handleEditProject,
       handleOpenSettings,
       handleRemoveAccountAvatar,
+      handleRequestPasswordReset,
       handleRemoveDraftAttachment,
       handleRemoveProjectFile,
       handleSaveAccountSettings,

@@ -125,18 +125,16 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                     </div>
                   </div>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                    {file.downloadable !== false && (
-                      <button
-                        title="Download"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          fileActions.download(file.id);
-                        }}
-                        className="txt-tone-accent hover:txt-tone-accent transition-colors cursor-pointer"
-                      >
-                        <Download size={14} />
-                      </button>
-                    )}
+                    <button
+                      title="Download"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        fileActions.download(file.id);
+                      }}
+                      className="txt-tone-accent hover:txt-tone-accent transition-colors cursor-pointer"
+                    >
+                      <Download size={14} />
+                    </button>
                     <button
                       title={
                         canMutateProjectFiles
@@ -194,18 +192,16 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                 </div>
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                {file.downloadable !== false && (
-                  <button
-                    title="Download"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      fileActions.download(file.id);
-                    }}
-                    className="txt-tone-accent hover:txt-tone-accent transition-colors cursor-pointer"
-                  >
-                    <Download size={14} />
-                  </button>
-                )}
+                <button
+                  title="Download"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    fileActions.download(file.id);
+                  }}
+                  className="txt-tone-accent hover:txt-tone-accent transition-colors cursor-pointer"
+                >
+                  <Download size={14} />
+                </button>
                 <button
                   title={
                     canMutateProjectFiles

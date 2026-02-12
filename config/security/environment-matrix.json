@@ -17,7 +17,8 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET"
+        "WORKOS_ACTION_SECRET",
+        "APP_ORIGIN"
       ]
     },
     "staging": {
@@ -36,7 +37,8 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET"
+        "WORKOS_ACTION_SECRET",
+        "APP_ORIGIN"
       ]
     },
     "prod": {
@@ -55,7 +57,8 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET"
+        "WORKOS_ACTION_SECRET",
+        "APP_ORIGIN"
       ]
     }
   }

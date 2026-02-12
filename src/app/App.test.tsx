@@ -28,6 +28,10 @@ vi.mock("./components/AuthCallbackPage", () => ({
   AuthCallbackPage: () => <div>callback-page</div>,
 }));
 
+vi.mock("./components/ResetPasswordPage", () => ({
+  ResetPasswordPage: () => <div>reset-password-page</div>,
+}));
+
 vi.mock("./components/ProtectedRoute", () => ({
   ProtectedRoute: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -60,5 +64,15 @@ describe("App", () => {
     );
 
     expect(screen.getByText("auth:signin")).toBeInTheDocument();
+  });
+
+  test("renders reset-password route", () => {
+    render(
+      <MemoryRouter initialEntries={["/reset-password?token=abc"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("reset-password-page")).toBeInTheDocument();
   });
 });

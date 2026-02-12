@@ -43,7 +43,12 @@ export const useDashboardController = ({
     if (currentView.startsWith("project:")) {
       const projectId = currentView.slice("project:".length);
       const project = projects[projectId];
-      if (project && !project.archived) {
+      if (
+        project &&
+        !project.archived &&
+        project.status.label !== "Draft" &&
+        project.status.label !== "Review"
+      ) {
         return { kind: "main", project };
       }
     }

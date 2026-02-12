@@ -19,6 +19,21 @@ const requireUrl = (name: string): string => {
   return value;
 };
 
+const requireOrigin = (name: string): string => {
+  const value = requireUrl(name);
+  const parsed = new URL(value);
+  if (
+    parsed.pathname !== "/" ||
+    parsed.search.length > 0 ||
+    parsed.hash.length > 0
+  ) {
+    throw new Error(
+      `Environment variable ${name} must be an origin URL without path/query/hash`,
+    );
+  }
+  return parsed.origin;
+};
+
 export type WorkosRuntimeEnv = {
   workosClientId: string;
   workosApiKey: string;
@@ -35,4 +50,8 @@ export const getWorkosRuntimeEnv = (): WorkosRuntimeEnv => ({
 
 export const getWorkosCallbackEnv = () => ({
   convexSiteUrl: requireUrl("CONVEX_SITE_URL"),
+});
+
+export const getAppOriginEnv = () => ({
+  appOrigin: requireOrigin("APP_ORIGIN"),
 });

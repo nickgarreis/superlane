@@ -137,6 +137,7 @@ const createApiHandlers = () => ({
   finalizeBrandAssetUploadMutation: vi.fn(),
   removeBrandAssetMutation: vi.fn(),
   softDeleteWorkspaceMutation: vi.fn(),
+  requestPasswordResetAction: vi.fn(),
   updateAccountProfileAction: vi.fn(),
   inviteWorkspaceMemberAction: vi.fn(),
   resendWorkspaceInvitationAction: vi.fn(),

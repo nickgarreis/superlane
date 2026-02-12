@@ -18,8 +18,8 @@ describe("AccountTab", () => {
           avatarUrl: null,
         }}
         onSave={onSave}
+        onRequestPasswordReset={vi.fn().mockResolvedValue(undefined)}
         onUploadAvatar={vi.fn().mockResolvedValue(undefined)}
-        onRemoveAvatar={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
@@ -51,7 +51,6 @@ describe("AccountTab", () => {
 
   test("uploads avatar from file input and hides manual avatar action buttons", async () => {
     const onUploadAvatar = vi.fn().mockResolvedValue(undefined);
-    const onRemoveAvatar = vi.fn().mockResolvedValue(undefined);
 
     const { container } = render(
       <AccountTab
@@ -62,8 +61,8 @@ describe("AccountTab", () => {
           avatarUrl: "https://cdn.example/avatar.png",
         }}
         onSave={vi.fn().mockResolvedValue(undefined)}
+        onRequestPasswordReset={vi.fn().mockResolvedValue(undefined)}
         onUploadAvatar={onUploadAvatar}
-        onRemoveAvatar={onRemoveAvatar}
       />,
     );
 
@@ -88,6 +87,34 @@ describe("AccountTab", () => {
         expect.objectContaining({ name: "avatar.png" }),
       );
     });
-    expect(onRemoveAvatar).not.toHaveBeenCalled();
+  });
+
+  test("sends password reset link from security section", async () => {
+    const onRequestPasswordReset = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AccountTab
+        data={{
+          firstName: "Alex",
+          lastName: "Owner",
+          email: "alex@example.com",
+          avatarUrl: null,
+        }}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onRequestPasswordReset={onRequestPasswordReset}
+        onUploadAvatar={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send password reset link" }),
+    );
+
+    await waitFor(() => {
+      expect(onRequestPasswordReset).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.getByText("Reset link sent to your account email."),
+    ).toBeInTheDocument();
   });
 });

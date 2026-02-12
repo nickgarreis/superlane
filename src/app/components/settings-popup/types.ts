@@ -87,6 +87,7 @@ export interface SettingsPopupProps {
     lastName: string;
     email: string;
   }) => Promise<void>;
+  onRequestPasswordReset: () => Promise<void>;
   onUploadAvatar: (file: File) => Promise<void>;
   onRemoveAvatar: () => Promise<void>;
   onSaveNotifications: (payload: NotificationSettingsData) => Promise<void>;

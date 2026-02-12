@@ -210,6 +210,9 @@ export function DashboardPopups({
               companySummary === undefined
             }
             onSaveAccount={dashboardCommands.settings.saveAccount}
+            onRequestPasswordReset={
+              dashboardCommands.settings.requestPasswordReset
+            }
             onUploadAvatar={dashboardCommands.settings.uploadAccountAvatar}
             onRemoveAvatar={dashboardCommands.settings.removeAccountAvatar}
             onSaveNotifications={dashboardCommands.settings.saveNotifications}

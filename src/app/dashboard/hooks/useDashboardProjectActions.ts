@@ -290,7 +290,11 @@ export const useDashboardProjectActions = ({
               navigateView("archive");
             } else {
               const otherProject = Object.values(visibleProjects).find(
-                (entry) => entry.id !== id && !entry.archived,
+                (entry) =>
+                  entry.id !== id &&
+                  !entry.archived &&
+                  entry.status.label !== "Draft" &&
+                  entry.status.label !== "Review",
               );
               if (otherProject) {
                 navigateView(`project:${otherProject.id}`);

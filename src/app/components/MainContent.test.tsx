@@ -262,6 +262,29 @@ describe("MainContent", () => {
     expect(fileActions.remove).toHaveBeenCalledWith("file-1");
   });
 
+  test("attempts download when file is marked non-downloadable", () => {
+    const fileActions = buildFileActions();
+
+    renderMainContent({
+      projectFiles: [
+        {
+          id: "file-1",
+          projectPublicId: "project-1",
+          tab: "Assets",
+          name: "legacy-file.pdf",
+          type: "PDF",
+          displayDateEpochMs: 1700000000000,
+          downloadable: false,
+        },
+      ],
+      fileActions,
+    });
+
+    fireEvent.click(screen.getByTitle("Download"));
+
+    expect(fileActions.download).toHaveBeenCalledWith("file-1");
+  });
+
   test("shows archive back navigation and executes callback", () => {
     const back = vi.fn();
 

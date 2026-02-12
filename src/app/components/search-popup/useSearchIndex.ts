@@ -82,7 +82,10 @@ export function useSearchIndex({
 
   const firstActiveProjectId = useMemo(() => {
     const active = projectsList.find(
-      (project) => !project.archived && project.status.label !== "Draft",
+      (project) =>
+        !project.archived &&
+        project.status.label !== "Draft" &&
+        project.status.label !== "Review",
     );
     return active?.id || projectsList[0]?.id;
   }, [projectsList]);
@@ -132,6 +135,12 @@ export function useSearchIndex({
       if (!project) {
         continue;
       }
+      if (
+        project.status.label === "Draft" ||
+        project.status.label === "Review"
+      ) {
+        continue;
+      }
       const taskKey = `${project.id}:${task.id}`;
       const signature = [
         task.title,
@@ -167,6 +176,17 @@ export function useSearchIndex({
     const fileIndex: SearchIndexedFile[] = [];
     const seen = new Set<string>();
     for (const file of files) {
+      const fileProject =
+        file.projectPublicId && file.projectPublicId.trim().length > 0
+          ? projectById.get(file.projectPublicId)
+          : null;
+      if (
+        fileProject &&
+        (fileProject.status.label === "Draft" ||
+          fileProject.status.label === "Review")
+      ) {
+        continue;
+      }
       const normalizedProjectId = file.projectPublicId ?? "no-project";
       const key = `${normalizedProjectId}-${file.tab}-${file.name}-${String(file.id)}`;
       if (seen.has(key)) {

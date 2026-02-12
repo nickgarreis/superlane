@@ -7,6 +7,7 @@ type CreateSettingsCommandsArgs = {
     lastName: string;
     email: string;
   }) => Promise<void>;
+  handleRequestPasswordReset: () => Promise<void>;
   handleUploadAccountAvatar: (file: File) => Promise<void>;
   handleRemoveAccountAvatar: () => Promise<void>;
   handleSaveSettingsNotifications: (payload: {
@@ -21,6 +22,7 @@ export const createSettingsCommands = ({
   handleOpenSettings,
   handleCloseSettings,
   handleSaveAccountSettings,
+  handleRequestPasswordReset,
   handleUploadAccountAvatar,
   handleRemoveAccountAvatar,
   handleSaveSettingsNotifications,
@@ -28,6 +30,7 @@ export const createSettingsCommands = ({
   openSettings: handleOpenSettings,
   closeSettings: handleCloseSettings,
   saveAccount: handleSaveAccountSettings,
+  requestPasswordReset: handleRequestPasswordReset,
   uploadAccountAvatar: handleUploadAccountAvatar,
   removeAccountAvatar: handleRemoveAccountAvatar,
   saveNotifications: handleSaveSettingsNotifications,
