@@ -33,6 +33,7 @@ type StepReviewProps = {
   onApproveReview: () => void;
   onClose: () => void;
   onRequestDeleteProject: () => void;
+  showCloseButton?: boolean;
 };
 const NEXT_STEPS: ReadonlyArray<{ num: string; title: string; desc: string }> =
   [
@@ -79,13 +80,18 @@ export function StepReview({
   onApproveReview,
   onClose,
   onRequestDeleteProject,
+  showCloseButton = true,
 }: StepReviewProps) {
   return (
     <div className="flex flex-col w-full flex-1 overflow-hidden">
-      <div className="px-[33px] pt-[29px] pb-[20px] shrink-0 relative">
-        <div className="absolute right-[25px] top-[25px] z-30">
-          <WizardCloseButton onClick={onClose} />
-        </div>
+      <div
+        className={`px-[33px] ${showCloseButton ? "pt-[29px]" : "pt-[8px]"} pb-[20px] shrink-0 relative`}
+      >
+        {showCloseButton && (
+          <div className="absolute right-[25px] top-[25px] z-30">
+            <WizardCloseButton onClick={onClose} />
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}

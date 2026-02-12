@@ -345,4 +345,124 @@ describe("activities read state", () => {
     expect(memberEntry?.isRead).toBe(true);
     expect(memberTwoEntry?.isRead).toBe(false);
   });
+
+  test("dismissActivity hides event for actor only, decrements unread once, and is idempotent", async () => {
+    const seeded = await seedWorkspace();
+
+    await asOwner().mutation(api.projects.create, {
+      workspaceSlug: seeded.workspaceSlug,
+      publicId: "project-read-state-dismiss-1",
+      name: "Dismiss Project",
+      description: "",
+      category: "General",
+      status: "Active",
+    });
+
+    await asOwner().mutation(api.tasks.create, {
+      workspaceSlug: seeded.workspaceSlug,
+      id: "task-read-state-dismiss-1",
+      title: "Dismiss target task",
+      assignee: {
+        userId: String(seeded.memberUserId),
+        name: "Member User",
+        avatar: "",
+      },
+      completed: false,
+      projectPublicId: "project-read-state-dismiss-1",
+    });
+
+    const memberSummaryBefore = await asMember().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    const memberTwoSummaryBefore = await asMemberTwo().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    expect(memberSummaryBefore.unreadCount).toBeGreaterThan(0);
+    expect(memberTwoSummaryBefore.unreadCount).toBeGreaterThan(0);
+
+    const memberFeedBefore = await asMember().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 100 },
+    });
+    const activityToDismiss = memberFeedBefore.page[0];
+    expect(activityToDismiss).toBeTruthy();
+
+    const firstDismiss = await asMember().mutation(api.activities.dismissActivity, {
+      workspaceSlug: seeded.workspaceSlug,
+      activityEventId: activityToDismiss.id as Id<"workspaceActivityEvents">,
+    });
+    expect(firstDismiss.dismissed).toBe(true);
+    expect(firstDismiss.alreadyDismissed).toBe(false);
+
+    const secondDismiss = await asMember().mutation(api.activities.dismissActivity, {
+      workspaceSlug: seeded.workspaceSlug,
+      activityEventId: activityToDismiss.id as Id<"workspaceActivityEvents">,
+    });
+    expect(secondDismiss.dismissed).toBe(false);
+    expect(secondDismiss.alreadyDismissed).toBe(true);
+
+    const memberSummaryAfter = await asMember().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    const memberTwoSummaryAfter = await asMemberTwo().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    expect(memberSummaryAfter.unreadCount).toBe(memberSummaryBefore.unreadCount - 1);
+    expect(memberTwoSummaryAfter.unreadCount).toBe(memberTwoSummaryBefore.unreadCount);
+
+    const memberFeedAfter = await asMember().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 100 },
+    });
+    const memberTwoFeedAfter = await asMemberTwo().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 100 },
+    });
+    expect(
+      memberFeedAfter.page.some((entry) => entry.id === activityToDismiss.id),
+    ).toBe(false);
+    expect(
+      memberTwoFeedAfter.page.some((entry) => entry.id === activityToDismiss.id),
+    ).toBe(true);
+  });
+
+  test("dismissActivity does not decrement unread when target is already read", async () => {
+    const seeded = await seedWorkspace();
+
+    await asOwner().mutation(api.projects.create, {
+      workspaceSlug: seeded.workspaceSlug,
+      publicId: "project-read-state-dismiss-2",
+      name: "Dismiss Read Project",
+      description: "",
+      category: "General",
+      status: "Active",
+    });
+
+    const memberFeedBefore = await asMember().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 100 },
+    });
+    const targetActivityId = memberFeedBefore.page[0]?.id;
+    expect(targetActivityId).toBeTruthy();
+
+    await asMember().mutation(api.activities.markActivityRead, {
+      workspaceSlug: seeded.workspaceSlug,
+      activityEventId: targetActivityId as Id<"workspaceActivityEvents">,
+    });
+
+    const memberSummaryAfterRead = await asMember().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    const dismissReadActivity = await asMember().mutation(api.activities.dismissActivity, {
+      workspaceSlug: seeded.workspaceSlug,
+      activityEventId: targetActivityId as Id<"workspaceActivityEvents">,
+    });
+    expect(dismissReadActivity.dismissed).toBe(true);
+    expect(dismissReadActivity.alreadyDismissed).toBe(false);
+
+    const memberSummaryAfterDismiss = await asMember().query(api.activities.getUnreadSummary, {
+      workspaceSlug: seeded.workspaceSlug,
+    });
+    expect(memberSummaryAfterDismiss.unreadCount).toBe(memberSummaryAfterRead.unreadCount);
+  });
 });

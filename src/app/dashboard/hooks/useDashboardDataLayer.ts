@@ -77,6 +77,7 @@ export function useDashboardDataLayer() {
     changeWorkspaceMemberRoleAction,
     removeWorkspaceMemberAction,
     markActivityReadMutation,
+    dismissActivityMutation,
     markAllReadMutation,
     generateBrandAssetUploadUrlMutation,
     finalizeBrandAssetUploadMutation,
@@ -146,6 +147,18 @@ export function useDashboardDataLayer() {
       workspaceSlug: data.resolvedWorkspaceSlug,
     });
   }, [data.resolvedWorkspaceSlug, markAllReadMutation]);
+  const handleDismissInboxActivity = useCallback(
+    async (activityId: string) => {
+      if (!data.resolvedWorkspaceSlug) {
+        return;
+      }
+      await dismissActivityMutation({
+        workspaceSlug: data.resolvedWorkspaceSlug,
+        activityEventId: asActivityEventId(activityId),
+      });
+    },
+    [data.resolvedWorkspaceSlug, dismissActivityMutation],
+  );
   const navigateToPath = useCallback(
     (path: string) => {
       if (location.pathname === path) {
@@ -244,6 +257,7 @@ export function useDashboardDataLayer() {
     handleCreateWorkspace,
     handleMarkInboxActivityRead,
     handleMarkAllInboxActivitiesRead,
+    handleDismissInboxActivity,
     workspaceActions,
   };
 }

@@ -79,6 +79,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
   const backButtonText = backToDraftPendingProjectsLabel
     ? `Back to ${backToDraftPendingProjectsLabel}`
     : null;
+  const hasDraftPendingHeader = backButtonText !== null && step !== 1;
 
   if (!isOpen) {
     return null;
@@ -134,13 +135,13 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
               </div>
             </div>
           )}
-          {(step === 2 || step === 3) && (
+          {(step === 2 || step === 3) && !hasDraftPendingHeader && (
             <div className="absolute right-[25px] top-[25px] z-30">
               <WizardCloseButton onClick={handleCloseClick} />
             </div>
           )}
-          {backButtonText && step !== 1 && (
-            <div className="absolute left-[25px] top-[25px] z-30">
+          {hasDraftPendingHeader && (
+            <div className="w-full px-[25px] pt-[25px] pb-[8px] flex items-center justify-between shrink-0">
               <button
                 type="button"
                 onClick={handleBackClick}
@@ -152,6 +153,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 />
                 <span>{backButtonText}</span>
               </button>
+              <WizardCloseButton onClick={handleCloseClick} />
             </div>
           )}
           {step === 3 && (
@@ -159,7 +161,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
               initial={{ y: 6, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.05, duration: 0.35 }}
-              className="px-[33px] pt-[29px] w-full"
+              className={`px-[33px] ${hasDraftPendingHeader ? "pt-[12px]" : "pt-[29px]"} w-full`}
             >
               <div className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap">
                 <p className="txt-leading-title">{STEP_THREE_TITLE}</p>
@@ -173,8 +175,11 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
               <StepService
                 selectedService={selectedService}
                 onSelectService={(service) => {
-                  setSelectedService(service);
-                  setSelectedJob(null);
+                  if (selectedService !== service) {
+                    setSelectedService(service);
+                    setSelectedJob(null);
+                  }
+                  setStep(2);
                 }}
               />
             )}
@@ -226,6 +231,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 onApproveReview={handleApproveReview}
                 onClose={() => handleCancel()}
                 onRequestDeleteProject={requestDeleteReviewProject}
+                showCloseButton={!hasDraftPendingHeader}
               />
             )}
             {step !== 4 && (
@@ -256,21 +262,23 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                       </div>
                     </button>
                   )}
-                  <button
-                    onClick={handleNext}
-                    disabled={isNextDisabled}
-                    className={` content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer ${isNextDisabled ? "bg-popup-primary-disabled cursor-not-allowed txt-tone-inverse" : "bg-text-tone-primary hover:bg-white txt-tone-inverse"} `}
-                  >
-                    <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-role-body-lg text-center whitespace-nowrap">
-                      <p className="txt-leading-body">
-                        {step === 3
-                          ? editProjectId
-                            ? "Update & submit"
-                            : "Review & submit"
-                          : "Next"}
-                      </p>
-                    </div>
-                  </button>
+                  {step !== 1 && (
+                    <button
+                      onClick={handleNext}
+                      disabled={isNextDisabled}
+                      className={` content-stretch flex h-[36px] items-center justify-center px-[17px] py-[7px] relative rounded-full shrink-0 transition-all cursor-pointer ${isNextDisabled ? "bg-popup-primary-disabled cursor-not-allowed txt-tone-inverse" : "bg-text-tone-primary hover:bg-white txt-tone-inverse"} `}
+                    >
+                      <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-role-body-lg text-center whitespace-nowrap">
+                        <p className="txt-leading-body">
+                          {step === 3
+                            ? editProjectId
+                              ? "Update & submit"
+                              : "Review & submit"
+                            : "Next"}
+                        </p>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}

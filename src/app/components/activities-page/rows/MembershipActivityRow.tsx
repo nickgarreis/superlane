@@ -1,21 +1,25 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
+import { renderCommentContent } from "../../MentionTextarea";
+import type { MentionEntityType } from "../../mentions/types";
 import { ActivityRowShell } from "../ActivityRowShell";
+import { isImportantActivity } from "../activityImportance";
+import { toMentionToken } from "../activityMentions";
 import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
-  const targetName = activity.targetUserName ?? "member";
+  const targetName = activity.targetUserName?.trim() || "Member";
   switch (activity.action) {
     case "member_invited":
       return `Invited ${targetName}`;
     case "member_joined":
-      return `${targetName} joined workspace`;
+      return `${targetName} joined the workspace`;
     case "member_removed":
       return `Removed ${targetName}`;
     case "member_role_changed":
       return `Changed ${targetName} role to ${activity.targetRole ?? activity.toValue ?? "member"}`;
     default:
-      return `${activity.action} ${targetName}`;
+      return `${activity.action.replace(/_/g, " ")} ${targetName}`;
   }
 };
 
@@ -23,17 +27,42 @@ type MembershipActivityRowProps = {
   activity: WorkspaceActivity;
   showReadState?: boolean;
   onMarkRead?: () => void;
+  onDismiss?: () => void;
   onClick?: () => void;
+  mentionMode?: "plain" | "inbox";
+  onMentionClick?: (type: MentionEntityType, label: string) => void;
 };
 
 export function MembershipActivityRow({
   activity,
   showReadState,
   onMarkRead,
+  onDismiss,
   onClick,
+  mentionMode = "plain",
+  onMentionClick,
 }: MembershipActivityRowProps) {
   const normalizedTargetName = activity.targetUserName?.trim() ?? "";
   const targetLabel = normalizedTargetName.length > 0 ? normalizedTargetName : "Member";
+  const targetMention = toMentionToken("user", targetLabel) ?? targetLabel;
+  const mentionTitle = (() => {
+    switch (activity.action) {
+      case "member_invited":
+        return `Invited ${targetMention}`;
+      case "member_joined":
+        return `${targetMention} joined the workspace`;
+      case "member_removed":
+        return `Removed ${targetMention}`;
+      case "member_role_changed":
+        return `Changed ${targetMention} role to ${activity.targetRole ?? activity.toValue ?? "member"}`;
+      default:
+        return `${activity.action.replace(/_/g, " ")} ${targetMention}`;
+    }
+  })();
+  const title = mentionMode === "inbox"
+    ? renderCommentContent(mentionTitle, onMentionClick)
+    : actionText(activity);
+
   const fallbackInitial = targetLabel[0]?.toUpperCase() ?? "M";
   const memberTypeIcon = activity.targetUserAvatarUrl ? (
     <img
@@ -56,7 +85,7 @@ export function MembershipActivityRow({
   return (
     <ActivityRowShell
       kind="membership"
-      title={actionText(activity)}
+      title={title}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
@@ -64,7 +93,9 @@ export function MembershipActivityRow({
       isRead={activity.isRead}
       showReadState={showReadState}
       onMarkRead={onMarkRead}
+      onDismiss={onDismiss}
       onClick={onClick}
+      isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     />
   );

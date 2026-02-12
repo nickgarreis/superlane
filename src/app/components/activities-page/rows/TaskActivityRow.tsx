@@ -2,7 +2,11 @@ import React from "react";
 import { cn } from "../../../../lib/utils";
 import { formatTaskDueDate } from "../../../lib/dates";
 import type { WorkspaceActivity } from "../../../types";
+import { renderCommentContent } from "../../MentionTextarea";
+import type { MentionEntityType } from "../../mentions/types";
 import { ActivityRowShell } from "../ActivityRowShell";
+import { isImportantActivity } from "../activityImportance";
+import { toMentionToken } from "../activityMentions";
 import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -108,13 +112,13 @@ const actionText = (activity: WorkspaceActivity) => {
     case "deleted":
       return `Deleted task ${taskTitle}`;
     case "assignee_changed":
-      return `Changed assignee for ${taskTitle}`;
+      return `Updated assignee on ${taskTitle}`;
     case "due_date_changed":
-      return `Rescheduled ${taskTitle}`;
+      return `Updated due date for ${taskTitle}`;
     case "moved_project":
       return `Moved ${taskTitle} to ${activity.projectName ?? "another project"}`;
     default:
-      return `${activity.action} task ${taskTitle}`;
+      return `${activity.action.replace(/_/g, " ")} task ${taskTitle}`;
   }
 };
 
@@ -122,26 +126,61 @@ type TaskActivityRowProps = {
   activity: WorkspaceActivity;
   showReadState?: boolean;
   onMarkRead?: () => void;
+  onDismiss?: () => void;
   onClick?: () => void;
+  mentionMode?: "plain" | "inbox";
+  onMentionClick?: (type: MentionEntityType, label: string) => void;
 };
 
 export function TaskActivityRow({
   activity,
   showReadState,
   onMarkRead,
+  onDismiss,
   onClick,
+  mentionMode = "plain",
+  onMentionClick,
 }: TaskActivityRowProps) {
   const taskTitle = getTaskTitle(activity);
+  const taskMention = toMentionToken("task", taskTitle) ?? taskTitle;
+  const assigneeLabel =
+    activity.targetUserName?.trim()
+    || activity.toValue?.trim()
+    || "Unassigned";
+  const assigneeMention = toMentionToken("user", assigneeLabel) ?? assigneeLabel;
+  const projectLabel = activity.projectName?.trim() || "another project";
+  const projectMention = toMentionToken("file", projectLabel) ?? projectLabel;
+  const mentionTitle = (() => {
+    switch (activity.action) {
+      case "created":
+        return `Created task ${taskMention}`;
+      case "completed":
+        return `Completed task ${taskMention}`;
+      case "reopened":
+        return `Reopened task ${taskMention}`;
+      case "deleted":
+        return `Deleted task ${taskMention}`;
+      case "assignee_changed":
+        return `Updated assignee on ${taskMention} to ${assigneeMention}`;
+      case "due_date_changed":
+        return `Updated due date for ${taskMention}`;
+      case "moved_project":
+        return `Moved ${taskMention} to ${projectMention}`;
+      default:
+        return `${activity.action.replace(/_/g, " ")} task ${taskMention}`;
+    }
+  })();
+  const title = mentionMode === "inbox"
+    ? renderCommentContent(mentionTitle, onMentionClick)
+    : actionText(activity);
+
   const previousDueDateEpochMs = parseEpochMs(activity.fromValue);
   const nextDueDateEpochMs = parseEpochMs(activity.toValue);
   const urgencyBadge = getUrgencyBadge(nextDueDateEpochMs);
   const previousDueDateLabel = formatTaskDueDate(previousDueDateEpochMs);
   const nextDueDateLabel = formatTaskDueDate(nextDueDateEpochMs);
   const assigneeFrom = activity.fromValue?.trim() || "Unassigned";
-  const assigneeTo =
-    activity.targetUserName?.trim()
-    || activity.toValue?.trim()
-    || "Unassigned";
+  const assigneeTo = assigneeLabel;
   const contextItems = buildContextItems([
     { label: "Task", value: taskTitle },
     { label: "Assignee", value: activity.action === "assignee_changed" ? assigneeTo : null },
@@ -151,14 +190,16 @@ export function TaskActivityRow({
   return (
     <ActivityRowShell
       kind="task"
-      title={actionText(activity)}
+      title={title}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
       isRead={activity.isRead}
       showReadState={showReadState}
       onMarkRead={onMarkRead}
+      onDismiss={onDismiss}
       onClick={onClick}
+      isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     >
       {activity.action === "due_date_changed" ? (

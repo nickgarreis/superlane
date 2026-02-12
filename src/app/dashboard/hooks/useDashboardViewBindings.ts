@@ -34,6 +34,7 @@ export function useDashboardViewBindings(
     canCreateWorkspace,
     handleMarkInboxActivityRead,
     handleMarkAllInboxActivitiesRead,
+    handleDismissInboxActivity,
     workspaceActions,
   } = dataLayer;
   const {
@@ -274,6 +275,7 @@ export function useDashboardViewBindings(
       activitiesPaginationStatus: data.activitiesPaginationStatus,
       loadMoreWorkspaceActivities: data.loadMoreWorkspaceActivities,
       onMarkInboxActivityRead: handleMarkInboxActivityRead,
+      onDismissInboxActivity: handleDismissInboxActivity,
       onMarkAllInboxActivitiesRead: handleMarkAllInboxActivitiesRead,
       onInboxActivityClick: handleInboxActivityClick,
     }),
@@ -308,6 +310,7 @@ export function useDashboardViewBindings(
       navigation.openInbox,
       navigation.openSearch,
       handleMarkInboxActivityRead,
+      handleDismissInboxActivity,
       handleMarkAllInboxActivitiesRead,
       handleInboxActivityClick,
     ],

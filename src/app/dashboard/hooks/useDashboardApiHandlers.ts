@@ -26,6 +26,7 @@ export const useDashboardApiHandlers = () => {
   const reorderTasksMutation = useMutation(api.tasks.reorder);
   const applyTaskDiffMutation = useMutation(api.tasks.applyDiff);
   const markActivityReadMutation = useMutation(api.activities.markActivityRead);
+  const dismissActivityMutation = useMutation(api.activities.dismissActivity);
   const markAllReadMutation = useMutation(api.activities.markAllRead);
   const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
   const finalizeProjectUploadAction = useAction(
@@ -118,6 +119,7 @@ export const useDashboardApiHandlers = () => {
       reorderTasksMutation,
       applyTaskDiffMutation,
       markActivityReadMutation,
+      dismissActivityMutation,
       markAllReadMutation,
       generateUploadUrlMutation,
       finalizeProjectUploadAction,
@@ -154,6 +156,7 @@ export const useDashboardApiHandlers = () => {
       createTaskMutation,
       applyTaskDiffMutation,
       markActivityReadMutation,
+      dismissActivityMutation,
       markAllReadMutation,
       createWorkspaceMutation,
       discardPendingUploadMutation,

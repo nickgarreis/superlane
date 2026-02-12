@@ -69,6 +69,7 @@ vi.mock("../../components/InboxSidebarPanel", () => ({
     isOpen: boolean;
     unreadCount: number;
     onMarkActivityRead: (activityId: string) => void;
+    onDismissActivity: (activityId: string) => void;
     onMarkAllRead: () => void;
     onActivityClick: (activity: { id: string; kind: string }) => void;
   }) => (
@@ -76,6 +77,9 @@ vi.mock("../../components/InboxSidebarPanel", () => ({
       <span data-testid="panel-unread-count">{props.unreadCount}</span>
       <button onClick={() => props.onMarkActivityRead("activity-1")}>
         mark-one
+      </button>
+      <button onClick={() => props.onDismissActivity("activity-3")}>
+        dismiss-one
       </button>
       <button onClick={props.onMarkAllRead}>mark-all</button>
       <button
@@ -148,6 +152,7 @@ const baseProps = () => ({
   activitiesPaginationStatus: "Exhausted" as const,
   loadMoreWorkspaceActivities: vi.fn(),
   onMarkInboxActivityRead: vi.fn(),
+  onDismissInboxActivity: vi.fn(),
   onMarkAllInboxActivitiesRead: vi.fn(),
   onInboxActivityClick: vi.fn(),
 });
@@ -229,10 +234,12 @@ describe("DashboardChrome", () => {
     expect(screen.getByTestId("panel-unread-count").textContent).toBe("12");
 
     fireEvent.click(screen.getByRole("button", { name: "mark-one" }));
+    fireEvent.click(screen.getByRole("button", { name: "dismiss-one" }));
     fireEvent.click(screen.getByRole("button", { name: "mark-all" }));
     fireEvent.click(screen.getByRole("button", { name: "activity-click" }));
 
     expect(props.onMarkInboxActivityRead).toHaveBeenCalledWith("activity-1");
+    expect(props.onDismissInboxActivity).toHaveBeenCalledWith("activity-3");
     expect(props.onMarkAllInboxActivitiesRead).toHaveBeenCalledTimes(1);
     expect(props.onInboxActivityClick).toHaveBeenCalledWith({
       id: "activity-2",

@@ -97,20 +97,22 @@ describe("InboxSidebarPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mark read" }));
     expect(onMarkActivityRead).toHaveBeenCalledWith("activity-1");
 
-    expect(screen.getByText("Created project Website Redesign")).toBeInTheDocument();
+    expect(screen.getByText(/Created project/i)).toBeInTheDocument();
+    expect(screen.getByText("Website Redesign")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("Search inbox"), {
       target: { value: "finalize" },
     });
-    expect(screen.queryByText("Created project Website Redesign")).toBeNull();
-    expect(screen.getByText("Completed task Finalize homepage copy")).toBeInTheDocument();
+    expect(screen.queryByText("Website Redesign")).toBeNull();
+    expect(screen.getByText(/Completed task/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Finalize homepage copy").length).toBeGreaterThan(0);
 
     fireEvent.change(screen.getByPlaceholderText("Search inbox"), {
       target: { value: "" },
     });
     fireEvent.click(screen.getByTitle("Filter inbox"));
     fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
-    expect(screen.queryByText("Created project Website Redesign")).toBeNull();
+    expect(screen.queryByText("Website Redesign")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Close inbox" }));
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -156,7 +158,7 @@ describe("InboxSidebarPanel", () => {
     expect(loadMoreWorkspaceActivities).toHaveBeenCalledWith(100);
   });
 
-  test("calls onActivityClick when a row is clicked", () => {
+  test("does not call onActivityClick when the row container is clicked", () => {
     const onActivityClick = vi.fn();
     const activity = buildActivity({
       id: "activity-click",
@@ -176,12 +178,14 @@ describe("InboxSidebarPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Created project Clickable Project"));
+    const row = screen.getByLabelText("Projects activity type").closest("div");
+    expect(row).not.toBeNull();
+    fireEvent.click(row!);
 
-    expect(onActivityClick).toHaveBeenCalledWith(activity);
+    expect(onActivityClick).not.toHaveBeenCalled();
   });
 
-  test("marks unread activity as read when the row is clicked", () => {
+  test("clicking a mention marks unread activity as read and triggers navigation", () => {
     const onActivityClick = vi.fn();
     const onMarkActivityRead = vi.fn();
     const activity = buildActivity({
@@ -204,9 +208,34 @@ describe("InboxSidebarPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Created project Unread Clickable Project"));
+    fireEvent.click(screen.getByText("Unread Clickable Project"));
 
     expect(onMarkActivityRead).toHaveBeenCalledWith("activity-unread-click");
     expect(onActivityClick).toHaveBeenCalledWith(activity);
+  });
+
+  test("clicking dismiss calls onDismissActivity with the row id", () => {
+    const onDismissActivity = vi.fn();
+    const activity = buildActivity({
+      id: "activity-dismiss",
+      kind: "project",
+      action: "created",
+      projectName: "Dismissable Project",
+    });
+
+    render(
+      <InboxSidebarPanel
+        isOpen
+        onClose={vi.fn()}
+        activities={[activity]}
+        unreadCount={0}
+        activitiesPaginationStatus="Exhausted"
+        onDismissActivity={onDismissActivity}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss activity" }));
+
+    expect(onDismissActivity).toHaveBeenCalledWith("activity-dismiss");
   });
 });

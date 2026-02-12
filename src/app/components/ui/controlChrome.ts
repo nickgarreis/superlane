@@ -7,6 +7,15 @@ export const SECONDARY_ACTION_BUTTON_CLASS =
 export const GHOST_ICON_BUTTON_CLASS =
   "rounded-lg txt-tone-muted hover:txt-tone-primary hover:bg-surface-hover-soft transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/35";
 
+export const FILLED_ICON_BUTTON_CLASS =
+  "inline-flex h-7 w-7 items-center justify-center rounded-md border border-border-soft bg-surface-muted-soft txt-tone-subtle transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/35";
+
+export const FILLED_ICON_BUTTON_SUCCESS_HOVER_CLASS =
+  "hover:bg-status-completed-soft hover:txt-tone-success";
+
+export const FILLED_ICON_BUTTON_DANGER_HOVER_CLASS =
+  "hover:bg-popup-danger-soft hover:txt-tone-danger";
+
 export const UNDERLINE_INPUT_CLASS =
   "w-full bg-transparent border-b border-border-soft rounded-none px-0 txt-tone-primary focus:outline-none focus:border-popup-border-stronger transition-colors placeholder:text-text-muted-weak";
 
@@ -20,3 +29,9 @@ export const KBD_PILL_CLASS =
   "inline-flex items-center justify-center rounded border border-border-soft bg-surface-muted-soft text-text-muted-medium";
 
 export const DIVIDER_SUBTLE_CLASS = "bg-border-subtle-soft";
+
+export const WARNING_STATUS_PILL_CLASS =
+  "inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium tone-warning-soft shrink-0 whitespace-nowrap rounded-full border";
+
+export const IMPORTANT_STATUS_PILL_CLASS =
+  "inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium txt-tone-danger border-popup-danger-soft-strong bg-popup-danger-soft shrink-0 whitespace-nowrap rounded-full border";

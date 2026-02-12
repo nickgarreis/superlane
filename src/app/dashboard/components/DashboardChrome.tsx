@@ -54,6 +54,7 @@ type DashboardChromeProps = {
     | "Exhausted";
   loadMoreWorkspaceActivities: (numItems: number) => void;
   onMarkInboxActivityRead: (activityId: string) => void;
+  onDismissInboxActivity: (activityId: string) => void;
   onMarkAllInboxActivitiesRead: () => void;
   onInboxActivityClick: (activity: WorkspaceActivity) => void;
 };
@@ -88,6 +89,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   activitiesPaginationStatus,
   loadMoreWorkspaceActivities,
   onMarkInboxActivityRead,
+  onDismissInboxActivity,
   onMarkAllInboxActivitiesRead,
   onInboxActivityClick,
 }: DashboardChromeProps) {
@@ -170,6 +172,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                     activities={workspaceActivities}
                     unreadCount={inboxUnreadCount}
                     onMarkActivityRead={onMarkInboxActivityRead}
+                    onDismissActivity={onDismissInboxActivity}
                     onMarkAllRead={onMarkAllInboxActivitiesRead}
                     onActivityClick={onInboxActivityClick}
                     activitiesPaginationStatus={activitiesPaginationStatus}

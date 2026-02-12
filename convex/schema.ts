@@ -154,6 +154,16 @@ export default defineSchema({
     .index("by_workspace_user_activityEvent", ["workspaceId", "userId", "activityEventId"])
     .index("by_workspace_user", ["workspaceId", "userId"]),
 
+  workspaceActivityDismissals: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    activityEventId: v.id("workspaceActivityEvents"),
+    dismissedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_workspace_user_activityEvent", ["workspaceId", "userId", "activityEventId"])
+    .index("by_workspace_user", ["workspaceId", "userId"]),
+
   notificationPreferences: defineTable({
     userId: v.id("users"),
     channels: v.optional(

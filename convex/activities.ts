@@ -104,6 +104,39 @@ const getReadReceiptActivityEventIds = async (
   return new Set<string>(readReceipts.map((receipt: any) => String(receipt.activityEventId)));
 };
 
+const getDismissedActivityEventIds = async (
+  ctx: any,
+  workspaceId: any,
+  userId: any,
+  activityEventIds: any[],
+) => {
+  if (activityEventIds.length === 0) {
+    return new Set<string>();
+  }
+  const queryByWorkspaceUser = ctx.db
+    .query("workspaceActivityDismissals")
+    .withIndex("by_workspace_user", (q: any) =>
+      q.eq("workspaceId", workspaceId).eq("userId", userId),
+    );
+
+  const dismissals =
+    activityEventIds.length === 1
+      ? await queryByWorkspaceUser
+          .filter((q: any) => q.eq(q.field("activityEventId"), activityEventIds[0]))
+          .collect()
+      : await queryByWorkspaceUser
+          .filter((q: any) =>
+            q.or(
+              ...activityEventIds.map((activityEventId) =>
+                q.eq(q.field("activityEventId"), activityEventId),
+              ),
+            ),
+          )
+          .collect();
+
+  return new Set<string>(dismissals.map((dismissal: any) => String(dismissal.activityEventId)));
+};
+
 const findWorkspaceIdsMissingActivityCount = async (
   ctx: any,
   maxWorkspaces: number,
@@ -145,8 +178,17 @@ export const listForWorkspace = query({
       .paginate(args.paginationOpts);
 
     const kindSet = args.kinds ? new Set<ActivityKind>(args.kinds) : null;
-    const filtered = paginated.page.filter((event) =>
+    const filteredByKind = paginated.page.filter((event) =>
       !kindSet || kindSet.has(event.kind as ActivityKind),
+    );
+    const dismissedActivityEventIds = await getDismissedActivityEventIds(
+      ctx,
+      workspace._id,
+      appUser._id,
+      filteredByKind.map((event) => event._id),
+    );
+    const filtered = filteredByKind.filter(
+      (event) => !dismissedActivityEventIds.has(String(event._id)),
     );
     const inboxState = await getWorkspaceInboxState(ctx, workspace._id, appUser._id);
     const markAllCutoffAt =
@@ -163,10 +205,12 @@ export const listForWorkspace = query({
       appUser._id,
       candidateEventIds,
     );
-    const readStatusByIndex = filtered.map(
-      (event) =>
+    const readStatusByEventId = new Map<string, boolean>(
+      filtered.map((event) => [
+        String(event._id),
         event.createdAt < markAllCutoffAt ||
         readReceiptActivityEventIds.has(String(event._id)),
+      ]),
     );
 
     const projectPublicIds = Array.from(
@@ -223,7 +267,7 @@ export const listForWorkspace = query({
 
     return {
       ...paginated,
-      page: filtered.map((event, index) => ({
+      page: filtered.map((event) => ({
         id: String(event._id),
         kind: event.kind,
         action: event.action,
@@ -256,7 +300,7 @@ export const listForWorkspace = query({
         message: event.message ?? null,
         errorCode: event.errorCode ?? null,
         createdAt: event.createdAt,
-        isRead: readStatusByIndex[index] ?? false,
+        isRead: readStatusByEventId.get(String(event._id)) ?? false,
       })),
     };
   },
@@ -359,6 +403,22 @@ export const markActivityRead = mutation({
       };
     }
 
+    const existingDismissal = await ctx.db
+      .query("workspaceActivityDismissals")
+      .withIndex("by_workspace_user_activityEvent", (q: any) =>
+        q
+          .eq("workspaceId", workspace._id)
+          .eq("userId", appUser._id)
+          .eq("activityEventId", activityEvent._id),
+      )
+      .unique();
+    if (existingDismissal) {
+      return {
+        unreadCount: Math.max(0, Number(inboxState.unreadCount ?? 0)),
+        alreadyRead: true,
+      };
+    }
+
     if (activityEvent.createdAt < inboxState.markAllCutoffAt) {
       return {
         unreadCount: Math.max(0, Number(inboxState.unreadCount ?? 0)),
@@ -399,6 +459,102 @@ export const markActivityRead = mutation({
     return {
       unreadCount: nextUnreadCount,
       alreadyRead: false,
+    };
+  },
+});
+
+export const dismissActivity = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    activityEventId: v.id("workspaceActivityEvents"),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", {
+      workspace,
+    });
+    const activityEvent = await ctx.db.get(args.activityEventId);
+    if (!activityEvent || activityEvent.workspaceId !== workspace._id) {
+      throw new ConvexError("Activity not found");
+    }
+
+    const now = Date.now();
+    let inboxState = await getWorkspaceInboxState(ctx, workspace._id, appUser._id);
+    if (!inboxState) {
+      const unreadCount = await resolveWorkspaceActivityEventCount(ctx, workspace);
+      const inboxStateId = await ctx.db.insert("workspaceActivityInboxStates", {
+        workspaceId: workspace._id,
+        userId: appUser._id,
+        unreadCount,
+        markAllCutoffAt: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      inboxState = {
+        _id: inboxStateId,
+        workspaceId: workspace._id,
+        userId: appUser._id,
+        unreadCount,
+        markAllCutoffAt: 0,
+      };
+    }
+
+    const existingDismissal = await ctx.db
+      .query("workspaceActivityDismissals")
+      .withIndex("by_workspace_user_activityEvent", (q: any) =>
+        q
+          .eq("workspaceId", workspace._id)
+          .eq("userId", appUser._id)
+          .eq("activityEventId", activityEvent._id),
+      )
+      .unique();
+    if (existingDismissal) {
+      return {
+        dismissed: false,
+        alreadyDismissed: true,
+        unreadCount: Math.max(0, Number(inboxState.unreadCount ?? 0)),
+      };
+    }
+
+    const isUnreadByMarkAllCutoff = activityEvent.createdAt >= inboxState.markAllCutoffAt;
+    let wasUnread = isUnreadByMarkAllCutoff;
+    if (wasUnread) {
+      const existingReceipt = await ctx.db
+        .query("workspaceActivityReadReceipts")
+        .withIndex("by_workspace_user_activityEvent", (q: any) =>
+          q
+            .eq("workspaceId", workspace._id)
+            .eq("userId", appUser._id)
+            .eq("activityEventId", activityEvent._id),
+        )
+        .unique();
+      if (existingReceipt) {
+        wasUnread = false;
+      }
+    }
+
+    await ctx.db.insert("workspaceActivityDismissals", {
+      workspaceId: workspace._id,
+      userId: appUser._id,
+      activityEventId: activityEvent._id,
+      dismissedAt: now,
+      createdAt: now,
+    });
+
+    const nextUnreadCount = wasUnread
+      ? Math.max(0, Number(inboxState.unreadCount ?? 0) - 1)
+      : Math.max(0, Number(inboxState.unreadCount ?? 0));
+    if (wasUnread) {
+      await ctx.db.patch(inboxState._id, {
+        unreadCount: nextUnreadCount,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      dismissed: true,
+      alreadyDismissed: false,
+      unreadCount: nextUnreadCount,
     };
   },
 });

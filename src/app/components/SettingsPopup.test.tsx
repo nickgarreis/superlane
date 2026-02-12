@@ -118,6 +118,9 @@ describe("SettingsPopup", () => {
     expect(
       screen.queryByRole("button", { name: "Billing & Plans" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete Workspace" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(container.firstChild as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);

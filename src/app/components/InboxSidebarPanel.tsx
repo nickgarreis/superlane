@@ -14,7 +14,6 @@ import { cn } from "../../lib/utils";
 import type { WorkspaceActivity } from "../types";
 import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
 import {
-  ACTIVITY_EMPTY_STATE_CLASS,
   ACTIVITY_FILTER_ITEM_CLASS,
   ACTIVITY_FILTER_MENU_CLASS,
   ACTIVITY_KIND_LABELS,
@@ -34,6 +33,7 @@ type InboxSidebarPanelProps = {
   activities: WorkspaceActivity[];
   unreadCount?: number;
   onMarkActivityRead?: (activityId: string) => void;
+  onDismissActivity?: (activityId: string) => void;
   onMarkAllRead?: () => void;
   onActivityClick?: (activity: WorkspaceActivity) => void;
   activitiesPaginationStatus:
@@ -71,6 +71,7 @@ const deserializeKinds = (value: unknown): ActivityKindFilter[] | undefined => {
 type RenderInboxActivityArgs = {
   showReadState: boolean;
   onMarkActivityRead?: (activityId: string) => void;
+  onDismissActivity?: (activityId: string) => void;
   onActivityClick?: (activity: WorkspaceActivity) => void;
 };
 
@@ -81,7 +82,10 @@ const renderInboxActivity = (
   const onMarkRead = activity.isRead === false && args.onMarkActivityRead
     ? () => args.onMarkActivityRead?.(activity.id)
     : undefined;
-  const onClick = args.onActivityClick
+  const onDismiss = args.onDismissActivity
+    ? () => args.onDismissActivity?.(activity.id)
+    : undefined;
+  const onMentionClick = args.onActivityClick
     ? () => {
         if (activity.isRead === false) {
           args.onMarkActivityRead?.(activity.id);
@@ -97,7 +101,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
     case "task":
@@ -107,7 +113,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
     case "collaboration":
@@ -117,7 +125,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
     case "file":
@@ -127,7 +137,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
     case "membership":
@@ -137,7 +149,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
     case "workspace":
@@ -149,7 +163,9 @@ const renderInboxActivity = (
           activity={activity}
           showReadState={args.showReadState}
           onMarkRead={onMarkRead}
-          onClick={onClick}
+          onDismiss={onDismiss}
+          mentionMode="inbox"
+          onMentionClick={onMentionClick}
         />
       );
   }
@@ -161,6 +177,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
   activities,
   unreadCount = 0,
   onMarkActivityRead,
+  onDismissActivity,
   onMarkAllRead,
   onActivityClick,
   activitiesPaginationStatus,
@@ -236,10 +253,11 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
         renderInboxActivity(activity, {
           showReadState: typeof onMarkActivityRead === "function",
           onMarkActivityRead,
+          onDismissActivity,
           onActivityClick,
         }),
       ),
-    [filteredActivities, onMarkActivityRead, onActivityClick],
+    [filteredActivities, onMarkActivityRead, onDismissActivity, onActivityClick],
   );
 
   const handleToggleKind = useCallback(
@@ -284,7 +302,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
           animate={{ width: 420, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute left-full top-0 bottom-0 bg-bg-surface border-l border-r border-border-subtle-soft shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+          className="absolute left-full top-0 bottom-0 bg-bg-surface border-l border-r border-border-subtle-soft shadow-[16px_0_28px_-20px_rgba(0,0,0,0.75)] flex flex-col overflow-hidden pointer-events-auto"
           style={{ zIndex: Z_LAYERS.dropdown }}
         >
           <div className="h-full w-[420px] flex flex-col">
@@ -416,7 +434,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
                 </div>
               </div>
               {filteredActivities.length === 0 ? (
-                <div className={ACTIVITY_EMPTY_STATE_CLASS}>
+                <div className="px-6 py-10 text-center">
                   <p className="txt-role-body-lg txt-tone-primary">No inbox activity found</p>
                   <p className="mt-1 txt-role-body-md txt-tone-faint">
                     Try a different search or filter.
@@ -424,8 +442,8 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  <div className="border-b border-border-subtle-soft py-2 txt-role-meta uppercase tracking-wider txt-tone-faint">
-                    Activity
+                  <div className="py-2 txt-role-meta uppercase tracking-wider txt-tone-faint">
+                    Activities
                   </div>
                   <div className="flex flex-col">
                     {renderedActivities}

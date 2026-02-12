@@ -162,7 +162,7 @@ export function SidebarProjectsSection({
         </div>
         {(draftPendingProjects.length > 0 || completedProjects.length > 0) && (
           <div className="shrink-0 pb-2 flex flex-col min-h-0">
-            <div className="mx-3 mb-1 h-px bg-gradient-to-r from-white/[0.06] via-white/[0.04] to-transparent shrink-0" />
+            <div className="mx-3 mb-1 h-px bg-border-subtle-soft shrink-0" />
             {draftPendingProjects.length > 0 && (
               <div
                 className="flex items-center justify-between px-3 py-2 cursor-pointer group"
@@ -185,7 +185,7 @@ export function SidebarProjectsSection({
               </div>
             )}
             {draftPendingProjects.length > 0 && completedProjects.length > 0 && (
-              <div className="mx-3 my-1 h-px bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent shrink-0" />
+              <div className="mx-3 my-1 h-px bg-border-subtle-soft shrink-0" />
             )}
             {completedProjects.length > 0 && (
               <div

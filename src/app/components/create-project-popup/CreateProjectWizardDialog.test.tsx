@@ -56,6 +56,54 @@ describe("CreateProjectPopup", () => {
     expect(screen.queryByText("Solutions")).not.toBeInTheDocument();
   });
 
+  test("hides Next on the services step and advances immediately after selecting a service", async () => {
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={() => {}}
+        onCreate={vi.fn().mockResolvedValue({ publicId: "project-1" })}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Web Design/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Define project details")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+  });
+
+  test("allows advancing from step 1 when clicking the currently selected service", async () => {
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={() => {}}
+        onCreate={vi.fn().mockResolvedValue({ publicId: "project-1" })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Web Design/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Define project details")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Services")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Web Design/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Define project details")).toBeInTheDocument();
+    });
+  });
+
   test("keeps wizard on step 3 when async create fails", async () => {
     const onCreate = vi.fn().mockRejectedValue(new Error("create failed"));
 

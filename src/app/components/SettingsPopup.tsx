@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Building2, HardDrive, Settings, User, X } from "lucide-react";
+import { Bell, Building2, Settings, User, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AccountTab } from "./settings-popup/AccountTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
@@ -15,7 +15,7 @@ import {
 } from "./popup/popupChrome";
 import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
 
-type VisibleSettingsSection = Exclude<SettingsTab, "Billing">;
+type VisibleSettingsSection = Exclude<SettingsTab, "Workspace" | "Billing">;
 
 const SETTINGS_SECTIONS: Array<{
   id: VisibleSettingsSection;
@@ -41,20 +41,10 @@ const SETTINGS_SECTIONS: Array<{
     label: "Company",
     description: "Manage workspace settings, members, and brand assets.",
   },
-  {
-    id: "Workspace",
-    icon: HardDrive,
-    label: "Workspace",
-    description: "Manage workspace lifecycle actions and deletion.",
-  },
 ];
 
-const SETTINGS_HEADER_SECTIONS = SETTINGS_SECTIONS.filter(
-  (section) => section.id !== "Workspace",
-);
-
 const normalizeSection = (section: SettingsTab): VisibleSettingsSection =>
-  section === "Billing" ? "Company" : section;
+  section === "Billing" || section === "Workspace" ? "Company" : section;
 
 export function SettingsPopup({
   isOpen,
@@ -95,7 +85,6 @@ export function SettingsPopup({
     Account: null,
     Notifications: null,
     Company: null,
-    Workspace: null,
   });
   const scrollToSection = useCallback(
     (section: SettingsTab, behavior: ScrollBehavior = "smooth") => {
@@ -187,33 +176,42 @@ export function SettingsPopup({
               <X size={18} />
             </button>
           </div>
-          <div className="mt-4 flex gap-2 overflow-x-auto pr-1">
-            {SETTINGS_HEADER_SECTIONS.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => scrollToSection(section.id)}
-                aria-current={activeSection === section.id ? "page" : undefined}
-                className={cn(
-                  "cursor-pointer shrink-0 rounded-full border px-3 py-1.5 txt-role-body-sm font-medium transition-colors flex items-center gap-1.5",
-                  activeSection === section.id
-                    ? "border-popup-border-emphasis bg-surface-active-soft txt-tone-primary"
-                    : "border-border-soft txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
-                )}
-              >
-                <section.icon
-                  size={14}
-                  strokeWidth={2.1}
+          <div className="mt-4 flex items-center gap-2">
+            <div className="min-w-0 flex flex-1 gap-2 overflow-x-auto pr-1">
+              {SETTINGS_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => scrollToSection(section.id)}
+                  aria-current={activeSection === section.id ? "page" : undefined}
                   className={cn(
-                    "transition-colors",
+                    "cursor-pointer shrink-0 rounded-full border px-3 py-1.5 txt-role-body-sm font-medium transition-colors flex items-center gap-1.5",
                     activeSection === section.id
-                      ? "txt-tone-primary"
-                      : "txt-tone-subtle",
+                      ? "border-popup-border-emphasis bg-surface-active-soft txt-tone-primary"
+                      : "border-border-soft txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
                   )}
-                />
-                <span>{section.label}</span>
-              </button>
-            ))}
+                >
+                  <section.icon
+                    size={14}
+                    strokeWidth={2.1}
+                    className={cn(
+                      "transition-colors",
+                      activeSection === section.id
+                        ? "txt-tone-primary"
+                        : "txt-tone-subtle",
+                    )}
+                  />
+                  <span>{section.label}</span>
+                </button>
+              ))}
+            </div>
+            {company && (
+              <SettingsDangerZoneSection
+                company={company}
+                onSoftDeleteWorkspace={onSoftDeleteWorkspace}
+                layout="button"
+              />
+            )}
           </div>
         </div>
         <div
@@ -231,19 +229,15 @@ export function SettingsPopup({
                     }}
                     className="scroll-mt-24 flex flex-col"
                   >
-                    {section.id !== "Workspace" && (
-                      <>
-                        <div className="mb-4 flex items-center gap-2">
-                          <section.icon size={14} className="txt-tone-subtle" />
-                          <h3 className="txt-role-body-md font-medium txt-tone-primary">
-                            {section.label}
-                          </h3>
-                        </div>
-                        <p className="mb-5 txt-role-body-sm txt-tone-faint">
-                          {section.description}
-                        </p>
-                      </>
-                    )}
+                    <div className="mb-4 flex items-center gap-2">
+                      <section.icon size={14} className="txt-tone-subtle" />
+                      <h3 className="txt-role-body-md font-medium txt-tone-primary">
+                        {section.label}
+                      </h3>
+                    </div>
+                    <p className="mb-5 txt-role-body-sm txt-tone-faint">
+                      {section.description}
+                    </p>
                     {section.id === "Account" && account && (
                       <AccountTab
                         data={account}
@@ -274,13 +268,6 @@ export function SettingsPopup({
                         onUploadBrandAsset={onUploadBrandAsset}
                         onRemoveBrandAsset={onRemoveBrandAsset}
                         onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
-                      />
-                    )}
-                    {section.id === "Workspace" && company && (
-                      <SettingsDangerZoneSection
-                        company={company}
-                        onSoftDeleteWorkspace={onSoftDeleteWorkspace}
-                        showTitle={false}
                       />
                     )}
                   </section>

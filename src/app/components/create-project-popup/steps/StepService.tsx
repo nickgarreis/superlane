@@ -16,12 +16,7 @@ export function StepService({
   selectedService,
   onSelectService,
 }: StepServiceProps) {
-  const handleServiceSelect = (service: string) => {
-    if (selectedService === service) {
-      return;
-    }
-    onSelectService(service);
-  };
+  const handleServiceSelect = (service: string) => onSelectService(service);
   return (
     <>
       <motion.div

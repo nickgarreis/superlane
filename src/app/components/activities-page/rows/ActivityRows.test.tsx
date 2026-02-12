@@ -50,6 +50,7 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Created project Project One")).toBeInTheDocument();
+    expect(screen.queryByText("Important")).toBeNull();
     const typeIcon = screen.getByLabelText("Projects activity type");
     expect(typeIcon).toHaveClass("bg-surface-hover-soft");
     expect(typeIcon.querySelector(".lucide-palette")).toBeNull();
@@ -85,7 +86,7 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(
-      screen.getByText("Rescheduled Prepare launch assets"),
+      screen.getByText("Updated due date for Prepare launch assets"),
     ).toBeInTheDocument();
     expect(screen.getByText("From")).toBeInTheDocument();
     expect(screen.getByText("To")).toBeInTheDocument();
@@ -107,8 +108,29 @@ describe("Activity row renderers", () => {
     expect(
       screen.getByText("Mentioned Taylor in a comment"),
     ).toBeInTheDocument();
+    const importantBadge = screen.getByText("Important");
+    expect(importantBadge).toHaveClass("txt-tone-danger");
+    expect(importantBadge).toHaveClass("bg-popup-danger-soft");
+    expect(importantBadge).toHaveClass("border-popup-danger-soft-strong");
+    expect(importantBadge).toHaveClass("rounded-full");
+    expect(importantBadge).toHaveClass("border");
     const typeIcon = screen.getByLabelText("Collaboration activity type");
     expect(typeIcon).toHaveClass("bg-text-tone-accent-soft");
+  });
+
+  test("shows important tag for upload-failed file activities", () => {
+    render(
+      <FileActivityRow
+        activity={buildActivity({
+          kind: "file",
+          action: "upload_failed",
+          fileName: "broken.pdf",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Upload failed for file broken.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Important")).toBeInTheDocument();
   });
 
   test("renders file row with search-style file icon chrome", () => {
@@ -122,7 +144,7 @@ describe("Activity row renderers", () => {
         })}
       />,
     );
-    expect(screen.getByText("Uploaded brief.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Uploaded file brief.pdf")).toBeInTheDocument();
     const typeIcon = screen.getByLabelText("Files activity type");
     expect(typeIcon).toHaveClass("bg-surface-muted-soft");
   });
@@ -138,7 +160,7 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(
-      screen.getByText("Uploaded brief.pdf (name conflict)"),
+      screen.getByText("Uploaded file brief.pdf (name conflict)"),
     ).toBeInTheDocument();
   });
 
@@ -195,11 +217,31 @@ describe("Activity row renderers", () => {
         })}
       />,
     );
-    expect(screen.getByText("Synced organization membership")).toBeInTheDocument();
+    expect(screen.getByText("Synced organization members")).toBeInTheDocument();
     const organizationTypeIcon = screen.getByLabelText("Organization activity type");
     expect(organizationTypeIcon).toHaveClass("bg-text-tone-accent-soft");
     workspaceResult.unmount();
     organizationResult.unmount();
+  });
+
+  test("renders mention-mode titles as readable text and handles mention clicks", () => {
+    const onMentionClick = vi.fn();
+    render(
+      <ProjectActivityRow
+        activity={buildActivity({
+          kind: "project",
+          action: "created",
+          projectName: "Mention Project",
+        })}
+        mentionMode="inbox"
+        onMentionClick={onMentionClick}
+      />,
+    );
+
+    expect(screen.getByText(/Created project/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Mention Project"));
+    // Project mentions are routed through the shared file mention handler.
+    expect(onMentionClick).toHaveBeenCalledWith("file", "Mention Project");
   });
 
   test("renders workspace updates without duplicate workspace-name context item", () => {
@@ -215,8 +257,8 @@ describe("Activity row renderers", () => {
     );
 
     expect(screen.queryByText("Workspace Name")).toBeNull();
-    expect(screen.getByText("From")).toBeInTheDocument();
-    expect(screen.getByText("To")).toBeInTheDocument();
+    expect(screen.queryByText(/From:/)).toBeNull();
+    expect(screen.queryByText(/To:/)).toBeNull();
   });
 
   test("formats organization sync JSON payload into labeled values", () => {
@@ -231,9 +273,9 @@ describe("Activity row renderers", () => {
       />,
     );
 
-    expect(screen.getByText("Imported")).toBeInTheDocument();
-    expect(screen.getByText("Synced")).toBeInTheDocument();
-    expect(screen.getByText("Removed")).toBeInTheDocument();
+    expect(screen.queryByText(/Imported:/)).toBeNull();
+    expect(screen.queryByText(/Synced:/)).toBeNull();
+    expect(screen.queryByText(/Removed:/)).toBeNull();
     expect(screen.queryByText(/importedMemberships/)).toBeNull();
   });
 

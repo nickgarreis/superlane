@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { Archive, ArchiveRestore, Undo2 } from "lucide-react";
 import { useDrag } from "react-dnd";
 import { cn } from "../../../lib/utils";
+import { WARNING_STATUS_PILL_CLASS } from "../ui/controlChrome";
 import {
   SIDEBAR_BADGE_CLASS,
   SIDEBAR_ITEM_ACTIVE_CLASS,
@@ -110,7 +111,7 @@ export const SidebarItem = React.memo(function SidebarItem({
         </span>
       )}
       {isApproved && (
-        <span className="inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium tone-warning-soft ml-2 shrink-0 whitespace-nowrap rounded-full border">
+        <span className={cn(WARNING_STATUS_PILL_CLASS, "ml-2")}>
           Approved
         </span>
       )}
