@@ -103,6 +103,17 @@ describe("useDashboardNavigation", () => {
     expect(result.current.currentView).toBe("archive");
   });
 
+  test("parses /activities as activities current view", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/activities"),
+    });
+
+    expect(result.current.currentView).toBe("activities");
+    expect(result.current.isSettingsOpen).toBe(false);
+  });
+
   test("opens search and create dialogs while preloading modules", () => {
     const args = baseArgs();
 

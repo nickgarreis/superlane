@@ -5,6 +5,7 @@ import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
 } from "./lib/workosOrganization";
+import { logWorkspaceActivity } from "./lib/activityEvents";
 
 const membershipSnapshotValidator = v.object({
   membershipId: v.string(),
@@ -83,7 +84,7 @@ export const applyOrganizationMembershipSnapshot = internalMutation({
 
       const appUser = await ctx.db
         .query("users")
-        .withIndex("by_workosUserId", (q: any) => q.eq("workosUserId", membership.workosUserId))
+        .withIndex("by_workosUserId", (q) => q.eq("workosUserId", membership.workosUserId))
         .unique();
 
       if (!appUser) {
@@ -114,7 +115,7 @@ export const applyOrganizationMembershipSnapshot = internalMutation({
 
       const appUser = await ctx.db
         .query("users")
-        .withIndex("by_workosUserId", (q: any) => q.eq("workosUserId", existingRow.workosUserId))
+        .withIndex("by_workosUserId", (q) => q.eq("workosUserId", existingRow.workosUserId))
         .unique();
 
       if (!appUser) {
@@ -128,6 +129,18 @@ export const applyOrganizationMembershipSnapshot = internalMutation({
         now,
       });
     }
+
+    await logWorkspaceActivity(ctx, {
+      workspaceId: args.workspaceId,
+      kind: "organization",
+      action: "organization_membership_sync",
+      actor: { type: "system", name: "System" },
+      message: JSON.stringify({
+        importedMemberships: args.memberships.length,
+        syncedWorkspaceMembers,
+        removedMemberships,
+      }),
+    });
 
     return {
       workspaceId: args.workspaceId,

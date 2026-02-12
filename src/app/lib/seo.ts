@@ -23,6 +23,10 @@ export const getPageTitle = (pathname: string): string => {
     return `Archive | ${APP_NAME}`;
   }
 
+  if (pathname === "/activities") {
+    return `Activities | ${APP_NAME}`;
+  }
+
   if (pathname.startsWith("/archive/")) {
     return `Archived Project | ${APP_NAME}`;
   }

@@ -1,6 +1,8 @@
 import type { RefObject } from "react";
 import type { DropzoneInputProps, DropzoneRootProps } from "react-dropzone";
-import type { PendingDraftAttachmentUpload } from "../../../types";
+import type {
+  PendingDraftAttachmentUpload,
+} from "../../../types";
 import {
   DEFAULT_CREATE_PROJECT_SERVICE,
   getServiceJobConfig,

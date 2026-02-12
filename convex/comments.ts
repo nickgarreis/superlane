@@ -5,6 +5,7 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { internal } from "./_generated/api";
 import { requireProjectRole, requireProjectRoleById } from "./lib/auth";
 import { logError } from "./lib/logging";
+import { logWorkspaceActivityForActorUser } from "./lib/activityEvents";
 
 const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
 type ProjectCommentDoc = Doc<"projectComments">;
@@ -45,6 +46,11 @@ const formatRelativeTime = (timestamp: number, now: number) => {
     day: "numeric",
     year: "numeric",
   });
+};
+
+const parseMentionTokens = (content: string) => {
+  const matches = content.matchAll(/@([a-zA-Z0-9._-]+)/g);
+  return Array.from(new Set(Array.from(matches, (match) => match[1]))).slice(0, 20);
 };
 
 const buildReactionSummarySnapshot = (
@@ -559,6 +565,41 @@ export const create = mutation({
     if (parent) {
       await incrementParentReplyCount(ctx, parent._id);
     }
+    try {
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: project.workspaceId,
+        kind: "collaboration",
+        action: "comment_added",
+        actorUser: appUser,
+        projectPublicId: project.publicId,
+        projectName: project.name,
+        message: trimmedContent,
+      });
+    } catch (error) {
+      logError("comments.create", "Failed to log comment_added activity", {
+        error,
+        projectPublicId: project.publicId,
+      });
+    }
+    for (const mention of parseMentionTokens(trimmedContent)) {
+      try {
+        await logWorkspaceActivityForActorUser(ctx, {
+          workspaceId: project.workspaceId,
+          kind: "collaboration",
+          action: "mention_added",
+          actorUser: appUser,
+          projectPublicId: project.publicId,
+          projectName: project.name,
+          message: mention,
+        });
+      } catch (error) {
+        logError("comments.create", "Failed to log mention_added activity", {
+          error,
+          projectPublicId: project.publicId,
+          mention,
+        });
+      }
+    }
 
     try {
       await ctx.scheduler.runAfter(NOTIFICATION_DISPATCH_DELAY_MS, internal.notificationsEmail.sendTeamActivityForComment, {
@@ -597,7 +638,11 @@ export const update = mutation({
       throw new ConvexError("Comment not found");
     }
 
-    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser, project } = await requireProjectRoleById(
+      ctx,
+      comment.projectId,
+      "member",
+    );
 
     if (comment.authorUserId !== appUser._id) {
       throw new ConvexError("Forbidden");
@@ -608,6 +653,15 @@ export const update = mutation({
       content: trimmedContent,
       edited: true,
       updatedAt: updatedAtEpochMs,
+    });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "collaboration",
+      action: "comment_edited",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      message: trimmedContent,
     });
 
     return { commentId: comment._id, updatedAtEpochMs };
@@ -697,7 +751,11 @@ export const remove = mutation({
       };
     }
 
-    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser, project } = await requireProjectRoleById(
+      ctx,
+      comment.projectId,
+      "member",
+    );
 
     if (comment.authorUserId !== appUser._id) {
       throw new ConvexError("Forbidden");
@@ -727,6 +785,14 @@ export const remove = mutation({
         decrementParentReplyCount(ctx, { parentCommentId, decrementBy }),
       ),
     );
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "collaboration",
+      action: "comment_deleted",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+    });
     return {
       removed: true,
       removedCommentId: String(comment._id),
@@ -747,7 +813,11 @@ export const toggleResolved = mutation({
       throw new ConvexError("Comment not found");
     }
 
-    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser, project } = await requireProjectRoleById(
+      ctx,
+      comment.projectId,
+      "member",
+    );
 
     if (comment.authorUserId !== appUser._id) {
       throw new ConvexError("Forbidden");
@@ -774,7 +844,11 @@ export const toggleReaction = mutation({
       throw new ConvexError("Comment not found");
     }
 
-    const { appUser } = await requireProjectRoleById(ctx, comment.projectId, "member");
+    const { appUser, project } = await requireProjectRoleById(
+      ctx,
+      comment.projectId,
+      "member",
+    );
 
     const existing = await ctx.db
       .query("commentReactions")
@@ -797,6 +871,15 @@ export const toggleReaction = mutation({
         ctx,
         reactionSummarySnapshot,
       );
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: project.workspaceId,
+        kind: "collaboration",
+        action: "reaction_removed",
+        actorUser: appUser,
+        projectPublicId: project.publicId,
+        projectName: project.name,
+        message: args.emoji,
+      });
       return {
         commentId: comment._id,
         emoji: args.emoji,
@@ -825,6 +908,15 @@ export const toggleReaction = mutation({
       ctx,
       reactionSummarySnapshot,
     );
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "collaboration",
+      action: "reaction_added",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      message: args.emoji,
+    });
     return {
       commentId: comment._id,
       emoji: args.emoji,

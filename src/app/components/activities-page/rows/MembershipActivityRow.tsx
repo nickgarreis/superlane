@@ -1,0 +1,37 @@
+import React from "react";
+import type { WorkspaceActivity } from "../../../types";
+import { ActivityRowShell } from "../ActivityRowShell";
+import { formatActivityMeta } from "../activityFormatting";
+
+const actionText = (activity: WorkspaceActivity) => {
+  const targetName = activity.targetUserName ?? "member";
+  switch (activity.action) {
+    case "member_invited":
+      return `Invited ${targetName}`;
+    case "member_joined":
+      return `${targetName} joined workspace`;
+    case "member_removed":
+      return `Removed ${targetName}`;
+    case "member_role_changed":
+      return `Changed ${targetName} role to ${activity.targetRole ?? activity.toValue ?? "member"}`;
+    default:
+      return `${activity.action} ${targetName}`;
+  }
+};
+
+export function MembershipActivityRow({
+  activity,
+}: {
+  activity: WorkspaceActivity;
+}) {
+  return (
+    <ActivityRowShell
+      kind="membership"
+      iconLabel="M"
+      title={actionText(activity)}
+      meta={formatActivityMeta(activity)}
+      actorName={activity.actorName}
+      actorAvatarUrl={activity.actorAvatarUrl}
+    />
+  );
+}

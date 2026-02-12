@@ -17,6 +17,7 @@ import {
 import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { fileTabValidator } from "./lib/validators";
 import { assertFiniteEpochMs, parseDisplayDateEpochMs } from "./lib/dateNormalization";
+import { logWorkspaceActivityForActorUser, logWorkspaceActivity } from "./lib/activityEvents";
 
 const UPLOAD_SOURCE_VALIDATOR = v.union(v.literal("upload"), v.literal("importedAttachment"));
 const FINALIZE_PROJECT_UPLOAD_ARGS = {
@@ -46,6 +47,9 @@ const internalFinalizeProjectUploadRef = makeFunctionReference<"mutation">(
 );
 const internalFinalizePendingDraftAttachmentUploadRef = makeFunctionReference<"mutation">(
   "files:internalFinalizePendingDraftAttachmentUpload",
+);
+const internalLogUploadFailureRef = makeFunctionReference<"mutation">(
+  "files:internalLogUploadFailure",
 );
 
 const mapProjectFile = (file: Doc<"projectFiles">) => ({
@@ -160,7 +164,11 @@ const finalizeProjectUploadCore = async (
     source?: "upload" | "importedAttachment";
   },
 ) => {
-  const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
+  const { project, appUser } = await requireProjectRole(
+    ctx,
+    args.projectPublicId,
+    "member",
+  );
   assertProjectAllowsFileMutations(project);
 
   const normalizedMimeType = normalizeMimeType(args.mimeType);
@@ -195,6 +203,7 @@ const finalizeProjectUploadCore = async (
     const existingNamesForTab = activeFiles
       .filter((file) => file.tab === args.tab)
       .map((file) => file.name);
+    const conflictDetected = existingNamesForTab.includes(trimmedName);
     const finalName = ensureUniqueFileName(trimmedName, existingNamesForTab);
     const source = args.source ?? "upload";
 
@@ -221,6 +230,16 @@ const finalizeProjectUploadCore = async (
     if (args.tab === "Attachments") {
       await syncProjectAttachmentMirror(ctx, project);
     }
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "file",
+      action: conflictDetected ? "uploaded_with_conflict" : "uploaded",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      fileName: finalName,
+      fileTab: args.tab,
+    });
 
     return {
       fileId,
@@ -356,8 +375,18 @@ export const finalizeProjectUpload = action({
   handler: async (ctx, args) => {
     try {
       await validateFileSignature(ctx, args.storageId, args.name.trim());
-      return await ctx.runMutation(internalFinalizeProjectUploadRef as any, args);
+      return await ctx.runMutation(internalFinalizeProjectUploadRef, args);
     } catch (error) {
+      try {
+        await ctx.runMutation(internalLogUploadFailureRef, {
+          projectPublicId: args.projectPublicId,
+          fileName: args.name,
+          fileTab: args.tab,
+          errorCode: error instanceof Error ? error.message : "upload_failed",
+        });
+      } catch {
+        // best effort activity logging
+      }
       try {
         await ctx.storage.delete(args.storageId);
       } catch {
@@ -365,6 +394,36 @@ export const finalizeProjectUpload = action({
       }
       throw error;
     }
+  },
+});
+
+export const internalLogUploadFailure = internalMutation({
+  args: {
+    projectPublicId: v.string(),
+    fileName: v.string(),
+    fileTab: fileTabValidator,
+    errorCode: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db
+      .query("projects")
+      .withIndex("by_publicId", (q) => q.eq("publicId", args.projectPublicId))
+      .unique();
+    if (!project || project.deletedAt != null) {
+      return null;
+    }
+    await logWorkspaceActivity(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "file",
+      action: "upload_failed",
+      actor: { type: "system", name: "System" },
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      fileName: args.fileName,
+      fileTab: args.fileTab,
+      errorCode: args.errorCode,
+    });
+    return null;
   },
 });
 
@@ -389,7 +448,7 @@ export const finalizePendingDraftAttachmentUpload = action({
   handler: async (ctx, args) => {
     try {
       await validateFileSignature(ctx, args.storageId, args.name.trim());
-      return await ctx.runMutation(internalFinalizePendingDraftAttachmentUploadRef as any, args);
+      return await ctx.runMutation(internalFinalizePendingDraftAttachmentUploadRef, args);
     } catch (error) {
       try {
         await ctx.storage.delete(args.storageId);
@@ -599,6 +658,16 @@ export const remove = mutation({
     if (file.tab === "Attachments") {
       await syncProjectAttachmentMirror(ctx, project);
     }
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "file",
+      action: "deleted",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+      fileName: file.name,
+      fileTab: file.tab,
+    });
 
     return { removed: true, projectPublicId: file.projectPublicId };
   },

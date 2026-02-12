@@ -3,8 +3,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -19,123 +17,27 @@ import {
   type SnapshotWorkspace,
   type SnapshotWorkspaceFile,
 } from "../lib/mappers";
-import type { AppView } from "../lib/routing";
 import { useDashboardController } from "./useDashboardController";
-import type { PendingHighlight, SettingsTab } from "./types";
 import type {
   ProjectData,
   ProjectFileData,
   Task,
+  WorkspaceActivity,
   ViewerIdentity,
   Workspace,
   WorkspaceMember,
 } from "../types";
-type UseDashboardDataArgs = {
-  isAuthenticated: boolean;
-  activeWorkspaceSlug: string | null;
-  setActiveWorkspaceSlug: (slug: string | null) => void;
-  isSettingsOpen: boolean;
-  settingsTab: SettingsTab;
-  isSearchOpen: boolean;
-  currentView: AppView;
-  completedProjectDetailId: string | null;
-  viewerFallback: { name: string; email: string; avatarUrl: string | null };
-  setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
-  setPendingHighlight: Dispatch<SetStateAction<PendingHighlight | null>>;
-  navigateView: (view: AppView) => void;
-};
-type UseDashboardDataResult = {
-  snapshot: ReturnType<
-    typeof useQuery<typeof api.dashboard.getWorkspaceBootstrap>
-  >;
-  resolvedWorkspaceSlug: string | null;
-  projectsPaginationStatus: ReturnType<
-    typeof usePaginatedQuery<typeof api.projects.listForWorkspace>
-  >["status"];
-  tasksPaginationStatus: ReturnType<
-    typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>
-  >["status"];
-  loadMoreWorkspaceTasks: ReturnType<
-    typeof usePaginatedQuery<typeof api.tasks.listForWorkspace>
-  >["loadMore"];
-  workspaceFilesPaginationStatus: ReturnType<
-    typeof usePaginatedQuery<typeof api.files.listForWorkspace>
-  >["status"];
-  loadMoreWorkspaceFiles: ReturnType<
-    typeof usePaginatedQuery<typeof api.files.listForWorkspace>
-  >["loadMore"];
-  projectFilesPaginationStatus: ReturnType<
-    typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>
-  >["status"];
-  loadMoreProjectFiles: ReturnType<
-    typeof usePaginatedQuery<typeof api.files.listForProjectPaginated>
-  >["loadMore"];
-  accountSettings: ReturnType<
-    typeof useQuery<typeof api.settings.getAccountSettings>
-  >;
-  notificationSettings: ReturnType<
-    typeof useQuery<typeof api.settings.getNotificationPreferences>
-  >;
-  companySummary: ReturnType<
-    typeof useQuery<typeof api.settings.getCompanySettingsSummary>
-  >;
-  companyMembersResult: ReturnType<
-    typeof usePaginatedQuery<typeof api.settings.listCompanyMembers>
-  >;
-  companyPendingInvitationsResult: ReturnType<
-    typeof usePaginatedQuery<typeof api.settings.listPendingInvitations>
-  >;
-  companyBrandAssetsResult: ReturnType<
-    typeof usePaginatedQuery<typeof api.settings.listBrandAssets>
-  >;
-  workspaceMembersResult: ReturnType<
-    typeof useQuery<typeof api.collaboration.listWorkspaceMembers>
-  >;
-  workspaceMembers: WorkspaceMember[];
-  usesWorkspaceTaskFeed: boolean;
-  usesProjectTaskFeed: boolean;
-  viewerIdentity: ViewerIdentity;
-  projectsById: Record<string, ProjectData>;
-  tasksByProject: Record<string, Task[]>;
-  visibleProjectIds: string[];
-  workspaces: Workspace[];
-  projects: Record<string, ProjectData>;
-  workspaceTasks: Task[];
-  activeWorkspace: Workspace | undefined;
-  visibleProjects: Record<string, ProjectData>;
-  sidebarVisibleProjects: Record<string, ProjectData>;
-  allWorkspaceFiles: ProjectFileData[];
-  projectFilesByProject: Record<string, ProjectFileData[]>;
-  contentModel: ReturnType<typeof useDashboardController>["contentModel"];
-  handleToggleSidebar: ReturnType<
-    typeof useDashboardController
-  >["toggleSidebar"];
-  clearPendingHighlight: ReturnType<
-    typeof useDashboardController
-  >["clearPendingHighlight"];
-};
+import {
+  filterProjectsByWorkspace,
+  type UseDashboardDataArgs,
+  type UseDashboardDataResult,
+} from "./useDashboardData.types";
 const PROJECTS_PAGE_SIZE = 50;
 const TASKS_PAGE_SIZE = 50;
+const ACTIVITIES_PAGE_SIZE = 50;
 const WORKSPACE_FILES_PAGE_SIZE = 40;
 const PROJECT_FILES_PAGE_SIZE = 40;
 const SETTINGS_PAGE_SIZE = 100;
-const filterProjectsByWorkspace = (
-  projects: Record<string, ProjectData>,
-  activeWorkspace: Workspace | undefined,
-): Record<string, ProjectData> => {
-  if (!activeWorkspace) {
-    return {};
-  }
-  return Object.entries(projects).reduce<Record<string, ProjectData>>(
-    (acc, [projectId, project]) => {
-      if (project.workspaceId === activeWorkspace.id) {
-        acc[projectId] = project;
-      }
-      return acc;
-    },
-    {},
-  );
-};
 export const useDashboardData = ({
   isAuthenticated,
   activeWorkspaceSlug,
@@ -208,6 +110,13 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: TASKS_PAGE_SIZE },
   );
+  const workspaceActivitiesResult = usePaginatedQuery(
+    api.activities.listForWorkspace,
+    isAuthenticated && resolvedWorkspaceSlug
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+    { initialNumItems: ACTIVITIES_PAGE_SIZE },
+  );
   const projectTasksResult = usePaginatedQuery(
     api.tasks.listForProject,
     isAuthenticated && shouldLoadProjectTasks && activeProjectPublicId
@@ -249,6 +158,11 @@ export const useDashboardData = ({
     status: tasksPaginationStatus,
     loadMore: loadMoreWorkspaceTasks,
   } = workspaceTasksResult;
+  const {
+    results: paginatedWorkspaceActivities,
+    status: activitiesPaginationStatus,
+    loadMore: loadMoreWorkspaceActivities,
+  } = workspaceActivitiesResult;
   const {
     results: paginatedProjectTasks,
     status: projectTasksPaginationStatus,
@@ -427,6 +341,10 @@ export const useDashboardData = ({
     () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
     [paginatedWorkspaceTasks],
   );
+  const workspaceActivities = useMemo<WorkspaceActivity[]>(
+    () => (paginatedWorkspaceActivities as WorkspaceActivity[]),
+    [paginatedWorkspaceActivities],
+  );
   const activeProjectTasksSource = useMemo<SnapshotTask[]>(() => {
     if (!activeProjectPublicId) {
       return [];
@@ -526,7 +444,9 @@ export const useDashboardData = ({
     resolvedWorkspaceSlug,
     projectsPaginationStatus,
     tasksPaginationStatus,
+    activitiesPaginationStatus,
     loadMoreWorkspaceTasks,
+    loadMoreWorkspaceActivities,
     workspaceFilesPaginationStatus: filesPaginationStatus,
     loadMoreWorkspaceFiles,
     projectFilesPaginationStatus,
@@ -548,6 +468,7 @@ export const useDashboardData = ({
     workspaces,
     projects: projectsByRoute,
     workspaceTasks,
+    workspaceActivities,
     activeWorkspace,
     visibleProjects,
     sidebarVisibleProjects,

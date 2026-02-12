@@ -146,7 +146,7 @@ export function SettingsPopup({
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[760px] h-[min(92vh,760px)] flex flex-col font-app txt-tone-primary`}
+        className={`${POPUP_SHELL_CLASS} max-w-[700px] h-[min(92vh,760px)] flex flex-col font-app txt-tone-primary`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />

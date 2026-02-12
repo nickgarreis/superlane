@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as activities from "../activities.js";
 import type * as auth from "../auth.js";
 import type * as collaboration from "../collaboration.js";
 import type * as comments from "../comments.js";
@@ -21,6 +22,7 @@ import type * as devSeedReset from "../devSeedReset.js";
 import type * as devSeedShared from "../devSeedShared.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as lib_activityEvents from "../lib/activityEvents.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dashboardContext from "../lib/dashboardContext.js";
 import type * as lib_dateNormalization from "../lib/dateNormalization.js";
@@ -33,6 +35,7 @@ import type * as lib_rbac from "../lib/rbac.js";
 import type * as lib_taskDiffMutation from "../lib/taskDiffMutation.js";
 import type * as lib_taskMutations from "../lib/taskMutations.js";
 import type * as lib_taskPagination from "../lib/taskPagination.js";
+import type * as lib_taskWorkspaceMutations from "../lib/taskWorkspaceMutations.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lib_workosOrganization from "../lib/workosOrganization.js";
 import type * as notificationsEmail from "../notificationsEmail.js";
@@ -51,6 +54,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activities: typeof activities;
   auth: typeof auth;
   collaboration: typeof collaboration;
   comments: typeof comments;
@@ -64,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   devSeedShared: typeof devSeedShared;
   files: typeof files;
   http: typeof http;
+  "lib/activityEvents": typeof lib_activityEvents;
   "lib/auth": typeof lib_auth;
   "lib/dashboardContext": typeof lib_dashboardContext;
   "lib/dateNormalization": typeof lib_dateNormalization;
@@ -76,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskDiffMutation": typeof lib_taskDiffMutation;
   "lib/taskMutations": typeof lib_taskMutations;
   "lib/taskPagination": typeof lib_taskPagination;
+  "lib/taskWorkspaceMutations": typeof lib_taskWorkspaceMutations;
   "lib/validators": typeof lib_validators;
   "lib/workosOrganization": typeof lib_workosOrganization;
   notificationsEmail: typeof notificationsEmail;

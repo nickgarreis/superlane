@@ -7,6 +7,11 @@ export const projectStatusValidator = v.union(
   v.literal("Completed"),
 );
 
+export const projectVisibilityValidator = v.union(
+  v.literal("workspace"),
+  v.literal("private"),
+);
+
 export const taskAssigneeValidator = v.object({
   userId: v.optional(v.string()),
   name: v.string(),

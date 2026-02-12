@@ -159,19 +159,25 @@ describe("useDashboardData", () => {
         isLoading: false,
         loadMore: vi.fn(),
       },
-      { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() },
+      { results: [], status: "Exhausted", isLoading: false, loadMore: vi.fn() }, // workspace activities
+      {
+        ...tasksResult,
+        status: "Exhausted",
+        isLoading: false,
+        loadMore: vi.fn(),
+      }, // project tasks
       {
         results: workspaceFiles,
         status: "Exhausted",
         isLoading: false,
         loadMore: vi.fn(),
-      },
+      }, // workspace files
       {
         results: workspaceFiles,
         status: "Exhausted",
         isLoading: false,
         loadMore: vi.fn(),
-      },
+      }, // project files
       {
         results: workspaceMembers.members,
         status: "Exhausted",
@@ -223,9 +229,10 @@ describe("useDashboardData", () => {
       includeArchived: true,
     });
     expect(paginatedQueryArgs[2]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedQueryArgs[3]).toEqual({ projectPublicId: "project-1" });
-    expect(paginatedQueryArgs[4]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedQueryArgs[5]).toEqual({ projectPublicId: "project-1" });
+    expect(paginatedQueryArgs[3]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[4]).toEqual({ projectPublicId: "project-1" });
+    expect(paginatedQueryArgs[5]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedQueryArgs[6]).toEqual({ projectPublicId: "project-1" });
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith("alpha");
@@ -285,6 +292,7 @@ describe("useDashboardData", () => {
     expect(paginatedCallArgs[0]).toBe("skip");
     expect(paginatedCallArgs[1]).toBe("skip");
     expect(paginatedCallArgs[2]).toBe("skip");
+    expect(paginatedCallArgs[3]).toBe("skip");
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith(null);
@@ -346,12 +354,13 @@ describe("useDashboardData", () => {
       includeArchived: true,
     });
     expect(paginatedCallArgs[2]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedCallArgs[3]).toBe("skip");
+    expect(paginatedCallArgs[3]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[4]).toBe("skip");
     expect(paginatedCallArgs[5]).toBe("skip");
     expect(paginatedCallArgs[6]).toBe("skip");
     expect(paginatedCallArgs[7]).toBe("skip");
     expect(paginatedCallArgs[8]).toBe("skip");
+    expect(paginatedCallArgs[9]).toBe("skip");
   });
 
   test("keeps project query args stable between tasks and project routes", () => {
@@ -529,7 +538,8 @@ describe("useDashboardData", () => {
     );
 
     expect(paginatedCallArgs[2]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedCallArgs[3]).toEqual({ projectPublicId: "project-1" });
+    expect(paginatedCallArgs[3]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedCallArgs[4]).toEqual({ projectPublicId: "project-1" });
     expect(result.current.usesWorkspaceTaskFeed).toBe(true);
     expect(result.current.usesProjectTaskFeed).toBe(true);
   });
@@ -579,8 +589,8 @@ describe("useDashboardData", () => {
 
     renderHook(() => useDashboardData(args));
 
-    expect(paginatedCallArgs[4]).toBe("skip");
-    expect(paginatedCallArgs[5]).toEqual({ projectPublicId: "completed-42" });
+    expect(paginatedCallArgs[4]).toEqual({ projectPublicId: "completed-42" });
+    expect(paginatedCallArgs[6]).toEqual({ projectPublicId: "completed-42" });
   });
 
   test("loads company settings queries while settings is open even when tab is Account", () => {
@@ -631,9 +641,9 @@ describe("useDashboardData", () => {
     renderHook(() => useDashboardData(args));
 
     expect(queryCallArgs[3]).toEqual({ workspaceSlug: "alpha" });
-    expect(paginatedCallArgs[6]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[7]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedCallArgs[8]).toEqual({ workspaceSlug: "alpha" });
+    expect(paginatedCallArgs[9]).toEqual({ workspaceSlug: "alpha" });
   });
 
   test("falls back to workspace members query when snapshot has no members payload", () => {
@@ -738,7 +748,7 @@ describe("useDashboardData", () => {
       };
     });
 
-    const loadMoreSpies = Array.from({ length: 9 }, () => vi.fn());
+    const loadMoreSpies = Array.from({ length: 10 }, () => vi.fn());
     usePaginatedQueryMock.mockImplementation(
       (_: unknown, queryArg: unknown) => {
         const index = usePaginatedQueryMock.mock.calls.length - 1;

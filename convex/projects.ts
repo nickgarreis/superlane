@@ -13,8 +13,14 @@ import { syncProjectAttachmentMirror } from "./lib/projectAttachments";
 import { hasRequiredWorkspaceRole } from "./lib/rbac";
 import { assertFiniteEpochMs } from "./lib/dateNormalization";
 import { logError } from "./lib/logging";
+import {
+  logWorkspaceActivityForActorUser,
+} from "./lib/activityEvents";
 
 const NOTIFICATION_DISPATCH_DELAY_MS = 30_000;
+type IndexEqBuilder = {
+  eq: (field: string, value: unknown) => IndexEqBuilder;
+};
 
 const slugify = (value: string) =>
   value
@@ -30,7 +36,7 @@ const ensureUniqueProjectPublicId = async (ctx: any, base: string) => {
   while (true) {
     const existing = await ctx.db
       .query("projects")
-      .withIndex("by_publicId", (q: any) => q.eq("publicId", candidate))
+      .withIndex("by_publicId", (q: IndexEqBuilder) => q.eq("publicId", candidate))
       .unique();
     if (!existing) {
       return candidate;
@@ -53,7 +59,7 @@ const normalizeOptionalEpochMs = (
 const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
   const workspace = await ctx.db
     .query("workspaces")
-    .withIndex("by_slug", (q: any) => q.eq("slug", workspaceSlug))
+    .withIndex("by_slug", (q: IndexEqBuilder) => q.eq("slug", workspaceSlug))
     .unique();
 
   if (!workspace || workspace.deletedAt != null) {
@@ -87,13 +93,13 @@ export const listForWorkspace = query({
     const paginated = includeArchived
       ? await ctx.db
           .query("projects")
-          .withIndex("by_workspace_deletedAt_updatedAt_createdAt", (q: any) =>
+          .withIndex("by_workspace_deletedAt_updatedAt_createdAt", (q) =>
             q.eq("workspaceId", workspace._id).eq("deletedAt", null))
           .order("desc")
           .paginate(args.paginationOpts)
       : await ctx.db
           .query("projects")
-          .withIndex("by_workspace_archived_deletedAt_updatedAt_createdAt", (q: any) =>
+          .withIndex("by_workspace_archived_deletedAt_updatedAt_createdAt", (q) =>
             q.eq("workspaceId", workspace._id).eq("archived", false).eq("deletedAt", null))
           .order("desc")
           .paginate(args.paginationOpts);
@@ -106,18 +112,20 @@ export const listForWorkspace = query({
       ),
     );
     const creatorRows = await Promise.all(
-      creatorIdsToResolve.map(async (creatorUserId) => {
-        if (!creatorUserId) {
-          return null;
-        }
+      Array.from(new Set(creatorIdsToResolve)).map(
+        async (creatorUserId) => {
+          if (!creatorUserId) {
+            return null;
+          }
 
-        try {
-          const creator = await ctx.db.get(creatorUserId);
-          return creator ? [String(creatorUserId), creator] : null;
-        } catch {
-          return null;
-        }
-      }),
+          try {
+            const creator = await ctx.db.get(creatorUserId);
+            return creator ? [String(creatorUserId), creator] : null;
+          } catch {
+            return null;
+          }
+        },
+      ),
     );
     const creatorById = new Map(
       creatorRows.filter((entry): entry is [string, any] => entry !== null),
@@ -282,7 +290,12 @@ const enforceReviewCommentOwnership = (args: {
 const consumePendingUploadsForProject = async (
   ctx: any,
   args: {
-    project: { _id: any; workspaceId: any; publicId: string; deletedAt?: number | null };
+    project: {
+      _id: any;
+      workspaceId: any;
+      publicId: string;
+      deletedAt?: number | null;
+    };
     appUserId: any;
     pendingUploadIds: any[];
   },
@@ -294,7 +307,7 @@ const consumePendingUploadsForProject = async (
   const activeFiles = (
     await ctx.db
       .query("projectFiles")
-      .withIndex("by_projectId_deletedAt", (q: any) =>
+      .withIndex("by_projectId_deletedAt", (q: IndexEqBuilder) =>
         q.eq("projectId", args.project._id).eq("deletedAt", null),
       )
       .collect()
@@ -375,7 +388,12 @@ export const create = mutation({
       throw new ConvexError("Workspace not found");
     }
 
-    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const { appUser } = await requireWorkspaceRole(
+      ctx,
+      workspace._id,
+      "member",
+      { workspace },
+    );
 
     const basePublicId = args.publicId && args.publicId.length > 0
       ? args.publicId
@@ -416,7 +434,12 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    const projectRef = { _id: projectId, workspaceId: workspace._id, publicId, deletedAt: null };
+    const projectRef = {
+      _id: projectId,
+      workspaceId: workspace._id,
+      publicId,
+      deletedAt: null,
+    };
     await consumePendingUploadsForProject(ctx, {
       project: projectRef,
       appUserId: appUser._id,
@@ -431,6 +454,15 @@ export const create = mutation({
       actorName: appUser.name ?? appUser.email ?? "Unknown user",
       previousStatus: null,
       nextStatus: status,
+    });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "project",
+      action: "created",
+      actorUser: appUser,
+      projectPublicId: publicId,
+      projectName: args.name,
+      toValue: status,
     });
 
     return { projectId, publicId };
@@ -452,6 +484,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { project, appUser, membership } = await requireProjectRole(ctx, args.publicId, "member");
+    const previousName = project.name;
 
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
@@ -511,6 +544,18 @@ export const update = mutation({
         actorName: appUser.name ?? appUser.email ?? "Unknown user",
         previousStatus: project.status,
         nextStatus: args.status,
+      });
+    }
+    if (args.name !== undefined && args.name !== previousName) {
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: project.workspaceId,
+        kind: "project",
+        action: "renamed",
+        actorUser: appUser,
+        projectPublicId: project.publicId,
+        projectName: args.name,
+        fromValue: previousName,
+        toValue: args.name,
       });
     }
 
@@ -573,6 +618,14 @@ export const archive = mutation({
       updatedAt: now,
       archivedByUserId: appUser._id,
     });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "project",
+      action: "archived",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+    });
 
     return { publicId: project.publicId };
   },
@@ -595,6 +648,14 @@ export const unarchive = mutation({
       updatedAt: now,
       unarchivedByUserId: appUser._id,
     });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "project",
+      action: "restored",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+    });
 
     return { publicId: project.publicId };
   },
@@ -610,7 +671,7 @@ export const remove = mutation({
 
     const activeProjectFiles = await ctx.db
       .query("projectFiles")
-      .withIndex("by_projectId_deletedAt", (q: any) =>
+      .withIndex("by_projectId_deletedAt", (q) =>
         q.eq("projectId", project._id).eq("deletedAt", null),
       )
       .collect();
@@ -635,7 +696,7 @@ export const remove = mutation({
 
     const projectTasks = await ctx.db
       .query("tasks")
-      .withIndex("by_projectPublicId", (q: any) => q.eq("projectPublicId", project.publicId))
+      .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
       .collect();
 
     await Promise.all(
@@ -645,6 +706,14 @@ export const remove = mutation({
           updatedAt: now,
         })),
     );
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: project.workspaceId,
+      kind: "project",
+      action: "deleted",
+      actorUser: appUser,
+      projectPublicId: project.publicId,
+      projectName: project.name,
+    });
 
     return { publicId: args.publicId };
   },

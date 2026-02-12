@@ -5,6 +5,7 @@ import type {
   ProjectFileTab,
   ReviewComment,
   Task,
+  WorkspaceActivity,
   Workspace,
 } from "../types";
 import { getStatusStyle } from "./status";
@@ -53,6 +54,7 @@ export type SnapshotWorkspaceFile = {
   sizeBytes?: number | null;
   downloadable?: boolean;
 };
+export type SnapshotWorkspaceActivity = WorkspaceActivity;
 export const mapWorkspacesToUi = (
   workspaces: SnapshotWorkspace[],
 ): Workspace[] =>

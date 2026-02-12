@@ -109,6 +109,27 @@
   --file-type-xlsx-soft: rgba(74, 222, 128, 0.08);
   --file-type-default: #9ca3af;
   --file-type-default-soft: rgba(156, 163, 175, 0.08);
+  --activity-project-text: #58afff;
+  --activity-project-border: rgba(88, 175, 255, 0.35);
+  --activity-project-bg: rgba(88, 175, 255, 0.1);
+  --activity-task-text: #22c55e;
+  --activity-task-border: rgba(34, 197, 94, 0.35);
+  --activity-task-bg: rgba(34, 197, 94, 0.1);
+  --activity-collaboration-text: #f59e0b;
+  --activity-collaboration-border: rgba(245, 158, 11, 0.35);
+  --activity-collaboration-bg: rgba(245, 158, 11, 0.1);
+  --activity-file-text: #a78bfa;
+  --activity-file-border: rgba(167, 139, 250, 0.35);
+  --activity-file-bg: rgba(167, 139, 250, 0.1);
+  --activity-membership-text: #34d399;
+  --activity-membership-border: rgba(52, 211, 153, 0.35);
+  --activity-membership-bg: rgba(52, 211, 153, 0.1);
+  --activity-workspace-text: #60a5fa;
+  --activity-workspace-border: rgba(96, 165, 250, 0.35);
+  --activity-workspace-bg: rgba(96, 165, 250, 0.1);
+  --activity-organization-text: #f87171;
+  --activity-organization-border: rgba(248, 113, 113, 0.35);
+  --activity-organization-bg: rgba(248, 113, 113, 0.1);
   --shadow-popup-shell:
     0px 0px 4px 0px rgba(0, 0, 0, 0.04),
     0px 12px 32px 0px rgba(0, 0, 0, 0.08);
@@ -350,6 +371,48 @@
 
 @utility txt-tone-inverse {
   color: var(--text-tone-inverse);
+}
+
+@utility activity-tone-project {
+  color: var(--activity-project-text);
+  border-color: var(--activity-project-border);
+  background-color: var(--activity-project-bg);
+}
+
+@utility activity-tone-task {
+  color: var(--activity-task-text);
+  border-color: var(--activity-task-border);
+  background-color: var(--activity-task-bg);
+}
+
+@utility activity-tone-collaboration {
+  color: var(--activity-collaboration-text);
+  border-color: var(--activity-collaboration-border);
+  background-color: var(--activity-collaboration-bg);
+}
+
+@utility activity-tone-file {
+  color: var(--activity-file-text);
+  border-color: var(--activity-file-border);
+  background-color: var(--activity-file-bg);
+}
+
+@utility activity-tone-membership {
+  color: var(--activity-membership-text);
+  border-color: var(--activity-membership-border);
+  background-color: var(--activity-membership-bg);
+}
+
+@utility activity-tone-workspace {
+  color: var(--activity-workspace-text);
+  border-color: var(--activity-workspace-border);
+  background-color: var(--activity-workspace-bg);
+}
+
+@utility activity-tone-organization {
+  color: var(--activity-organization-text);
+  border-color: var(--activity-organization-border);
+  background-color: var(--activity-organization-bg);
 }
 
 @utility shadow-popup-shell {

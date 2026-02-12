@@ -25,6 +25,7 @@ export interface ViewerIdentity {
   avatarUrl: string | null;
   role: WorkspaceRole | null;
 }
+export type ProjectVisibility = "workspace" | "private";
 export interface CommentReaction {
   emoji: string;
   users: string[];
@@ -161,4 +162,39 @@ export interface DbProjectRecord {
     img: string;
   }>;
   reviewComments?: ReviewComment[];
+}
+
+export type WorkspaceActivityKind =
+  | "project"
+  | "task"
+  | "collaboration"
+  | "file"
+  | "membership"
+  | "workspace"
+  | "organization";
+
+export interface WorkspaceActivity {
+  id: string;
+  kind: WorkspaceActivityKind;
+  action: string;
+  actorType: "user" | "system";
+  actorUserId: string | null;
+  actorName: string;
+  actorAvatarUrl: string | null;
+  projectPublicId: string | null;
+  projectName: string | null;
+  projectVisibility: ProjectVisibility;
+  projectOwnerUserId: string | null;
+  taskId: string | null;
+  taskTitle: string | null;
+  fileName: string | null;
+  fileTab: ProjectFileTab | null;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  targetRole: WorkspaceRole | null;
+  fromValue: string | null;
+  toValue: string | null;
+  message: string | null;
+  errorCode: string | null;
+  createdAt: number;
 }

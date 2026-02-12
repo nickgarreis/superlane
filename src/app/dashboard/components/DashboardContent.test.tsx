@@ -30,6 +30,22 @@ vi.mock("../../components/ArchivePage", () => ({
   ),
 }));
 
+vi.mock("../../components/Activities", () => ({
+  Activities: ({
+    loadMoreWorkspaceActivities,
+  }: {
+    loadMoreWorkspaceActivities?: (numItems: number) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() => loadMoreWorkspaceActivities?.(20)}
+      data-testid="activities-view"
+    >
+      Activities
+    </button>
+  ),
+}));
+
 vi.mock("../../components/MainContent", () => ({
   MainContent: ({
     navigationActions,
@@ -76,6 +92,11 @@ const baseProps = () => ({
   isSidebarOpen: true,
   visibleProjects: { [BASE_PROJECT.id]: BASE_PROJECT },
   workspaceTasks: [],
+  workspaceActivities: [],
+  tasksPaginationStatus: "Exhausted" as const,
+  loadMoreWorkspaceTasks: vi.fn(),
+  activitiesPaginationStatus: "Exhausted" as const,
+  loadMoreWorkspaceActivities: vi.fn(),
   handleReplaceWorkspaceTasks: vi.fn(),
   workspaceMembers: [],
   viewerIdentity: VIEWER,
@@ -85,6 +106,8 @@ const baseProps = () => ({
   highlightedArchiveProjectId: null,
   setHighlightedArchiveProjectId: vi.fn(),
   projectFilesByProject: {},
+  projectFilesPaginationStatus: "Exhausted" as const,
+  loadMoreProjectFiles: vi.fn(),
   mainContentFileActions: {
     create: vi.fn(),
     remove: vi.fn(),
@@ -114,6 +137,15 @@ describe("DashboardContent", () => {
 
     fireEvent.click(await screen.findByTestId("archive-view"));
     expect(props.handleUnarchiveProject).toHaveBeenCalledWith("project-1");
+  });
+
+  test("renders activities content for activities model", async () => {
+    const props = baseProps();
+
+    render(<DashboardContent {...props} contentModel={{ kind: "activities" }} />);
+
+    fireEvent.click(await screen.findByTestId("activities-view"));
+    expect(props.loadMoreWorkspaceActivities).toHaveBeenCalledWith(20);
   });
 
   test("renders main content with back action for main model", async () => {

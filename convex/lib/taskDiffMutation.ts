@@ -13,6 +13,7 @@ import {
   resolveTaskTargetProject,
 } from "./taskMutations";
 import { taskAssigneeValidator } from "./validators";
+import { logWorkspaceActivityForActorUser } from "./activityEvents";
 
 export const taskCreateDiffValidator = v.object({
   id: v.string(),
@@ -69,7 +70,9 @@ const POSITION_STRIDE = 1000;
 export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiffArgs) => {
   const startedAt = Date.now();
   const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-  await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+  const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", {
+    workspace,
+  });
 
   const now = Date.now();
   const projectAccessCache = new Map<string, any>();
@@ -158,6 +161,16 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
       createdAt: now,
       updatedAt: now,
     });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "task",
+      action: "created",
+      actorUser: appUser,
+      projectPublicId: targetProject?.publicId,
+      projectName: targetProject?.name,
+      taskId,
+      taskTitle: normalizeTaskTitle(create.title),
+    });
   }
 
   for (const update of args.updates) {
@@ -203,6 +216,21 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
     }
 
     await ctx.db.patch(task._id, patch);
+    if (
+      update.completed !== undefined &&
+      update.completed !== task.completed
+    ) {
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: workspace._id,
+        kind: "task",
+        action: update.completed ? "completed" : "reopened",
+        actorUser: appUser,
+        projectPublicId: ((patch.projectPublicId as string | null | undefined) ??
+          task.projectPublicId) ?? undefined,
+        taskId,
+        taskTitle: (patch.title as string | undefined) ?? task.title,
+      });
+    }
     updatedCount += 1;
     processedTaskIds.add(taskId);
     taskByTaskId.set(taskId, {
@@ -227,6 +255,15 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
       projectAccessCache,
     });
     await ctx.db.delete(task._id);
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "task",
+      action: "deleted",
+      actorUser: appUser,
+      projectPublicId: task.projectPublicId ?? undefined,
+      taskId: normalizedTaskId,
+      taskTitle: task.title,
+    });
     removedCount += 1;
     processedTaskIds.add(normalizedTaskId);
     taskByTaskId.delete(normalizedTaskId);
@@ -243,7 +280,7 @@ export const applyTaskDiffHandler = async (ctx: MutationCtx, args: ApplyTaskDiff
     usedFullScan = true;
     const freshTaskRows = await ctx.db
       .query("tasks")
-      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
+      .withIndex("by_workspace_projectDeletedAt_position", (q) =>
         q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
       )
       .collect();

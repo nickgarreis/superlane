@@ -56,6 +56,10 @@ export const useSearchPopupData = ({
         onClose();
         onOpenSettings("Company");
       },
+      "action-activities": () => {
+        onClose();
+        onNavigate("activities");
+      },
       "action-archive": () => {
         onClose();
         onNavigate("archive");

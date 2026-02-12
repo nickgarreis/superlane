@@ -1,6 +1,7 @@
 export type AppView =
   | "tasks"
   | "archive"
+  | "activities"
   | `project:${string}`
   | `archive-project:${string}`;
 const archiveProjectPattern = /^\/archive\/([^/]+)$/;
@@ -19,6 +20,9 @@ export const viewToPath = (view: AppView): string => {
   if (view === "archive") {
     return "/archive";
   }
+  if (view === "activities") {
+    return "/activities";
+  }
   if (view.startsWith("archive-project:")) {
     const projectId = view.slice("archive-project:".length);
     return `/archive/${encodeURIComponent(projectId)}`;
@@ -32,6 +36,9 @@ export const pathToView = (pathname: string): AppView | null => {
   }
   if (pathname === "/archive") {
     return "archive";
+  }
+  if (pathname === "/activities") {
+    return "activities";
   }
   const archiveProjectMatch = pathname.match(archiveProjectPattern);
   if (archiveProjectMatch) {
@@ -54,6 +61,7 @@ export const pathToView = (pathname: string): AppView | null => {
 export const isProtectedPath = (pathname: string): boolean =>
   pathname === "/tasks" ||
   pathname === "/archive" ||
+  pathname === "/activities" ||
   pathname === "/settings" ||
   archiveProjectPattern.test(pathname) ||
   projectPattern.test(pathname);

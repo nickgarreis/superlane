@@ -1,0 +1,34 @@
+import React from "react";
+import type { WorkspaceActivity } from "../../../types";
+import { ActivityRowShell } from "../ActivityRowShell";
+import { formatActivityMeta } from "../activityFormatting";
+
+const actionText = (activity: WorkspaceActivity) => {
+  switch (activity.action) {
+    case "created":
+      return `Created project ${activity.projectName ?? ""}`.trim();
+    case "renamed":
+      return `Renamed project from "${activity.fromValue ?? ""}" to "${activity.toValue ?? ""}"`;
+    case "archived":
+      return `Archived project ${activity.projectName ?? ""}`.trim();
+    case "restored":
+      return `Restored project ${activity.projectName ?? ""}`.trim();
+    case "deleted":
+      return `Deleted project ${activity.projectName ?? ""}`.trim();
+    default:
+      return `${activity.action} on project ${activity.projectName ?? ""}`.trim();
+  }
+};
+
+export function ProjectActivityRow({ activity }: { activity: WorkspaceActivity }) {
+  return (
+    <ActivityRowShell
+      kind="project"
+      iconLabel="P"
+      title={actionText(activity)}
+      meta={formatActivityMeta(activity)}
+      actorName={activity.actorName}
+      actorAvatarUrl={activity.actorAvatarUrl}
+    />
+  );
+}

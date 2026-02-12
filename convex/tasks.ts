@@ -22,6 +22,11 @@ import {
   replaceWorkspaceTasksLegacy,
   resolveTaskTargetProject,
 } from "./lib/taskMutations";
+import { logWorkspaceActivityForActorUser } from "./lib/activityEvents";
+import {
+  bulkReplaceWorkspaceTasksHandler,
+  reorderWorkspaceTasksHandler,
+} from "./lib/taskWorkspaceMutations";
 
 export const listForWorkspace = query({
   args: {
@@ -34,7 +39,7 @@ export const listForWorkspace = query({
 
     const paginated = await ctx.db
       .query("tasks")
-      .withIndex("by_workspace_projectDeletedAt_position", (q: any) =>
+      .withIndex("by_workspace_projectDeletedAt_position", (q) =>
         q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
       )
       .paginate(args.paginationOpts);
@@ -56,7 +61,7 @@ export const listForProject = query({
 
     const paginated = await ctx.db
       .query("tasks")
-      .withIndex("by_projectPublicId_position", (q: any) =>
+      .withIndex("by_projectPublicId_position", (q) =>
         q.eq("projectPublicId", project.publicId),
       )
       .paginate(args.paginationOpts);
@@ -81,7 +86,12 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const { appUser } = await requireWorkspaceRole(
+      ctx,
+      workspace._id,
+      "member",
+      { workspace },
+    );
 
     const requestedTaskId = (args.id ?? "").trim();
     const taskId = requestedTaskId.length > 0
@@ -122,6 +132,16 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "task",
+      action: "created",
+      actorUser: appUser,
+      projectPublicId: targetProject?.publicId,
+      projectName: targetProject?.name,
+      taskId,
+      taskTitle: normalizeTaskTitle(args.title),
+    });
 
     return { taskId };
   },
@@ -139,7 +159,12 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const { appUser } = await requireWorkspaceRole(
+      ctx,
+      workspace._id,
+      "member",
+      { workspace },
+    );
 
     const task = await getWorkspaceTaskRowByTaskId(ctx, {
       workspaceId: workspace._id,
@@ -157,6 +182,11 @@ export const update = mutation({
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
     };
+    const previousCompleted = task.completed;
+    const previousAssigneeName = (task.assignee?.name ?? "").trim();
+    const previousDueDate =
+      typeof task.dueDateEpochMs === "number" ? String(task.dueDateEpochMs) : "";
+    const previousProjectPublicId = task.projectPublicId ?? null;
 
     if (args.title !== undefined) {
       patch.title = normalizeTaskTitle(args.title);
@@ -182,6 +212,85 @@ export const update = mutation({
     }
 
     await ctx.db.patch(task._id, patch);
+    const nextTitle = (patch.title as string | undefined) ?? task.title;
+    const nextProjectPublicIdRaw =
+      (patch.projectPublicId as string | null | undefined) ?? previousProjectPublicId;
+    const normalizedNextProjectPublicId =
+      nextProjectPublicIdRaw === "" ? null : nextProjectPublicIdRaw ?? null;
+    const resolvedProject =
+      typeof normalizedNextProjectPublicId === "string"
+      && normalizedNextProjectPublicId.length > 0
+        ? await ctx.db
+            .query("projects")
+            .withIndex("by_publicId", (q) => q.eq("publicId", normalizedNextProjectPublicId))
+            .unique()
+        : null;
+
+    if (args.completed !== undefined && args.completed !== previousCompleted) {
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: workspace._id,
+        kind: "task",
+        action: args.completed ? "completed" : "reopened",
+        actorUser: appUser,
+        projectPublicId: normalizedNextProjectPublicId ?? undefined,
+        projectName: resolvedProject?.name,
+        taskId: task.taskId,
+        taskTitle: nextTitle,
+      });
+    }
+    const nextAssigneeName = args.assignee ? args.assignee.name.trim() : "";
+    if (nextAssigneeName.length > 0 && nextAssigneeName !== previousAssigneeName) {
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: workspace._id,
+        kind: "task",
+        action: "assignee_changed",
+        actorUser: appUser,
+        projectPublicId: normalizedNextProjectPublicId ?? undefined,
+        projectName: resolvedProject?.name,
+        taskId: task.taskId,
+        taskTitle: nextTitle,
+        fromValue: previousAssigneeName,
+        toValue: nextAssigneeName,
+      });
+    }
+    if (args.dueDateEpochMs !== undefined) {
+      const nextDueDate =
+        args.dueDateEpochMs == null ? "" : String(args.dueDateEpochMs);
+      if (previousDueDate !== nextDueDate) {
+        await logWorkspaceActivityForActorUser(ctx, {
+          workspaceId: workspace._id,
+          kind: "task",
+          action: "due_date_changed",
+          actorUser: appUser,
+          projectPublicId: normalizedNextProjectPublicId ?? undefined,
+          projectName: resolvedProject?.name,
+          taskId: task.taskId,
+          taskTitle: nextTitle,
+          fromValue: previousDueDate,
+          toValue: nextDueDate,
+        });
+      }
+    }
+    if (args.projectPublicId !== undefined) {
+      const normalizedPreviousProjectPublicId =
+        previousProjectPublicId === "" ? null : previousProjectPublicId;
+      const normalizedNewProjectPublicId =
+        args.projectPublicId === "" ? null : args.projectPublicId ?? null;
+      if (normalizedNewProjectPublicId !== normalizedPreviousProjectPublicId) {
+        await logWorkspaceActivityForActorUser(ctx, {
+          workspaceId: workspace._id,
+          kind: "task",
+          action: "moved_project",
+          actorUser: appUser,
+          projectPublicId: normalizedNextProjectPublicId ?? undefined,
+          projectName: resolvedProject?.name,
+          taskId: task.taskId,
+          taskTitle: nextTitle,
+          fromValue: normalizedPreviousProjectPublicId ?? "",
+          toValue: normalizedNextProjectPublicId ?? "",
+        });
+      }
+    }
     return { taskId: args.taskId };
   },
 });
@@ -193,7 +302,12 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+    const { appUser } = await requireWorkspaceRole(
+      ctx,
+      workspace._id,
+      "member",
+      { workspace },
+    );
 
     const task = await getWorkspaceTaskRowByTaskId(ctx, {
       workspaceId: workspace._id,
@@ -209,6 +323,26 @@ export const remove = mutation({
     });
 
     await ctx.db.delete(task._id);
+    const taskProjectPublicId =
+      typeof task.projectPublicId === "string" && task.projectPublicId.length > 0
+        ? task.projectPublicId
+        : null;
+    const project = taskProjectPublicId
+      ? await ctx.db
+          .query("projects")
+          .withIndex("by_publicId", (q) => q.eq("publicId", taskProjectPublicId))
+          .unique()
+      : null;
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "task",
+      action: "deleted",
+      actorUser: appUser,
+      projectPublicId: task.projectPublicId ?? undefined,
+      projectName: project?.name,
+      taskId: task.taskId,
+      taskTitle: task.title,
+    });
     return { removed: true };
   },
 });
@@ -229,59 +363,7 @@ export const reorder = mutation({
     workspaceSlug: v.string(),
     orderedTaskIds: v.array(v.string()),
   },
-  handler: async (ctx, args) => {
-    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
-
-    const orderedTaskIds = args.orderedTaskIds.map((taskId) => taskId.trim()).filter(Boolean);
-    const uniqueTaskIds = new Set(orderedTaskIds);
-    if (uniqueTaskIds.size !== orderedTaskIds.length) {
-      throw new ConvexError("Duplicate task id in reorder payload");
-    }
-
-    const taskRows = await Promise.all(
-      orderedTaskIds.map((taskId) =>
-        ctx.db
-          .query("tasks")
-          .withIndex("by_workspace_taskId", (q: any) =>
-            q.eq("workspaceId", workspace._id).eq("taskId", taskId),
-          )
-          .unique(),
-      ),
-    );
-    const projectAccessCache = new Map<string, any>();
-
-    const tasksToReorder = taskRows.map((task, index) => {
-      if (!task || task.projectDeletedAt != null) {
-        throw new ConvexError(`Task not found: ${orderedTaskIds[index]}`);
-      }
-      return task;
-    });
-
-    await Promise.all(tasksToReorder.map((task: any) => assertTaskProjectMutationAccess(ctx, {
-      workspaceId: workspace._id,
-      task,
-      projectAccessCache,
-    })));
-
-    const now = Date.now();
-    const updatedCounts = await Promise.all(
-      tasksToReorder.map(async (task: any, index) => {
-        if (task.position === index) {
-          return 0;
-        }
-        await ctx.db.patch(task._id, {
-          position: index,
-          updatedAt: now,
-        });
-        return 1;
-      }),
-    );
-
-    return {
-      updated: updatedCounts.reduce<number>((total, count) => total + count, 0),
-    };
-  },
+  handler: reorderWorkspaceTasksHandler,
 });
 
 export const replaceForProject = mutation({
@@ -322,28 +404,5 @@ export const bulkReplaceForWorkspace = mutation({
       }),
     ),
   },
-  handler: async (ctx, args) => {
-    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
-    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
-
-    const workspaceProjects = await ctx.db
-      .query("projects")
-      .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", workspace._id))
-      .collect();
-    const projectByPublicId = new Map(
-      workspaceProjects
-        .filter((project: any) => project.deletedAt == null)
-        .map((project: any) => [project.publicId, project]),
-    );
-
-    for (const update of args.updates) {
-      const project = projectByPublicId.get(update.projectPublicId);
-      if (!project) {
-        throw new ConvexError(`Project not found in workspace: ${update.projectPublicId}`);
-      }
-      await replaceProjectTasks(ctx, project, update.tasks);
-    }
-
-    return { updatedProjects: args.updates.length };
-  },
+  handler: bulkReplaceWorkspaceTasksHandler,
 });

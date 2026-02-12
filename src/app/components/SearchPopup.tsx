@@ -7,6 +7,7 @@ import React, {
   useCallback,
 } from "react";
 import {
+  Activity,
   Archive,
   ChevronDown,
   ChevronUp,
@@ -52,6 +53,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: "Go to Brand Assets",
     icon: <Palette size={15} />,
     keyword: "brand assets design",
+  },
+  {
+    id: "action-activities",
+    label: "Go to Activities",
+    icon: <Activity size={15} />,
+    keyword: "activities log activity",
   },
   {
     id: "action-archive",

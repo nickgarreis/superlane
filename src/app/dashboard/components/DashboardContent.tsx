@@ -11,15 +11,21 @@ import type {
   ProjectData,
   ProjectFileData,
   Task,
+  WorkspaceActivity,
   ViewerIdentity,
   WorkspaceMember,
 } from "../../types";
 const loadArchivePageModule = () => import("../../components/ArchivePage");
+const loadActivitiesModule = () => import("../../components/Activities");
 const loadMainContentModule = () => import("../../components/MainContent");
 const loadTasksModule = () => import("../../components/Tasks");
 const LazyArchivePage = React.lazy(async () => {
   const module = await loadArchivePageModule();
   return { default: module.ArchivePage };
+});
+const LazyActivities = React.lazy(async () => {
+  const module = await loadActivitiesModule();
+  return { default: module.Activities };
 });
 const LazyMainContent = React.lazy(async () => {
   const module = await loadMainContentModule();
@@ -44,12 +50,19 @@ type DashboardContentProps = {
   visibleProjects: Record<string, ProjectData>;
   tasksByProject?: Record<string, Task[]>;
   workspaceTasks: Task[];
+  workspaceActivities: WorkspaceActivity[];
   tasksPaginationStatus:
     | "LoadingFirstPage"
     | "CanLoadMore"
     | "LoadingMore"
     | "Exhausted";
   loadMoreWorkspaceTasks: (numItems: number) => void;
+  activitiesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
+  loadMoreWorkspaceActivities: (numItems: number) => void;
   handleReplaceWorkspaceTasks: (tasks: Task[]) => void;
   workspaceMembers: WorkspaceMember[];
   viewerIdentity: ViewerIdentity;
@@ -81,8 +94,11 @@ export const DashboardContent = React.memo(function DashboardContent({
   visibleProjects,
   tasksByProject = {},
   workspaceTasks,
+  workspaceActivities,
   tasksPaginationStatus,
   loadMoreWorkspaceTasks,
+  activitiesPaginationStatus,
+  loadMoreWorkspaceActivities,
   handleReplaceWorkspaceTasks,
   workspaceMembers,
   viewerIdentity,
@@ -107,6 +123,9 @@ export const DashboardContent = React.memo(function DashboardContent({
   const [hasLoadedArchivePane, setHasLoadedArchivePane] = useState(
     contentModel.kind === "archive",
   );
+  const [hasLoadedActivitiesPane, setHasLoadedActivitiesPane] = useState(
+    contentModel.kind === "activities",
+  );
   const [hasLoadedMainPane, setHasLoadedMainPane] = useState(
     contentModel.kind === "main",
   );
@@ -121,6 +140,10 @@ export const DashboardContent = React.memo(function DashboardContent({
     }
     if (contentModel.kind === "archive") {
       setHasLoadedArchivePane(true);
+      return;
+    }
+    if (contentModel.kind === "activities") {
+      setHasLoadedActivitiesPane(true);
       return;
     }
     if (contentModel.kind === "main") {
@@ -143,11 +166,13 @@ export const DashboardContent = React.memo(function DashboardContent({
 
   const isTasksActive = contentModel.kind === "tasks";
   const isArchiveActive = contentModel.kind === "archive";
+  const isActivitiesActive = contentModel.kind === "activities";
   const isMainActive = contentModel.kind === "main";
 
   if (
     !hasLoadedTasksPane &&
     !hasLoadedArchivePane &&
+    !hasLoadedActivitiesPane &&
     !hasLoadedMainPane &&
     contentModel.kind === "empty"
   ) {
@@ -210,6 +235,21 @@ export const DashboardContent = React.memo(function DashboardContent({
               onDeleteProject={handleDeleteProject}
               highlightedProjectId={highlightedArchiveProjectId}
               setHighlightedProjectId={setHighlightedArchiveProjectId}
+            />
+          </Suspense>
+        </div>
+      )}
+      {(hasLoadedActivitiesPane || isActivitiesActive) && (
+        <div
+          className={paneClassName(isActivitiesActive)}
+          aria-hidden={!isActivitiesActive}
+        >
+          <Suspense fallback={ContentLoadingFallback}>
+            <LazyActivities
+              onToggleSidebar={handleToggleSidebar}
+              activities={workspaceActivities}
+              activitiesPaginationStatus={activitiesPaginationStatus}
+              loadMoreWorkspaceActivities={loadMoreWorkspaceActivities}
             />
           </Suspense>
         </div>

@@ -15,6 +15,10 @@ import {
 import { api, internal } from "./_generated/api";
 import { logError, logInfo } from "./lib/logging";
 import { DEFAULT_NOTIFICATION_EVENTS, normalizeNotificationEvents } from "./lib/notificationPreferences";
+import {
+  logWorkspaceActivity,
+  logWorkspaceActivityForActorUser,
+} from "./lib/activityEvents";
 
 const TWO_MB_IN_BYTES = 2 * 1024 * 1024;
 
@@ -507,6 +511,14 @@ export const updateWorkspaceGeneral = mutation({
     if (args.logoText !== undefined) patch.logoText = args.logoText;
 
     await ctx.db.patch(workspace._id, patch);
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "workspace",
+      action: "workspace_general_updated",
+      actorUser: appUser,
+      fromValue: workspace.name,
+      toValue: (args.name ?? workspace.name),
+    });
 
     return { updated: true };
   },
@@ -569,6 +581,12 @@ export const finalizeWorkspaceLogoUpload = mutation({
         updatedAt: now,
         updatedByUserId: appUser._id,
       });
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: workspace._id,
+        kind: "workspace",
+        action: "workspace_logo_updated",
+        actorUser: appUser,
+      });
 
       if (previousStorageId && String(previousStorageId) !== String(args.storageId)) {
         await ctx.storage.delete(previousStorageId);
@@ -602,6 +620,12 @@ export const removeWorkspaceLogo = mutation({
       logoText: undefined,
       updatedAt: now,
       updatedByUserId: appUser._id,
+    });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "workspace",
+      action: "workspace_logo_removed",
+      actorUser: appUser,
     });
 
     if (previousStorageId) {
@@ -680,6 +704,13 @@ export const finalizeBrandAssetUpload = mutation({
         createdAt: now,
         updatedAt: now,
       });
+      await logWorkspaceActivityForActorUser(ctx, {
+        workspaceId: workspace._id,
+        kind: "workspace",
+        action: "brand_asset_uploaded",
+        actorUser: appUser,
+        fileName: finalName,
+      });
 
       return {
         id: String(assetId),
@@ -710,6 +741,13 @@ export const removeBrandAsset = mutation({
       deletedAt: Date.now(),
       deletedByUserId: appUser._id,
       updatedAt: Date.now(),
+    });
+    await logWorkspaceActivityForActorUser(ctx, {
+      workspaceId: workspace._id,
+      kind: "workspace",
+      action: "brand_asset_removed",
+      actorUser: appUser,
+      fileName: asset.name,
     });
 
     await ctx.storage.delete(asset.storageId);
@@ -992,13 +1030,34 @@ export const internalUpsertWorkspaceInvitation = internalMutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, patch);
+      if (args.state === "accepted" && existing.state !== "accepted") {
+        await logWorkspaceActivity(ctx, {
+          workspaceId: args.workspaceId,
+          kind: "membership",
+          action: "member_joined",
+          actor: { type: "system", name: "System" },
+          targetUserName: args.email,
+          toValue: "accepted",
+        });
+      }
       return existing._id;
     }
 
-    return ctx.db.insert("workspaceInvitations", {
+    const createdId = await ctx.db.insert("workspaceInvitations", {
       ...patch,
       createdAt: now,
     });
+    if (args.state === "pending") {
+      await logWorkspaceActivity(ctx, {
+        workspaceId: args.workspaceId,
+        kind: "membership",
+        action: "member_invited",
+        actor: { type: "system", name: "System" },
+        targetUserName: args.email,
+        targetRole: args.requestedRole ?? "member",
+      });
+    }
+    return createdId;
   },
 });
 
@@ -1084,9 +1143,23 @@ export const internalPatchWorkspaceMemberRole = internalMutation({
       throw new ConvexError("Workspace member not found");
     }
 
+    const previousRole = membership.role;
     await ctx.db.patch(membership._id, {
       role: args.role,
       updatedAt: Date.now(),
+    });
+    const targetUser = await ctx.db.get(args.userId);
+    await logWorkspaceActivity(ctx, {
+      workspaceId: args.workspaceId,
+      kind: "membership",
+      action: "member_role_changed",
+      actor: { type: "system", name: "System" },
+      targetUserId: args.userId,
+      targetUserName:
+        membership.nameSnapshot ?? targetUser?.name ?? "Unknown user",
+      targetRole: args.role,
+      fromValue: previousRole,
+      toValue: args.role,
     });
   },
 });
@@ -1109,6 +1182,19 @@ export const internalRemoveWorkspaceMember = internalMutation({
     await ctx.db.patch(membership._id, {
       status: "removed",
       updatedAt: Date.now(),
+    });
+    const targetUser = await ctx.db.get(args.userId);
+    await logWorkspaceActivity(ctx, {
+      workspaceId: args.workspaceId,
+      kind: "membership",
+      action: "member_removed",
+      actor: { type: "system", name: "System" },
+      targetUserId: args.userId,
+      targetUserName:
+        membership.nameSnapshot ?? targetUser?.name ?? "Unknown user",
+      targetRole: membership.role,
+      fromValue: membership.status,
+      toValue: "removed",
     });
   },
 });

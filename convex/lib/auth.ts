@@ -12,6 +12,10 @@ type ResolvedAuthUser = {
   profilePictureUrl?: string | null;
 };
 
+type IndexEqBuilder = {
+  eq: (field: string, value: unknown) => IndexEqBuilder;
+};
+
 const toNonEmptyString = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
     return undefined;
@@ -83,7 +87,10 @@ export async function requireAuthUser(ctx: any) {
 
   let appUser = await ctx.db
     .query("users")
-    .withIndex("by_workosUserId", (q: any) => q.eq("workosUserId", authUser.id))
+    .withIndex(
+      "by_workosUserId",
+      (q: IndexEqBuilder) => q.eq("workosUserId", authUser.id),
+    )
     .unique();
 
   if (!appUser) {
@@ -128,7 +135,7 @@ export async function requireWorkspaceMember(
 
   const membership = await ctx.db
     .query("workspaceMembers")
-    .withIndex("by_workspace_user", (q: any) =>
+    .withIndex("by_workspace_user", (q: IndexEqBuilder) =>
       q.eq("workspaceId", workspaceId).eq("userId", appUser._id),
     )
     .unique();
@@ -181,7 +188,7 @@ const ensureActiveProject = (project: any) => {
 const getActiveProjectByPublicId = async (ctx: any, publicId: string) => {
   const project = await ctx.db
     .query("projects")
-    .withIndex("by_publicId", (q: any) => q.eq("publicId", publicId))
+    .withIndex("by_publicId", (q: IndexEqBuilder) => q.eq("publicId", publicId))
     .unique();
 
   return ensureActiveProject(project);

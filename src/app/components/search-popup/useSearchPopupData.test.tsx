@@ -27,6 +27,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     keyword: "brand assets design",
   },
   {
+    id: "action-activities",
+    label: "Go to Activities",
+    icon: <span />,
+    keyword: "activities log activity",
+  },
+  {
     id: "action-archive",
     label: "Go to Archive",
     icon: <span />,
@@ -125,12 +131,14 @@ describe("useSearchPopupData", () => {
     result.current.actionHandlers["action-create"]();
     result.current.actionHandlers["action-tasks"]();
     result.current.actionHandlers["action-assets"]();
+    result.current.actionHandlers["action-activities"]();
     result.current.actionHandlers["action-archive"]();
     result.current.actionHandlers["action-settings"]();
 
-    expect(onClose).toHaveBeenCalledTimes(5);
+    expect(onClose).toHaveBeenCalledTimes(6);
     expect(onOpenCreateProject).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("tasks");
+    expect(onNavigate).toHaveBeenCalledWith("activities");
     expect(onNavigate).toHaveBeenCalledWith("archive");
     expect(onOpenSettings).toHaveBeenCalledWith("Company");
     expect(onOpenSettings).toHaveBeenCalledWith();

@@ -1,5 +1,5 @@
 import React from "react";
-import { Archive, ListChecks, Plus, Search } from "lucide-react";
+import { Activity, Archive, ListChecks, Plus, Search } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
 import type { SidebarPrimaryActionsProps } from "./types";
 export function SidebarPrimaryActions({
@@ -33,6 +33,12 @@ export function SidebarPrimaryActions({
           currentView === "archive" ||
           currentView?.startsWith("archive-project:")
         }
+      />
+      <SidebarItem
+        icon={<Activity size={16} />}
+        label="Activities"
+        onClick={() => onNavigate("activities")}
+        isActive={currentView === "activities"}
       />
       <SidebarItem
         icon={<Plus size={16} />}

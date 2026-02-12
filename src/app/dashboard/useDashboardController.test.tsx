@@ -55,7 +55,7 @@ describe("useDashboardController", () => {
     expect(setPendingHighlight).toHaveBeenCalledWith(null);
   });
 
-  test("returns expected content model for tasks/archive/project routes", () => {
+  test("returns expected content model for tasks/archive/activities/project routes", () => {
     const project = buildProject("project-1", false);
     const archivedProject = buildProject("project-2", true);
     const navigateView = vi.fn();
@@ -84,6 +84,20 @@ describe("useDashboardController", () => {
     );
     expect(archiveHook.result.current.contentModel).toEqual({
       kind: "archive",
+    });
+
+    const activitiesHook = renderHook(() =>
+      useDashboardController({
+        currentView: "activities",
+        projects: { "project-1": project },
+        visibleProjects: { "project-1": project },
+        setIsSidebarOpen: vi.fn(),
+        setPendingHighlight: vi.fn(),
+        navigateView,
+      }),
+    );
+    expect(activitiesHook.result.current.contentModel).toEqual({
+      kind: "activities",
     });
 
     const projectHook = renderHook(() =>
