@@ -39,7 +39,6 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/dashboard" element={<Navigate to="/tasks" replace />} />
       <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
-      <Route path="/activities" element={<Navigate to="/tasks" replace />} />
       <Route
         path="/*"
         element={

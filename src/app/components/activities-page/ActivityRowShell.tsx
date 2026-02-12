@@ -13,10 +13,8 @@ import {
 } from "./activityChrome";
 import type { ActivityContextItem } from "./activityFormatting";
 import {
-  FILLED_ICON_BUTTON_CLASS,
-  FILLED_ICON_BUTTON_DANGER_HOVER_CLASS,
-  FILLED_ICON_BUTTON_SUCCESS_HOVER_CLASS,
   IMPORTANT_STATUS_PILL_CLASS,
+  TABLE_ACTION_ICON_BUTTON_CLASS,
 } from "../ui/controlChrome";
 
 type ActivityRowShellProps = {
@@ -132,8 +130,8 @@ export function ActivityRowShell({
                 onMarkRead();
               }}
               className={cn(
-                FILLED_ICON_BUTTON_CLASS,
-                FILLED_ICON_BUTTON_SUCCESS_HOVER_CLASS,
+                TABLE_ACTION_ICON_BUTTON_CLASS,
+                "hover:bg-surface-hover-subtle hover:txt-tone-faint",
               )}
             >
               <Check size={14} strokeWidth={2} aria-hidden="true" />
@@ -149,8 +147,8 @@ export function ActivityRowShell({
                 onDismiss();
               }}
               className={cn(
-                FILLED_ICON_BUTTON_CLASS,
-                FILLED_ICON_BUTTON_DANGER_HOVER_CLASS,
+                TABLE_ACTION_ICON_BUTTON_CLASS,
+                "hover:bg-popup-danger-soft-hover hover:txt-tone-danger",
               )}
             >
               <Trash2 size={14} strokeWidth={2} aria-hidden="true" />

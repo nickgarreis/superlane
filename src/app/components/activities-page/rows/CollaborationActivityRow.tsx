@@ -1,14 +1,16 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
 import { renderCommentContent } from "../../MentionTextarea";
+import { parseMentionToken } from "../../mentions/mentionParser";
 import type { MentionEntityType } from "../../mentions/types";
 import { ActivityRowShell } from "../ActivityRowShell";
 import { isImportantActivity } from "../activityImportance";
-import { toMentionToken } from "../activityMentions";
+import { sanitizeMentionLabel, toMentionToken } from "../activityMentions";
 import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
   const projectLabel = activity.projectName?.trim() || "project";
+  const actorLabel = activity.actorName?.trim() || "A teammate";
   const reactionMessage = activity.message?.trim() ?? "";
   const mentionLabel =
     activity.targetUserName?.trim()
@@ -16,7 +18,7 @@ const actionText = (activity: WorkspaceActivity) => {
     || "a teammate";
   switch (activity.action) {
     case "comment_added":
-      return `Added a comment in ${projectLabel}`;
+      return `${actorLabel} added a comment in ${projectLabel}`;
     case "comment_edited":
       return `Edited a comment in ${projectLabel}`;
     case "comment_deleted":
@@ -56,8 +58,10 @@ export function CollaborationActivityRow({
   onMentionClick,
 }: CollaborationActivityRowProps) {
   const projectLabel = activity.projectName?.trim() || "project";
+  const actorLabel = activity.actorName?.trim() || "A teammate";
   const reactionMessage = activity.message?.trim() ?? "";
   const projectMention = toMentionToken("file", projectLabel) ?? projectLabel;
+  const actorMention = toMentionToken("user", actorLabel) ?? actorLabel;
   const mentionLabel =
     activity.targetUserName?.trim()
     || activity.message?.trim()
@@ -66,7 +70,7 @@ export function CollaborationActivityRow({
   const mentionTitle = (() => {
     switch (activity.action) {
       case "comment_added":
-        return `Added a comment in ${projectMention}`;
+        return `${actorMention} added a comment in ${projectMention}`;
       case "comment_edited":
         return `Edited a comment in ${projectMention}`;
       case "comment_deleted":
@@ -97,6 +101,24 @@ export function CollaborationActivityRow({
     activity.action === "comment_added" || activity.action === "comment_edited"
       ? activity.message?.trim() ?? null
       : null;
+  const commentSnippetToken = commentSnippet ? parseMentionToken(commentSnippet) : null;
+  const actorMentionLabel = sanitizeMentionLabel(actorLabel)?.toLowerCase() ?? null;
+  const commentMentionLabel = commentSnippetToken?.type === "user"
+    ? sanitizeMentionLabel(commentSnippetToken.label)?.toLowerCase() ?? null
+    : null;
+  const hideActorDuplicateSnippet =
+    mentionMode === "inbox"
+    && activity.action === "comment_added"
+    && commentSnippetToken?.type === "user"
+    && Boolean(actorMentionLabel)
+    && actorMentionLabel === commentMentionLabel;
+  const commentSnippetContent = commentSnippet
+    ? hideActorDuplicateSnippet
+      ? null
+      : mentionMode === "inbox"
+        ? renderCommentContent(commentSnippet, onMentionClick)
+        : `"${commentSnippet}"`
+    : null;
 
   return (
     <ActivityRowShell
@@ -113,9 +135,9 @@ export function CollaborationActivityRow({
       isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     >
-      {commentSnippet ? (
+      {commentSnippetContent ? (
         <p className="txt-role-body-sm txt-tone-subtle">
-          "{commentSnippet}"
+          {commentSnippetContent}
         </p>
       ) : null}
     </ActivityRowShell>

@@ -57,6 +57,7 @@ const createBaseArgs = () => ({
   preloadSearchPopupModule: vi.fn().mockResolvedValue(undefined),
   openSearch: vi.fn(),
   locationPathname: "/tasks",
+  locationSearch: "",
   projects: {} as Record<string, ProjectData>,
   navigateToPath: vi.fn(),
   resolvedWorkspaceSlug: null as string | null,
@@ -177,6 +178,33 @@ describe("useDashboardLifecycleEffects", () => {
         true,
       );
     });
+  });
+
+  test("redirects unknown routes, including /activities, to /tasks", async () => {
+    const args = createBaseArgs();
+    args.locationPathname = "/activities";
+
+    const { rerender } = renderHook(
+      (props: ReturnType<typeof createBaseArgs>) =>
+        useDashboardLifecycleEffects(props),
+      { initialProps: args },
+    );
+
+    await waitFor(() => {
+      expect(args.navigateToPath).toHaveBeenCalledWith("/tasks", true);
+    });
+
+    const unknownPathArgs = createBaseArgs();
+    unknownPathArgs.locationPathname = "/foo";
+    rerender(unknownPathArgs);
+
+    await waitFor(() => {
+      expect(unknownPathArgs.navigateToPath).toHaveBeenCalledWith(
+        "/tasks",
+        true,
+      );
+    });
+    expect(toastMock.error).not.toHaveBeenCalled();
   });
 
   test("keeps project route stable when project is available from cache during map swap", () => {

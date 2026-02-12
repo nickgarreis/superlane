@@ -16,6 +16,21 @@ export const FILLED_ICON_BUTTON_SUCCESS_HOVER_CLASS =
 export const FILLED_ICON_BUTTON_DANGER_HOVER_CLASS =
   "hover:bg-popup-danger-soft hover:txt-tone-danger";
 
+export const TABLE_ACTION_ICON_BUTTON_CLASS =
+  "p-1.5 rounded-lg transition-colors text-text-muted-weak cursor-pointer disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-white/35";
+
+export const TABLE_ACTION_ICON_BUTTON_SUCCESS_HOVER_CLASS =
+  "hover:[background-color:var(--status-completed-soft)] hover:[color:var(--text-tone-success)]";
+
+export const TABLE_ACTION_ICON_BUTTON_DANGER_HOVER_CLASS =
+  "hover:[background-color:var(--popup-danger-soft-hover)] hover:[color:var(--text-tone-danger)]";
+
+export const TABLE_ACTION_ICON_BUTTON_SUCCESS_CLASS =
+  `${TABLE_ACTION_ICON_BUTTON_CLASS} ${TABLE_ACTION_ICON_BUTTON_SUCCESS_HOVER_CLASS}`;
+
+export const TABLE_ACTION_ICON_BUTTON_DANGER_CLASS =
+  `${TABLE_ACTION_ICON_BUTTON_CLASS} ${TABLE_ACTION_ICON_BUTTON_DANGER_HOVER_CLASS}`;
+
 export const UNDERLINE_INPUT_CLASS =
   "w-full bg-transparent border-b border-border-soft rounded-none px-0 txt-tone-primary focus:outline-none focus:border-popup-border-stronger transition-colors placeholder:text-text-muted-weak";
 

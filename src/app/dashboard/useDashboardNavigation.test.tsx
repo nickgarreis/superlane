@@ -103,14 +103,25 @@ describe("useDashboardNavigation", () => {
     expect(result.current.currentView).toBe("archive");
   });
 
-  test("parses /activities as activities current view", () => {
+  test("falls back to tasks current view for unknown paths", () => {
     const args = baseArgs();
 
     const { result } = renderHook(() => useDashboardNavigation(args), {
       wrapper: buildWrapper("/activities"),
     });
 
-    expect(result.current.currentView).toBe("activities");
+    expect(result.current.currentView).toBe("tasks");
+    expect(result.current.isSettingsOpen).toBe(false);
+  });
+
+  test("falls back to tasks current view for non-dashboard paths", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/foo"),
+    });
+
+    expect(result.current.currentView).toBe("tasks");
     expect(result.current.isSettingsOpen).toBe(false);
   });
 

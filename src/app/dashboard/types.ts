@@ -316,7 +316,6 @@ export interface MainContentNavigationActions {
 export type DashboardContentModel =
   | { kind: "tasks" }
   | { kind: "archive" }
-  | { kind: "activities" }
   | {
       kind: "main";
       project: ProjectData;

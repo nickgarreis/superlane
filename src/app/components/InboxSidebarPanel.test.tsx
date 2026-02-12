@@ -185,9 +185,10 @@ describe("InboxSidebarPanel", () => {
     expect(onActivityClick).not.toHaveBeenCalled();
   });
 
-  test("clicking a mention marks unread activity as read and triggers navigation", () => {
+  test("clicking a mention marks unread activity as read, triggers navigation, and closes inbox", () => {
     const onActivityClick = vi.fn();
     const onMarkActivityRead = vi.fn();
+    const onClose = vi.fn();
     const activity = buildActivity({
       id: "activity-unread-click",
       kind: "project",
@@ -199,7 +200,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
-        onClose={vi.fn()}
+        onClose={onClose}
         activities={[activity]}
         unreadCount={1}
         onMarkActivityRead={onMarkActivityRead}
@@ -212,6 +213,7 @@ describe("InboxSidebarPanel", () => {
 
     expect(onMarkActivityRead).toHaveBeenCalledWith("activity-unread-click");
     expect(onActivityClick).toHaveBeenCalledWith(activity);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("clicking dismiss calls onDismissActivity with the row id", () => {

@@ -30,5 +30,6 @@ describe("getPageTitle", () => {
 
   test("falls back to default title", () => {
     expect(getPageTitle("/unknown")).toBe(DEFAULT_PAGE_TITLE);
+    expect(getPageTitle("/activities")).toBe(DEFAULT_PAGE_TITLE);
   });
 });

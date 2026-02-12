@@ -131,6 +131,9 @@ export const useDashboardLifecycleEffects = ({
     const routeView = pathToView(locationPathname);
     if (!routeView) {
       invalidRouteRef.current = null;
+      if (locationPathname !== "/settings") {
+        navigateToPath("/tasks", true);
+      }
       return;
     }
     const projectRouteLoading =

@@ -244,6 +244,70 @@ describe("Activity row renderers", () => {
     expect(onMentionClick).toHaveBeenCalledWith("file", "Mention Project");
   });
 
+  test("renders inbox comment snippets with mention badges and handles mention clicks", () => {
+    const onMentionClick = vi.fn();
+    render(
+      <CollaborationActivityRow
+        activity={buildActivity({
+          kind: "collaboration",
+          action: "comment_added",
+          projectName: "Mention Project",
+          message: "@[user:Nick Garreis]",
+        })}
+        mentionMode="inbox"
+        onMentionClick={onMentionClick}
+      />,
+    );
+
+    expect(screen.queryByText("@[user:Nick Garreis]")).toBeNull();
+    fireEvent.click(screen.getByText("Nick Garreis"));
+    expect(onMentionClick).toHaveBeenCalledWith("user", "Nick Garreis");
+  });
+
+  test("renders inbox comment-added title as actor mention then project mention", () => {
+    const onMentionClick = vi.fn();
+    render(
+      <CollaborationActivityRow
+        activity={buildActivity({
+          kind: "collaboration",
+          action: "comment_added",
+          actorName: "Nick Garreis",
+          projectName: "Website Redesign",
+          message: "Looks good.",
+        })}
+        mentionMode="inbox"
+        onMentionClick={onMentionClick}
+      />,
+    );
+
+    expect(screen.getByText(/added a comment in/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Nick Garreis"));
+    expect(onMentionClick).toHaveBeenCalledWith("user", "Nick Garreis");
+    fireEvent.click(screen.getByText("Website Redesign"));
+    expect(onMentionClick).toHaveBeenCalledWith("file", "Website Redesign");
+  });
+
+  test("does not duplicate actor mention under created-at when snippet is actor mention only", () => {
+    const onMentionClick = vi.fn();
+    render(
+      <CollaborationActivityRow
+        activity={buildActivity({
+          kind: "collaboration",
+          action: "comment_added",
+          actorName: "Nick Garreis",
+          projectName: "Website Redesign",
+          message: "@[user:Nick Garreis]",
+        })}
+        mentionMode="inbox"
+        onMentionClick={onMentionClick}
+      />,
+    );
+
+    expect(screen.getAllByText("Nick Garreis")).toHaveLength(1);
+    fireEvent.click(screen.getByText("Nick Garreis"));
+    expect(onMentionClick).toHaveBeenCalledWith("user", "Nick Garreis");
+  });
+
   test("renders workspace updates without duplicate workspace-name context item", () => {
     render(
       <WorkspaceActivityRow

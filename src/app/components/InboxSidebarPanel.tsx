@@ -73,6 +73,7 @@ type RenderInboxActivityArgs = {
   onMarkActivityRead?: (activityId: string) => void;
   onDismissActivity?: (activityId: string) => void;
   onActivityClick?: (activity: WorkspaceActivity) => void;
+  onClose?: () => void;
 };
 
 const renderInboxActivity = (
@@ -91,6 +92,7 @@ const renderInboxActivity = (
           args.onMarkActivityRead?.(activity.id);
         }
         args.onActivityClick?.(activity);
+        args.onClose?.();
       }
     : undefined;
   switch (activity.kind) {
@@ -255,9 +257,16 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
           onMarkActivityRead,
           onDismissActivity,
           onActivityClick,
+          onClose,
         }),
       ),
-    [filteredActivities, onMarkActivityRead, onDismissActivity, onActivityClick],
+    [
+      filteredActivities,
+      onMarkActivityRead,
+      onDismissActivity,
+      onActivityClick,
+      onClose,
+    ],
   );
 
   const handleToggleKind = useCallback(
@@ -306,7 +315,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
           style={{ zIndex: Z_LAYERS.dropdown }}
         >
           <div className="h-full w-[420px] flex flex-col">
-            <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20">
+            <div className="shrink-0 px-6 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20">
               <div className="flex items-center gap-2 min-w-0">
                 <InboxIcon className="w-4 h-4 txt-tone-primary shrink-0" />
                 <h2 className="txt-role-body-lg txt-tone-primary">Inbox</h2>
@@ -343,7 +352,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
             <div
               ref={scrollContainerRef}
               data-testid="inbox-scroll-region"
-              className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4"
+              className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4"
               onScroll={handleInboxScroll}
             >
               <div className="relative z-10 mb-4 flex items-center gap-2">

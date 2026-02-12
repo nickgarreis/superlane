@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 export const ACTIVITY_ROW_BASE_CLASS =
-  "group flex w-full min-w-0 items-start gap-3 overflow-x-hidden border-b border-border-subtle-soft py-5 transition-colors hover:bg-surface-hover-subtle";
+  "group flex w-full min-w-0 items-start gap-3 overflow-x-hidden py-5";
 
 export const ACTIVITY_META_CLASS =
   "txt-role-body-sm txt-tone-faint";

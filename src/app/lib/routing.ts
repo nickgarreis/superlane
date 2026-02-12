@@ -3,7 +3,6 @@ export type AppView =
   | "archive"
   | "drafts"
   | "pending"
-  | "activities"
   | `project:${string}`
   | `archive-project:${string}`
   | `draft-project:${string}`
@@ -32,9 +31,6 @@ export const viewToPath = (view: AppView): string => {
   if (view === "pending") {
     return "/pending";
   }
-  if (view === "activities") {
-    return "/activities";
-  }
   if (view.startsWith("archive-project:")) {
     const projectId = view.slice("archive-project:".length);
     return `/archive/${encodeURIComponent(projectId)}`;
@@ -62,9 +58,6 @@ export const pathToView = (pathname: string): AppView | null => {
   }
   if (pathname === "/pending") {
     return "pending";
-  }
-  if (pathname === "/activities") {
-    return "activities";
   }
   const archiveProjectMatch = pathname.match(archiveProjectPattern);
   if (archiveProjectMatch) {
@@ -105,7 +98,6 @@ export const isProtectedPath = (pathname: string): boolean =>
   pathname === "/archive" ||
   pathname === "/drafts" ||
   pathname === "/pending" ||
-  pathname === "/activities" ||
   pathname === "/settings" ||
   archiveProjectPattern.test(pathname) ||
   draftProjectPattern.test(pathname) ||

@@ -46,10 +46,10 @@ function MentionBadge({
     <span
       ref={badgeRef}
       className={cn(
-        "inline-flex items-center gap-[4px] mx-[1px] whitespace-nowrap txt-role-body-sm",
-        "align-baseline relative transition-colors",
+        "inline-flex items-center gap-[4px] mx-[1px] px-[3px] py-[1px] whitespace-nowrap txt-role-body-sm",
+        "align-baseline relative rounded-[4px] transition-colors",
         clickable
-          ? "cursor-pointer hover:text-white active:scale-[0.97]"
+          ? "cursor-pointer hover:bg-surface-hover-soft hover:text-white active:bg-surface-active-soft active:scale-[0.97]"
           : "cursor-default",
         "txt-tone-primary",
       )}

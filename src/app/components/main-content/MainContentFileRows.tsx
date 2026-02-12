@@ -6,6 +6,9 @@ import { cn } from "../../../lib/utils";
 import { formatFileDisplayDate } from "../../lib/dates";
 import type { MainContentFileActions } from "../../dashboard/types";
 import type { ProjectFileData } from "../../types"; // File thumbnails
+import {
+  TABLE_ACTION_ICON_BUTTON_CLASS,
+} from "../ui/controlChrome";
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
 import imgFile2 from "figma:asset/ed2300ecc7d7f37175475469dd895c1a9c7a47a7.png";
 import imgFile3 from "figma:asset/a6d8d90aa9a345c6a0a0841855776fa6f038f822.png";
@@ -144,10 +147,11 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                       onClick={(event) => onRemoveFile(file.id, event)}
                       disabled={!canMutateProjectFiles}
                       className={cn(
-                        "p-1.5 rounded-lg transition-colors",
+                        TABLE_ACTION_ICON_BUTTON_CLASS,
+                        "hover:bg-popup-danger-soft-hover hover:txt-tone-danger",
                         canMutateProjectFiles
-                          ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
-                          : "text-white/10 cursor-not-allowed",
+                          ? undefined
+                          : "text-text-muted-weak/50 cursor-not-allowed",
                       )}
                     >
                       <Trash2 size={14} />
@@ -211,10 +215,11 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                   onClick={(event) => onRemoveFile(file.id, event)}
                   disabled={!canMutateProjectFiles}
                   className={cn(
-                    "p-1.5 rounded-lg transition-colors",
+                    TABLE_ACTION_ICON_BUTTON_CLASS,
+                    "hover:bg-popup-danger-soft-hover hover:txt-tone-danger",
                     canMutateProjectFiles
-                      ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
-                      : "text-white/10 cursor-not-allowed",
+                      ? undefined
+                      : "text-text-muted-weak/50 cursor-not-allowed",
                   )}
                 >
                   <Trash2 size={14} />

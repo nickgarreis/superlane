@@ -25,9 +25,6 @@ export const useDashboardController = ({
     if (currentView === "archive") {
       return { kind: "archive" };
     }
-    if (currentView === "activities") {
-      return { kind: "activities" };
-    }
     if (currentView.startsWith("archive-project:")) {
       const projectId = currentView.slice("archive-project:".length);
       const project = projects[projectId];
