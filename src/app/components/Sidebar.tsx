@@ -9,6 +9,8 @@ type SidebarProps = {
   onNavigate: (view: AppView) => void;
   onSearch: () => void;
   onSearchIntent?: () => void;
+  onOpenInbox: () => void;
+  inboxUnreadCount: number;
   onOpenCreateProject: () => void;
   onOpenCreateProjectIntent?: () => void;
   currentView?: string;
@@ -32,6 +34,8 @@ export function Sidebar({
   onNavigate,
   onSearch,
   onSearchIntent,
+  onOpenInbox,
+  inboxUnreadCount,
   onOpenCreateProject,
   onOpenCreateProjectIntent,
   currentView,
@@ -60,9 +64,11 @@ export function Sidebar({
       />
       <SidebarPrimaryActions
         currentView={currentView}
+        inboxUnreadCount={inboxUnreadCount}
         onSearch={onSearch}
         onSearchIntent={onSearchIntent}
         onNavigate={onNavigate}
+        onOpenInbox={onOpenInbox}
         onOpenCreateProject={onOpenCreateProject}
         onOpenCreateProjectIntent={onOpenCreateProjectIntent}
       />

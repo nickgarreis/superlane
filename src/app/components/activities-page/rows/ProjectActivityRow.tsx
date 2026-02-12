@@ -20,7 +20,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
-export function ProjectActivityRow({ activity }: { activity: WorkspaceActivity }) {
+type ProjectActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
+export function ProjectActivityRow({
+  activity,
+  showReadState,
+  onMarkRead,
+  onClick,
+}: ProjectActivityRowProps) {
   return (
     <ActivityRowShell
       kind="project"
@@ -28,6 +40,10 @@ export function ProjectActivityRow({ activity }: { activity: WorkspaceActivity }
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     />
   );
 }

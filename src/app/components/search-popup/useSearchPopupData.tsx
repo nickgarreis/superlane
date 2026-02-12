@@ -14,6 +14,7 @@ type UseSearchPopupDataArgs = {
   recentResults: Array<{ id: string; title: string; type: string }>;
   onClose: () => void;
   onNavigate: (view: AppView) => void;
+  onOpenInbox: () => void;
   onOpenCreateProject: () => void;
   onOpenSettings: (tab?: string) => void;
   onHighlightNavigate?: (
@@ -37,6 +38,7 @@ export const useSearchPopupData = ({
   recentResults,
   onClose,
   onNavigate,
+  onOpenInbox,
   onOpenCreateProject,
   onOpenSettings,
   onHighlightNavigate,
@@ -56,9 +58,9 @@ export const useSearchPopupData = ({
         onClose();
         onOpenSettings("Company");
       },
-      "action-activities": () => {
+      "action-inbox": () => {
         onClose();
-        onNavigate("activities");
+        onOpenInbox();
       },
       "action-archive": () => {
         onClose();
@@ -69,7 +71,7 @@ export const useSearchPopupData = ({
         onOpenSettings();
       },
     }),
-    [onClose, onNavigate, onOpenCreateProject, onOpenSettings],
+    [onClose, onNavigate, onOpenCreateProject, onOpenInbox, onOpenSettings],
   );
 
   const {

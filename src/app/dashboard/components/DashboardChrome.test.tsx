@@ -15,6 +15,7 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
     onSearchIntent: () => void;
     onOpenCreateProjectIntent: () => void;
     onOpenSettingsIntent: () => void;
+    onOpenInbox: () => void;
     onLogout: () => void;
     onOpenCompletedProjectsPopup: () => void;
     onSwitchWorkspace: (workspaceSlug: string) => void;
@@ -25,9 +26,11 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
     onEditProject: (project: ProjectData) => void;
     onViewReviewProject: (project: ProjectData) => void;
     projects: Record<string, ProjectData>;
+    inboxUnreadCount: number;
   }) => (
     <div data-testid="sidebar">
       <button onClick={props.onSearchIntent}>search-intent</button>
+      <button onClick={props.onOpenInbox}>open-inbox</button>
       <button onClick={props.onOpenCreateProjectIntent}>
         create-project-intent
       </button>
@@ -50,6 +53,30 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
         onClick={() => props.onViewReviewProject(props.projects["project-1"])}
       >
         review-project
+      </button>
+      <span data-testid="inbox-unread-count">{props.inboxUnreadCount}</span>
+    </div>
+  ),
+}));
+
+vi.mock("../../components/InboxSidebarPanel", () => ({
+  InboxSidebarPanel: (props: {
+    isOpen: boolean;
+    unreadCount: number;
+    onMarkActivityRead: (activityId: string) => void;
+    onMarkAllRead: () => void;
+    onActivityClick: (activity: { id: string; kind: string }) => void;
+  }) => (
+    <div data-testid="inbox-panel" data-open={props.isOpen}>
+      <span data-testid="panel-unread-count">{props.unreadCount}</span>
+      <button onClick={() => props.onMarkActivityRead("activity-1")}>
+        mark-one
+      </button>
+      <button onClick={props.onMarkAllRead}>mark-all</button>
+      <button
+        onClick={() => props.onActivityClick({ id: "activity-2", kind: "project" })}
+      >
+        activity-click
       </button>
     </div>
   ),
@@ -88,6 +115,9 @@ const WORKSPACE: Workspace = {
 const baseProps = () => ({
   isSidebarOpen: true,
   navigateView: vi.fn(),
+  openInbox: vi.fn(),
+  closeInbox: vi.fn(),
+  isInboxOpen: false,
   openSearch: vi.fn(),
   handleSearchIntent: vi.fn(),
   currentView: "tasks" as const,
@@ -106,6 +136,13 @@ const baseProps = () => ({
   onEditProject: vi.fn(),
   onViewReviewProject: vi.fn(),
   onOpenCompletedProjectsPopup: vi.fn(),
+  workspaceActivities: [],
+  inboxUnreadCount: 12,
+  activitiesPaginationStatus: "Exhausted" as const,
+  loadMoreWorkspaceActivities: vi.fn(),
+  onMarkInboxActivityRead: vi.fn(),
+  onMarkAllInboxActivitiesRead: vi.fn(),
+  onInboxActivityClick: vi.fn(),
 });
 
 describe("DashboardChrome", () => {
@@ -116,8 +153,10 @@ describe("DashboardChrome", () => {
 
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
     expect(await screen.findByTestId("sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-unread-count").textContent).toBe("12");
 
     fireEvent.click(screen.getByRole("button", { name: "search-intent" }));
+    fireEvent.click(screen.getByRole("button", { name: "open-inbox" }));
     fireEvent.click(
       screen.getByRole("button", { name: "create-project-intent" }),
     );
@@ -135,6 +174,7 @@ describe("DashboardChrome", () => {
     fireEvent.click(screen.getByRole("button", { name: "review-project" }));
 
     expect(props.handleSearchIntent).toHaveBeenCalledTimes(1);
+    expect(props.openInbox).toHaveBeenCalledTimes(1);
     expect(props.handleCreateProjectIntent).toHaveBeenCalledTimes(1);
     expect(props.onOpenCompletedProjectsPopup).toHaveBeenCalledTimes(1);
     expect(props.handleSettingsIntent).toHaveBeenCalledTimes(1);
@@ -154,5 +194,38 @@ describe("DashboardChrome", () => {
 
     expect(screen.queryByTestId("sidebar")).toBeNull();
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
+  });
+
+  test("routes inbox button to close callback when inbox is already open", async () => {
+    const props = baseProps();
+    props.isInboxOpen = true;
+
+    render(<DashboardChrome {...props} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "open-inbox" }));
+
+    expect(props.closeInbox).toHaveBeenCalledTimes(1);
+    expect(props.openInbox).not.toHaveBeenCalled();
+  });
+
+  test("forwards unread actions to inbox panel", async () => {
+    const props = baseProps();
+    props.isInboxOpen = true;
+
+    render(<DashboardChrome {...props} />);
+
+    expect(await screen.findByTestId("inbox-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("panel-unread-count").textContent).toBe("12");
+
+    fireEvent.click(screen.getByRole("button", { name: "mark-one" }));
+    fireEvent.click(screen.getByRole("button", { name: "mark-all" }));
+    fireEvent.click(screen.getByRole("button", { name: "activity-click" }));
+
+    expect(props.onMarkInboxActivityRead).toHaveBeenCalledWith("activity-1");
+    expect(props.onMarkAllInboxActivitiesRead).toHaveBeenCalledTimes(1);
+    expect(props.onInboxActivityClick).toHaveBeenCalledWith({
+      id: "activity-2",
+      kind: "project",
+    });
   });
 });

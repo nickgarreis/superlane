@@ -51,6 +51,7 @@ export interface SearchPopupProps {
     | "Exhausted";
   loadMoreWorkspaceFiles?: (numItems: number) => void;
   onNavigate: (view: AppView) => void;
+  onOpenInbox: () => void;
   onOpenCreateProject: () => void;
   onOpenSettings: (tab?: string) => void;
   onHighlightNavigate?: (

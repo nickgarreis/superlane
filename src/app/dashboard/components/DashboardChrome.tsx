@@ -1,15 +1,28 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster } from "sonner";
 import type { AppView } from "../../lib/routing";
-import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
+import type {
+  ProjectData,
+  ViewerIdentity,
+  Workspace,
+  WorkspaceActivity,
+} from "../../types";
 
 const LazyDashboardSidebarDndBoundary = React.lazy(
   () => import("./DashboardSidebarDndBoundary"),
 );
+const loadInboxSidebarPanelModule = () => import("../../components/InboxSidebarPanel");
+const LazyInboxSidebarPanel = React.lazy(async () => {
+  const module = await loadInboxSidebarPanelModule();
+  return { default: module.InboxSidebarPanel };
+});
 type DashboardChromeProps = {
   isSidebarOpen: boolean;
   navigateView: (view: AppView) => void;
+  openInbox: () => void;
+  closeInbox: () => void;
+  isInboxOpen: boolean;
   openSearch: () => void;
   handleSearchIntent: () => void;
   currentView: AppView;
@@ -30,10 +43,24 @@ type DashboardChromeProps = {
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
   onOpenCompletedProjectsPopup: () => void;
+  workspaceActivities: WorkspaceActivity[];
+  inboxUnreadCount: number;
+  activitiesPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
+  loadMoreWorkspaceActivities: (numItems: number) => void;
+  onMarkInboxActivityRead: (activityId: string) => void;
+  onMarkAllInboxActivitiesRead: () => void;
+  onInboxActivityClick: (activity: WorkspaceActivity) => void;
 };
 export const DashboardChrome = React.memo(function DashboardChrome({
   isSidebarOpen,
   navigateView,
+  openInbox,
+  closeInbox,
+  isInboxOpen,
   openSearch,
   handleSearchIntent,
   currentView,
@@ -52,7 +79,27 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   onEditProject,
   onViewReviewProject,
   onOpenCompletedProjectsPopup,
+  workspaceActivities,
+  inboxUnreadCount,
+  activitiesPaginationStatus,
+  loadMoreWorkspaceActivities,
+  onMarkInboxActivityRead,
+  onMarkAllInboxActivitiesRead,
+  onInboxActivityClick,
 }: DashboardChromeProps) {
+  const [hasLoadedInboxPanel, setHasLoadedInboxPanel] = useState(isInboxOpen);
+
+  useEffect(() => {
+    if (!isSidebarOpen && isInboxOpen) {
+      closeInbox();
+      return;
+    }
+    if (isInboxOpen) {
+      setHasLoadedInboxPanel(true);
+      void loadInboxSidebarPanelModule();
+    }
+  }, [closeInbox, isInboxOpen, isSidebarOpen]);
+
   return (
     <>
       <Toaster
@@ -79,12 +126,13 @@ export const DashboardChrome = React.memo(function DashboardChrome({
             animate={{ width: "auto", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="h-full shrink-0 overflow-hidden"
+            className="h-full shrink-0 overflow-visible"
           >
-            <div className="w-[260px] h-full">
+            <div className="w-[260px] h-full relative">
               <Suspense fallback={<div className="h-full w-full" />}>
                 <LazyDashboardSidebarDndBoundary
                   onNavigate={navigateView}
+                  onOpenInbox={isInboxOpen ? closeInbox : openInbox}
                   onSearch={openSearch}
                   onSearchIntent={handleSearchIntent}
                   currentView={currentView}
@@ -102,9 +150,25 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                   onEditProject={onEditProject}
                   onViewReviewProject={onViewReviewProject}
                   onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+                  inboxUnreadCount={inboxUnreadCount}
                   onLogout={handleSignOut}
                 />
               </Suspense>
+              {(hasLoadedInboxPanel || isInboxOpen) && (
+                <Suspense fallback={null}>
+                  <LazyInboxSidebarPanel
+                    isOpen={isInboxOpen}
+                    onClose={closeInbox}
+                    activities={workspaceActivities}
+                    unreadCount={inboxUnreadCount}
+                    onMarkActivityRead={onMarkInboxActivityRead}
+                    onMarkAllRead={onMarkAllInboxActivitiesRead}
+                    onActivityClick={onInboxActivityClick}
+                    activitiesPaginationStatus={activitiesPaginationStatus}
+                    loadMoreWorkspaceActivities={loadMoreWorkspaceActivities}
+                  />
+                </Suspense>
+              )}
             </div>
           </motion.div>
         )}

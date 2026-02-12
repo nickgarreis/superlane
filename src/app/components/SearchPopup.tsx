@@ -7,11 +7,11 @@ import React, {
   useCallback,
 } from "react";
 import {
-  Activity,
   Archive,
   ChevronDown,
   ChevronUp,
   CornerDownLeft,
+  Inbox,
   ListChecks,
   Palette,
   Plus,
@@ -55,10 +55,10 @@ const QUICK_ACTIONS: QuickAction[] = [
     keyword: "brand assets design",
   },
   {
-    id: "action-activities",
-    label: "Go to Activities",
-    icon: <Activity size={15} />,
-    keyword: "activities log activity",
+    id: "action-inbox",
+    label: "Open Inbox",
+    icon: <Inbox size={15} />,
+    keyword: "inbox activity log",
   },
   {
     id: "action-archive",
@@ -83,6 +83,7 @@ export function SearchPopup({
   workspaceFilesPaginationStatus = "Exhausted",
   loadMoreWorkspaceFiles,
   onNavigate,
+  onOpenInbox,
   onOpenCreateProject,
   onOpenSettings,
   onHighlightNavigate,
@@ -114,6 +115,7 @@ export function SearchPopup({
     recentResults,
     onClose,
     onNavigate,
+    onOpenInbox,
     onOpenCreateProject,
     onOpenSettings,
     onHighlightNavigate,

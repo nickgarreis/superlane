@@ -776,6 +776,30 @@
   animation: fileRowFlash 1.6s ease-out forwards;
 }
 
+/* ── Settings row flash animation (settings focus target highlight) ── */
+@keyframes settingsRowFlash {
+  0% {
+    background-color: rgba(255, 255, 255, 0);
+  }
+  12% {
+    background-color: rgba(255, 255, 255, 0.09);
+  }
+  28% {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  60% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0);
+  }
+}
+
+.settings-row-flash {
+  animation: settingsRowFlash 1.7s ease-out forwards;
+  border-radius: 10px;
+}
+
 /* ── Shared DayPicker dark theme (used by task + project calendars) ── */
 .rdp-dark-theme {
   --rdp-cell-size: 30px;

@@ -81,8 +81,8 @@ const getDueDateShiftSummary = (
     return "Removed the due date";
   }
 
-  const fromDueDateStartEpochMs = toLocalDateStartEpochMs(fromDueDateEpochMs);
-  const toDueDateStartEpochMs = toLocalDateStartEpochMs(toDueDateEpochMs);
+  const fromDueDateStartEpochMs = toLocalDateStartEpochMs(fromDueDateEpochMs as number);
+  const toDueDateStartEpochMs = toLocalDateStartEpochMs(toDueDateEpochMs as number);
   const shiftDays = Math.round(
     (toDueDateStartEpochMs - fromDueDateStartEpochMs) / MS_IN_DAY,
   );
@@ -118,7 +118,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
-export function TaskActivityRow({ activity }: { activity: WorkspaceActivity }) {
+type TaskActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
+export function TaskActivityRow({
+  activity,
+  showReadState,
+  onMarkRead,
+  onClick,
+}: TaskActivityRowProps) {
   const taskTitle = getTaskTitle(activity);
   const previousDueDateEpochMs = parseEpochMs(activity.fromValue);
   const nextDueDateEpochMs = parseEpochMs(activity.toValue);
@@ -138,6 +150,10 @@ export function TaskActivityRow({ activity }: { activity: WorkspaceActivity }) {
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     >
       {activity.action === "due_date_changed" ? (
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 txt-role-body-sm txt-tone-subtle">

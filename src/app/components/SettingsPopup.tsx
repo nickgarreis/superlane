@@ -49,6 +49,10 @@ const SETTINGS_SECTIONS: Array<{
   },
 ];
 
+const SETTINGS_HEADER_SECTIONS = SETTINGS_SECTIONS.filter(
+  (section) => section.id !== "Workspace",
+);
+
 const normalizeSection = (section: SettingsTab): VisibleSettingsSection =>
   section === "Billing" ? "Company" : section;
 
@@ -56,6 +60,7 @@ export function SettingsPopup({
   isOpen,
   onClose,
   initialTab = "Account",
+  initialFocusTarget = null,
   activeWorkspace,
   account,
   notifications,
@@ -77,8 +82,13 @@ export function SettingsPopup({
   onGetBrandAssetDownloadUrl,
   onSoftDeleteWorkspace,
 }: SettingsPopupProps) {
+  const initialSection = useCallback(
+    (): VisibleSettingsSection =>
+      initialFocusTarget ? "Company" : normalizeSection(initialTab),
+    [initialFocusTarget, initialTab],
+  );
   const [activeSection, setActiveSection] = useState<VisibleSettingsSection>(
-    normalizeSection(initialTab),
+    initialSection,
   );
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<VisibleSettingsSection, HTMLElement | null>>({
@@ -131,11 +141,13 @@ export function SettingsPopup({
     if (!isOpen) {
       return;
     }
+    const nextSection = initialSection();
+    setActiveSection(nextSection);
     const timer = window.setTimeout(() => {
-      scrollToSection(normalizeSection(initialTab), "auto");
+      scrollToSection(nextSection, "auto");
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [initialTab, isOpen, scrollToSection]);
+  }, [initialSection, isOpen, scrollToSection]);
   if (!isOpen) {
     return null;
   }
@@ -176,7 +188,7 @@ export function SettingsPopup({
             </button>
           </div>
           <div className="mt-4 flex gap-2 overflow-x-auto pr-1">
-            {SETTINGS_SECTIONS.map((section) => (
+            {SETTINGS_HEADER_SECTIONS.map((section) => (
               <button
                 key={section.id}
                 type="button"
@@ -251,6 +263,7 @@ export function SettingsPopup({
                         activeWorkspace={activeWorkspace}
                         company={company}
                         loading={loadingCompany}
+                        focusTarget={initialFocusTarget}
                         onUpdateWorkspaceGeneral={onUpdateWorkspaceGeneral}
                         onUploadWorkspaceLogo={onUploadWorkspaceLogo}
                         onInviteMember={onInviteMember}

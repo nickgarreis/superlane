@@ -226,6 +226,12 @@ export const useDashboardData = ({
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
+  const inboxUnreadSummary = useQuery(
+    api.activities.getUnreadSummary,
+    isAuthenticated && resolvedWorkspaceSlug
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+  );
   const projectTasksCacheRef = useRef<Record<string, SnapshotTask[]>>({});
   const projectFilesCacheRef = useRef<Record<string, SnapshotWorkspaceFile[]>>(
     {},
@@ -345,6 +351,7 @@ export const useDashboardData = ({
     () => (paginatedWorkspaceActivities as WorkspaceActivity[]),
     [paginatedWorkspaceActivities],
   );
+  const inboxUnreadCount = Math.max(0, inboxUnreadSummary?.unreadCount ?? 0);
   const activeProjectTasksSource = useMemo<SnapshotTask[]>(() => {
     if (!activeProjectPublicId) {
       return [];
@@ -469,6 +476,7 @@ export const useDashboardData = ({
     projects: projectsByRoute,
     workspaceTasks,
     workspaceActivities,
+    inboxUnreadCount,
     activeWorkspace,
     visibleProjects,
     sidebarVisibleProjects,

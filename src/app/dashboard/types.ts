@@ -25,6 +25,22 @@ export type SettingsTab =
   | "Company"
   | "Workspace"
   | "Billing";
+
+export type SettingsFocusTarget =
+  | {
+      kind: "member";
+      userId?: string;
+      email?: string;
+    }
+  | {
+      kind: "invitation";
+      email: string;
+    }
+  | {
+      kind: "brandAsset";
+      assetName: string;
+    };
+
 export const SETTINGS_TABS: readonly SettingsTab[] = [
   "Account",
   "Notifications",
@@ -32,6 +48,120 @@ export const SETTINGS_TABS: readonly SettingsTab[] = [
   "Workspace",
   "Billing",
 ];
+
+export const SETTINGS_FOCUS_KIND_QUERY_KEY = "focusKind";
+export const SETTINGS_FOCUS_USER_ID_QUERY_KEY = "focusUserId";
+export const SETTINGS_FOCUS_EMAIL_QUERY_KEY = "focusEmail";
+export const SETTINGS_FOCUS_ASSET_NAME_QUERY_KEY = "focusAssetName";
+
+const trimQueryValue = (value: string | null | undefined): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+export const parseSettingsFocusTarget = (
+  searchParams: URLSearchParams,
+): SettingsFocusTarget | null => {
+  const focusKind = trimQueryValue(
+    searchParams.get(SETTINGS_FOCUS_KIND_QUERY_KEY),
+  );
+  if (!focusKind) {
+    return null;
+  }
+
+  if (focusKind === "member") {
+    const userId = trimQueryValue(
+      searchParams.get(SETTINGS_FOCUS_USER_ID_QUERY_KEY),
+    );
+    const email = trimQueryValue(
+      searchParams.get(SETTINGS_FOCUS_EMAIL_QUERY_KEY),
+    );
+    if (!userId && !email) {
+      return null;
+    }
+    return {
+      kind: "member",
+      ...(userId ? { userId } : {}),
+      ...(email ? { email } : {}),
+    };
+  }
+
+  if (focusKind === "invitation") {
+    const email = trimQueryValue(searchParams.get(SETTINGS_FOCUS_EMAIL_QUERY_KEY));
+    if (!email) {
+      return null;
+    }
+    return {
+      kind: "invitation",
+      email,
+    };
+  }
+
+  if (focusKind === "brandAsset") {
+    const assetName = trimQueryValue(
+      searchParams.get(SETTINGS_FOCUS_ASSET_NAME_QUERY_KEY),
+    );
+    if (!assetName) {
+      return null;
+    }
+    return {
+      kind: "brandAsset",
+      assetName,
+    };
+  }
+
+  return null;
+};
+
+export const applySettingsFocusTargetToSearchParams = (
+  searchParams: URLSearchParams,
+  focus: SettingsFocusTarget | null | undefined,
+): void => {
+  searchParams.delete(SETTINGS_FOCUS_KIND_QUERY_KEY);
+  searchParams.delete(SETTINGS_FOCUS_USER_ID_QUERY_KEY);
+  searchParams.delete(SETTINGS_FOCUS_EMAIL_QUERY_KEY);
+  searchParams.delete(SETTINGS_FOCUS_ASSET_NAME_QUERY_KEY);
+
+  if (!focus) {
+    return;
+  }
+
+  if (focus.kind === "member") {
+    const userId = trimQueryValue(focus.userId);
+    const email = trimQueryValue(focus.email);
+    if (!userId && !email) {
+      return;
+    }
+    searchParams.set(SETTINGS_FOCUS_KIND_QUERY_KEY, "member");
+    if (userId) {
+      searchParams.set(SETTINGS_FOCUS_USER_ID_QUERY_KEY, userId);
+    }
+    if (email) {
+      searchParams.set(SETTINGS_FOCUS_EMAIL_QUERY_KEY, email);
+    }
+    return;
+  }
+
+  if (focus.kind === "invitation") {
+    const email = trimQueryValue(focus.email);
+    if (!email) {
+      return;
+    }
+    searchParams.set(SETTINGS_FOCUS_KIND_QUERY_KEY, "invitation");
+    searchParams.set(SETTINGS_FOCUS_EMAIL_QUERY_KEY, email);
+    return;
+  }
+
+  const assetName = trimQueryValue(focus.assetName);
+  if (!assetName) {
+    return;
+  }
+  searchParams.set(SETTINGS_FOCUS_KIND_QUERY_KEY, "brandAsset");
+  searchParams.set(SETTINGS_FOCUS_ASSET_NAME_QUERY_KEY, assetName);
+};
 export const parseSettingsTab = (
   value: string | null | undefined,
 ): SettingsTab => {

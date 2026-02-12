@@ -9,9 +9,11 @@ export type SidebarWorkspaceSectionProps = {
 };
 export type SidebarPrimaryActionsProps = {
   currentView?: string;
+  inboxUnreadCount: number;
   onSearch: () => void;
   onSearchIntent?: () => void;
   onNavigate: (view: AppView) => void;
+  onOpenInbox: () => void;
   onOpenCreateProject: () => void;
   onOpenCreateProjectIntent?: () => void;
 };

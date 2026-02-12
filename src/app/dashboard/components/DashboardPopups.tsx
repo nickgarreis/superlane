@@ -55,6 +55,7 @@ export function DashboardPopups({
   workspaceFilesPaginationStatus,
   loadMoreWorkspaceFiles,
   navigateView,
+  openInbox,
   openCreateProject,
   searchPopupOpenSettings,
   searchPopupHighlightNavigate,
@@ -85,6 +86,7 @@ export function DashboardPopups({
   baseMainContentNavigationActions,
   isSettingsOpen,
   settingsTab,
+  settingsFocusTarget,
   activeWorkspace,
   settingsAccountData,
   settingsNotificationsData,
@@ -116,6 +118,7 @@ export function DashboardPopups({
             workspaceFilesPaginationStatus={workspaceFilesPaginationStatus}
             loadMoreWorkspaceFiles={loadMoreWorkspaceFiles}
             onNavigate={navigateView}
+            onOpenInbox={openInbox}
             onOpenCreateProject={openCreateProject}
             onOpenSettings={searchPopupOpenSettings}
             onHighlightNavigate={searchPopupHighlightNavigate}
@@ -196,6 +199,7 @@ export function DashboardPopups({
             isOpen={isSettingsOpen}
             onClose={dashboardCommands.settings.closeSettings}
             initialTab={settingsTab}
+            initialFocusTarget={settingsFocusTarget}
             activeWorkspace={activeWorkspace}
             account={settingsAccountData}
             notifications={settingsNotificationsData}

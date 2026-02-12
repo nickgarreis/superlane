@@ -4,6 +4,7 @@ import type {
   MainContentFileActions,
   MainContentNavigationActions,
   MainContentProjectActions,
+  SettingsFocusTarget,
   SettingsTab,
 } from "../types";
 import type {
@@ -44,6 +45,7 @@ export type DashboardPopupsProps = {
     | "Exhausted";
   loadMoreWorkspaceFiles: (numItems: number) => void;
   navigateView: (view: AppView) => void;
+  openInbox: () => void;
   openCreateProject: () => void;
   searchPopupOpenSettings: (tab?: string) => void;
   searchPopupHighlightNavigate: (
@@ -94,6 +96,7 @@ export type DashboardPopupsProps = {
   baseMainContentNavigationActions: MainContentNavigationActions;
   isSettingsOpen: boolean;
   settingsTab: SettingsTab;
+  settingsFocusTarget: SettingsFocusTarget | null;
   activeWorkspace: Workspace | undefined;
   settingsAccountData: AccountSettingsData | null;
   settingsNotificationsData: NotificationSettingsData | null;

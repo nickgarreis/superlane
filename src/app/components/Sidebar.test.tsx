@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
 import type { ViewerIdentity, Workspace } from "../types";
@@ -42,6 +42,8 @@ describe("Sidebar workspace permissions", () => {
     render(
       <Sidebar
         onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        inboxUnreadCount={0}
         onSearch={vi.fn()}
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
@@ -72,6 +74,8 @@ describe("Sidebar workspace permissions", () => {
     render(
       <Sidebar
         onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        inboxUnreadCount={0}
         onSearch={vi.fn()}
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
@@ -94,5 +98,86 @@ describe("Sidebar workspace permissions", () => {
     fireEvent.click(screen.getByText("Workspace Beta"));
 
     expect(onSwitchWorkspace).toHaveBeenCalledWith("workspace-beta");
+  });
+
+  test("shows unread inbox badge and caps at 99+", () => {
+    const { rerender } = render(
+      <Sidebar
+        onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        inboxUnreadCount={7}
+        onSearch={vi.fn()}
+        onOpenCreateProject={vi.fn()}
+        currentView="tasks"
+        projects={{}}
+        viewerIdentity={viewerIdentity}
+        activeWorkspace={workspaces[0]}
+        workspaces={workspaces}
+        onSwitchWorkspace={vi.fn()}
+        onCreateWorkspace={vi.fn()}
+        canCreateWorkspace={true}
+        onOpenSettings={vi.fn()}
+        onEditProject={vi.fn()}
+        onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    const inboxItem = screen.getByTitle("Inbox");
+    expect(within(inboxItem).getByText("7")).toBeInTheDocument();
+
+    rerender(
+      <Sidebar
+        onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        inboxUnreadCount={180}
+        onSearch={vi.fn()}
+        onOpenCreateProject={vi.fn()}
+        currentView="tasks"
+        projects={{}}
+        viewerIdentity={viewerIdentity}
+        activeWorkspace={workspaces[0]}
+        workspaces={workspaces}
+        onSwitchWorkspace={vi.fn()}
+        onCreateWorkspace={vi.fn()}
+        canCreateWorkspace={true}
+        onOpenSettings={vi.fn()}
+        onEditProject={vi.fn()}
+        onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(within(screen.getByTitle("Inbox")).getByText("99+")).toBeInTheDocument();
+  });
+
+  test("hides inbox badge when unread count is zero", () => {
+    render(
+      <Sidebar
+        onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        inboxUnreadCount={0}
+        onSearch={vi.fn()}
+        onOpenCreateProject={vi.fn()}
+        currentView="tasks"
+        projects={{}}
+        viewerIdentity={viewerIdentity}
+        activeWorkspace={workspaces[0]}
+        workspaces={workspaces}
+        onSwitchWorkspace={vi.fn()}
+        onCreateWorkspace={vi.fn()}
+        canCreateWorkspace={true}
+        onOpenSettings={vi.fn()}
+        onEditProject={vi.fn()}
+        onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(within(screen.getByTitle("Inbox")).queryByText("99+")).toBeNull();
+    expect(within(screen.getByTitle("Inbox")).queryByText("7")).toBeNull();
   });
 });

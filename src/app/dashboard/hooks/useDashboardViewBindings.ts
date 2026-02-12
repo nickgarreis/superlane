@@ -7,6 +7,7 @@ import {
   loadSearchPopupModule,
   loadSettingsPopupModule,
 } from "../components/DashboardPopups";
+import { useDashboardInboxActivityNavigation } from "./useDashboardInboxActivityNavigation";
 import { useDashboardPopupBindings } from "./useDashboardPopupBindings";
 import { useDashboardSettingsData } from "./useDashboardSettingsData";
 import type { DashboardActionLayer } from "./useDashboardActionLayer";
@@ -30,6 +31,8 @@ export function useDashboardViewBindings(
     data,
     viewerFallback,
     canCreateWorkspace,
+    handleMarkInboxActivityRead,
+    handleMarkAllInboxActivitiesRead,
     workspaceActions,
   } = dataLayer;
   const {
@@ -72,6 +75,12 @@ export function useDashboardViewBindings(
       data.viewerIdentity.avatarUrl ?? viewerFallback.avatarUrl,
     user,
   });
+  const handleInboxActivityClick = useDashboardInboxActivityNavigation({
+    projects: data.projectsById,
+    navigateViewPreservingInbox: navigation.navigateViewPreservingInbox,
+    setPendingHighlight: navigation.setPendingHighlight,
+    handleOpenSettingsWithFocus: navigation.handleOpenSettingsWithFocus,
+  });
   const popupProjects = useMemo(
     () =>
       navigation.isSearchOpen ||
@@ -97,6 +106,7 @@ export function useDashboardViewBindings(
       workspaceFilesPaginationStatus: data.workspaceFilesPaginationStatus,
       loadMoreWorkspaceFiles: data.loadMoreWorkspaceFiles,
       navigateView: navigation.navigateView,
+      openInbox: navigation.openInbox,
       openCreateProject: navigation.openCreateProject,
       searchPopupOpenSettings,
       searchPopupHighlightNavigate,
@@ -127,6 +137,7 @@ export function useDashboardViewBindings(
       baseMainContentNavigationActions,
       isSettingsOpen: navigation.isSettingsOpen,
       settingsTab: navigation.settingsTab,
+      settingsFocusTarget: navigation.settingsFocusTarget,
       activeWorkspace: data.activeWorkspace,
       settingsAccountData,
       settingsNotificationsData,
@@ -182,6 +193,8 @@ export function useDashboardViewBindings(
       navigation.isSearchOpen,
       navigation.isSettingsOpen,
       navigation.navigateView,
+      navigation.settingsFocusTarget,
+      navigation.openInbox,
       navigation.openCompletedProjectDetail,
       navigation.openCreateProject,
       navigation.reviewProject,
@@ -215,6 +228,9 @@ export function useDashboardViewBindings(
     () => ({
       isSidebarOpen: navigation.isSidebarOpen,
       navigateView: navigation.navigateView,
+      openInbox: navigation.openInbox,
+      closeInbox: navigation.closeInbox,
+      isInboxOpen: navigation.isInboxOpen,
       openSearch: navigation.openSearch,
       handleSearchIntent,
       currentView: navigation.currentView,
@@ -233,6 +249,13 @@ export function useDashboardViewBindings(
       onEditProject: dashboardCommands.project.editProject,
       onViewReviewProject: dashboardCommands.project.viewReviewProject,
       onOpenCompletedProjectsPopup: navigation.openCompletedProjectsPopup,
+      workspaceActivities: data.workspaceActivities,
+      inboxUnreadCount: data.inboxUnreadCount,
+      activitiesPaginationStatus: data.activitiesPaginationStatus,
+      loadMoreWorkspaceActivities: data.loadMoreWorkspaceActivities,
+      onMarkInboxActivityRead: handleMarkInboxActivityRead,
+      onMarkAllInboxActivitiesRead: handleMarkAllInboxActivitiesRead,
+      onInboxActivityClick: handleInboxActivityClick,
     }),
     [
       canCreateWorkspace,
@@ -242,19 +265,29 @@ export function useDashboardViewBindings(
       dashboardCommands.workspace.createWorkspace,
       dashboardCommands.workspace.switchWorkspace,
       data.activeWorkspace,
+      data.activitiesPaginationStatus,
+      data.inboxUnreadCount,
+      data.loadMoreWorkspaceActivities,
       data.viewerIdentity,
       data.sidebarVisibleProjects,
+      data.workspaceActivities,
       data.workspaces,
+      navigation.closeInbox,
       handleCreateProjectIntent,
       handleSearchIntent,
       handleSettingsIntent,
       handleSignOut,
       navigation.currentView,
+      navigation.isInboxOpen,
       navigation.isSidebarOpen,
       navigation.navigateView,
       navigation.openCompletedProjectsPopup,
       navigation.openCreateProject,
+      navigation.openInbox,
       navigation.openSearch,
+      handleMarkInboxActivityRead,
+      handleMarkAllInboxActivitiesRead,
+      handleInboxActivityClick,
     ],
   );
   const contentProps = useMemo<ComponentProps<typeof DashboardContent>>(

@@ -37,6 +37,7 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="/dashboard" element={<Navigate to="/tasks" replace />} />
       <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
+      <Route path="/activities" element={<Navigate to="/tasks" replace />} />
       <Route
         path="/*"
         element={

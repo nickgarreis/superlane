@@ -1,15 +1,22 @@
 import React from "react";
-import { Activity, Archive, ListChecks, Plus, Search } from "lucide-react";
+import { Archive, Inbox, ListChecks, Plus, Search } from "lucide-react";
 import { SidebarItem } from "./SidebarItem";
 import type { SidebarPrimaryActionsProps } from "./types";
 export function SidebarPrimaryActions({
   currentView,
+  inboxUnreadCount,
   onSearch,
   onSearchIntent,
   onNavigate,
+  onOpenInbox,
   onOpenCreateProject,
   onOpenCreateProjectIntent,
 }: SidebarPrimaryActionsProps) {
+  const inboxBadge =
+    inboxUnreadCount > 0
+      ? (inboxUnreadCount > 99 ? "99+" : String(inboxUnreadCount))
+      : undefined;
+
   return (
     <div className="flex flex-col gap-0.5 mb-6">
       <SidebarItem
@@ -35,10 +42,10 @@ export function SidebarPrimaryActions({
         }
       />
       <SidebarItem
-        icon={<Activity size={16} />}
-        label="Activities"
-        onClick={() => onNavigate("activities")}
-        isActive={currentView === "activities"}
+        icon={<Inbox size={16} />}
+        label="Inbox"
+        onClick={onOpenInbox}
+        badge={inboxBadge}
       />
       <SidebarItem
         icon={<Plus size={16} />}

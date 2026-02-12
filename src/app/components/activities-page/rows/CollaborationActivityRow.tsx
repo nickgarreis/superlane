@@ -22,11 +22,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
+type CollaborationActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
 export function CollaborationActivityRow({
   activity,
-}: {
-  activity: WorkspaceActivity;
-}) {
+  showReadState,
+  onMarkRead,
+  onClick,
+}: CollaborationActivityRowProps) {
   return (
     <ActivityRowShell
       kind="collaboration"
@@ -34,6 +42,10 @@ export function CollaborationActivityRow({
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     />
   );
 }

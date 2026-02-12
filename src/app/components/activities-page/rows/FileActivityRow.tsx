@@ -21,7 +21,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
-export function FileActivityRow({ activity }: { activity: WorkspaceActivity }) {
+type FileActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
+export function FileActivityRow({
+  activity,
+  showReadState,
+  onMarkRead,
+  onClick,
+}: FileActivityRowProps) {
   return (
     <ActivityRowShell
       kind="file"
@@ -29,6 +41,10 @@ export function FileActivityRow({ activity }: { activity: WorkspaceActivity }) {
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     >
       {activity.fileTab ? (
         <p className="txt-role-body-sm txt-tone-subtle">{activity.fileTab}</p>

@@ -60,6 +60,7 @@ describe("SearchPopup", () => {
         projects={{ [PROJECT.id]: PROJECT }}
         files={FILES}
         onNavigate={onNavigate}
+        onOpenInbox={vi.fn()}
         onOpenCreateProject={vi.fn()}
         onOpenSettings={vi.fn()}
       />,
@@ -83,6 +84,7 @@ describe("SearchPopup", () => {
         projects={{ [PROJECT.id]: PROJECT }}
         files={FILES}
         onNavigate={onNavigate}
+        onOpenInbox={vi.fn()}
         onOpenCreateProject={vi.fn()}
         onOpenSettings={vi.fn()}
         onHighlightNavigate={onHighlightNavigate}
@@ -125,6 +127,7 @@ describe("SearchPopup", () => {
         projects={{ [PROJECT.id]: PROJECT }}
         files={FILES}
         onNavigate={onNavigate}
+        onOpenInbox={vi.fn()}
         onOpenCreateProject={vi.fn()}
         onOpenSettings={vi.fn()}
       />,

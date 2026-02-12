@@ -139,6 +139,13 @@ describe("useDashboardData", () => {
       },
       {},
       workspaceMembers,
+      {
+        userId: "member-1",
+        role: "owner",
+      },
+      {
+        unreadCount: 3,
+      },
     ];
     const paginatedQueryResults = [
       {
@@ -217,6 +224,7 @@ describe("useDashboardData", () => {
     );
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
+    expect(result.current.inboxUnreadCount).toBe(3);
     expect(result.current.usesWorkspaceTaskFeed).toBe(true);
     expect(result.current.usesProjectTaskFeed).toBe(true);
     expect(queryArgs[4]).toEqual({ workspaceSlug: "alpha" });

@@ -135,6 +135,52 @@ describe("useDashboardNavigation", () => {
     expect(result.current.isCreateWorkspaceOpen).toBe(true);
   });
 
+  test("opens inbox and closes it when navigating views", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/tasks"),
+    });
+
+    act(() => {
+      result.current.openInbox();
+    });
+
+    expect(result.current.isInboxOpen).toBe(true);
+
+    act(() => {
+      result.current.navigateView("archive");
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentView).toBe("archive");
+      expect(result.current.isInboxOpen).toBe(false);
+    });
+  });
+
+  test("preserves inbox state when navigating views via navigateViewPreservingInbox", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/tasks"),
+    });
+
+    act(() => {
+      result.current.openInbox();
+    });
+
+    expect(result.current.isInboxOpen).toBe(true);
+
+    act(() => {
+      result.current.navigateViewPreservingInbox("archive");
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentView).toBe("archive");
+      expect(result.current.isInboxOpen).toBe(true);
+    });
+  });
+
   test("navigates to settings and back to protected route", async () => {
     const args = baseArgs();
 
@@ -162,6 +208,48 @@ describe("useDashboardNavigation", () => {
       expect(result.current.isSettingsOpen).toBe(false);
       expect(result.current.currentView).toBe("tasks");
     });
+  });
+
+  test("parses settings focus target query params", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper(
+        "/settings?tab=Company&from=/tasks&focusKind=member&focusUserId=user-2&focusEmail=member%40example.com",
+      ),
+    });
+
+    expect(result.current.settingsFocusTarget).toEqual({
+      kind: "member",
+      userId: "user-2",
+      email: "member@example.com",
+    });
+  });
+
+  test("writes settings focus target params when opening settings with focus", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/tasks"),
+    });
+
+    act(() => {
+      result.current.handleOpenSettingsWithFocus({
+        tab: "Company",
+        focus: { kind: "brandAsset", assetName: "Logo Kit.zip" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSettingsOpen).toBe(true);
+    });
+
+    expect(result.current.settingsTab).toBe("Company");
+    expect(result.current.searchParams.get("from")).toBe("/tasks");
+    expect(result.current.searchParams.get("focusKind")).toBe("brandAsset");
+    expect(result.current.searchParams.get("focusAssetName")).toBe(
+      "Logo Kit.zip",
+    );
   });
 
   test("keeps key navigation callbacks stable across rerenders", () => {

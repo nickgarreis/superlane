@@ -103,10 +103,10 @@ describe("SettingsPopup", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Company" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Workspace" }),
-    ).toBeInTheDocument();
-    expect(
       screen.queryByRole("heading", { name: "Workspace" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Workspace" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Billing & Plans" }),

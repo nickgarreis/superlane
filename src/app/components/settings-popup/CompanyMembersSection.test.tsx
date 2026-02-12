@@ -2,56 +2,68 @@
 
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { CompanyMembersSection } from "./CompanyMembersSection";
 
-describe("CompanyMembersSection", () => {
-  test("invites, updates roles, removes members, and manages invitations", async () => {
-    const onInviteMember = vi.fn().mockResolvedValue(undefined);
-    const onChangeMemberRole = vi.fn().mockResolvedValue(undefined);
-    const onRemoveMember = vi.fn().mockResolvedValue(undefined);
-    const onResendInvitation = vi.fn().mockResolvedValue(undefined);
-    const onRevokeInvitation = vi.fn().mockResolvedValue(undefined);
+const { safeScrollIntoViewMock } = vi.hoisted(() => ({
+  safeScrollIntoViewMock: vi.fn(),
+}));
 
-    render(
-      <CompanyMembersSection
-        members={[
-          {
-            userId: "owner-1",
-            name: "Owner",
-            email: "owner@example.com",
-            role: "owner",
-            status: "active",
-            avatarUrl: null,
-          },
-          {
-            userId: "member-1",
-            name: "Taylor",
-            email: "taylor@example.com",
-            role: "member",
-            status: "active",
-            avatarUrl: null,
-          },
-        ]}
-        pendingInvitations={[
-          {
-            invitationId: "invite-1",
-            email: "new@example.com",
-            state: "pending",
-            requestedRole: "member",
-            expiresAt: new Date(Date.now() + 86400000).toISOString(),
-          },
-        ]}
-        viewerRole="owner"
-        hasOrganizationLink
-        canManageMembers
-        onInviteMember={onInviteMember}
-        onChangeMemberRole={onChangeMemberRole}
-        onRemoveMember={onRemoveMember}
-        onResendInvitation={onResendInvitation}
-        onRevokeInvitation={onRevokeInvitation}
-      />,
-    );
+vi.mock("../../lib/dom", () => ({
+  safeScrollIntoView: (...args: unknown[]) => safeScrollIntoViewMock(...args),
+}));
+
+const baseMembers = [
+  {
+    userId: "owner-1",
+    name: "Owner",
+    email: "owner@example.com",
+    role: "owner" as const,
+    status: "active" as const,
+    avatarUrl: null,
+  },
+  {
+    userId: "member-1",
+    name: "Taylor",
+    email: "taylor@example.com",
+    role: "member" as const,
+    status: "active" as const,
+    avatarUrl: null,
+  },
+];
+
+const basePendingInvitations = [
+  {
+    invitationId: "invite-1",
+    email: "new@example.com",
+    state: "pending" as const,
+    requestedRole: "member" as const,
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+  },
+];
+
+const buildProps = () => ({
+  members: baseMembers,
+  pendingInvitations: basePendingInvitations,
+  viewerRole: "owner" as const,
+  hasOrganizationLink: true,
+  canManageMembers: true,
+  onInviteMember: vi.fn().mockResolvedValue(undefined),
+  onChangeMemberRole: vi.fn().mockResolvedValue(undefined),
+  onRemoveMember: vi.fn().mockResolvedValue(undefined),
+  onResendInvitation: vi.fn().mockResolvedValue(undefined),
+  onRevokeInvitation: vi.fn().mockResolvedValue(undefined),
+});
+
+describe("CompanyMembersSection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("invites, updates roles, removes members, and manages invitations", async () => {
+    const props = buildProps();
+
+    render(<CompanyMembersSection {...props} />);
 
     fireEvent.change(screen.getByPlaceholderText("Email address"), {
       target: { value: "invitee@example.com" },
@@ -59,7 +71,7 @@ describe("CompanyMembersSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Invite" }));
 
     await waitFor(() => {
-      expect(onInviteMember).toHaveBeenCalledWith({
+      expect(props.onInviteMember).toHaveBeenCalledWith({
         email: "invitee@example.com",
         role: "member",
       });
@@ -69,7 +81,7 @@ describe("CompanyMembersSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "admin" }));
 
     await waitFor(() => {
-      expect(onChangeMemberRole).toHaveBeenCalledWith({
+      expect(props.onChangeMemberRole).toHaveBeenCalledWith({
         userId: "member-1",
         role: "admin",
       });
@@ -78,19 +90,57 @@ describe("CompanyMembersSection", () => {
     fireEvent.click(screen.getByTitle("Remove member"));
 
     await waitFor(() => {
-      expect(onRemoveMember).toHaveBeenCalledWith({ userId: "member-1" });
+      expect(props.onRemoveMember).toHaveBeenCalledWith({ userId: "member-1" });
     });
 
     fireEvent.click(screen.getByTitle("Resend invitation"));
     fireEvent.click(screen.getByTitle("Revoke invitation"));
 
     await waitFor(() => {
-      expect(onResendInvitation).toHaveBeenCalledWith({
+      expect(props.onResendInvitation).toHaveBeenCalledWith({
         invitationId: "invite-1",
       });
-      expect(onRevokeInvitation).toHaveBeenCalledWith({
+      expect(props.onRevokeInvitation).toHaveBeenCalledWith({
         invitationId: "invite-1",
       });
     });
+  });
+
+  test("focuses member rows by userId", async () => {
+    const props = buildProps();
+
+    render(
+      <CompanyMembersSection
+        {...props}
+        focusTarget={{ kind: "member", userId: "member-1" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(safeScrollIntoViewMock).toHaveBeenCalledTimes(1);
+    });
+
+    const focusedRow = safeScrollIntoViewMock.mock.calls[0]?.[0] as HTMLElement;
+    expect(focusedRow.textContent).toContain("Taylor");
+    expect(focusedRow.classList.contains("settings-row-flash")).toBe(true);
+  });
+
+  test("focuses invitation rows by email", async () => {
+    const props = buildProps();
+
+    render(
+      <CompanyMembersSection
+        {...props}
+        focusTarget={{ kind: "invitation", email: "new@example.com" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(safeScrollIntoViewMock).toHaveBeenCalledTimes(1);
+    });
+
+    const focusedRow = safeScrollIntoViewMock.mock.calls[0]?.[0] as HTMLElement;
+    expect(focusedRow.textContent).toContain("new@example.com");
+    expect(focusedRow.classList.contains("settings-row-flash")).toBe(true);
   });
 });

@@ -5,9 +5,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Camera, Check } from "lucide-react";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import type { Workspace } from "../../types";
+import type { SettingsFocusTarget } from "../../dashboard/types";
 import { reportUiError } from "../../lib/errors";
 import type { CompanySettingsData } from "./types";
 import { CompanyBrandAssetsSection } from "./CompanyBrandAssetsSection";
@@ -22,6 +23,7 @@ type CompanyTabProps = {
   activeWorkspace?: Workspace;
   company: CompanySettingsData | null;
   loading: boolean;
+  focusTarget?: SettingsFocusTarget | null;
   onUpdateWorkspaceGeneral: (payload: {
     name: string;
     logo?: string;
@@ -50,6 +52,7 @@ export function CompanyTab({
   activeWorkspace,
   company,
   loading,
+  focusTarget = null,
   onUpdateWorkspaceGeneral,
   onUploadWorkspaceLogo,
   onInviteMember,
@@ -65,9 +68,6 @@ export function CompanyTab({
     company?.workspace.name ?? activeWorkspace?.name ?? "Workspace";
   const [nameDraft, setNameDraft] = useState(workspaceName);
   const [logoBusy, setLogoBusy] = useState(false);
-  const [nameSaveStatus, setNameSaveStatus] = useState<
-    "idle" | "saving" | "saved"
-  >("idle");
   const logoFileInputRef = React.useRef<HTMLInputElement>(null);
   const nameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
@@ -99,17 +99,13 @@ export function CompanyTab({
       if (!trimmed || trimmed === company.workspace.name) {
         return;
       }
-      setNameSaveStatus("saving");
       try {
         await onUpdateWorkspaceGeneral({ name: trimmed });
-        setNameSaveStatus("saved");
-        setTimeout(() => setNameSaveStatus("idle"), 1500);
       } catch (error) {
         reportUiError("settings.company.updateName", error, {
           showToast: false,
         });
         toast.error("Failed to update workspace name");
-        setNameSaveStatus("idle");
       }
     },
     [company, onUpdateWorkspaceGeneral],
@@ -218,19 +214,6 @@ export function CompanyTab({
             </div>
           </DeniedAction>
           <div className="flex flex-col gap-2 flex-1 max-w-[460px]">
-            <div className="flex items-center justify-end min-h-5">
-              {nameSaveStatus !== "idle" && (
-                <span className="txt-role-body-sm txt-tone-faint flex items-center gap-1.5">
-                  {nameSaveStatus === "saving" && "Saving..."}
-                  {nameSaveStatus === "saved" && (
-                    <>
-                      <Check size={12} className="text-emerald-400" />
-                      <span className="text-emerald-400/70">Saved</span>
-                    </>
-                  )}
-                </span>
-              )}
-            </div>
             <DeniedAction
               denied={!canManageWorkspaceGeneral}
               reason={workspaceGeneralDeniedReason}
@@ -264,6 +247,7 @@ export function CompanyTab({
       <CompanyMembersSection
         members={members}
         pendingInvitations={pendingInvitations}
+        focusTarget={focusTarget}
         hasOrganizationLink={hasOrganizationLink}
         viewerRole={viewerRole}
         canManageMembers={canManageMembers}
@@ -275,6 +259,7 @@ export function CompanyTab({
       />
       <CompanyBrandAssetsSection
         brandAssets={brandAssets}
+        focusTarget={focusTarget}
         canManageBrandAssets={canManageBrandAssets}
         viewerRole={viewerRole}
         onUploadBrandAsset={onUploadBrandAsset}

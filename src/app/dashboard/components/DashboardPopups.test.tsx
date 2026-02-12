@@ -10,9 +10,11 @@ vi.mock("../../components/SearchPopup", () => ({
   SearchPopup: ({
     onClose,
     onOpenSettings,
+    onOpenInbox,
   }: {
     onClose: () => void;
     onOpenSettings: (tab?: string) => void;
+    onOpenInbox: () => void;
   }) => (
     <div data-testid="search-popup">
       <button type="button" onClick={onClose}>
@@ -20,6 +22,9 @@ vi.mock("../../components/SearchPopup", () => ({
       </button>
       <button type="button" onClick={() => onOpenSettings("Company")}>
         Open Settings
+      </button>
+      <button type="button" onClick={onOpenInbox}>
+        Open Inbox
       </button>
     </div>
   ),
@@ -131,6 +136,7 @@ const baseProps = () => ({
   workspaceFilesPaginationStatus: "Exhausted" as const,
   loadMoreWorkspaceFiles: vi.fn(),
   navigateView: vi.fn(),
+  openInbox: vi.fn(),
   openCreateProject: vi.fn(),
   searchPopupOpenSettings: vi.fn(),
   searchPopupHighlightNavigate: vi.fn(),
@@ -187,6 +193,7 @@ const baseProps = () => ({
   baseMainContentNavigationActions: { navigate: vi.fn() },
   isSettingsOpen: false,
   settingsTab: "Account" as const,
+  settingsFocusTarget: null,
   activeWorkspace: WORKSPACE,
   settingsAccountData: null,
   settingsNotificationsData: null,
@@ -242,6 +249,9 @@ describe("DashboardPopups", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
     expect(props.searchPopupOpenSettings).toHaveBeenCalledWith("Company");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Inbox" }));
+    expect(props.openInbox).toHaveBeenCalledTimes(1);
 
     fireEvent.click(await screen.findByTestId("create-project-popup"));
     expect(props.closeCreateProject).toHaveBeenCalledTimes(1);

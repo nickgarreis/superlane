@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { WorkspaceRole } from "../../types";
+import type { SettingsFocusTarget } from "../../dashboard/types";
 import { reportUiError } from "../../lib/errors";
+import { safeScrollIntoView } from "../../lib/dom";
 import type { CompanyMember, CompanyPendingInvitation } from "./types";
 import {
   getMemberManagementDeniedReason,
@@ -13,6 +15,7 @@ import { PendingInvitationRow } from "./PendingInvitationRow";
 type CompanyMembersSectionProps = {
   members: CompanyMember[];
   pendingInvitations: CompanyPendingInvitation[];
+  focusTarget?: SettingsFocusTarget | null;
   viewerRole?: WorkspaceRole;
   hasOrganizationLink: boolean;
   canManageMembers: boolean;
@@ -31,6 +34,7 @@ type CompanyMembersSectionProps = {
 export function CompanyMembersSection({
   members,
   pendingInvitations,
+  focusTarget = null,
   viewerRole,
   hasOrganizationLink,
   canManageMembers,
@@ -52,6 +56,22 @@ export function CompanyMembersSection({
     getOwnerAccountDeniedReason(viewerRole) ??
     "Only owners can manage owner accounts";
   const isMemberManagementDenied = !canManageMembers || !hasOrganizationLink;
+  const memberRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const memberEmailRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const invitationEmailRowRefs = useRef<Record<string, HTMLDivElement | null>>(
+    {},
+  );
+  const lastAppliedFocusKeyRef = useRef<string | null>(null);
+  const normalizedFocusEmail = useMemo(() => {
+    if (!focusTarget) {
+      return null;
+    }
+    if (focusTarget.kind === "brandAsset") {
+      return null;
+    }
+    const value = focusTarget.email?.trim().toLowerCase();
+    return value && value.length > 0 ? value : null;
+  }, [focusTarget]);
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {
       return;
@@ -112,6 +132,51 @@ export function CompanyMembersSection({
       toast.error("Failed to revoke invitation");
     }
   };
+  useEffect(() => {
+    if (!focusTarget) {
+      return;
+    }
+
+    const focusKey =
+      focusTarget.kind === "member"
+        ? `member:${focusTarget.userId ?? ""}:${normalizedFocusEmail ?? ""}`
+        : focusTarget.kind === "invitation"
+          ? `invitation:${normalizedFocusEmail ?? ""}`
+          : null;
+
+    if (!focusKey || focusKey === lastAppliedFocusKeyRef.current) {
+      return;
+    }
+
+    const focusElement =
+      focusTarget.kind === "member"
+        ? (focusTarget.userId
+            ? memberRowRefs.current[focusTarget.userId]
+            : null) ??
+          (normalizedFocusEmail
+            ? memberEmailRowRefs.current[normalizedFocusEmail]
+            : null)
+        : normalizedFocusEmail
+          ? invitationEmailRowRefs.current[normalizedFocusEmail]
+          : null;
+
+    if (!focusElement) {
+      return;
+    }
+
+    lastAppliedFocusKeyRef.current = focusKey;
+    safeScrollIntoView(focusElement, { block: "center", behavior: "smooth" });
+    focusElement.classList.remove("settings-row-flash");
+    void focusElement.offsetWidth;
+    focusElement.classList.add("settings-row-flash");
+    const timeout = window.setTimeout(() => {
+      focusElement.classList.remove("settings-row-flash");
+    }, 1700);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [focusTarget, normalizedFocusEmail, pendingInvitations, members]);
+
   return (
     <div className="flex flex-col gap-5">
       {!hasOrganizationLink && (
@@ -135,28 +200,47 @@ export function CompanyMembersSection({
           Members ({members.length + pendingInvitations.length})
         </h4>
         <div className="flex flex-col">
-          {members.map((member) => (
-            <MemberRow
-              key={member.userId}
-              member={member}
-              viewerRole={viewerRole}
-              ownerAccountDeniedReason={ownerAccountDeniedReason}
-              isMemberManagementDenied={isMemberManagementDenied}
-              memberManagementDeniedReason={memberManagementDeniedReason}
-              onChangeMemberRole={handleChangeMemberRole}
-              onRemoveMember={handleRemoveMember}
-            />
-          ))}
-          {pendingInvitations.map((invitation) => (
-            <PendingInvitationRow
-              key={invitation.invitationId}
-              invitation={invitation}
-              isMemberManagementDenied={isMemberManagementDenied}
-              memberManagementDeniedReason={memberManagementDeniedReason}
-              onResendInvitation={handleResendInvitation}
-              onRevokeInvitation={handleRevokeInvitation}
-            />
-          ))}
+          {members.map((member) => {
+            const emailKey = member.email.trim().toLowerCase();
+            return (
+              <div
+                key={member.userId}
+                ref={(node) => {
+                  memberRowRefs.current[member.userId] = node;
+                  memberEmailRowRefs.current[emailKey] = node;
+                }}
+              >
+                <MemberRow
+                  member={member}
+                  viewerRole={viewerRole}
+                  ownerAccountDeniedReason={ownerAccountDeniedReason}
+                  isMemberManagementDenied={isMemberManagementDenied}
+                  memberManagementDeniedReason={memberManagementDeniedReason}
+                  onChangeMemberRole={handleChangeMemberRole}
+                  onRemoveMember={handleRemoveMember}
+                />
+              </div>
+            );
+          })}
+          {pendingInvitations.map((invitation) => {
+            const emailKey = invitation.email.trim().toLowerCase();
+            return (
+              <div
+                key={invitation.invitationId}
+                ref={(node) => {
+                  invitationEmailRowRefs.current[emailKey] = node;
+                }}
+              >
+                <PendingInvitationRow
+                  invitation={invitation}
+                  isMemberManagementDenied={isMemberManagementDenied}
+                  memberManagementDeniedReason={memberManagementDeniedReason}
+                  onResendInvitation={handleResendInvitation}
+                  onRevokeInvitation={handleRevokeInvitation}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

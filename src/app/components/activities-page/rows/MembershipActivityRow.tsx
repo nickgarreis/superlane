@@ -19,11 +19,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
+type MembershipActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
 export function MembershipActivityRow({
   activity,
-}: {
-  activity: WorkspaceActivity;
-}) {
+  showReadState,
+  onMarkRead,
+  onClick,
+}: MembershipActivityRowProps) {
   return (
     <ActivityRowShell
       kind="membership"
@@ -31,6 +39,10 @@ export function MembershipActivityRow({
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     />
   );
 }

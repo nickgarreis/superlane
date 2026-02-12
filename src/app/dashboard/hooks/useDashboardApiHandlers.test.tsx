@@ -26,7 +26,7 @@ describe("useDashboardApiHandlers", () => {
 
     expect(useActionMock).toHaveBeenCalled();
     expect(useMutationMock).toHaveBeenCalled();
-    expect(Object.keys(result.current)).toHaveLength(42);
+    expect(Object.keys(result.current)).toHaveLength(44);
     expect(result.current.ensureDefaultWorkspaceAction).toMatchObject({
       kind: "action",
     });
@@ -40,6 +40,12 @@ describe("useDashboardApiHandlers", () => {
       kind: "mutation",
     });
     expect(result.current.applyTaskDiffMutation).toMatchObject({
+      kind: "mutation",
+    });
+    expect(result.current.markActivityReadMutation).toMatchObject({
+      kind: "mutation",
+    });
+    expect(result.current.markAllReadMutation).toMatchObject({
       kind: "mutation",
     });
     expect(result.current.ensureOrganizationLinkAction).toMatchObject({

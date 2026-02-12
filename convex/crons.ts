@@ -17,4 +17,11 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  "backfill-workspace-activity-counts",
+  { hours: 1 },
+  internal.activities.internalBackfillWorkspaceActivityCounts,
+  { maxWorkspaces: 25 },
+);
+
 export default crons;

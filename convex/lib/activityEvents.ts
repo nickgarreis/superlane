@@ -64,6 +64,75 @@ export const resolveUserAvatar = (user: {
   return avatarUrl ?? null;
 };
 
+const countWorkspaceActivityEvents = async (
+  ctx: any,
+  workspaceId: Id<"workspaces">,
+) => {
+  let cursor: string | null = null;
+  let total = 0;
+  while (true) {
+    const page: any = await ctx.db
+      .query("workspaceActivityEvents")
+      .withIndex("by_workspace_createdAt", (q: any) => q.eq("workspaceId", workspaceId))
+      .paginate({
+        cursor,
+        numItems: 256,
+      });
+    total += page.page.length;
+    if (page.isDone) {
+      break;
+    }
+    cursor = page.continueCursor;
+  }
+  return total;
+};
+
+const incrementWorkspaceActivityUnreadCounters = async (
+  ctx: any,
+  args: {
+    workspaceId: Id<"workspaces">;
+    nextActivityEventCount: number;
+    timestamp: number;
+  },
+) => {
+  const activeMembers = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_status_joinedAt", (q: any) =>
+      q.eq("workspaceId", args.workspaceId).eq("status", "active"),
+    )
+    .collect();
+  if (activeMembers.length === 0) {
+    return;
+  }
+
+  const existingInboxStates = await ctx.db
+    .query("workspaceActivityInboxStates")
+    .withIndex("by_workspaceId", (q: any) => q.eq("workspaceId", args.workspaceId))
+    .collect();
+  const inboxStateByUserId = new Map<string, any>(
+    existingInboxStates.map((entry: any) => [String(entry.userId), entry]),
+  );
+
+  for (const member of activeMembers) {
+    const existingInboxState = inboxStateByUserId.get(String(member.userId));
+    if (existingInboxState) {
+      await ctx.db.patch(existingInboxState._id, {
+        unreadCount: Math.max(0, Number(existingInboxState.unreadCount ?? 0)) + 1,
+        updatedAt: args.timestamp,
+      });
+      continue;
+    }
+    await ctx.db.insert("workspaceActivityInboxStates", {
+      workspaceId: args.workspaceId,
+      userId: member.userId,
+      unreadCount: args.nextActivityEventCount,
+      markAllCutoffAt: 0,
+      createdAt: args.timestamp,
+      updatedAt: args.timestamp,
+    });
+  }
+};
+
 export const logWorkspaceActivity = async (ctx: any, input: ActivityEventInput) => {
   const createdAt = input.createdAt ?? Date.now();
   const actorName =
@@ -100,6 +169,25 @@ export const logWorkspaceActivity = async (ctx: any, input: ActivityEventInput) 
     errorCode: trimOptional(input.errorCode),
     createdAt,
   });
+
+  const workspace = await ctx.db.get(input.workspaceId);
+  if (!workspace || workspace.deletedAt != null) {
+    return;
+  }
+
+  const nextActivityEventCount =
+    typeof workspace.activityEventCount === "number"
+      ? workspace.activityEventCount + 1
+      : await countWorkspaceActivityEvents(ctx, workspace._id);
+  await ctx.db.patch(workspace._id, {
+    activityEventCount: nextActivityEventCount,
+  });
+
+  await incrementWorkspaceActivityUnreadCounters(ctx, {
+    workspaceId: workspace._id,
+    nextActivityEventCount,
+    timestamp: createdAt,
+  });
 };
 
 export const logWorkspaceActivityForActorUser = async (
@@ -122,4 +210,3 @@ export const logWorkspaceActivityForActorUser = async (
       avatarUrl: resolveUserAvatar(args.actorUser),
     },
   });
-

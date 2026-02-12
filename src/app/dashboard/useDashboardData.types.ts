@@ -93,6 +93,7 @@ export type UseDashboardDataResult = {
   projects: Record<string, ProjectData>;
   workspaceTasks: Task[];
   workspaceActivities: WorkspaceActivity[];
+  inboxUnreadCount: number;
   activeWorkspace: Workspace | undefined;
   visibleProjects: Record<string, ProjectData>;
   sidebarVisibleProjects: Record<string, ProjectData>;

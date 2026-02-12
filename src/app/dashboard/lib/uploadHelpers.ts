@@ -33,6 +33,8 @@ export const asBrandAssetId = (value: string) =>
 export const asPendingUploadId = (value: string) =>
   value as Id<"pendingFileUploads">;
 export const asProjectFileId = (value: string) => value as Id<"projectFiles">;
+export const asActivityEventId = (value: string) =>
+  value as Id<"workspaceActivityEvents">;
 export const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
   Object.fromEntries(
     Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),

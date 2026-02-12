@@ -48,6 +48,7 @@ export default defineSchema({
     deletedByUserId: v.optional(v.id("users")),
     updatedByUserId: v.optional(v.id("users")),
     nextTaskPosition: v.optional(v.number()),
+    activityEventCount: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -130,6 +131,28 @@ export default defineSchema({
     .index("by_workspace_createdAt", ["workspaceId", "createdAt"])
     .index("by_workspace_kind_createdAt", ["workspaceId", "kind", "createdAt"])
     .index("by_workspace_project_createdAt", ["workspaceId", "projectPublicId", "createdAt"]),
+
+  workspaceActivityInboxStates: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    unreadCount: v.number(),
+    markAllCutoffAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace_user", ["workspaceId", "userId"])
+    .index("by_workspaceId", ["workspaceId"])
+    .index("by_userId", ["userId"]),
+
+  workspaceActivityReadReceipts: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    activityEventId: v.id("workspaceActivityEvents"),
+    readAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_workspace_user_activityEvent", ["workspaceId", "userId", "activityEventId"])
+    .index("by_workspace_user", ["workspaceId", "userId"]),
 
   notificationPreferences: defineTable({
     userId: v.id("users"),

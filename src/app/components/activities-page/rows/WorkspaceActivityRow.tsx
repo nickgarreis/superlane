@@ -22,7 +22,19 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
-export function WorkspaceActivityRow({ activity }: { activity: WorkspaceActivity }) {
+type WorkspaceActivityRowProps = {
+  activity: WorkspaceActivity;
+  showReadState?: boolean;
+  onMarkRead?: () => void;
+  onClick?: () => void;
+};
+
+export function WorkspaceActivityRow({
+  activity,
+  showReadState,
+  onMarkRead,
+  onClick,
+}: WorkspaceActivityRowProps) {
   const kind = activity.kind === "organization" ? "organization" : "workspace";
   return (
     <ActivityRowShell
@@ -31,6 +43,10 @@ export function WorkspaceActivityRow({ activity }: { activity: WorkspaceActivity
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      isRead={activity.isRead}
+      showReadState={showReadState}
+      onMarkRead={onMarkRead}
+      onClick={onClick}
     >
       {activity.message ? (
         <p className="txt-role-body-sm txt-tone-subtle">{activity.message}</p>

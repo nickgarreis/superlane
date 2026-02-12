@@ -324,6 +324,7 @@ export const internalCreateWorkspaceWithOrganization = internalMutation({
       logoText: args.logoText ?? workspaceName.charAt(0).toUpperCase(),
       ownerUserId: args.ownerUserId,
       workosOrganizationId: args.workosOrganizationId,
+      activityEventCount: 0,
       createdAt: now,
       updatedAt: now,
     });

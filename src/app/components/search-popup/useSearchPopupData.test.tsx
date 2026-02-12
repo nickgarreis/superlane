@@ -27,10 +27,10 @@ const QUICK_ACTIONS: QuickAction[] = [
     keyword: "brand assets design",
   },
   {
-    id: "action-activities",
-    label: "Go to Activities",
+    id: "action-inbox",
+    label: "Open Inbox",
     icon: <span />,
-    keyword: "activities log activity",
+    keyword: "inbox activity log activity",
   },
   {
     id: "action-archive",
@@ -110,6 +110,7 @@ describe("useSearchPopupData", () => {
   test("wires quick action handlers", () => {
     const onClose = vi.fn();
     const onNavigate = vi.fn();
+    const onOpenInbox = vi.fn();
     const onOpenCreateProject = vi.fn();
     const onOpenSettings = vi.fn();
 
@@ -122,6 +123,7 @@ describe("useSearchPopupData", () => {
         recentResults: [],
         onClose,
         onNavigate,
+        onOpenInbox,
         onOpenCreateProject,
         onOpenSettings,
         quickActions: QUICK_ACTIONS,
@@ -131,14 +133,14 @@ describe("useSearchPopupData", () => {
     result.current.actionHandlers["action-create"]();
     result.current.actionHandlers["action-tasks"]();
     result.current.actionHandlers["action-assets"]();
-    result.current.actionHandlers["action-activities"]();
+    result.current.actionHandlers["action-inbox"]();
     result.current.actionHandlers["action-archive"]();
     result.current.actionHandlers["action-settings"]();
 
     expect(onClose).toHaveBeenCalledTimes(6);
     expect(onOpenCreateProject).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("tasks");
-    expect(onNavigate).toHaveBeenCalledWith("activities");
+    expect(onOpenInbox).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("archive");
     expect(onOpenSettings).toHaveBeenCalledWith("Company");
     expect(onOpenSettings).toHaveBeenCalledWith();
@@ -157,6 +159,7 @@ describe("useSearchPopupData", () => {
       recentResults: [],
       onClose,
       onNavigate,
+      onOpenInbox: vi.fn(),
       onOpenCreateProject: vi.fn(),
       onOpenSettings: vi.fn(),
       onHighlightNavigate,
@@ -219,6 +222,7 @@ describe("useSearchPopupData", () => {
         ],
         onClose,
         onNavigate,
+        onOpenInbox: vi.fn(),
         onOpenCreateProject: vi.fn(),
         onOpenSettings: vi.fn(),
         onHighlightNavigate,

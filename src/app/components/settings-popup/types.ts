@@ -1,4 +1,5 @@
 import type { Workspace } from "../../types";
+import type { SettingsFocusTarget } from "../../dashboard/types";
 import imgFile1 from "figma:asset/86b9c3843ae4733f84c25f8c5003a47372346c7b.png";
 import imgFile2 from "figma:asset/ed2300ecc7d7f37175475469dd895c1a9c7a47a7.png";
 import imgFile3 from "figma:asset/a6d8d90aa9a345c6a0a0841855776fa6f038f822.png";
@@ -75,6 +76,7 @@ export interface SettingsPopupProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: SettingsTab;
+  initialFocusTarget?: SettingsFocusTarget | null;
   activeWorkspace?: Workspace;
   account: AccountSettingsData | null;
   notifications: NotificationSettingsData | null;

@@ -1,9 +1,10 @@
 /** @vitest-environment jsdom */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
 import type { WorkspaceActivity } from "../../../types";
+import { ActivityRowShell } from "../ActivityRowShell";
 import { CollaborationActivityRow } from "./CollaborationActivityRow";
 import { FileActivityRow } from "./FileActivityRow";
 import { MembershipActivityRow } from "./MembershipActivityRow";
@@ -176,5 +177,25 @@ describe("Activity row renderers", () => {
     expect(
       organizationResult.container.querySelector(".activity-tone-organization"),
     ).not.toBeNull();
+  });
+
+  test("supports interactive shell mode with click and keyboard", () => {
+    const onClick = vi.fn();
+    render(
+      <ActivityRowShell
+        kind="project"
+        title="Interactive row"
+        meta="just now"
+        actorName="Alex"
+        actorAvatarUrl={null}
+        onClick={onClick}
+      />,
+    );
+
+    const rowButton = screen.getByRole("button");
+    fireEvent.click(rowButton);
+    fireEvent.keyDown(rowButton, { key: "Enter" });
+
+    expect(onClick).toHaveBeenCalledTimes(2);
   });
 });

@@ -15,6 +15,7 @@ import { useDashboardWorkspaceActions } from "../useDashboardWorkspaceActions";
 import { useDashboardApiHandlers } from "./useDashboardApiHandlers";
 import { useDashboardLifecycleEffects } from "./useDashboardLifecycleEffects";
 import {
+  asActivityEventId,
   asBrandAssetId,
   asStorageId,
   asUserId,
@@ -74,6 +75,8 @@ export function useDashboardDataLayer() {
     revokeWorkspaceInvitationAction,
     changeWorkspaceMemberRoleAction,
     removeWorkspaceMemberAction,
+    markActivityReadMutation,
+    markAllReadMutation,
     generateBrandAssetUploadUrlMutation,
     finalizeBrandAssetUploadMutation,
     removeBrandAssetMutation,
@@ -122,6 +125,26 @@ export function useDashboardDataLayer() {
     }
     openCreateWorkspace();
   }, [canCreateWorkspace, openCreateWorkspace]);
+  const handleMarkInboxActivityRead = useCallback(
+    async (activityId: string) => {
+      if (!data.resolvedWorkspaceSlug) {
+        return;
+      }
+      await markActivityReadMutation({
+        workspaceSlug: data.resolvedWorkspaceSlug,
+        activityEventId: asActivityEventId(activityId),
+      });
+    },
+    [data.resolvedWorkspaceSlug, markActivityReadMutation],
+  );
+  const handleMarkAllInboxActivitiesRead = useCallback(async () => {
+    if (!data.resolvedWorkspaceSlug) {
+      return;
+    }
+    await markAllReadMutation({
+      workspaceSlug: data.resolvedWorkspaceSlug,
+    });
+  }, [data.resolvedWorkspaceSlug, markAllReadMutation]);
   const navigateToPath = useCallback(
     (path: string) => {
       if (location.pathname === path) {
@@ -215,6 +238,8 @@ export function useDashboardDataLayer() {
     canCreateWorkspace,
     handleSwitchWorkspace,
     handleCreateWorkspace,
+    handleMarkInboxActivityRead,
+    handleMarkAllInboxActivitiesRead,
     workspaceActions,
   };
 }

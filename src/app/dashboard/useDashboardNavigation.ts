@@ -14,8 +14,11 @@ import {
   type AppView,
 } from "../lib/routing";
 import {
+  applySettingsFocusTargetToSearchParams,
   parseSettingsTab,
   type PendingHighlight,
+  parseSettingsFocusTarget,
+  type SettingsFocusTarget,
   type SettingsTab,
 } from "./types";
 import type { ProjectData, ProjectDraftData } from "../types";
@@ -47,9 +50,11 @@ export type DashboardNavigationState = {
   searchParams: URLSearchParams;
   currentView: AppView;
   settingsTab: SettingsTab;
+  settingsFocusTarget: SettingsFocusTarget | null;
   isSettingsOpen: boolean;
   isSidebarOpen: boolean;
   setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
+  isInboxOpen: boolean;
   isSearchOpen: boolean;
   setIsSearchOpen: Dispatch<SetStateAction<boolean>>;
   isCreateProjectOpen: boolean;
@@ -71,6 +76,9 @@ export type DashboardNavigationState = {
   activeWorkspaceSlug: string | null;
   setActiveWorkspaceSlug: Dispatch<SetStateAction<string | null>>;
   navigateView: (view: AppView) => void;
+  navigateViewPreservingInbox: (view: AppView) => void;
+  openInbox: () => void;
+  closeInbox: () => void;
   openSearch: () => void;
   openCreateProject: () => void;
   closeCreateProject: () => void;
@@ -80,6 +88,10 @@ export type DashboardNavigationState = {
   closeCompletedProjectsPopup: () => void;
   openCompletedProjectDetail: (projectId: string) => void;
   backToCompletedProjectsList: () => void;
+  handleOpenSettingsWithFocus: (args: {
+    tab?: SettingsTab;
+    focus?: SettingsFocusTarget | null;
+  }) => void;
   handleOpenSettings: (tab?: SettingsTab) => void;
   handleCloseSettings: () => void;
 };
@@ -97,6 +109,7 @@ export const useDashboardNavigation = ({
     [rawSearchParams],
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
@@ -139,6 +152,10 @@ export const useDashboardNavigation = ({
     () => parseSettingsTab(searchParams.get("tab")),
     [searchParams],
   );
+  const settingsFocusTarget = useMemo(
+    () => parseSettingsFocusTarget(searchParams),
+    [searchParams],
+  );
   const isSettingsOpen = location.pathname === "/settings";
   const toProtectedFromPath = useCallback(
     (candidate: string | null | undefined): string | null => {
@@ -165,6 +182,7 @@ export const useDashboardNavigation = ({
   const navigateView = useCallback(
     (view: AppView) => {
       const nextPath = viewToPath(view);
+      setIsInboxOpen(false);
       if (location.pathname === nextPath) {
         return;
       }
@@ -172,6 +190,23 @@ export const useDashboardNavigation = ({
     },
     [location.pathname, navigate],
   );
+  const navigateViewPreservingInbox = useCallback(
+    (view: AppView) => {
+      const nextPath = viewToPath(view);
+      if (location.pathname === nextPath) {
+        return;
+      }
+      navigate(nextPath);
+    },
+    [location.pathname, navigate],
+  );
+  const openInbox = useCallback(() => {
+    setIsSidebarOpen(true);
+    setIsInboxOpen(true);
+  }, []);
+  const closeInbox = useCallback(() => {
+    setIsInboxOpen(false);
+  }, []);
   const openSearch = useCallback(() => {
     preloadSearchPopup();
     setIsSearchOpen(true);
@@ -208,16 +243,29 @@ export const useDashboardNavigation = ({
   const backToCompletedProjectsList = useCallback(() => {
     setCompletedProjectDetailId(null);
   }, []);
-  const handleOpenSettings = useCallback(
-    (tab: SettingsTab = "Account") => {
+  const handleOpenSettingsWithFocus = useCallback(
+    ({
+      tab = "Account",
+      focus = null,
+    }: {
+      tab?: SettingsTab;
+      focus?: SettingsFocusTarget | null;
+    }) => {
       preloadSettingsPopup();
       const params = new URLSearchParams({
         tab,
         from: resolveSettingsFromPath(),
       });
+      applySettingsFocusTargetToSearchParams(params, focus);
       navigate(`/settings?${params.toString()}`);
     },
     [navigate, preloadSettingsPopup, resolveSettingsFromPath],
+  );
+  const handleOpenSettings = useCallback(
+    (tab: SettingsTab = "Account") => {
+      handleOpenSettingsWithFocus({ tab });
+    },
+    [handleOpenSettingsWithFocus],
   );
   const handleCloseSettings = useCallback(() => {
     const fromParam = toProtectedFromPath(searchParams.get("from"));
@@ -233,9 +281,11 @@ export const useDashboardNavigation = ({
     searchParams,
     currentView,
     settingsTab,
+    settingsFocusTarget,
     isSettingsOpen,
     isSidebarOpen,
     setIsSidebarOpen,
+    isInboxOpen,
     isSearchOpen,
     setIsSearchOpen,
     isCreateProjectOpen,
@@ -257,6 +307,9 @@ export const useDashboardNavigation = ({
     activeWorkspaceSlug,
     setActiveWorkspaceSlug,
     navigateView,
+    navigateViewPreservingInbox,
+    openInbox,
+    closeInbox,
     openSearch,
     openCreateProject,
     closeCreateProject,
@@ -266,6 +319,7 @@ export const useDashboardNavigation = ({
     closeCompletedProjectsPopup,
     openCompletedProjectDetail,
     backToCompletedProjectsList,
+    handleOpenSettingsWithFocus,
     handleOpenSettings,
     handleCloseSettings,
   };

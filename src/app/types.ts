@@ -197,4 +197,5 @@ export interface WorkspaceActivity {
   message: string | null;
   errorCode: string | null;
   createdAt: number;
+  isRead?: boolean;
 }
