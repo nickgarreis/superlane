@@ -29,8 +29,7 @@ const getUrgencyBadge = (dueDateEpochMs: number | null) => {
   if (dueDateEpochMs == null) {
     return {
       label: "No due date",
-      toneClass:
-        "border-border-soft bg-popup-surface-soft txt-tone-faint",
+      toneClass: "txt-tone-faint",
     };
   }
 
@@ -41,31 +40,30 @@ const getUrgencyBadge = (dueDateEpochMs: number | null) => {
   if (deltaDays < 0) {
     return {
       label: `Overdue by ${Math.abs(deltaDays)}d`,
-      toneClass:
-        "border-popup-danger-soft-hover bg-popup-danger-soft txt-tone-danger",
+      toneClass: "txt-tone-danger",
     };
   }
   if (deltaDays === 0) {
     return {
       label: "Due today",
-      toneClass: "border-accent-soft-border bg-accent-soft-bg txt-tone-warning",
+      toneClass: "txt-tone-warning",
     };
   }
   if (deltaDays === 1) {
     return {
       label: "Due tomorrow",
-      toneClass: "border-accent-soft-border bg-accent-soft-bg txt-tone-accent",
+      toneClass: "txt-tone-accent",
     };
   }
   if (deltaDays <= 7) {
     return {
       label: `Due in ${deltaDays}d`,
-      toneClass: "border-accent-soft-border bg-accent-soft-bg txt-tone-accent",
+      toneClass: "txt-tone-accent",
     };
   }
   return {
     label: "Scheduled",
-    toneClass: "border-border-soft bg-popup-surface-soft txt-tone-muted",
+    toneClass: "txt-tone-muted",
   };
 };
 
@@ -136,53 +134,35 @@ export function TaskActivityRow({ activity }: { activity: WorkspaceActivity }) {
   return (
     <ActivityRowShell
       kind="task"
-      iconLabel="T"
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
     >
       {activity.action === "due_date_changed" ? (
-        <div className="rounded-lg border border-border-soft bg-popup-surface-soft px-3 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="txt-role-body-sm txt-tone-muted">{taskTitle}</p>
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full border px-2 py-0.5 txt-role-kbd",
-                urgencyBadge.toneClass,
-              )}
-            >
-              {urgencyBadge.label}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="min-w-0 flex-1 rounded-md border border-border-subtle-soft bg-popup-surface-softer px-2.5 py-1.5">
-              <p className="txt-role-kbd txt-tone-faint uppercase tracking-wide">
-                From
-              </p>
-              <p className="txt-role-body-sm txt-tone-muted">{previousDueDateLabel}</p>
-            </div>
-            <span className="txt-role-body-sm txt-tone-faint">to</span>
-            <div className="min-w-0 flex-1 rounded-md border border-accent-soft-border bg-accent-soft-bg px-2.5 py-1.5">
-              <p className="txt-role-kbd txt-tone-faint uppercase tracking-wide">
-                To
-              </p>
-              <p className="txt-role-body-sm txt-tone-primary">{nextDueDateLabel}</p>
-            </div>
-          </div>
-          <p className="mt-2 txt-role-body-sm txt-tone-subtle">
-            {getDueDateShiftSummary(previousDueDateEpochMs, nextDueDateEpochMs)}
-          </p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 txt-role-body-sm txt-tone-subtle">
+          <span className="txt-tone-faint">From</span>
+          <span className="txt-tone-muted">{previousDueDateLabel}</span>
+          <span className="txt-tone-faint">To</span>
+          <span className="txt-tone-primary">{nextDueDateLabel}</span>
+          <span className="txt-tone-faint">•</span>
+          <span>{getDueDateShiftSummary(previousDueDateEpochMs, nextDueDateEpochMs)}</span>
+          <span className="txt-tone-faint">•</span>
+          <span className={cn("txt-role-kbd uppercase tracking-wide", urgencyBadge.toneClass)}>
+            {urgencyBadge.label}
+          </span>
         </div>
       ) : null}
 
       {activity.action === "assignee_changed" ? (
-        <div className="rounded-lg border border-border-soft bg-popup-surface-soft px-3 py-2">
-          <p className="txt-role-body-sm txt-tone-muted">{taskTitle}</p>
-          <p className="mt-1 txt-role-body-sm txt-tone-subtle">
-            <span className="txt-tone-faint">Assignee:</span> {assigneeFrom} to {assigneeTo}
-          </p>
-        </div>
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 txt-role-body-sm txt-tone-subtle">
+          <span className="txt-tone-faint">Assignee</span>
+          <span className="txt-tone-muted">{assigneeFrom}</span>
+          <span className="txt-tone-faint">to</span>
+          <span className="txt-tone-primary">{assigneeTo}</span>
+          <span className="txt-tone-faint">•</span>
+          <span className="txt-tone-muted">{taskTitle}</span>
+        </p>
       ) : null}
     </ActivityRowShell>
   );

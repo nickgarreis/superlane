@@ -104,7 +104,7 @@ export const useDashboardData = ({
   }, [isSearchOpen]);
   const shouldKeepWorkspaceFilesWarm = isSearchOpen || hasOpenedSearchOnce;
   const workspaceTasksResult = usePaginatedQuery(
-    api.tasks.listForWorkspace,
+    api.tasks.listMutableForWorkspace,
     isAuthenticated && resolvedWorkspaceSlug && shouldLoadWorkspaceTasks
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",

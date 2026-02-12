@@ -184,7 +184,7 @@ export function ProjectTasks({
         sortBy={sortBy}
         onSortSelect={setSortBy}
       />{" "}
-      <div className="flex flex-col border-t border-white/5">
+      <div className="flex flex-col">
         {" "}
         {showProjectColumn && <ProjectTaskTableHeader />}{" "}
         {isAdding && (

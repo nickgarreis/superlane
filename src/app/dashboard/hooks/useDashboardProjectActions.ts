@@ -55,6 +55,12 @@ type UseDashboardProjectActionsArgs = {
   asPendingUploadId: (value: string) => Id<"pendingFileUploads">;
   omitUndefined: <T extends Record<string, unknown>>(value: T) => T;
 };
+
+const toTaskUpdateErrorMessage = (error: unknown): string =>
+  error instanceof Error && error.message
+    ? `Failed to update tasks: ${error.message}`
+    : "Failed to update tasks";
+
 export const useDashboardProjectActions = ({
   activeWorkspaceId,
   projects,
@@ -359,7 +365,7 @@ export const useDashboardProjectActions = ({
           reportUiError("dashboard.project.syncTasks", error, {
             showToast: false,
           });
-          toast.error("Failed to update tasks");
+          toast.error(toTaskUpdateErrorMessage(error));
         });
       }
       const patch: {
@@ -394,7 +400,7 @@ export const useDashboardProjectActions = ({
         reportUiError("dashboard.workspace.syncTasks", error, {
           showToast: false,
         });
-        toast.error("Failed to update tasks");
+        toast.error(toTaskUpdateErrorMessage(error));
       });
     },
     [syncWorkspaceTasks],

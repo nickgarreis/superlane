@@ -27,7 +27,6 @@ export function MembershipActivityRow({
   return (
     <ActivityRowShell
       kind="membership"
-      iconLabel="M"
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}

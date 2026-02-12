@@ -24,7 +24,6 @@ export function ProjectActivityRow({ activity }: { activity: WorkspaceActivity }
   return (
     <ActivityRowShell
       kind="project"
-      iconLabel="P"
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}

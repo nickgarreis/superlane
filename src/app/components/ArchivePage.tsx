@@ -151,7 +151,7 @@ export function ArchivePage({
           {filteredProjects.length > 0 ? (
             <div className="flex flex-col">
               {/* Table Header */}
-              <div className="flex items-center px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30">
+              <div className="flex items-center border-b border-white/5 px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30">
                 <div className="flex-1 min-w-0">Project</div>
                 <div className="w-[140px] shrink-0">Category</div>
                 <div className="w-[140px] shrink-0">Archived on</div>

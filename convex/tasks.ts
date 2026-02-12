@@ -18,6 +18,7 @@ import {
   normalizeOptionalProjectPublicId,
   normalizeTaskAssignee,
   normalizeTaskTitle,
+  projectAllowsTaskMutations,
   replaceProjectTasks,
   replaceWorkspaceTasksLegacy,
   resolveTaskTargetProject,
@@ -47,6 +48,45 @@ export const listForWorkspace = query({
     return {
       ...paginated,
       page: paginated.page.map(mapTaskForClient),
+    };
+  },
+});
+
+export const listMutableForWorkspace = query({
+  args: {
+    workspaceSlug: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    await requireWorkspaceRole(ctx, workspace._id, "member", { workspace });
+
+    const workspaceProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", workspace._id))
+      .collect();
+    const mutableProjectPublicIds = new Set<string>(
+      workspaceProjects
+        .filter((project) => project.publicId && projectAllowsTaskMutations(project))
+        .map((project) => project.publicId),
+    );
+
+    const paginated = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace_projectDeletedAt_position", (q) =>
+        q.eq("workspaceId", workspace._id).eq("projectDeletedAt", null),
+      )
+      .paginate(args.paginationOpts);
+
+    return {
+      ...paginated,
+      page: paginated.page
+        .filter(
+          (task) =>
+            task.projectPublicId == null
+            || mutableProjectPublicIds.has(task.projectPublicId),
+        )
+        .map(mapTaskForClient),
     };
   },
 });

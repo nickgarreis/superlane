@@ -30,7 +30,6 @@ export function CollaborationActivityRow({
   return (
     <ActivityRowShell
       kind="collaboration"
-      iconLabel="C"
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}

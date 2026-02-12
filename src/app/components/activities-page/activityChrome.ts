@@ -1,8 +1,5 @@
 export const ACTIVITY_ROW_BASE_CLASS =
-  "group flex items-start gap-3 rounded-xl border border-border-subtle-soft bg-popup-surface-softer px-4 py-3 transition-colors hover:bg-surface-hover-subtle";
-
-export const ACTIVITY_ICON_WRAP_BASE_CLASS =
-  "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border txt-role-meta font-semibold";
+  "group flex items-start gap-3 border-b border-border-subtle-soft px-4 py-3 transition-colors hover:bg-surface-hover-subtle";
 
 export const ACTIVITY_META_CLASS =
   "txt-role-body-sm txt-tone-faint";
@@ -11,7 +8,7 @@ export const ACTIVITY_TITLE_CLASS =
   "txt-role-body-md txt-tone-primary";
 
 export const ACTIVITY_KIND_BADGE_BASE_CLASS =
-  "inline-flex items-center rounded-full border px-2 py-0.5 txt-role-kbd font-medium";
+  "inline-flex w-[120px] shrink-0 items-center justify-end gap-2 txt-role-kbd uppercase tracking-wider txt-tone-faint";
 
 export const ACTIVITY_PAGE_ROOT_CLASS =
   "relative flex h-full flex-1 flex-col overflow-hidden bg-bg-base font-app txt-tone-primary";
@@ -20,7 +17,7 @@ export const ACTIVITY_PAGE_SURFACE_CLASS =
   "relative flex flex-1 flex-col overflow-hidden rounded-none bg-bg-surface transition-all duration-500 ease-in-out";
 
 export const ACTIVITY_EMPTY_STATE_CLASS =
-  "rounded-xl border border-border-subtle-soft bg-popup-surface-softer px-6 py-8 text-center";
+  "border-t border-border-subtle-soft px-6 py-10 text-center";
 
 export const ACTIVITY_FILTER_MENU_CLASS =
   "absolute right-0 top-full z-20 mt-2 w-64 animate-in fade-in zoom-in-95 duration-100 rounded-xl border border-popup-border-soft bg-bg-popup p-1 shadow-menu-surface";

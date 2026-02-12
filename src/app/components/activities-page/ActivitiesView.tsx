@@ -199,7 +199,13 @@ export function ActivitiesView({
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">{activities.map(renderActivity)}</div>
+            <div className="flex flex-col">
+              <div className="flex items-center border-b border-border-subtle-soft px-4 py-2 txt-role-meta uppercase tracking-wider txt-tone-faint">
+                <div className="flex-1 min-w-0">Activity</div>
+                <div className="w-[120px] shrink-0 text-right">Type</div>
+              </div>
+              <div className="flex flex-col">{activities.map(renderActivity)}</div>
+            </div>
           )}
 
           <div className="pt-4 txt-role-body-sm txt-tone-faint">

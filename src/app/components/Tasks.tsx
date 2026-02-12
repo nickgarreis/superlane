@@ -100,6 +100,13 @@ export function Tasks({
     () => new Set(activeProjects.map((project) => project.id)),
     [activeProjects],
   );
+  const mutableWorkspaceTasks = useMemo(
+    () =>
+      workspaceTasks.filter(
+        (task) => !task.projectId || activeProjectIds.has(task.projectId),
+      ),
+    [activeProjectIds, workspaceTasks],
+  );
 
   useEffect(() => {
     setFilterProject((current) =>
@@ -115,7 +122,7 @@ export function Tasks({
   const filteredTasks = useMemo(() => {
     const next: Task[] = [];
     const hasProjectFilter = selectedProjectIds.size > 0;
-    for (const task of workspaceTasks) {
+    for (const task of mutableWorkspaceTasks) {
       const matchesSearch =
         normalizedSearchQuery.length === 0 ||
         task.title.toLowerCase().includes(normalizedSearchQuery);
@@ -136,7 +143,7 @@ export function Tasks({
       if (sortBy === "status") return Number(left.completed) - Number(right.completed);
       return compareNullableEpochMsAsc(left.dueDateEpochMs, right.dueDateEpochMs);
     });
-  }, [workspaceTasks, normalizedSearchQuery, selectedProjectIds, sortBy]);
+  }, [mutableWorkspaceTasks, normalizedSearchQuery, selectedProjectIds, sortBy]);
 
   const handleUpdateTasks = useCallback(
     (newTasks: Task[]) => {
@@ -144,7 +151,7 @@ export function Tasks({
       const nextById = new Map(newTasks.map((task) => [task.id, task]));
       const nextAll: Task[] = [];
 
-      for (const task of workspaceTasks) {
+      for (const task of mutableWorkspaceTasks) {
         if (!previousIdsInView.has(task.id)) {
           nextAll.push(task);
           continue;
@@ -160,16 +167,9 @@ export function Tasks({
         }
       }
 
-      const normalized = nextAll.map((task) => ({
-        ...task,
-        projectId:
-          task.projectId && activeProjectIds.has(task.projectId)
-            ? task.projectId
-            : undefined,
-      }));
-      onUpdateWorkspaceTasks(normalized);
+      onUpdateWorkspaceTasks(nextAll);
     },
-    [activeProjectIds, filteredTasks, onUpdateWorkspaceTasks, workspaceTasks],
+    [filteredTasks, mutableWorkspaceTasks, onUpdateWorkspaceTasks],
   );
 
   const handleTasksScroll = useCallback(

@@ -218,4 +218,31 @@ describe("useDashboardProjectActions", () => {
     });
     expect(args.navigateView).toHaveBeenCalledWith("project:project-1");
   });
+
+  test("surfaces backend task-sync error details in workspace toast", async () => {
+    const args = createBaseArgs();
+    args.applyTaskDiffMutation = vi
+      .fn()
+      .mockRejectedValue(new Error("Tasks can only be modified for active projects"));
+    const { result } = renderHook(() => useDashboardProjectActions(args));
+
+    act(() => {
+      result.current.handleReplaceWorkspaceTasks([
+        {
+          id: "task-1",
+          title: "Task",
+          assignee: { name: "Viewer", avatar: "" },
+          dueDateEpochMs: null,
+          completed: false,
+          projectId: "project-1",
+        },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith(
+        "Failed to update tasks: Tasks can only be modified for active projects",
+      );
+    });
+  });
 });

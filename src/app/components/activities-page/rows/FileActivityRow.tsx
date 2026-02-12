@@ -25,7 +25,6 @@ export function FileActivityRow({ activity }: { activity: WorkspaceActivity }) {
   return (
     <ActivityRowShell
       kind="file"
-      iconLabel="F"
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}

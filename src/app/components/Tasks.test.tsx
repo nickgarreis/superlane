@@ -174,7 +174,22 @@ describe("Tasks", () => {
       />,
     );
 
-    expect(screen.getByTestId("task-count")).toHaveTextContent("3");
+    expect(screen.getByTestId("task-count")).toHaveTextContent("2");
+    expect(projectTasksRenderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tasks: expect.arrayContaining([
+          expect.objectContaining({ id: "task-1" }),
+          expect.objectContaining({ id: "task-3" }),
+        ]),
+      }),
+    );
+    expect(projectTasksRenderMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        tasks: expect.arrayContaining([
+          expect.objectContaining({ id: "task-2" }),
+        ]),
+      }),
+    );
 
     fireEvent.change(screen.getByPlaceholderText("Search tasks"), {
       target: { value: "design" },
@@ -198,7 +213,7 @@ describe("Tasks", () => {
     expect(screen.getByTestId("adding-flag")).toHaveTextContent("true");
   });
 
-  test("normalizes workspace task updates against active project ids", async () => {
+  test("hides inactive-project tasks and preserves project ids in emitted updates", async () => {
     const onUpdateWorkspaceTasks = vi.fn();
 
     const projects: Record<string, ProjectData> = {
@@ -257,9 +272,9 @@ describe("Tasks", () => {
           title: "Design Homepage Updated",
           projectId: "active-1",
         }),
-        expect.objectContaining({ id: "task-2", projectId: undefined }),
-        expect.objectContaining({ id: "task-new", projectId: undefined }),
+        expect.objectContaining({ id: "task-new", projectId: "archived-1" }),
       ]),
     );
+    expect(updatedTasks.find((task) => task.id === "task-2")).toBeUndefined();
   });
 });

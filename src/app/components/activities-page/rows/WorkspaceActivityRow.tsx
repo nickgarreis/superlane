@@ -27,7 +27,6 @@ export function WorkspaceActivityRow({ activity }: { activity: WorkspaceActivity
   return (
     <ActivityRowShell
       kind={kind}
-      iconLabel={kind === "organization" ? "O" : "W"}
       title={actionText(activity)}
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}

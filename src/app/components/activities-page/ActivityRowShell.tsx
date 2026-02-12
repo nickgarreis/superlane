@@ -1,7 +1,6 @@
 import React from "react";
 import { cn } from "../../../lib/utils";
 import {
-  ACTIVITY_ICON_WRAP_BASE_CLASS,
   ACTIVITY_KIND_BADGE_BASE_CLASS,
   ACTIVITY_KIND_LABELS,
   ACTIVITY_META_CLASS,
@@ -15,7 +14,6 @@ type ActivityRowShellProps = {
   kind: ActivityKindFilter;
   title: string;
   meta: string;
-  iconLabel: string;
   actorName: string;
   actorAvatarUrl: string | null;
   children?: React.ReactNode;
@@ -30,7 +28,6 @@ export function ActivityRowShell({
   kind,
   title,
   meta,
-  iconLabel,
   actorName,
   actorAvatarUrl,
   children,
@@ -46,7 +43,7 @@ export function ActivityRowShell({
   }
   return (
     <div className={ACTIVITY_ROW_BASE_CLASS}>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center">
         <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-border-soft bg-bg-muted-surface txt-role-body-sm txt-tone-muted">
           {actorAvatarUrl ? (
             <img
@@ -58,16 +55,14 @@ export function ActivityRowShell({
             <span>{getInitial(actorName)}</span>
           )}
         </div>
-        <div className={cn(ACTIVITY_ICON_WRAP_BASE_CLASS, toneClass)}>
-          <span>{iconLabel}</span>
-        </div>
       </div>
       <div className="min-w-0 flex-1">
         <p className={ACTIVITY_TITLE_CLASS}>{title}</p>
         <p className={ACTIVITY_META_CLASS}>{meta}</p>
         {children ? <div className="mt-1">{children}</div> : null}
       </div>
-      <span className={cn(ACTIVITY_KIND_BADGE_BASE_CLASS, toneClass)}>
+      <span className={ACTIVITY_KIND_BADGE_BASE_CLASS}>
+        <span className={cn("inline-block h-2 w-2 rounded-full border", toneClass)} />
         {ACTIVITY_KIND_LABELS[kind]}
       </span>
     </div>
