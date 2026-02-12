@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { AuthenticationMethod } from "@workos-inc/authkit-js";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../../../../convex/_generated/api";
 type AccountSettingsResult =
@@ -19,6 +20,39 @@ type CompanyPendingInvitationRow = FunctionReturnType<
 type CompanyBrandAssetRow = FunctionReturnType<
   typeof api.settings.listBrandAssets
 >["page"][number];
+
+const AUTH_METHOD_SOCIAL_LABELS: Partial<Record<AuthenticationMethod, string>> = {
+  SSO: "your organization",
+  Passkey: "your passkey",
+  AppleOAuth: "Apple",
+  BitbucketOAuth: "Bitbucket",
+  CrossAppAuth: "a cross-app provider",
+  DiscordOAuth: "Discord",
+  ExternalAuth: "an external provider",
+  GitHubOAuth: "GitHub",
+  GitLabOAuth: "GitLab",
+  GoogleOAuth: "Google",
+  LinkedInOAuth: "LinkedIn",
+  MicrosoftOAuth: "Microsoft",
+  SalesforceOAuth: "Salesforce",
+  SlackOAuth: "Slack",
+  VercelMarketplaceOAuth: "Vercel Marketplace",
+  VercelOAuth: "Vercel",
+  XeroOAuth: "Xero",
+  MagicAuth: "a magic link",
+  Impersonation: "an impersonation session",
+  MigratedSession: "a migrated session",
+};
+
+const resolveSocialLoginLabel = (
+  authenticationMethod: AuthenticationMethod | null,
+): string | null => {
+  if (!authenticationMethod || authenticationMethod === "Password") {
+    return null;
+  }
+  return AUTH_METHOD_SOCIAL_LABELS[authenticationMethod] ?? authenticationMethod;
+};
+
 type UseDashboardSettingsDataArgs = {
   accountSettings: AccountSettingsResult;
   notificationSettings: NotificationSettingsResult;
@@ -29,6 +63,7 @@ type UseDashboardSettingsDataArgs = {
     | undefined;
   companyBrandAssetsResult: { results: CompanyBrandAssetRow[] } | undefined;
   fallbackAvatarUrl: string | null;
+  authenticationMethod: AuthenticationMethod | null;
   user:
     | {
         firstName?: string | null;
@@ -47,19 +82,35 @@ export const useDashboardSettingsData = ({
   companyPendingInvitationsResult,
   companyBrandAssetsResult,
   fallbackAvatarUrl,
+  authenticationMethod,
   user,
 }: UseDashboardSettingsDataArgs) => {
+  const isPasswordAuthSession = authenticationMethod === "Password";
+  const socialLoginLabel = useMemo(
+    () => resolveSocialLoginLabel(authenticationMethod),
+    [authenticationMethod],
+  );
   const settingsAccountData = useMemo(
-    () =>
-      accountSettings ?? {
+    () => {
+      const accountProfile = accountSettings ?? {
         firstName: user?.firstName ?? "",
         lastName: user?.lastName ?? "",
         email: user?.email ?? "",
         avatarUrl: fallbackAvatarUrl ?? user?.profilePictureUrl ?? null,
-      },
+      };
+      return {
+        ...accountProfile,
+        authenticationMethod,
+        isPasswordAuthSession,
+        socialLoginLabel,
+      };
+    },
     [
       accountSettings,
+      authenticationMethod,
       fallbackAvatarUrl,
+      isPasswordAuthSession,
+      socialLoginLabel,
       user?.email,
       user?.firstName,
       user?.lastName,

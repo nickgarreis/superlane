@@ -28,12 +28,15 @@ type UseDashboardProjectActionsArgs = {
   visibleProjects: Record<string, ProjectData>;
   workspaceTasks: Task[];
   currentView: AppView;
+  isCompletedProjectsOpen: boolean;
+  completedProjectDetailId: string | null;
   viewerIdentity: ViewerIdentity;
   setEditProjectId: (projectId: string | null) => void;
   setEditDraftData: (draftData: ProjectDraftData | null) => void;
   setReviewProject: (project: ProjectData | null) => void;
   setHighlightedArchiveProjectId: (id: string | null) => void;
   openCreateProject: () => void;
+  closeCompletedProjectsPopup: () => void;
   navigateView: (view: AppView) => void;
   navigateToPath: (path: string) => void;
   createProjectMutation: DashboardMutationHandler<typeof api.projects.create>;
@@ -68,12 +71,15 @@ export const useDashboardProjectActions = ({
   visibleProjects,
   workspaceTasks,
   currentView,
+  isCompletedProjectsOpen,
+  completedProjectDetailId,
   viewerIdentity,
   setEditProjectId,
   setEditDraftData,
   setReviewProject,
   setHighlightedArchiveProjectId,
   openCreateProject,
+  closeCompletedProjectsPopup,
   navigateView,
   navigateToPath,
   createProjectMutation,
@@ -324,8 +330,20 @@ export const useDashboardProjectActions = ({
   const handleUpdateProjectStatus = useCallback(
     (id: string, newStatus: string) => {
       const parsedStatus = parseProjectStatus(newStatus);
+      const project = projects[id];
+      const revertingCompletedProjectFromDetailPopup =
+        parsedStatus === "Active" &&
+        isCompletedProjectsOpen &&
+        completedProjectDetailId === id &&
+        project?.status.label === "Completed" &&
+        !project.archived;
       void setProjectStatusMutation({ publicId: id, status: parsedStatus })
         .then(() => {
+          if (revertingCompletedProjectFromDetailPopup) {
+            closeCompletedProjectsPopup();
+            navigateView(`project:${id}`);
+            return;
+          }
           if (parsedStatus === "Completed") {
             toast.success("Project marked as completed");
           }
@@ -337,7 +355,14 @@ export const useDashboardProjectActions = ({
           toast.error("Failed to update project status");
         });
     },
-    [setProjectStatusMutation],
+    [
+      closeCompletedProjectsPopup,
+      completedProjectDetailId,
+      isCompletedProjectsOpen,
+      navigateView,
+      projects,
+      setProjectStatusMutation,
+    ],
   );
   const handleApproveReviewProject = useCallback(
     async (projectId: string) => {

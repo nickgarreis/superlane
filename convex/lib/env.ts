@@ -52,6 +52,6 @@ export const getWorkosCallbackEnv = () => ({
   convexSiteUrl: requireUrl("CONVEX_SITE_URL"),
 });
 
-export const getAppOriginEnv = () => ({
-  appOrigin: requireOrigin("APP_ORIGIN"),
+export const getSiteUrlEnv = () => ({
+  siteUrl: requireOrigin("SITE_URL"),
 });

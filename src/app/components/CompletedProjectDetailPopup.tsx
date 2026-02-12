@@ -84,7 +84,7 @@ export function CompletedProjectDetailPopup({
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[1120px] w-full h-[86vh] max-h-[86vh] flex flex-col font-app`}
+        className={`${POPUP_SHELL_CLASS} max-w-[980px] w-full h-[86vh] max-h-[86vh] flex flex-col font-app`}
         role="dialog"
         aria-modal="true"
         aria-label={`Completed project details for ${project.name}`}

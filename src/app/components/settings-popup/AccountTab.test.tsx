@@ -16,6 +16,9 @@ describe("AccountTab", () => {
           lastName: "Owner",
           email: "alex@example.com",
           avatarUrl: null,
+          authenticationMethod: "Password",
+          isPasswordAuthSession: true,
+          socialLoginLabel: null,
         }}
         onSave={onSave}
         onRequestPasswordReset={vi.fn().mockResolvedValue(undefined)}
@@ -59,6 +62,9 @@ describe("AccountTab", () => {
           lastName: "Owner",
           email: "alex@example.com",
           avatarUrl: "https://cdn.example/avatar.png",
+          authenticationMethod: "Password",
+          isPasswordAuthSession: true,
+          socialLoginLabel: null,
         }}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onRequestPasswordReset={vi.fn().mockResolvedValue(undefined)}
@@ -89,7 +95,7 @@ describe("AccountTab", () => {
     });
   });
 
-  test("sends password reset link from security section", async () => {
+  test("sends password reset link from inline password controls", async () => {
     const onRequestPasswordReset = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -99,6 +105,9 @@ describe("AccountTab", () => {
           lastName: "Owner",
           email: "alex@example.com",
           avatarUrl: null,
+          authenticationMethod: "Password",
+          isPasswordAuthSession: true,
+          socialLoginLabel: null,
         }}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onRequestPasswordReset={onRequestPasswordReset}
@@ -106,9 +115,13 @@ describe("AccountTab", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send password reset link" }),
-    );
+    expect(screen.getByLabelText("Password")).toHaveValue("••••••••••");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("readonly");
+    expect(
+      screen.queryByRole("heading", { name: "Security" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
 
     await waitFor(() => {
       expect(onRequestPasswordReset).toHaveBeenCalledTimes(1);
@@ -116,5 +129,40 @@ describe("AccountTab", () => {
     expect(
       screen.getByText("Reset link sent to your account email."),
     ).toBeInTheDocument();
+  });
+
+  test("shows social auth method card and hides email/password controls for non-password sessions", () => {
+    const onRequestPasswordReset = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AccountTab
+        data={{
+          firstName: "Alex",
+          lastName: "Owner",
+          email: "alex@example.com",
+          avatarUrl: null,
+          authenticationMethod: "GoogleOAuth",
+          isPasswordAuthSession: false,
+          socialLoginLabel: "Google",
+        }}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onRequestPasswordReset={onRequestPasswordReset}
+        onUploadAvatar={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.getByText("Signed in with Google")).toBeInTheDocument();
+    expect(screen.getByText("OAuth")).toBeInTheDocument();
+    expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("GoogleOAuth")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Password changes are unavailable for this account\./),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Email Address")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reset password" }),
+    ).not.toBeInTheDocument();
+    expect(onRequestPasswordReset).not.toHaveBeenCalled();
   });
 });

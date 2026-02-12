@@ -7,7 +7,7 @@ import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
 } from "./lib/workosOrganization";
-import { getAppOriginEnv, getWorkosRuntimeEnv } from "./lib/env";
+import { getSiteUrlEnv, getWorkosRuntimeEnv } from "./lib/env";
 import { logError, logInfo } from "./lib/logging";
 
 const authFunctions: AuthFunctions = internal.auth;
@@ -437,8 +437,8 @@ export const requestPasswordReset = action({
     email: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
-    const { appOrigin } = getAppOriginEnv();
-    const passwordResetUrl = new URL("/reset-password", appOrigin);
+    const { siteUrl } = getSiteUrlEnv();
+    const passwordResetUrl = new URL("/reset-password", siteUrl);
     passwordResetUrl.searchParams.set(
       "returnTo",
       PASSWORD_RESET_RETURN_TO_BY_SOURCE[args.source],

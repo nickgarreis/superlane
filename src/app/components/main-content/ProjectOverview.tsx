@@ -122,6 +122,14 @@ export function ProjectOverview({
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="txt-role-body-sm font-medium text-white/40 uppercase tracking-wide">
+            Service
+          </div>
+          <div className="txt-role-body-lg font-medium txt-tone-primary">
+            {project.category}
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="txt-role-body-sm font-medium text-white/40 uppercase tracking-wide">
             Scope
           </div>
           <div className="txt-role-body-lg font-medium txt-tone-primary">

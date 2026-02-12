@@ -179,6 +179,29 @@ describe("useDashboardLifecycleEffects", () => {
     });
   });
 
+  test("keeps project route stable when project is available from cache during map swap", () => {
+    const args = createBaseArgs();
+    args.locationPathname = "/archive";
+    args.projects = {
+      "project-1": buildProject("project-1", false),
+    };
+
+    const { rerender } = renderHook(
+      (props: ReturnType<typeof createBaseArgs>) =>
+        useDashboardLifecycleEffects(props),
+      { initialProps: args },
+    );
+
+    rerender({
+      ...args,
+      locationPathname: "/project/project-1",
+      projects: {},
+    });
+
+    expect(toastMock.error).not.toHaveBeenCalledWith("Project not found");
+    expect(args.navigateToPath).not.toHaveBeenCalledWith("/tasks", true);
+  });
+
   test("waits for projects to load before declaring a project route invalid", async () => {
     const args = createBaseArgs();
     args.locationPathname = "/project/missing";

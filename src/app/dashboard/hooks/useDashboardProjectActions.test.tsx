@@ -48,12 +48,15 @@ const createBaseArgs = () => ({
   visibleProjects: { "project-1": baseProject },
   workspaceTasks: [],
   currentView: "project:project-1" as const,
+  isCompletedProjectsOpen: false,
+  completedProjectDetailId: null as string | null,
   viewerIdentity,
   setEditProjectId: vi.fn(),
   setEditDraftData: vi.fn(),
   setReviewProject: vi.fn(),
   setHighlightedArchiveProjectId: vi.fn(),
   openCreateProject: vi.fn(),
+  closeCompletedProjectsPopup: vi.fn(),
   navigateView: vi.fn(),
   navigateToPath: vi.fn(),
   createProjectMutation: vi
@@ -217,6 +220,36 @@ describe("useDashboardProjectActions", () => {
       status: "Active",
     });
     expect(args.navigateView).toHaveBeenCalledWith("project:project-1");
+  });
+
+  test("navigates to the project route after reverting from completed detail popup", async () => {
+    const args = createBaseArgs();
+    args.projects = {
+      "project-1": {
+        ...baseProject,
+        status: {
+          label: "Completed",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+        completedAt: Date.now(),
+      },
+    };
+    args.visibleProjects = args.projects;
+    args.currentView = "tasks";
+    args.isCompletedProjectsOpen = true;
+    args.completedProjectDetailId = "project-1";
+    const { result } = renderHook(() => useDashboardProjectActions(args));
+
+    act(() => {
+      result.current.handleUpdateProjectStatus("project-1", "Active");
+    });
+
+    await waitFor(() => {
+      expect(args.closeCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+      expect(args.navigateView).toHaveBeenCalledWith("project:project-1");
+    });
   });
 
   test("surfaces backend task-sync error details in workspace toast", async () => {

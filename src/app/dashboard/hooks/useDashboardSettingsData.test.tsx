@@ -15,6 +15,7 @@ describe("useDashboardSettingsData", () => {
         companyPendingInvitationsResult: undefined,
         companyBrandAssetsResult: undefined,
         fallbackAvatarUrl: "https://cdn.test/fallback.png",
+        authenticationMethod: "Password",
         user: {
           firstName: "Nick",
           lastName: "User",
@@ -29,6 +30,9 @@ describe("useDashboardSettingsData", () => {
       lastName: "User",
       email: "nick@example.com",
       avatarUrl: "https://cdn.test/fallback.png",
+      authenticationMethod: "Password",
+      isPasswordAuthSession: true,
+      socialLoginLabel: null,
     });
     expect(result.current.settingsNotificationsData).toEqual({
       events: {
@@ -113,6 +117,7 @@ describe("useDashboardSettingsData", () => {
           ],
         },
         fallbackAvatarUrl: null,
+        authenticationMethod: "GoogleOAuth",
         user: null,
       }),
     );
@@ -122,6 +127,9 @@ describe("useDashboardSettingsData", () => {
       lastName: "Owner",
       email: "jane@example.com",
       avatarUrl: "https://cdn.test/jane.png",
+      authenticationMethod: "GoogleOAuth",
+      isPasswordAuthSession: false,
+      socialLoginLabel: "Google",
     });
     expect(result.current.settingsNotificationsData).toEqual({
       events: {
@@ -135,5 +143,29 @@ describe("useDashboardSettingsData", () => {
       1,
     );
     expect(result.current.settingsCompanyData?.brandAssets).toHaveLength(1);
+  });
+
+  test("treats null authentication method as non-password", () => {
+    const { result } = renderHook(() =>
+      useDashboardSettingsData({
+        accountSettings: undefined,
+        notificationSettings: undefined,
+        companySummary: undefined,
+        companyMembersResult: undefined,
+        companyPendingInvitationsResult: undefined,
+        companyBrandAssetsResult: undefined,
+        fallbackAvatarUrl: null,
+        authenticationMethod: null,
+        user: {
+          firstName: "Casey",
+          lastName: "User",
+          email: "casey@example.com",
+          profilePictureUrl: null,
+        },
+      }),
+    );
+
+    expect(result.current.settingsAccountData.isPasswordAuthSession).toBe(false);
+    expect(result.current.settingsAccountData.socialLoginLabel).toBeNull();
   });
 });

@@ -54,7 +54,20 @@ export const useDashboardLifecycleEffects = ({
 }: UseDashboardLifecycleEffectsArgs) => {
   const defaultWorkspaceRequestedRef = useRef(false);
   const invalidRouteRef = useRef<string | null>(null);
+  const projectCacheRef = useRef<Record<string, ProjectData>>({});
+  const cacheWorkspaceSlugRef = useRef<string | null>(resolvedWorkspaceSlug);
   const organizationLinkAttemptedWorkspacesRef = useRef<Set<string>>(new Set());
+
+  if (cacheWorkspaceSlugRef.current !== resolvedWorkspaceSlug) {
+    cacheWorkspaceSlugRef.current = resolvedWorkspaceSlug;
+    projectCacheRef.current = {};
+    invalidRouteRef.current = null;
+  }
+
+  for (const [projectId, project] of Object.entries(projects)) {
+    projectCacheRef.current[projectId] = project;
+  }
+
   const handleSearchShortcut = useCallback(
     (event: Event) => {
       if (!(event instanceof KeyboardEvent)) {
@@ -116,7 +129,7 @@ export const useDashboardLifecycleEffects = ({
     }
     if (routeView.startsWith("project:")) {
       const projectId = routeView.slice("project:".length);
-      const project = projects[projectId];
+      const project = projects[projectId] ?? projectCacheRef.current[projectId];
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
           invalidRouteRef.current = locationPathname;
@@ -134,7 +147,7 @@ export const useDashboardLifecycleEffects = ({
     }
     if (routeView.startsWith("archive-project:")) {
       const projectId = routeView.slice("archive-project:".length);
-      const project = projects[projectId];
+      const project = projects[projectId] ?? projectCacheRef.current[projectId];
       if (!project) {
         if (invalidRouteRef.current !== locationPathname) {
           invalidRouteRef.current = locationPathname;

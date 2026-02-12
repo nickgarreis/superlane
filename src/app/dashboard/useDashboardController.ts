@@ -47,7 +47,8 @@ export const useDashboardController = ({
         project &&
         !project.archived &&
         project.status.label !== "Draft" &&
-        project.status.label !== "Review"
+        project.status.label !== "Review" &&
+        project.status.label !== "Completed"
       ) {
         return { kind: "main", project };
       }
@@ -56,7 +57,8 @@ export const useDashboardController = ({
       (project) =>
         !project.archived &&
         project.status.label !== "Draft" &&
-        project.status.label !== "Review",
+        project.status.label !== "Review" &&
+        project.status.label !== "Completed",
     );
     if (firstProject) {
       return { kind: "main", project: firstProject };

@@ -299,6 +299,27 @@ describe("MainContent", () => {
     expect(back).toHaveBeenCalledTimes(1);
   });
 
+  test("shows service between status and scope in project metadata", () => {
+    const project: ProjectData = {
+      ...BASE_PROJECT,
+      scope: "Landing page(s)",
+    };
+    renderMainContent({ project });
+
+    const statusLabel = screen.getByText("Status");
+    const serviceLabel = screen.getByText("Service");
+    const scopeLabel = screen.getByText("Scope");
+
+    expect(
+      statusLabel.compareDocumentPosition(serviceLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      serviceLabel.compareDocumentPosition(scopeLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("uses explicit back label override for completed popup detail", () => {
     const back = vi.fn();
 

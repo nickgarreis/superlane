@@ -18,7 +18,7 @@
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
         "WORKOS_ACTION_SECRET",
-        "APP_ORIGIN"
+        "SITE_URL"
       ]
     },
     "staging": {
@@ -38,7 +38,7 @@
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
         "WORKOS_ACTION_SECRET",
-        "APP_ORIGIN"
+        "SITE_URL"
       ]
     },
     "prod": {
@@ -58,7 +58,7 @@
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
         "WORKOS_ACTION_SECRET",
-        "APP_ORIGIN"
+        "SITE_URL"
       ]
     }
   }

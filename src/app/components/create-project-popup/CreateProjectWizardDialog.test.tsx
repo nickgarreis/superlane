@@ -43,6 +43,19 @@ const REVIEW_PROJECT: ProjectData = {
 };
 
 describe("CreateProjectPopup", () => {
+  test("labels the first step as Services", () => {
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={() => {}}
+        onCreate={vi.fn().mockResolvedValue({ publicId: "project-1" })}
+      />,
+    );
+
+    expect(screen.getByText("Services")).toBeInTheDocument();
+    expect(screen.queryByText("Solutions")).not.toBeInTheDocument();
+  });
+
   test("keeps wizard on step 3 when async create fails", async () => {
     const onCreate = vi.fn().mockRejectedValue(new Error("create failed"));
 

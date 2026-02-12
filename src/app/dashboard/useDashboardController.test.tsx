@@ -60,6 +60,7 @@ describe("useDashboardController", () => {
     const archivedProject = buildProject("project-2", true);
     const draftProject = buildProject("project-3", false, "Draft");
     const reviewProject = buildProject("project-4", false, "Review");
+    const completedProject = buildProject("project-5", false, "Completed");
     const navigateView = vi.fn();
 
     const tasksHook = renderHook(() =>
@@ -145,6 +146,20 @@ describe("useDashboardController", () => {
       kind: "empty",
     });
 
+    const completedProjectHook = renderHook(() =>
+      useDashboardController({
+        currentView: "project:project-5",
+        projects: { "project-5": completedProject },
+        visibleProjects: { "project-5": completedProject },
+        setIsSidebarOpen: vi.fn(),
+        setPendingHighlight: vi.fn(),
+        navigateView,
+      }),
+    );
+    expect(completedProjectHook.result.current.contentModel).toEqual({
+      kind: "empty",
+    });
+
     const archiveProjectHook = renderHook(() =>
       useDashboardController({
         currentView: "archive-project:project-2",
@@ -172,13 +187,14 @@ describe("useDashboardController", () => {
   test("falls back to first visible active project or empty state", () => {
     const draft = buildProject("draft", false, "Draft");
     const review = buildProject("review", false, "Review");
+    const completed = buildProject("completed", false, "Completed");
     const active = buildProject("active", false, "Active");
 
     const fallbackHook = renderHook(() =>
       useDashboardController({
         currentView: "project:missing",
         projects: {},
-        visibleProjects: { draft, review, active },
+        visibleProjects: { draft, review, completed, active },
         setIsSidebarOpen: vi.fn(),
         setPendingHighlight: vi.fn(),
         navigateView: vi.fn(),
@@ -193,7 +209,7 @@ describe("useDashboardController", () => {
       useDashboardController({
         currentView: "project:missing",
         projects: {},
-        visibleProjects: { draft, review },
+        visibleProjects: { draft, review, completed },
         setIsSidebarOpen: vi.fn(),
         setPendingHighlight: vi.fn(),
         navigateView: vi.fn(),

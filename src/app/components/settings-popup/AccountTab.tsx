@@ -1,9 +1,126 @@
 import React, { useEffect, useState } from "react";
-import { User } from "lucide-react";
+import {
+  Apple,
+  BadgeCheck,
+  Blocks,
+  Building2,
+  Chrome,
+  CircleDashed,
+  CircleUserRound,
+  Cloud,
+  Compass,
+  Github,
+  Gitlab,
+  KeyRound,
+  Library,
+  Linkedin,
+  MessageCircle,
+  ShieldCheck,
+  Slack,
+  SquareM,
+  User,
+  Waypoints,
+  Workflow,
+} from "lucide-react";
 import { toast } from "sonner";
 import { reportUiError } from "../../lib/errors";
 import { UNDERLINE_INPUT_CLASS } from "../ui/controlChrome";
 import type { AccountSettingsData } from "./types";
+
+const PASSWORD_PLACEHOLDER = "••••••••••";
+
+const formatAuthMethodLabel = (
+  authenticationMethod: AccountSettingsData["authenticationMethod"],
+) => {
+  if (!authenticationMethod) {
+    return "External provider";
+  }
+  if (authenticationMethod === "SSO") {
+    return "Single Sign-On";
+  }
+  if (authenticationMethod.endsWith("OAuth")) {
+    return "OAuth";
+  }
+  if (authenticationMethod === "Passkey") {
+    return "Passkey";
+  }
+  if (authenticationMethod === "MagicAuth") {
+    return "Magic link";
+  }
+  return "External auth";
+};
+
+const formatAuthMethodCode = (
+  authenticationMethod: AccountSettingsData["authenticationMethod"],
+) => {
+  if (!authenticationMethod) {
+    return "ExternalAuth";
+  }
+  return authenticationMethod;
+};
+
+const resolveAuthMethodIcon = (
+  authenticationMethod: AccountSettingsData["authenticationMethod"],
+) => {
+  if (authenticationMethod === "GoogleOAuth") {
+    return Chrome;
+  }
+  if (authenticationMethod === "AppleOAuth") {
+    return Apple;
+  }
+  if (authenticationMethod === "GitHubOAuth") {
+    return Github;
+  }
+  if (authenticationMethod === "GitLabOAuth") {
+    return Gitlab;
+  }
+  if (authenticationMethod === "SlackOAuth") {
+    return Slack;
+  }
+  if (authenticationMethod === "LinkedInOAuth") {
+    return Linkedin;
+  }
+  if (authenticationMethod === "MicrosoftOAuth") {
+    return SquareM;
+  }
+  if (authenticationMethod === "DiscordOAuth") {
+    return MessageCircle;
+  }
+  if (authenticationMethod === "BitbucketOAuth") {
+    return Waypoints;
+  }
+  if (authenticationMethod === "SalesforceOAuth") {
+    return Cloud;
+  }
+  if (authenticationMethod === "VercelOAuth") {
+    return Compass;
+  }
+  if (authenticationMethod === "VercelMarketplaceOAuth") {
+    return Blocks;
+  }
+  if (authenticationMethod === "XeroOAuth") {
+    return Library;
+  }
+  if (authenticationMethod === "SSO") {
+    return Building2;
+  }
+  if (authenticationMethod === "Passkey") {
+    return KeyRound;
+  }
+  if (authenticationMethod === "MagicAuth") {
+    return BadgeCheck;
+  }
+  if (authenticationMethod === "CrossAppAuth") {
+    return Workflow;
+  }
+  if (authenticationMethod === "Impersonation") {
+    return CircleUserRound;
+  }
+  if (authenticationMethod === "MigratedSession") {
+    return CircleDashed;
+  }
+  return ShieldCheck;
+};
 type AccountTabProps = {
   data: AccountSettingsData;
   onSave: (payload: {
@@ -58,7 +175,7 @@ export function AccountTab({
     setLastName(data.lastName);
     setEmail(data.email);
     setPasswordResetStatus("idle");
-  }, [data.firstName, data.lastName, data.email]);
+  }, [data.firstName, data.lastName, data.email, data.authenticationMethod]);
   useEffect(() => {
     if (!hasEditedRef.current) {
       return;
@@ -164,16 +281,22 @@ export function AccountTab({
       setPasswordResetStatus("error");
     }
   };
+  const authMethodLabel = formatAuthMethodLabel(data.authenticationMethod);
+  const AuthMethodIcon = resolveAuthMethodIcon(data.authenticationMethod);
+  const authProviderName =
+    data.socialLoginLabel ??
+    (data.authenticationMethod ? formatAuthMethodCode(data.authenticationMethod) : "External provider");
+  const authProviderEmail = data.email.trim();
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-start gap-5 pb-6">
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/png, image/jpeg, image/gif"
-          onChange={handleAvatarFile}
-        />
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/png, image/jpeg, image/gif"
+        onChange={handleAvatarFile}
+      />
+      <div className="flex items-start gap-5">
         <div
           className="size-[88px] rounded-full overflow-hidden border border-border-soft shrink-0 group relative bg-bg-muted-surface"
           onClick={() => {
@@ -241,7 +364,13 @@ export function AccountTab({
                 className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
               />
             </div>
-            <div className="flex flex-col gap-2 sm:col-span-2">
+          </div>
+        </div>
+      </div>
+      <div className="pt-3">
+        {data.isPasswordAuthSession ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
+            <div className="flex flex-col gap-2">
               <label
                 htmlFor="email-input"
                 className="txt-role-body-md font-medium txt-tone-secondary"
@@ -259,42 +388,70 @@ export function AccountTab({
                 className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="password-input"
+                className="txt-role-body-md font-medium txt-tone-secondary"
+              >
+                Password
+              </label>
+              <div className="flex items-end gap-3">
+                <input
+                  id="password-input"
+                  type="text"
+                  value={PASSWORD_PLACEHOLDER}
+                  readOnly
+                  aria-readonly="true"
+                  className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg cursor-default`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleSendPasswordReset();
+                  }}
+                  disabled={passwordResetStatus === "sending"}
+                  className="h-[38px] shrink-0 rounded-lg border border-border-soft bg-surface-hover-soft px-3 txt-role-body-sm txt-tone-primary hover:bg-surface-active-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {passwordResetStatus === "sending"
+                    ? "Sending..."
+                    : "Reset password"}
+                </button>
+              </div>
+              {passwordResetStatus === "sent" && (
+                <span className="txt-role-body-sm txt-tone-faint">
+                  Reset link sent to your account email.
+                </span>
+              )}
+              {passwordResetStatus === "error" && (
+                <span className="txt-role-body-sm txt-tone-danger">
+                  Could not send reset link. Please try again.
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="rounded-xl border border-border-soft bg-surface-muted-soft px-4 py-4 flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h4 className="txt-role-body-md font-medium txt-tone-primary">
-            Security
-          </h4>
-          <p className="txt-role-body-sm txt-tone-faint">
-            Send a secure password reset link to your account email.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              void handleSendPasswordReset();
-            }}
-            disabled={passwordResetStatus === "sending"}
-            className="h-[38px] rounded-lg border border-border-soft bg-surface-hover-soft px-3 txt-role-body-sm txt-tone-primary hover:bg-surface-active-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {passwordResetStatus === "sending"
-              ? "Sending reset link..."
-              : "Send password reset link"}
-          </button>
-          {passwordResetStatus === "sent" && (
-            <span className="txt-role-body-sm txt-tone-faint">
-              Reset link sent to your account email.
-            </span>
-          )}
-          {passwordResetStatus === "error" && (
-            <span className="txt-role-body-sm txt-tone-faint">
-              Could not send reset link. Please try again.
-            </span>
-          )}
-        </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-2xl border border-border-soft bg-gradient-to-br from-surface-muted-soft via-bg-muted-surface to-surface-hover-soft p-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 size-28 rounded-full bg-white/10 blur-3xl" />
+            <div className="relative flex flex-wrap items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border-soft bg-surface-hover-soft txt-tone-primary">
+                <AuthMethodIcon size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="txt-role-body-md font-medium txt-tone-primary">
+                  Signed in with {authProviderName}
+                </p>
+                {authProviderEmail.length > 0 && (
+                  <p className="txt-role-body-sm txt-tone-faint">
+                    {authProviderEmail}
+                  </p>
+                )}
+              </div>
+              <span className="inline-flex h-7 items-center rounded-full border border-border-soft bg-surface-muted-soft px-3 txt-role-body-sm txt-tone-secondary">
+                {authMethodLabel}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
       <div className="pt-2 flex justify-end min-h-6">
         {autoSaveStatus !== "idle" && (

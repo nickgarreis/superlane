@@ -17,13 +17,13 @@ const IDENTITIES = {
 
 describe("auth.requestPasswordReset", () => {
   let t: ReturnType<typeof convexTest>;
-  const previousAppOrigin = process.env.APP_ORIGIN;
+  const previousSiteUrl = process.env.SITE_URL;
   let sendPasswordResetEmailMock: MockInstance<
     typeof authKit.workos.userManagement.sendPasswordResetEmail
   >;
 
   beforeEach(() => {
-    process.env.APP_ORIGIN = "https://app.example.com";
+    process.env.SITE_URL = "https://app.example.com";
     t = convexTest(schema, modules);
     workosAuthKitTest.register(t, "workOSAuthKit");
     sendPasswordResetEmailMock = vi
@@ -33,11 +33,11 @@ describe("auth.requestPasswordReset", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    if (previousAppOrigin === undefined) {
-      delete process.env.APP_ORIGIN;
+    if (previousSiteUrl === undefined) {
+      delete process.env.SITE_URL;
       return;
     }
-    process.env.APP_ORIGIN = previousAppOrigin;
+    process.env.SITE_URL = previousSiteUrl;
   });
 
   const asMember = () => t.withIdentity(IDENTITIES.member);
@@ -89,5 +89,17 @@ describe("auth.requestPasswordReset", () => {
     });
 
     expect(result).toEqual({ accepted: true });
+  });
+
+  test("throws when SITE_URL is missing", async () => {
+    delete process.env.SITE_URL;
+
+    await expect(
+      asMember().action(api.auth.requestPasswordReset, {
+        source: "login",
+        email: "member@example.com",
+      }),
+    ).rejects.toThrow("Missing required environment variable: SITE_URL");
+    expect(sendPasswordResetEmailMock).not.toHaveBeenCalled();
   });
 });

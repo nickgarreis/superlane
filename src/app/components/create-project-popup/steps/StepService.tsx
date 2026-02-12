@@ -31,7 +31,7 @@ export function StepService({
         className="mb-6 w-full"
       >
         <div className="flex flex-col font-app font-medium justify-center leading-none min-h-px min-w-px relative txt-tone-primary txt-role-body-lg mb-2">
-          <p className="txt-leading-body whitespace-pre-wrap">Solutions</p>
+          <p className="txt-leading-body whitespace-pre-wrap">Services</p>
         </div>
         <div className="flex flex-col font-app font-normal justify-center leading-none relative shrink-0 txt-role-body-md txt-tone-subtle w-full">
           <p className="txt-leading-body whitespace-pre-wrap">

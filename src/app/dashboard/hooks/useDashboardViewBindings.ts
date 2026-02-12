@@ -27,6 +27,7 @@ export function useDashboardViewBindings(
   const {
     user,
     signOut,
+    authenticationMethod,
     navigation,
     data,
     viewerFallback,
@@ -73,6 +74,7 @@ export function useDashboardViewBindings(
     companyBrandAssetsResult: data.companyBrandAssetsResult,
     fallbackAvatarUrl:
       data.viewerIdentity.avatarUrl ?? viewerFallback.avatarUrl,
+    authenticationMethod,
     user,
   });
   const handleInboxActivityClick = useDashboardInboxActivityNavigation({

@@ -23,6 +23,9 @@ const buildProps = (
     lastName: "Owner",
     email: "alex@example.com",
     avatarUrl: null,
+    authenticationMethod: "Password",
+    isPasswordAuthSession: true,
+    socialLoginLabel: null,
   },
   notifications: {
     events: {

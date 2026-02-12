@@ -24,7 +24,7 @@ import {
   uploadFileToConvexStorage,
 } from "../lib/uploadHelpers";
 export function useDashboardDataLayer() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, authenticationMethod } = useAuth();
   const { isAuthenticated } = useConvexAuth();
   const convex = useConvex();
   const navigation = useDashboardNavigation({
@@ -232,6 +232,7 @@ export function useDashboardDataLayer() {
   return {
     user,
     signOut,
+    authenticationMethod,
     convex,
     navigation,
     apiHandlers,

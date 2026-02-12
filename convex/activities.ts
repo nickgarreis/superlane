@@ -27,23 +27,11 @@ const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
 };
 
 const recountWorkspaceActivityEvents = async (ctx: any, workspaceId: any) => {
-  let cursor: string | null = null;
-  let total = 0;
-  while (true) {
-    const page: any = await ctx.db
-      .query("workspaceActivityEvents")
-      .withIndex("by_workspace_createdAt", (q: any) => q.eq("workspaceId", workspaceId))
-      .paginate({
-        cursor,
-        numItems: 256,
-      });
-    total += page.page.length;
-    if (page.isDone) {
-      break;
-    }
-    cursor = page.continueCursor;
-  }
-  return total;
+  const events = await ctx.db
+    .query("workspaceActivityEvents")
+    .withIndex("by_workspace_createdAt", (q: any) => q.eq("workspaceId", workspaceId))
+    .collect();
+  return events.length;
 };
 
 const countWorkspaceActivityEvents = (workspace: any) =>
@@ -116,31 +104,28 @@ const getReadReceiptActivityEventIds = async (
   return new Set<string>(readReceipts.map((receipt: any) => String(receipt.activityEventId)));
 };
 
-const findWorkspaceIdsMissingActivityCount = async (ctx: any, maxWorkspaces: number) => {
-  let cursor: string | null = null;
-  const workspaceIds: Id<"workspaces">[] = [];
+const findWorkspaceIdsMissingActivityCount = async (
+  ctx: any,
+  maxWorkspaces: number,
+): Promise<Id<"workspaces">[]> => {
+  const workspaces = await ctx.db.query("workspaces").collect();
+  const missingWorkspaceIds: Id<"workspaces">[] = [];
 
-  while (workspaceIds.length < maxWorkspaces) {
-    const page: any = await ctx.db.query("workspaces").paginate({
-      cursor,
-      numItems: 128,
-    });
-    for (const workspace of page.page as any[]) {
-      if (workspace.deletedAt != null || typeof workspace.activityEventCount === "number") {
-        continue;
-      }
-      workspaceIds.push(workspace._id as Id<"workspaces">);
-      if (workspaceIds.length >= maxWorkspaces) {
-        break;
-      }
+  for (const workspace of workspaces as Array<{
+    _id: Id<"workspaces">;
+    deletedAt?: number | null;
+    activityEventCount?: number;
+  }>) {
+    if (workspace.deletedAt != null || typeof workspace.activityEventCount === "number") {
+      continue;
     }
-    if (page.isDone) {
+    missingWorkspaceIds.push(workspace._id);
+    if (missingWorkspaceIds.length >= maxWorkspaces) {
       break;
     }
-    cursor = page.continueCursor;
   }
 
-  return workspaceIds;
+  return missingWorkspaceIds;
 };
 
 export const listForWorkspace = query({

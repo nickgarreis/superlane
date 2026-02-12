@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import workosAuthKitTest from "@convex-dev/workos-authkit/test";
 import { beforeEach, describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
@@ -140,6 +140,34 @@ describe("activities read state", () => {
 
     const workspaceAfterInitialize = await t.run(async (ctx) => ctx.db.get(seeded.workspaceId));
     expect(workspaceAfterInitialize?.activityEventCount).toBe(1);
+  });
+
+  test("internal backfill initializes legacy activity count for large workspaces", async () => {
+    const seeded = await seedWorkspace();
+    const createdAt = now();
+    const legacyEventCount = 300;
+
+    await t.run(async (ctx) => {
+      for (let index = 0; index < legacyEventCount; index += 1) {
+        await ctx.db.insert("workspaceActivityEvents", {
+          workspaceId: seeded.workspaceId,
+          kind: "workspace",
+          action: "legacy_backfill_seed",
+          actorType: "system",
+          actorName: "System",
+          createdAt: createdAt + index,
+        });
+      }
+    });
+
+    const backfill = await asOwner().mutation(
+      internal.activities.internalBackfillWorkspaceActivityCounts,
+      { maxWorkspaces: 25 },
+    );
+    expect(backfill.updatedWorkspaceCount).toBe(1);
+
+    const workspaceAfterBackfill = await t.run(async (ctx) => ctx.db.get(seeded.workspaceId));
+    expect(workspaceAfterBackfill?.activityEventCount).toBe(legacyEventCount);
   });
 
   test("historical activities are unread by default and markActivityRead is idempotent", async () => {

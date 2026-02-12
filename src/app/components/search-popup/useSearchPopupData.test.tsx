@@ -116,6 +116,29 @@ const PROJECTS: Record<string, ProjectData> = {
       },
     ],
   },
+  "project-4": {
+    id: "project-4",
+    name: "Completed Launch",
+    description: "Shipped redesign",
+    creator: { name: "Owner", avatar: "" },
+    status: {
+      label: "Completed",
+      color: "#76E39E",
+      bgColor: "rgba(118,227,158,0.12)",
+      dotColor: "#76E39E",
+    },
+    category: "Marketing",
+    archived: false,
+    tasks: [
+      {
+        id: "task-4",
+        title: "Completed restricted task",
+        assignee: { name: "Jamie", avatar: "" },
+        dueDateEpochMs: null,
+        completed: true,
+      },
+    ],
+  },
 };
 
 const FILES: ProjectFileData[] = [
@@ -149,6 +172,14 @@ const FILES: ProjectFileData[] = [
     tab: "Assets",
     name: "review-hidden.png",
     type: "PNG",
+    displayDateEpochMs: 1700000000000,
+  },
+  {
+    id: "file-5",
+    projectPublicId: "project-4",
+    tab: "Attachments",
+    name: "completed-hidden.pdf",
+    type: "PDF",
     displayDateEpochMs: 1700000000000,
   },
 ];
@@ -253,7 +284,7 @@ describe("useSearchPopupData", () => {
     });
   });
 
-  test("keeps draft/review project hits but filters draft/review task and file hits", () => {
+  test("keeps draft/review/completed project hits but filters draft/review/completed task and file hits", () => {
     const onClose = vi.fn();
     const onNavigate = vi.fn();
 
@@ -314,6 +345,28 @@ describe("useSearchPopupData", () => {
     expect(
       result.current.flatResults.some(
         (entry) => entry.type === "file" && entry.projectId === "project-3",
+      ),
+    ).toBe(false);
+
+    rerender({
+      ...baseArgs,
+      query: "completed",
+      deferredQuery: "completed",
+    });
+
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "project" && entry.projectId === "project-4",
+      ),
+    ).toBe(true);
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "task" && entry.projectId === "project-4",
+      ),
+    ).toBe(false);
+    expect(
+      result.current.flatResults.some(
+        (entry) => entry.type === "file" && entry.projectId === "project-4",
       ),
     ).toBe(false);
   });

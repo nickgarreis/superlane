@@ -85,7 +85,8 @@ export function useSearchIndex({
       (project) =>
         !project.archived &&
         project.status.label !== "Draft" &&
-        project.status.label !== "Review",
+        project.status.label !== "Review" &&
+        project.status.label !== "Completed",
     );
     return active?.id || projectsList[0]?.id;
   }, [projectsList]);
@@ -137,7 +138,8 @@ export function useSearchIndex({
       }
       if (
         project.status.label === "Draft" ||
-        project.status.label === "Review"
+        project.status.label === "Review" ||
+        project.status.label === "Completed"
       ) {
         continue;
       }
@@ -183,7 +185,8 @@ export function useSearchIndex({
       if (
         fileProject &&
         (fileProject.status.label === "Draft" ||
-          fileProject.status.label === "Review")
+          fileProject.status.label === "Review" ||
+          fileProject.status.label === "Completed")
       ) {
         continue;
       }
