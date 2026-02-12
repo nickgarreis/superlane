@@ -608,6 +608,12 @@ export const archive = mutation({
   },
   handler: async (ctx, args) => {
     const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
+    if (project.archived) {
+      throw new ConvexError("Project is already archived");
+    }
+    if (project.status !== "Active") {
+      throw new ConvexError("Only active projects can be archived");
+    }
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
@@ -637,15 +643,20 @@ export const unarchive = mutation({
   },
   handler: async (ctx, args) => {
     const { project, appUser } = await requireProjectRole(ctx, args.publicId, "admin");
+    if (!project.archived) {
+      throw new ConvexError("Project is not archived");
+    }
     const now = Date.now();
 
     await ctx.db.patch(project._id, {
       deadline: undefined,
       archived: false,
       archivedAt: null,
-      status: project.previousStatus ?? "Review",
+      status: "Active",
       previousStatus: null,
+      completedAt: null,
       updatedAt: now,
+      statusUpdatedByUserId: appUser._id,
       unarchivedByUserId: appUser._id,
     });
     await logWorkspaceActivityForActorUser(ctx, {
@@ -658,6 +669,56 @@ export const unarchive = mutation({
     });
 
     return { publicId: project.publicId };
+  },
+});
+
+export const normalizeUnarchivedDraftReviewToActive = mutation({
+  args: {
+    workspaceSlug: v.string(),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "owner", { workspace });
+    const dryRun = args.dryRun ?? false;
+    const now = Date.now();
+
+    const workspaceProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspaceId", (q) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    const candidates = workspaceProjects.filter(
+      (project) =>
+        project.deletedAt == null
+        && project.archived === false
+        && project.unarchivedByUserId != null
+        && (project.status === "Draft" || project.status === "Review"),
+    );
+    const projectPublicIds = candidates
+      .map((project) => project.publicId)
+      .sort((left, right) => left.localeCompare(right));
+
+    if (!dryRun) {
+      await Promise.all(
+        candidates.map((project) =>
+          ctx.db.patch(project._id, {
+            status: "Active",
+            previousStatus: null,
+            completedAt: null,
+            statusUpdatedByUserId: appUser._id,
+            updatedAt: now,
+          }),
+        ),
+      );
+    }
+
+    return {
+      scanned: workspaceProjects.length,
+      eligible: candidates.length,
+      updated: dryRun ? 0 : candidates.length,
+      projectPublicIds,
+    };
   },
 });
 

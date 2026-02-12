@@ -214,7 +214,7 @@ export default defineSchema({
     updatedByUserId: v.optional(v.id("users")),
     statusUpdatedByUserId: v.optional(v.id("users")),
     archivedByUserId: v.optional(v.id("users")),
-    unarchivedByUserId: v.optional(v.id("users")),
+    unarchivedByUserId: v.optional(v.union(v.id("users"), v.null())),
     draftData: v.optional(v.union(draftDataValidator, v.null())),
     attachments: v.optional(v.array(attachmentValidator)),
     reviewComments: v.optional(v.array(reviewCommentValidator)),

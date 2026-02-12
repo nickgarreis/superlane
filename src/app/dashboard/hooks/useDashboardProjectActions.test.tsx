@@ -174,6 +174,38 @@ describe("useDashboardProjectActions", () => {
     );
   });
 
+  test("navigates to archive immediately when archiving from a project route", () => {
+    const args = createBaseArgs();
+    const { result } = renderHook(() => useDashboardProjectActions(args));
+
+    act(() => {
+      result.current.handleArchiveProject("project-1");
+    });
+
+    expect(args.navigateView).toHaveBeenCalledWith("archive");
+    expect(args.setHighlightedArchiveProjectId).toHaveBeenCalledWith(
+      "project-1",
+    );
+  });
+
+  test("returns to the source project route when archive fails after pre-navigation", async () => {
+    const args = createBaseArgs();
+    args.archiveProjectMutation = vi
+      .fn()
+      .mockRejectedValue(new Error("archive failed"));
+    const { result } = renderHook(() => useDashboardProjectActions(args));
+
+    act(() => {
+      result.current.handleArchiveProject("project-1");
+    });
+
+    await waitFor(() => {
+      expect(args.navigateView).toHaveBeenCalledWith("project:project-1");
+      expect(args.setHighlightedArchiveProjectId).toHaveBeenCalledWith(null);
+      expect(toastMock.error).toHaveBeenCalledWith("Failed to archive project");
+    });
+  });
+
   test("approves review projects", async () => {
     const args = createBaseArgs();
     const { result } = renderHook(() => useDashboardProjectActions(args));

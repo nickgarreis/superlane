@@ -10,6 +10,7 @@ import { MembershipActivityRow } from "./MembershipActivityRow";
 import { ProjectActivityRow } from "./ProjectActivityRow";
 import { TaskActivityRow } from "./TaskActivityRow";
 import { WorkspaceActivityRow } from "./WorkspaceActivityRow";
+import { formatTaskDueDate } from "../../../lib/dates";
 
 const buildActivity = (
   overrides: Partial<WorkspaceActivity>,
@@ -62,6 +63,30 @@ describe("Activity row renderers", () => {
     );
     expect(screen.getByText("Completed task Plan sprint")).toBeInTheDocument();
     expect(container.querySelector(".activity-tone-task")).not.toBeNull();
+  });
+
+  test("renders due date change task row with before/after details", () => {
+    const fromEpochMs = Date.UTC(2030, 1, 10, 12, 0, 0, 0);
+    const toEpochMs = Date.UTC(2030, 1, 15, 12, 0, 0, 0);
+    render(
+      <TaskActivityRow
+        activity={buildActivity({
+          kind: "task",
+          action: "due_date_changed",
+          taskTitle: "Prepare launch assets",
+          fromValue: String(fromEpochMs),
+          toValue: String(toEpochMs),
+        })}
+      />,
+    );
+    expect(
+      screen.getByText("Rescheduled Prepare launch assets"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("From")).toBeInTheDocument();
+    expect(screen.getByText("To")).toBeInTheDocument();
+    expect(screen.getByText(formatTaskDueDate(fromEpochMs))).toBeInTheDocument();
+    expect(screen.getByText(formatTaskDueDate(toEpochMs))).toBeInTheDocument();
+    expect(screen.getByText("Moved 5 days later")).toBeInTheDocument();
   });
 
   test("renders collaboration row with collaboration tone", () => {

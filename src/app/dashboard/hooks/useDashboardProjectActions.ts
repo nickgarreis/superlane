@@ -220,20 +220,37 @@ export const useDashboardProjectActions = ({
   );
   const handleArchiveProject = useCallback(
     (id: string) => {
+      const sourceView = currentView;
+      const archivedFromProjectView = sourceView === `project:${id}`;
+      if (archivedFromProjectView) {
+        setHighlightedArchiveProjectId(id);
+        navigateView("archive");
+      }
       void archiveProjectMutation({ publicId: id })
         .then(() => {
-          setHighlightedArchiveProjectId(id);
-          navigateView("archive");
+          if (!archivedFromProjectView) {
+            setHighlightedArchiveProjectId(id);
+            navigateView("archive");
+          }
           toast.success("Project archived");
         })
         .catch((error) => {
+          if (archivedFromProjectView) {
+            navigateView(sourceView);
+            setHighlightedArchiveProjectId(null);
+          }
           reportUiError("dashboard.project.archive", error, {
             showToast: false,
           });
           toast.error("Failed to archive project");
         });
     },
-    [archiveProjectMutation, navigateView, setHighlightedArchiveProjectId],
+    [
+      archiveProjectMutation,
+      currentView,
+      navigateView,
+      setHighlightedArchiveProjectId,
+    ],
   );
   const handleUnarchiveProject = useCallback(
     (id: string) => {

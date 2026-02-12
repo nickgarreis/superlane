@@ -279,6 +279,13 @@ describe("P0.1 RBAC and soft-delete", () => {
 
     await asOwner().mutation(api.projects.unarchive, { publicId: project.projectPublicId });
 
+    await t.run(async (ctx) => {
+      const row = await ctx.db.get(project.projectId);
+      expect(row?.status).toBe("Active");
+      expect(row?.completedAt).toBeNull();
+      expect(row?.statusUpdatedByUserId).toBe(workspace.ownerUserId);
+    });
+
     await asAdmin().mutation(api.projects.setStatus, {
       publicId: project.projectPublicId,
       status: "Completed",
