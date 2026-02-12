@@ -4,7 +4,12 @@ import imgFile2 from "figma:asset/ed2300ecc7d7f37175475469dd895c1a9c7a47a7.png";
 import imgFile3 from "figma:asset/a6d8d90aa9a345c6a0a0841855776fa6f038f822.png";
 import imgFile4 from "figma:asset/6ec5d42097faff5a5e15a92d842d637a67eb0f04.png";
 import imgFile5 from "figma:asset/13b4fb46cd2c4b965c5823ea01fe2f6c7842b7bd.png";
-export type SettingsTab = "Account" | "Notifications" | "Company" | "Billing";
+export type SettingsTab =
+  | "Account"
+  | "Notifications"
+  | "Company"
+  | "Workspace"
+  | "Billing";
 export type CompanyRole = "owner" | "admin" | "member";
 export type AccountSettingsData = {
   firstName: string;

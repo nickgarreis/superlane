@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SidebarProfileMenu } from "./SidebarProfileMenu";
 import type { ViewerIdentity } from "../../types";
+import { NOTIFICATIONS_FROM_EMAIL } from "../../lib/contact";
 
 vi.mock("react-dnd", () => ({
   useDrag: () => [{ isDragging: false }, () => {}],
@@ -45,9 +46,8 @@ describe("SidebarProfileMenu", () => {
 
     fireEvent.click(screen.getByText("Help & Support"));
     expect(windowOpenSpy).toHaveBeenCalledWith(
-      "https://help.example.com",
-      "_blank",
-      "noopener,noreferrer",
+      `mailto:${NOTIFICATIONS_FROM_EMAIL}`,
+      "_self",
     );
 
     fireEvent.click(

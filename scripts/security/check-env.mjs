@@ -28,9 +28,6 @@ const REQUIRED_CONVEX_VARS = [
   "WORKOS_API_KEY",
   "WORKOS_WEBHOOK_SECRET",
   "WORKOS_ACTION_SECRET",
-  "RESEND_API_KEY",
-  "RESEND_WEBHOOK_SECRET",
-  "NOTIFICATIONS_FROM_EMAIL",
 ];
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));

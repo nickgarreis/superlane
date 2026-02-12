@@ -2,11 +2,7 @@ import React, { useEffect, useState } from "react";
 import { User } from "lucide-react";
 import { toast } from "sonner";
 import { reportUiError } from "../../lib/errors";
-import {
-  PRIMARY_ACTION_BUTTON_CLASS,
-  SECONDARY_ACTION_BUTTON_CLASS,
-  UNDERLINE_INPUT_CLASS,
-} from "../ui/controlChrome";
+import { UNDERLINE_INPUT_CLASS } from "../ui/controlChrome";
 import type { AccountSettingsData } from "./types";
 type AccountTabProps = {
   data: AccountSettingsData;
@@ -22,31 +18,101 @@ export function AccountTab({
   data,
   onSave,
   onUploadAvatar,
-  onRemoveAvatar,
 }: AccountTabProps) {
   const [firstName, setFirstName] = useState(data.firstName);
   const [lastName, setLastName] = useState(data.lastName);
   const [email, setEmail] = useState(data.email);
-  const [saving, setSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "pending" | "saving" | "saved"
+  >("idle");
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const hasEditedRef = React.useRef(false);
+  const saveDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const statusResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const saveRunIdRef = React.useRef(0);
+  useEffect(
+    () => () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+      }
+      if (statusResetRef.current) {
+        clearTimeout(statusResetRef.current);
+      }
+    },
+    [],
+  );
   useEffect(() => {
+    saveRunIdRef.current += 1;
+    hasEditedRef.current = false;
+    setAutoSaveStatus("idle");
     setFirstName(data.firstName);
     setLastName(data.lastName);
     setEmail(data.email);
   }, [data.firstName, data.lastName, data.email]);
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await onSave({ firstName, lastName, email });
-      toast.success("Account updated");
-    } catch (error) {
-      reportUiError("settings.account.save", error, { showToast: false });
-      toast.error("Failed to update account");
-    } finally {
-      setSaving(false);
+  useEffect(() => {
+    if (!hasEditedRef.current) {
+      return;
     }
-  };
+    const isSyncedWithSource =
+      firstName === data.firstName &&
+      lastName === data.lastName &&
+      email === data.email;
+    if (isSyncedWithSource) {
+      setAutoSaveStatus("idle");
+      return;
+    }
+    setAutoSaveStatus("pending");
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+    }
+    const runId = saveRunIdRef.current + 1;
+    saveRunIdRef.current = runId;
+    saveDebounceRef.current = setTimeout(() => {
+      setAutoSaveStatus("saving");
+      void (async () => {
+        try {
+          await onSave({ firstName, lastName, email });
+          if (runId !== saveRunIdRef.current) {
+            return;
+          }
+          setAutoSaveStatus("saved");
+          if (statusResetRef.current) {
+            clearTimeout(statusResetRef.current);
+          }
+          statusResetRef.current = setTimeout(() => {
+            if (runId === saveRunIdRef.current) {
+              setAutoSaveStatus("idle");
+            }
+          }, 1500);
+        } catch (error) {
+          if (runId !== saveRunIdRef.current) {
+            return;
+          }
+          reportUiError("settings.account.save", error, { showToast: false });
+          toast.error("Failed to update account");
+          setAutoSaveStatus("idle");
+        }
+      })();
+    }, 700);
+    return () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+      }
+    };
+  }, [
+    data.email,
+    data.firstName,
+    data.lastName,
+    email,
+    firstName,
+    lastName,
+    onSave,
+  ]);
   const handleAvatarFile = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -70,29 +136,17 @@ export function AccountTab({
       }
     }
   };
-  const handleRemoveAvatar = async () => {
-    setAvatarBusy(true);
-    try {
-      await onRemoveAvatar();
-      toast.success("Profile picture removed");
-    } catch (error) {
-      reportUiError("settings.account.removeAvatar", error, {
-        showToast: false,
-      });
-      toast.error("Failed to remove profile picture");
-    } finally {
-      setAvatarBusy(false);
-    }
-  };
   const handleAvatarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      fileInputRef.current?.click();
+      if (!avatarBusy) {
+        fileInputRef.current?.click();
+      }
     }
   };
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-start gap-6 pb-8 border-b border-border-subtle-soft">
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start gap-5 pb-6">
         <input
           type="file"
           ref={fileInputRef}
@@ -101,8 +155,12 @@ export function AccountTab({
           onChange={handleAvatarFile}
         />
         <div
-          className="w-[100px] h-[100px] rounded-full overflow-hidden border border-border-soft shrink-0 group relative cursor-pointer bg-bg-muted-surface"
-          onClick={() => fileInputRef.current?.click()}
+          className="size-[88px] rounded-full overflow-hidden border border-border-soft shrink-0 group relative bg-bg-muted-surface"
+          onClick={() => {
+            if (!avatarBusy) {
+              fileInputRef.current?.click();
+            }
+          }}
           onKeyDown={handleAvatarKeyDown}
           tabIndex={0}
           role="button"
@@ -125,88 +183,73 @@ export function AccountTab({
             </span>
           </div>
         </div>
-        <div className="flex flex-col pt-2 gap-3">
-          <h3 className="txt-role-body-xl font-medium txt-tone-primary">
-            Profile Picture
-          </h3>
-          <div className="flex gap-3">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={avatarBusy}
-              className={`cursor-pointer px-4 py-2 rounded-full txt-role-body-md font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
-            >
-              Upload new
-            </button>
-            <button
-              onClick={handleRemoveAvatar}
-              disabled={!data.avatarUrl || avatarBusy}
-              className={`cursor-pointer px-4 py-2 rounded-full txt-role-body-md font-medium ${SECONDARY_ACTION_BUTTON_CLASS}`}
-            >
-              Remove
-            </button>
+        <div className="flex-1 min-w-0">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="firstName-input"
+                className="txt-role-body-md font-medium txt-tone-secondary"
+              >
+                First Name
+              </label>
+              <input
+                id="firstName-input"
+                type="text"
+                value={firstName}
+                onChange={(event) => {
+                  hasEditedRef.current = true;
+                  setFirstName(event.target.value);
+                }}
+                className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="lastName-input"
+                className="txt-role-body-md font-medium txt-tone-secondary"
+              >
+                Last Name
+              </label>
+              <input
+                id="lastName-input"
+                type="text"
+                value={lastName}
+                onChange={(event) => {
+                  hasEditedRef.current = true;
+                  setLastName(event.target.value);
+                }}
+                className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label
+                htmlFor="email-input"
+                className="txt-role-body-md font-medium txt-tone-secondary"
+              >
+                Email Address
+              </label>
+              <input
+                id="email-input"
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  hasEditedRef.current = true;
+                  setEmail(event.target.value);
+                }}
+                className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
+              />
+            </div>
           </div>
-          <p className="txt-role-body-md txt-tone-faint max-w-[320px]">
-            JPG, PNG or GIF. Max file size 2MB.
-          </p>
         </div>
       </div>
-      <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 gap-6">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="firstName-input"
-              className="txt-role-body-md font-medium txt-tone-secondary"
-            >
-              First Name
-            </label>
-            <input
-              id="firstName-input"
-              type="text"
-              value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
-              className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="lastName-input"
-              className="txt-role-body-md font-medium txt-tone-secondary"
-            >
-              Last Name
-            </label>
-            <input
-              id="lastName-input"
-              type="text"
-              value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
-              className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="email-input"
-            className="txt-role-body-md font-medium txt-tone-secondary"
-          >
-            Email Address
-          </label>
-          <input
-            id="email-input"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
-          />
-        </div>
-      </div>
-      <div className="pt-6 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`cursor-pointer px-6 py-2.5 rounded-full txt-role-body-lg font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
+      <div className="pt-2 flex justify-end min-h-6">
+        {autoSaveStatus !== "idle" && (
+          <span className="txt-role-body-sm txt-tone-faint">
+            {autoSaveStatus === "pending" && "Changes pending..."}
+            {autoSaveStatus === "saving" && "Auto-saving..."}
+            {autoSaveStatus === "saved" && "Saved"}
+          </span>
+        )}
       </div>
     </div>
   );

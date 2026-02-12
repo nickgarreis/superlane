@@ -1,11 +1,8 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { cn } from "../../../lib/utils";
 import { reportUiError } from "../../lib/errors";
-import {
-  PRIMARY_ACTION_BUTTON_CLASS,
-} from "../ui/controlChrome";
 import type { NotificationSettingsData } from "./types";
 type ToggleRowProps = {
   label: string;
@@ -54,47 +51,97 @@ type NotificationsTabProps = {
 };
 export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
   const [state, setState] = useState<NotificationSettingsData>(data);
-  const [saving, setSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "pending" | "saving" | "saved"
+  >("idle");
+  const hasEditedRef = useRef(false);
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveRunIdRef = useRef(0);
+  useEffect(
+    () => () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+      }
+      if (statusResetRef.current) {
+        clearTimeout(statusResetRef.current);
+      }
+    },
+    [],
+  );
+  const isSyncedWithSource =
+    state.events.eventNotifications === data.events.eventNotifications &&
+    state.events.teamActivities === data.events.teamActivities &&
+    state.events.productUpdates === data.events.productUpdates;
   useEffect(() => {
-    if (isDirty) {
+    if (hasEditedRef.current) {
       return;
     }
-    setState((current) => {
-      const sameValues =
-        current.events.eventNotifications === data.events.eventNotifications &&
-        current.events.teamActivities === data.events.teamActivities &&
-        current.events.productUpdates === data.events.productUpdates;
-      if (sameValues) {
-        return current;
-      }
-      return {
-        events: {
-          eventNotifications: data.events.eventNotifications,
-          teamActivities: data.events.teamActivities,
-          productUpdates: data.events.productUpdates,
-        },
-      };
+    saveRunIdRef.current += 1;
+    setAutoSaveStatus("idle");
+    setState({
+      events: {
+        eventNotifications: data.events.eventNotifications,
+        teamActivities: data.events.teamActivities,
+        productUpdates: data.events.productUpdates,
+      },
     });
   }, [
     data.events.eventNotifications,
     data.events.productUpdates,
     data.events.teamActivities,
-    isDirty,
   ]);
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await onSave(state);
-      setIsDirty(false);
-      toast.success("Notification preferences updated");
-    } catch (error) {
-      reportUiError("settings.notifications.save", error, { showToast: false });
-      toast.error("Failed to update notification preferences");
-    } finally {
-      setSaving(false);
+  useEffect(() => {
+    if (!hasEditedRef.current) {
+      return;
     }
-  };
+    if (isSyncedWithSource) {
+      hasEditedRef.current = false;
+      setAutoSaveStatus("idle");
+      return;
+    }
+    setAutoSaveStatus("pending");
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+    }
+    const runId = saveRunIdRef.current + 1;
+    saveRunIdRef.current = runId;
+    saveDebounceRef.current = setTimeout(() => {
+      setAutoSaveStatus("saving");
+      void (async () => {
+        try {
+          await onSave(state);
+          if (runId !== saveRunIdRef.current) {
+            return;
+          }
+          hasEditedRef.current = false;
+          setAutoSaveStatus("saved");
+          if (statusResetRef.current) {
+            clearTimeout(statusResetRef.current);
+          }
+          statusResetRef.current = setTimeout(() => {
+            if (runId === saveRunIdRef.current) {
+              setAutoSaveStatus("idle");
+            }
+          }, 1500);
+        } catch (error) {
+          if (runId !== saveRunIdRef.current) {
+            return;
+          }
+          reportUiError("settings.notifications.save", error, {
+            showToast: false,
+          });
+          toast.error("Failed to update notification preferences");
+          setAutoSaveStatus("pending");
+        }
+      })();
+    }, 700);
+    return () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+      }
+    };
+  }, [isSyncedWithSource, onSave, state]);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col rounded-xl">
@@ -103,7 +150,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           description="Receive project submitted, review approved, and completed notifications."
           checked={state.events.eventNotifications}
           onToggle={() => {
-            setIsDirty(true);
+            hasEditedRef.current = true;
             setState((current) => ({
               ...current,
               events: {
@@ -118,7 +165,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           description="Receive notifications for new comments and replies."
           checked={state.events.teamActivities}
           onToggle={() => {
-            setIsDirty(true);
+            hasEditedRef.current = true;
             setState((current) => ({
               ...current,
               events: {
@@ -133,7 +180,7 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           description="Receive announcements and product change notifications."
           checked={state.events.productUpdates}
           onToggle={() => {
-            setIsDirty(true);
+            hasEditedRef.current = true;
             setState((current) => ({
               ...current,
               events: {
@@ -144,14 +191,14 @@ export function NotificationsTab({ data, onSave }: NotificationsTabProps) {
           }}
         />
       </div>
-      <div className="pt-4 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`cursor-pointer px-6 py-2.5 rounded-full txt-role-body-lg font-medium ${PRIMARY_ACTION_BUTTON_CLASS}`}
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
+      <div className="pt-2 flex justify-end min-h-6">
+        {autoSaveStatus !== "idle" && (
+          <span className="txt-role-body-sm txt-tone-faint">
+            {autoSaveStatus === "pending" && "Changes pending..."}
+            {autoSaveStatus === "saving" && "Auto-saving..."}
+            {autoSaveStatus === "saved" && "Saved"}
+          </span>
+        )}
       </div>
     </div>
   );

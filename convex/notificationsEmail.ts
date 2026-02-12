@@ -1,12 +1,8 @@
-import { Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation } from "./_generated/server";
-import { components, internal } from "./_generated/api";
 import { requireWorkspaceRole } from "./lib/auth";
-import { logError } from "./lib/logging";
+import { logInfo } from "./lib/logging";
 import { normalizeNotificationEvents } from "./lib/notificationPreferences";
-
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const lifecycleEventTypeValidator = v.union(
   v.literal("submitted"),
@@ -26,14 +22,6 @@ type Recipient = {
   userId: string;
   name: string;
   email: string;
-};
-
-const getNotificationsFromAddress = () => {
-  const value = process.env.NOTIFICATIONS_FROM_EMAIL;
-  if (!value || value.trim().length === 0) {
-    throw new ConvexError("Missing required environment variable: NOTIFICATIONS_FROM_EMAIL");
-  }
-  return value.trim();
 };
 
 const toDisplayName = (name?: string | null, email?: string | null) => {
@@ -143,29 +131,12 @@ const sendForToggle = async (
     toggle: args.toggle,
   });
 
-  const from = getNotificationsFromAddress();
-  let queuedRecipients = 0;
-  let failedRecipients = 0;
-
-  for (const recipient of recipientResolution.recipients) {
-    try {
-      await resend.sendEmail(ctx, {
-        from,
-        to: recipient.email,
-        subject: args.subject,
-        text: args.text,
-        html: args.html,
-      });
-      queuedRecipients += 1;
-    } catch (error) {
-      failedRecipients += 1;
-      logError("notificationsEmail.sendForToggle", "Failed to enqueue email", {
-        recipientUserId: recipient.userId,
-        toggle: args.toggle,
-        error,
-      });
-    }
-  }
+  logInfo("notificationsEmail.sendForToggle", "Email dispatch disabled", {
+    toggle: args.toggle,
+    workspaceId: String(args.workspaceId),
+    consideredRecipients: recipientResolution.consideredRecipients,
+    eligibleRecipients: recipientResolution.recipients.length,
+  });
 
   return {
     toggle: args.toggle,
@@ -174,25 +145,11 @@ const sendForToggle = async (
     skippedNoUser: recipientResolution.skippedNoUser,
     skippedNoEmail: recipientResolution.skippedNoEmail,
     skippedDisabled: recipientResolution.skippedDisabled,
-    queuedRecipients,
-    failedRecipients,
+    skippedEmailTransport: recipientResolution.recipients.length,
+    queuedRecipients: 0,
+    failedRecipients: 0,
   };
 };
-
-export const handleEmailEvent = internalMutation({
-  args: vOnEmailEventArgs,
-  handler: async (_ctx, args) => {
-    console.info("[notifications email] resend webhook event received", {
-      emailId: args.id,
-      type: args.event.type,
-    });
-  },
-});
-
-export const resend: Resend = new Resend(components.resend, {
-  testMode: false,
-  onEmailEvent: internal.notificationsEmail.handleEmailEvent,
-});
 
 export const sendTeamActivityForComment = internalMutation({
   args: {
@@ -340,19 +297,6 @@ export const sendProductUpdateBroadcast = mutation({
       text: `${toDisplayName(appUser.name, appUser.email)} published a product update:\n\n${trimmedMessage}`,
       html: `<p><strong>${escapeHtml(toDisplayName(appUser.name, appUser.email))}</strong> published a product update.</p><p>${escapeHtml(trimmedMessage).replace(/\n/g, "<br />")}</p>`,
     });
-  },
-});
-
-export const cleanupResend = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    await ctx.scheduler.runAfter(0, components.resend.lib.cleanupOldEmails, {
-      olderThan: ONE_WEEK_MS,
-    });
-    await ctx.scheduler.runAfter(0, components.resend.lib.cleanupAbandonedEmails, {
-      olderThan: 4 * ONE_WEEK_MS,
-    });
-    return { scheduled: true };
   },
 });
 

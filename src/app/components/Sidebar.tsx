@@ -20,7 +20,7 @@ type SidebarProps = {
   onCreateWorkspace: () => void;
   canCreateWorkspace: boolean;
   onOpenSettings: (
-    tab?: "Account" | "Notifications" | "Company" | "Billing",
+    tab?: "Account" | "Notifications" | "Company" | "Workspace" | "Billing",
   ) => void;
   onOpenSettingsIntent?: () => void;
   onEditProject: (project: ProjectData) => void;

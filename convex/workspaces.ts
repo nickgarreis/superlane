@@ -40,6 +40,7 @@ type OrganizationMembershipSeed = {
 };
 
 const DEFAULT_WORKSPACE_MEMBER_PENDING_REMOVAL_GRACE_MS = 24 * 60 * 60 * 1000;
+const WORKSPACE_MEMBER_REMOVAL_GRACE_ENV_VAR = "WORKSPACE_MEMBER_REMOVAL_GRACE_MS";
 
 const slugify = (value: string) =>
   value
@@ -94,7 +95,7 @@ const parsePositiveIntegerEnv = (value: string | undefined) => {
 };
 
 const resolvePendingRemovalGracePeriodMs = () =>
-  parsePositiveIntegerEnv(process.env.WORKSPACE_MEMBER_PENDING_REMOVAL_GRACE_MS) ??
+  parsePositiveIntegerEnv(process.env[WORKSPACE_MEMBER_REMOVAL_GRACE_ENV_VAR]) ??
   DEFAULT_WORKSPACE_MEMBER_PENDING_REMOVAL_GRACE_MS;
 
 const writeWorkspaceMemberAuditLog = async (

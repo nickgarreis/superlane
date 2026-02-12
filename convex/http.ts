@@ -1,14 +1,13 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { authKit } from "./auth";
-import { resend } from "./notificationsEmail";
 
 const http = httpRouter();
 authKit.registerRoutes(http);
 http.route({
-  path: "/resend-webhook",
+  path: "/notifications-webhook",
   method: "POST",
-  handler: httpAction(async (ctx, req) => resend.handleResendEventWebhook(ctx, req)),
+  handler: httpAction(async () => new Response("Notifications webhook disabled", { status: 410 })),
 });
 
 export default http;

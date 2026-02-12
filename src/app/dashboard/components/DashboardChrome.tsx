@@ -25,7 +25,7 @@ type DashboardChromeProps = {
   onSwitchWorkspace: (workspaceSlug: string) => void;
   onCreateWorkspace: () => void;
   onOpenSettings: (
-    tab?: "Account" | "Notifications" | "Company" | "Billing",
+    tab?: "Account" | "Notifications" | "Company" | "Workspace" | "Billing",
   ) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;

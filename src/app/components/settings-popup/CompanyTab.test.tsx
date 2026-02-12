@@ -43,23 +43,15 @@ describe("CompanyTab", () => {
         onRevokeInvitation={vi.fn().mockResolvedValue(undefined)}
         onUploadBrandAsset={vi.fn().mockResolvedValue(undefined)}
         onRemoveBrandAsset={vi.fn().mockResolvedValue(undefined)}
-        onSoftDeleteWorkspace={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
     expect(screen.getByText("Loading company settings...")).toBeInTheDocument();
   });
 
-  test("debounces workspace name updates and handles logo/delete actions", async () => {
+  test("debounces workspace name updates and handles logo actions", async () => {
     const onUpdateWorkspaceGeneral = vi.fn().mockResolvedValue(undefined);
     const onUploadWorkspaceLogo = vi.fn().mockResolvedValue(undefined);
-    const onSoftDeleteWorkspace = vi.fn().mockResolvedValue(undefined);
-    const confirmMock = vi.fn(() => true);
-    Object.defineProperty(window, "confirm", {
-      configurable: true,
-      writable: true,
-      value: confirmMock,
-    });
 
     const { container } = render(
       <CompanyTab
@@ -102,12 +94,17 @@ describe("CompanyTab", () => {
         onRevokeInvitation={vi.fn().mockResolvedValue(undefined)}
         onUploadBrandAsset={vi.fn().mockResolvedValue(undefined)}
         onRemoveBrandAsset={vi.fn().mockResolvedValue(undefined)}
-        onSoftDeleteWorkspace={onSoftDeleteWorkspace}
       />,
     );
 
     const nameInput = container.querySelector('input[type="text"]');
     expect(nameInput).not.toBeNull();
+    expect(
+      screen.queryByText("Workspace Name"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Manage billing" }),
+    ).toBeInTheDocument();
 
     act(() => {
       fireEvent.change(nameInput as HTMLInputElement, {
@@ -143,12 +140,5 @@ describe("CompanyTab", () => {
     expect(onUploadWorkspaceLogo).toHaveBeenCalledWith(
       expect.objectContaining({ name: "logo.png" }),
     );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Delete Workspace" }));
-    });
-
-    expect(onSoftDeleteWorkspace).toHaveBeenCalledTimes(1);
-    expect(confirmMock).toHaveBeenCalledTimes(1);
   });
 });

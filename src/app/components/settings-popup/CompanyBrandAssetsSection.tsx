@@ -53,14 +53,9 @@ export function CompanyBrandAssetsSection({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="txt-role-body-xl font-medium txt-tone-primary">
-            Brand Assets
-          </h3>
-          <p className="txt-role-body-md txt-tone-faint">
-            Workspace-level brand files.
-          </p>
-        </div>
+        <h4 className="txt-role-body-md font-medium txt-tone-subtle uppercase tracking-wider">
+          Brand Assets ({brandAssets.length})
+        </h4>
         <DeniedAction
           denied={!canManageBrandAssets}
           reason={brandAssetsDeniedReason}

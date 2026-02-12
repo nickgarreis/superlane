@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { SidebarProfileMenuProps } from "./types";
 import { cn } from "../../../lib/utils";
+import { NOTIFICATIONS_FROM_EMAIL } from "../../lib/contact";
 import { SidebarItem } from "./SidebarItem";
 import { FeedbackPopup } from "../FeedbackPopup";
 import {
@@ -46,7 +47,7 @@ export function SidebarProfileMenu({
     [viewerName],
   );
   const openHelpAndSupport = () => {
-    window.open("https://help.example.com", "_blank", "noopener,noreferrer");
+    window.open(`mailto:${NOTIFICATIONS_FROM_EMAIL}`, "_self");
   };
   useEffect(() => {
     if (isProfileOpen) {

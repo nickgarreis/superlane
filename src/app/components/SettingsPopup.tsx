@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Bell, Building2, CreditCard, User, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bell, Building2, HardDrive, Settings, User, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { AccountTab } from "./settings-popup/AccountTab";
-import { BillingTab } from "./settings-popup/BillingTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
 import { NotificationsTab } from "./settings-popup/NotificationsTab";
+import { SettingsDangerZoneSection } from "./settings-popup/SettingsDangerZoneSection";
 import type { SettingsPopupProps, SettingsTab } from "./settings-popup/types";
 import { Z_LAYERS } from "../lib/zLayers";
 import {
@@ -15,51 +14,44 @@ import {
   POPUP_SHELL_CLASS,
 } from "./popup/popupChrome";
 import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
-const SETTINGS_TABS: Array<{
-  id: SettingsTab;
+
+type VisibleSettingsSection = Exclude<SettingsTab, "Billing">;
+
+const SETTINGS_SECTIONS: Array<{
+  id: VisibleSettingsSection;
   icon: typeof User;
   label: string;
-  title: string;
   description: string;
 }> = [
   {
     id: "Account",
     icon: User,
     label: "My Account",
-    title: "My Account",
     description: "Manage your personal profile and preferences.",
   },
   {
     id: "Notifications",
     icon: Bell,
     label: "Notifications",
-    title: "Notifications",
     description: "Control your app notification settings.",
   },
   {
     id: "Company",
     icon: Building2,
     label: "Company",
-    title: "Company",
     description: "Manage workspace settings, members, and brand assets.",
   },
   {
-    id: "Billing",
-    icon: CreditCard,
-    label: "Billing & Plans",
-    title: "Billing & Plans",
-    description: "Billing is coming soon. This panel is read-only for now.",
+    id: "Workspace",
+    icon: HardDrive,
+    label: "Workspace",
+    description: "Manage workspace lifecycle actions and deletion.",
   },
 ];
-const tabMetaById = SETTINGS_TABS.reduce<
-  Record<SettingsTab, (typeof SETTINGS_TABS)[number]>
->(
-  (acc, tab) => {
-    acc[tab.id] = tab;
-    return acc;
-  },
-  {} as Record<SettingsTab, (typeof SETTINGS_TABS)[number]>,
-);
+
+const normalizeSection = (section: SettingsTab): VisibleSettingsSection =>
+  section === "Billing" ? "Company" : section;
+
 export function SettingsPopup({
   isOpen,
   onClose,
@@ -85,16 +77,68 @@ export function SettingsPopup({
   onGetBrandAssetDownloadUrl,
   onSoftDeleteWorkspace,
 }: SettingsPopupProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab(initialTab);
+  const [activeSection, setActiveSection] = useState<VisibleSettingsSection>(
+    normalizeSection(initialTab),
+  );
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<VisibleSettingsSection, HTMLElement | null>>({
+    Account: null,
+    Notifications: null,
+    Company: null,
+    Workspace: null,
+  });
+  const scrollToSection = useCallback(
+    (section: SettingsTab, behavior: ScrollBehavior = "smooth") => {
+      const normalizedSection = normalizeSection(section);
+      setActiveSection(normalizedSection);
+      const content = contentRef.current;
+      const target = sectionRefs.current[normalizedSection];
+      if (!content || !target) {
+        return;
+      }
+      const contentTop = content.getBoundingClientRect().top;
+      const targetTop = target.getBoundingClientRect().top;
+      const nextTop = content.scrollTop + (targetTop - contentTop) - 16;
+      if (typeof content.scrollTo === "function") {
+        content.scrollTo({ top: Math.max(nextTop, 0), behavior });
+        return;
+      }
+      content.scrollTop = Math.max(nextTop, 0);
+    },
+    [],
+  );
+  const handleContentScroll = useCallback(() => {
+    const content = contentRef.current;
+    if (!content) {
+      return;
     }
-  }, [isOpen, initialTab]);
+    const threshold = content.getBoundingClientRect().top + 80;
+    let nextActive = SETTINGS_SECTIONS[0].id;
+    for (const section of SETTINGS_SECTIONS) {
+      const node = sectionRefs.current[section.id];
+      if (!node) {
+        continue;
+      }
+      if (node.getBoundingClientRect().top <= threshold) {
+        nextActive = section.id;
+        continue;
+      }
+      break;
+    }
+    setActiveSection((current) => (current === nextActive ? current : nextActive));
+  }, []);
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      scrollToSection(normalizeSection(initialTab), "auto");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initialTab, isOpen, scrollToSection]);
   if (!isOpen) {
     return null;
   }
-  const tabMeta = tabMetaById[activeTab];
   return (
     <div
       className={POPUP_OVERLAY_CENTER_CLASS}
@@ -102,116 +146,133 @@ export function SettingsPopup({
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[980px] h-[680px] flex font-app txt-tone-primary`}
+        className={`${POPUP_SHELL_CLASS} max-w-[760px] h-[min(92vh,760px)] flex flex-col font-app txt-tone-primary`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
-        <div className="w-[240px] flex flex-col py-6 px-4 shrink-0">
-          <div className="px-2 mb-6 mt-2">
-            <span className="txt-role-panel-title txt-tone-primary">
-              Settings
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            {SETTINGS_TABS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg txt-role-body-lg font-medium transition-all group outline-none cursor-pointer",
-                  activeTab === item.id
-                    ? "bg-surface-active-soft txt-tone-primary"
-                    : "txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
-                )}
-              >
-                <item.icon
-                  size={16}
-                  strokeWidth={2}
-                  className={cn(
-                    "transition-colors",
-                    activeTab === item.id
-                      ? "txt-tone-primary"
-                      : "txt-tone-subtle group-hover:txt-tone-primary",
-                  )}
-                />
-                <span>{item.label}</span>
-                {activeTab === item.id && (
-                  <motion.div
-                    layoutId="activeTabIndicator"
-                    className="ml-auto w-1 h-1 rounded-full bg-text-tone-primary"
-                    transition={{ duration: 0.2 }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1 bg-bg-surface rounded-none flex flex-col overflow-hidden relative">
-          <div className="absolute top-4 right-4 z-10">
+        <div className="shrink-0 border-b border-border-subtle-soft px-5 py-4 sm:px-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Settings size={16} className="txt-tone-subtle" />
+                <h2 className="txt-role-body-lg font-medium txt-tone-primary">
+                  Settings
+                </h2>
+              </div>
+              <p className="txt-role-body-sm txt-tone-faint">
+                Account and workspace preferences in one place.
+              </p>
+            </div>
             <button
               onClick={onClose}
               className={cn(
                 POPUP_CLOSE_BUTTON_CLASS,
                 GHOST_ICON_BUTTON_CLASS,
-                "p-2 text-text-muted-medium hover:text-text-tone-primary",
+                "mt-0.5 p-2 text-text-muted-medium hover:text-text-tone-primary",
               )}
+              aria-label="Close settings popup"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="max-w-[700px] mx-auto py-12 px-8">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="mb-8">
-                    <h2 className="txt-role-screen-title txt-tone-primary mb-2">
-                      {tabMeta.title}
-                    </h2>
-                    <p className="txt-role-body-lg txt-tone-subtle">
-                      {tabMeta.description}
-                    </p>
-                  </div>
-                  {activeTab === "Account" && account && (
-                    <AccountTab
-                      data={account}
-                      onSave={onSaveAccount}
-                      onUploadAvatar={onUploadAvatar}
-                      onRemoveAvatar={onRemoveAvatar}
-                    />
+          <div className="mt-4 flex gap-2 overflow-x-auto pr-1">
+            {SETTINGS_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => scrollToSection(section.id)}
+                aria-current={activeSection === section.id ? "page" : undefined}
+                className={cn(
+                  "cursor-pointer shrink-0 rounded-full border px-3 py-1.5 txt-role-body-sm font-medium transition-colors flex items-center gap-1.5",
+                  activeSection === section.id
+                    ? "border-popup-border-emphasis bg-surface-active-soft txt-tone-primary"
+                    : "border-border-soft txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
+                )}
+              >
+                <section.icon
+                  size={14}
+                  strokeWidth={2.1}
+                  className={cn(
+                    "transition-colors",
+                    activeSection === section.id
+                      ? "txt-tone-primary"
+                      : "txt-tone-subtle",
                   )}
-                  {activeTab === "Notifications" && notifications && (
-                    <NotificationsTab
-                      data={notifications}
-                      onSave={onSaveNotifications}
-                    />
-                  )}
-                  {activeTab === "Company" && (
-                    <CompanyTab
-                      activeWorkspace={activeWorkspace}
-                      company={company}
-                      loading={loadingCompany}
-                      onUpdateWorkspaceGeneral={onUpdateWorkspaceGeneral}
-                      onUploadWorkspaceLogo={onUploadWorkspaceLogo}
-                      onInviteMember={onInviteMember}
-                      onChangeMemberRole={onChangeMemberRole}
-                      onRemoveMember={onRemoveMember}
-                      onResendInvitation={onResendInvitation}
-                      onRevokeInvitation={onRevokeInvitation}
-                      onUploadBrandAsset={onUploadBrandAsset}
-                      onRemoveBrandAsset={onRemoveBrandAsset}
-                      onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
-                      onSoftDeleteWorkspace={onSoftDeleteWorkspace}
-                    />
-                  )}
-                  {activeTab === "Billing" && <BillingTab />}
-                </motion.div>
-              </AnimatePresence>
+                />
+                <span>{section.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div
+          ref={contentRef}
+          onScroll={handleContentScroll}
+          className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-popup"
+        >
+          <div className="mx-auto w-full px-5 py-4 sm:px-7">
+            <div className="flex flex-col gap-12">
+              {SETTINGS_SECTIONS.map((section) => (
+                <div key={section.id}>
+                  <section
+                    ref={(node) => {
+                      sectionRefs.current[section.id] = node;
+                    }}
+                    className="scroll-mt-24 flex flex-col"
+                  >
+                    {section.id !== "Workspace" && (
+                      <>
+                        <div className="mb-4 flex items-center gap-2">
+                          <section.icon size={14} className="txt-tone-subtle" />
+                          <h3 className="txt-role-body-md font-medium txt-tone-primary">
+                            {section.label}
+                          </h3>
+                        </div>
+                        <p className="mb-5 txt-role-body-sm txt-tone-faint">
+                          {section.description}
+                        </p>
+                      </>
+                    )}
+                    {section.id === "Account" && account && (
+                      <AccountTab
+                        data={account}
+                        onSave={onSaveAccount}
+                        onUploadAvatar={onUploadAvatar}
+                        onRemoveAvatar={onRemoveAvatar}
+                      />
+                    )}
+                    {section.id === "Notifications" && notifications && (
+                      <NotificationsTab
+                        data={notifications}
+                        onSave={onSaveNotifications}
+                      />
+                    )}
+                    {section.id === "Company" && (
+                      <CompanyTab
+                        activeWorkspace={activeWorkspace}
+                        company={company}
+                        loading={loadingCompany}
+                        onUpdateWorkspaceGeneral={onUpdateWorkspaceGeneral}
+                        onUploadWorkspaceLogo={onUploadWorkspaceLogo}
+                        onInviteMember={onInviteMember}
+                        onChangeMemberRole={onChangeMemberRole}
+                        onRemoveMember={onRemoveMember}
+                        onResendInvitation={onResendInvitation}
+                        onRevokeInvitation={onRevokeInvitation}
+                        onUploadBrandAsset={onUploadBrandAsset}
+                        onRemoveBrandAsset={onRemoveBrandAsset}
+                        onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
+                      />
+                    )}
+                    {section.id === "Workspace" && company && (
+                      <SettingsDangerZoneSection
+                        company={company}
+                        onSoftDeleteWorkspace={onSoftDeleteWorkspace}
+                        showTitle={false}
+                      />
+                    )}
+                  </section>
+                </div>
+              ))}
             </div>
           </div>
         </div>

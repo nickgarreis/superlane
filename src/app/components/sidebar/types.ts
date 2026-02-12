@@ -26,7 +26,7 @@ export type SidebarProjectsSectionProps = {
 export type SidebarProfileMenuProps = {
   viewerIdentity: ViewerIdentity;
   onOpenSettings: (
-    tab?: "Account" | "Notifications" | "Company" | "Billing",
+    tab?: "Account" | "Notifications" | "Company" | "Workspace" | "Billing",
   ) => void;
   onOpenSettingsIntent?: () => void;
   onLogout: () => void;

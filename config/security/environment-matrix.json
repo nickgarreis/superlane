@@ -17,10 +17,7 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET",
-        "RESEND_API_KEY",
-        "RESEND_WEBHOOK_SECRET",
-        "NOTIFICATIONS_FROM_EMAIL"
+        "WORKOS_ACTION_SECRET"
       ]
     },
     "staging": {
@@ -39,10 +36,7 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET",
-        "RESEND_API_KEY",
-        "RESEND_WEBHOOK_SECRET",
-        "NOTIFICATIONS_FROM_EMAIL"
+        "WORKOS_ACTION_SECRET"
       ]
     },
     "prod": {
@@ -61,10 +55,7 @@
         "WORKOS_CLIENT_ID",
         "WORKOS_API_KEY",
         "WORKOS_WEBHOOK_SECRET",
-        "WORKOS_ACTION_SECRET",
-        "RESEND_API_KEY",
-        "RESEND_WEBHOOK_SECRET",
-        "NOTIFICATIONS_FROM_EMAIL"
+        "WORKOS_ACTION_SECRET"
       ]
     }
   }

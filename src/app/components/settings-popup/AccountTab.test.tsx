@@ -6,7 +6,7 @@ import { describe, expect, test, vi } from "vitest";
 import { AccountTab } from "./AccountTab";
 
 describe("AccountTab", () => {
-  test("saves edited account fields", async () => {
+  test("auto-saves edited account fields", async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -33,18 +33,23 @@ describe("AccountTab", () => {
       target: { value: "jordan@example.com" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      screen.queryByRole("button", { name: "Save Changes" }),
+    ).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith({
-        firstName: "Jordan",
-        lastName: "Builder",
-        email: "jordan@example.com",
-      });
-    });
+    await waitFor(
+      () => {
+        expect(onSave).toHaveBeenCalledWith({
+          firstName: "Jordan",
+          lastName: "Builder",
+          email: "jordan@example.com",
+        });
+      },
+      { timeout: 2500 },
+    );
   });
 
-  test("uploads and removes avatar", async () => {
+  test("uploads avatar from file input and hides manual avatar action buttons", async () => {
     const onUploadAvatar = vi.fn().mockResolvedValue(undefined);
     const onRemoveAvatar = vi.fn().mockResolvedValue(undefined);
 
@@ -64,6 +69,13 @@ describe("AccountTab", () => {
 
     const fileInput = container.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Upload new" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Profile Picture" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(fileInput as HTMLInputElement, {
       target: {
@@ -76,11 +88,6 @@ describe("AccountTab", () => {
         expect.objectContaining({ name: "avatar.png" }),
       );
     });
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-
-    await waitFor(() => {
-      expect(onRemoveAvatar).toHaveBeenCalledTimes(1);
-    });
+    expect(onRemoveAvatar).not.toHaveBeenCalled();
   });
 });

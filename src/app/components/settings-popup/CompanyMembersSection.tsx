@@ -114,14 +114,6 @@ export function CompanyMembersSection({
   };
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <h3 className="txt-role-body-xl font-medium txt-tone-primary">
-          Members
-        </h3>
-        <p className="txt-role-body-md txt-tone-faint">
-          Manage workspace access and invitations.
-        </p>
-      </div>
       {!hasOrganizationLink && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 txt-role-body-md text-amber-100">
           This workspace is not linked to a WorkOS organization. Member

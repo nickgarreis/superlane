@@ -13,11 +13,11 @@ import type { CompanySettingsData } from "./types";
 import { CompanyBrandAssetsSection } from "./CompanyBrandAssetsSection";
 import { CompanyMembersSection } from "./CompanyMembersSection";
 import { DeniedAction } from "../permissions/DeniedAction";
+import { getWorkspaceGeneralDeniedReason } from "../../lib/permissionRules";
 import {
-  getWorkspaceDeleteDeniedReason,
-  getWorkspaceGeneralDeniedReason,
-} from "../../lib/permissionRules";
-import { DIVIDER_SUBTLE_CLASS, UNDERLINE_INPUT_CLASS } from "../ui/controlChrome";
+  SECONDARY_ACTION_BUTTON_CLASS,
+  UNDERLINE_INPUT_CLASS,
+} from "../ui/controlChrome";
 type CompanyTabProps = {
   activeWorkspace?: Workspace;
   company: CompanySettingsData | null;
@@ -45,7 +45,6 @@ type CompanyTabProps = {
   onGetBrandAssetDownloadUrl: (payload: {
     brandAssetId: string;
   }) => Promise<string | null>;
-  onSoftDeleteWorkspace: () => Promise<void>;
 };
 export function CompanyTab({
   activeWorkspace,
@@ -61,12 +60,10 @@ export function CompanyTab({
   onUploadBrandAsset,
   onRemoveBrandAsset,
   onGetBrandAssetDownloadUrl,
-  onSoftDeleteWorkspace,
 }: CompanyTabProps) {
   const workspaceName =
     company?.workspace.name ?? activeWorkspace?.name ?? "Workspace";
   const [nameDraft, setNameDraft] = useState(workspaceName);
-  const [deletingWorkspace, setDeletingWorkspace] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [nameSaveStatus, setNameSaveStatus] = useState<
     "idle" | "saving" | "saved"
@@ -85,11 +82,8 @@ export function CompanyTab({
   const canManageMembers = company?.capability.canManageMembers ?? false;
   const canManageBrandAssets =
     company?.capability.canManageBrandAssets ?? false;
-  const canDeleteWorkspace = company?.capability.canDeleteWorkspace ?? false;
   const workspaceGeneralDeniedReason =
     getWorkspaceGeneralDeniedReason(viewerRole);
-  const workspaceDeleteDeniedReason =
-    getWorkspaceDeleteDeniedReason(viewerRole);
   const initials = useMemo(() => {
     if (company?.workspace.logoText) {
       return company.workspace.logoText;
@@ -171,26 +165,6 @@ export function CompanyTab({
       }
     }
   };
-  const handleSoftDeleteWorkspace = async () => {
-    const confirmed = window.confirm(
-      "Delete this workspace? This will immediately remove access for all members.",
-    );
-    if (!confirmed) {
-      return;
-    }
-    setDeletingWorkspace(true);
-    try {
-      await onSoftDeleteWorkspace();
-      toast.success("Workspace deleted");
-    } catch (error) {
-      reportUiError("settings.company.deleteWorkspace", error, {
-        showToast: false,
-      });
-      toast.error("Failed to delete workspace");
-    } finally {
-      setDeletingWorkspace(false);
-    }
-  };
   if (loading) {
     return (
       <div className="txt-tone-subtle txt-role-body-lg">
@@ -201,9 +175,6 @@ export function CompanyTab({
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-6">
-        <h3 className="txt-role-body-xl font-medium txt-tone-primary">
-          General
-        </h3>
         <div className="flex items-start gap-6">
           <input
             type="file"
@@ -247,10 +218,7 @@ export function CompanyTab({
             </div>
           </DeniedAction>
           <div className="flex flex-col gap-2 flex-1 max-w-[460px]">
-            <div className="flex items-center justify-between">
-              <label className="txt-role-body-md font-medium txt-tone-subtle">
-                Workspace Name
-              </label>
+            <div className="flex items-center justify-end min-h-5">
               {nameSaveStatus !== "idle" && (
                 <span className="txt-role-body-sm txt-tone-faint flex items-center gap-1.5">
                   {nameSaveStatus === "saving" && "Saving..."}
@@ -283,10 +251,16 @@ export function CompanyTab({
                 className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
               />
             </DeniedAction>
+            <button
+              type="button"
+              onClick={() => toast("Billing management is coming soon")}
+              className={`mt-2 w-fit cursor-pointer px-3 py-1.5 rounded-full txt-role-body-sm font-medium ${SECONDARY_ACTION_BUTTON_CLASS}`}
+            >
+              Manage billing
+            </button>
           </div>
         </div>
       </div>
-      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
       <CompanyMembersSection
         members={members}
         pendingInvitations={pendingInvitations}
@@ -299,7 +273,6 @@ export function CompanyTab({
         onResendInvitation={onResendInvitation}
         onRevokeInvitation={onRevokeInvitation}
       />
-      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
       <CompanyBrandAssetsSection
         brandAssets={brandAssets}
         canManageBrandAssets={canManageBrandAssets}
@@ -308,41 +281,6 @@ export function CompanyTab({
         onRemoveBrandAsset={onRemoveBrandAsset}
         onGetBrandAssetDownloadUrl={onGetBrandAssetDownloadUrl}
       />
-      <div className={`w-full h-px ${DIVIDER_SUBTLE_CLASS}`} />
-      <div className="flex flex-col gap-4">
-        <h3 className="txt-role-body-xl font-medium text-red-400">
-          Danger Zone
-        </h3>
-        <div className="flex items-center justify-between p-4 border border-red-500/10 rounded-xl bg-red-500/[0.02]">
-          <div className="flex flex-col gap-1">
-            <span className="txt-role-body-lg font-medium txt-tone-primary">
-              Delete Workspace
-            </span>
-            <span className="txt-role-body-sm txt-tone-subtle">
-              Permanently disables this workspace in the app and removes member
-              access.
-            </span>
-          </div>
-          <DeniedAction
-            denied={!canDeleteWorkspace}
-            reason={workspaceDeleteDeniedReason}
-            tooltipAlign="right"
-          >
-            <button
-              onClick={() => {
-                if (!canDeleteWorkspace) {
-                  return;
-                }
-                void handleSoftDeleteWorkspace();
-              }}
-              disabled={!canDeleteWorkspace || deletingWorkspace}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg txt-role-body-md font-medium transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {deletingWorkspace ? "Deleting..." : "Delete Workspace"}
-            </button>
-          </DeniedAction>
-        </div>
-      </div>
     </div>
   );
 }

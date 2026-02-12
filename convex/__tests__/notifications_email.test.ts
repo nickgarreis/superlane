@@ -1,5 +1,4 @@
 import { convexTest } from "convex-test";
-import resendTest from "@convex-dev/resend/test";
 import workosAuthKitTest from "@convex-dev/workos-authkit/test";
 import { beforeEach, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
@@ -37,7 +36,6 @@ describe("notifications email", () => {
   beforeEach(() => {
     t = convexTest(schema, modules);
     workosAuthKitTest.register(t, "workOSAuthKit");
-    resendTest.register(t, "resend");
   });
 
   const asOwner = () => t.withIdentity(IDENTITIES.owner);
@@ -158,7 +156,7 @@ describe("notifications email", () => {
       };
     });
 
-  test("team and event dispatch respect user-scoped toggles and email availability", async () => {
+  test("team and event dispatch respect user-scoped toggles and skip disabled transport", async () => {
     const workspace = await seedWorkspace();
     const createdAt = now();
 
@@ -210,7 +208,8 @@ describe("notifications email", () => {
     expect(teamResult.consideredRecipients).toBe(3);
     expect(teamResult.skippedDisabled).toBe(1);
     expect(teamResult.skippedNoEmail).toBe(1);
-    expect(teamResult.queuedRecipients).toBe(1);
+    expect(teamResult.skippedEmailTransport).toBe(1);
+    expect(teamResult.queuedRecipients).toBe(0);
     expect(teamResult.failedRecipients).toBe(0);
 
     const eventResult = await asOwner().mutation(
@@ -229,8 +228,39 @@ describe("notifications email", () => {
     expect(eventResult.consideredRecipients).toBe(3);
     expect(eventResult.skippedDisabled).toBe(0);
     expect(eventResult.skippedNoEmail).toBe(1);
-    expect(eventResult.queuedRecipients).toBe(2);
+    expect(eventResult.skippedEmailTransport).toBe(2);
+    expect(eventResult.queuedRecipients).toBe(0);
     expect(eventResult.failedRecipients).toBe(0);
+  });
+
+  test("notification dispatch no longer depends on NOTIFICATIONS_FROM_EMAIL", async () => {
+    const workspace = await seedWorkspace();
+    const previousFromEmail = process.env.NOTIFICATIONS_FROM_EMAIL;
+    delete process.env.NOTIFICATIONS_FROM_EMAIL;
+
+    const result = await asOwner().mutation(
+      internal.notificationsEmail.sendTeamActivityForComment,
+      {
+        workspaceId: workspace.workspaceId,
+        actorUserId: workspace.ownerUserId,
+        actorName: "Owner User",
+        projectPublicId: workspace.projectPublicId,
+        projectName: "Notifications Project",
+        commentContent: "Hello team",
+        isReply: false,
+      },
+    );
+
+    if (previousFromEmail === undefined) {
+      delete process.env.NOTIFICATIONS_FROM_EMAIL;
+    } else {
+      process.env.NOTIFICATIONS_FROM_EMAIL = previousFromEmail;
+    }
+
+    expect(result.queuedRecipients).toBe(0);
+    expect(result.failedRecipients).toBe(0);
+    expect(result.skippedEmailTransport).toBe(result.eligibleRecipients);
+    expect(result.eligibleRecipients).toBeGreaterThan(0);
   });
 
   test("product update broadcast is admin-only and respects productUpdates toggle", async () => {
@@ -277,7 +307,8 @@ describe("notifications email", () => {
     expect(summary.consideredRecipients).toBe(3);
     expect(summary.skippedDisabled).toBe(1);
     expect(summary.skippedNoEmail).toBe(1);
-    expect(summary.queuedRecipients).toBe(1);
+    expect(summary.skippedEmailTransport).toBe(1);
+    expect(summary.queuedRecipients).toBe(0);
     expect(summary.failedRecipients).toBe(0);
   });
 

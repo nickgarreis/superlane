@@ -19,11 +19,17 @@ export type PendingHighlight = {
   fileName?: string;
   fileTab?: string;
 };
-export type SettingsTab = "Account" | "Notifications" | "Company" | "Billing";
+export type SettingsTab =
+  | "Account"
+  | "Notifications"
+  | "Company"
+  | "Workspace"
+  | "Billing";
 export const SETTINGS_TABS: readonly SettingsTab[] = [
   "Account",
   "Notifications",
   "Company",
+  "Workspace",
   "Billing",
 ];
 export const parseSettingsTab = (

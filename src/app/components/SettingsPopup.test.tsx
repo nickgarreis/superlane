@@ -68,6 +68,7 @@ const buildProps = (
   onRevokeInvitation: vi.fn().mockResolvedValue(undefined),
   onUploadBrandAsset: vi.fn().mockResolvedValue(undefined),
   onRemoveBrandAsset: vi.fn().mockResolvedValue(undefined),
+  onGetBrandAssetDownloadUrl: vi.fn().mockResolvedValue(null),
   onSoftDeleteWorkspace: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
@@ -79,30 +80,40 @@ describe("SettingsPopup", () => {
     expect(screen.queryByText("Settings")).not.toBeInTheDocument();
   });
 
-  test("switches tabs and closes from backdrop click", async () => {
+  test("supports compact section navigation and closes from backdrop click", () => {
     const onClose = vi.fn();
     const { container } = render(
       <SettingsPopup
         {...buildProps({
           onClose,
-          initialTab: "Notifications",
+          initialTab: "Company",
         })}
       />,
     );
 
+    expect(screen.getByRole("button", { name: "Company" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("heading", { name: "My Account" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Notifications" }),
     ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Company" }));
+    expect(screen.getByRole("heading", { name: "Company" })).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "Company" }),
+      screen.getByRole("button", { name: "Workspace" }),
     ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Billing & Plans" }));
     expect(
-      await screen.findByRole("heading", { name: "Billing & Plans" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Workspace" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Billing & Plans" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Billing & Plans" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(container.firstChild as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
