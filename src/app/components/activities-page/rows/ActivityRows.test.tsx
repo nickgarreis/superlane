@@ -33,6 +33,7 @@ const buildActivity = (
   fileTab: overrides.fileTab ?? null,
   targetUserId: overrides.targetUserId ?? null,
   targetUserName: overrides.targetUserName ?? null,
+  targetUserAvatarUrl: overrides.targetUserAvatarUrl ?? null,
   targetRole: overrides.targetRole ?? null,
   fromValue: overrides.fromValue ?? null,
   toValue: overrides.toValue ?? null,
@@ -42,18 +43,20 @@ const buildActivity = (
 });
 
 describe("Activity row renderers", () => {
-  test("renders project row with project tone", () => {
-    const { container } = render(
+  test("renders project row with search-style project icon chrome", () => {
+    render(
       <ProjectActivityRow
         activity={buildActivity({ kind: "project", action: "created" })}
       />,
     );
     expect(screen.getByText("Created project Project One")).toBeInTheDocument();
-    expect(container.querySelector(".activity-tone-project")).not.toBeNull();
+    const typeIcon = screen.getByLabelText("Projects activity type");
+    expect(typeIcon).toHaveClass("bg-surface-hover-soft");
+    expect(typeIcon.querySelector(".lucide-palette")).toBeNull();
   });
 
-  test("renders task row with task tone", () => {
-    const { container } = render(
+  test("renders task row with search-style task icon chrome", () => {
+    render(
       <TaskActivityRow
         activity={buildActivity({
           kind: "task",
@@ -63,7 +66,8 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Completed task Plan sprint")).toBeInTheDocument();
-    expect(container.querySelector(".activity-tone-task")).not.toBeNull();
+    const typeIcon = screen.getByLabelText("Tasks activity type");
+    expect(typeIcon).toHaveClass("bg-surface-muted-soft");
   });
 
   test("renders due date change task row with before/after details", () => {
@@ -86,12 +90,12 @@ describe("Activity row renderers", () => {
     expect(screen.getByText("From")).toBeInTheDocument();
     expect(screen.getByText("To")).toBeInTheDocument();
     expect(screen.getByText(formatTaskDueDate(fromEpochMs))).toBeInTheDocument();
-    expect(screen.getByText(formatTaskDueDate(toEpochMs))).toBeInTheDocument();
+    expect(screen.getAllByText(formatTaskDueDate(toEpochMs)).length).toBeGreaterThan(0);
     expect(screen.getByText("Moved 5 days later")).toBeInTheDocument();
   });
 
-  test("renders collaboration row with collaboration tone", () => {
-    const { container } = render(
+  test("renders collaboration row with search-style accent icon chrome", () => {
+    render(
       <CollaborationActivityRow
         activity={buildActivity({
           kind: "collaboration",
@@ -103,11 +107,12 @@ describe("Activity row renderers", () => {
     expect(
       screen.getByText("Mentioned Taylor in a comment"),
     ).toBeInTheDocument();
-    expect(container.querySelector(".activity-tone-collaboration")).not.toBeNull();
+    const typeIcon = screen.getByLabelText("Collaboration activity type");
+    expect(typeIcon).toHaveClass("bg-text-tone-accent-soft");
   });
 
-  test("renders file row with file tone", () => {
-    const { container } = render(
+  test("renders file row with search-style file icon chrome", () => {
+    render(
       <FileActivityRow
         activity={buildActivity({
           kind: "file",
@@ -118,7 +123,8 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Uploaded brief.pdf")).toBeInTheDocument();
-    expect(container.querySelector(".activity-tone-file")).not.toBeNull();
+    const typeIcon = screen.getByLabelText("Files activity type");
+    expect(typeIcon).toHaveClass("bg-surface-muted-soft");
   });
 
   test("renders file conflict upload row copy", () => {
@@ -136,8 +142,8 @@ describe("Activity row renderers", () => {
     ).toBeInTheDocument();
   });
 
-  test("renders membership row with membership tone", () => {
-    const { container } = render(
+  test("renders membership row with search-style accent icon chrome", () => {
+    render(
       <MembershipActivityRow
         activity={buildActivity({
           kind: "membership",
@@ -147,10 +153,27 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Removed Jordan")).toBeInTheDocument();
-    expect(container.querySelector(".activity-tone-membership")).not.toBeNull();
+    const typeIcon = screen.getByLabelText("Members activity type");
+    expect(typeIcon).toHaveClass("bg-text-tone-accent-soft");
   });
 
-  test("renders workspace and organization rows with correct tones", () => {
+  test("renders membership row with target user profile image type icon", () => {
+    render(
+      <MembershipActivityRow
+        activity={buildActivity({
+          kind: "membership",
+          action: "member_joined",
+          targetUserName: "Jordan",
+          targetUserAvatarUrl: "https://example.com/jordan.png",
+        })}
+      />,
+    );
+
+    const typeIcon = screen.getByLabelText("Members activity type");
+    expect(typeIcon.querySelector("img[alt='Jordan profile image']")).not.toBeNull();
+  });
+
+  test("renders workspace and organization rows with search-style accent icon chrome", () => {
     const workspaceResult = render(
       <WorkspaceActivityRow
         activity={buildActivity({
@@ -160,9 +183,8 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Updated workspace logo")).toBeInTheDocument();
-    expect(
-      workspaceResult.container.querySelector(".activity-tone-workspace"),
-    ).not.toBeNull();
+    const workspaceTypeIcon = screen.getByLabelText("Workspace activity type");
+    expect(workspaceTypeIcon).toHaveClass("bg-text-tone-accent-soft");
 
     const organizationResult = render(
       <WorkspaceActivityRow
@@ -174,9 +196,45 @@ describe("Activity row renderers", () => {
       />,
     );
     expect(screen.getByText("Synced organization membership")).toBeInTheDocument();
-    expect(
-      organizationResult.container.querySelector(".activity-tone-organization"),
-    ).not.toBeNull();
+    const organizationTypeIcon = screen.getByLabelText("Organization activity type");
+    expect(organizationTypeIcon).toHaveClass("bg-text-tone-accent-soft");
+    workspaceResult.unmount();
+    organizationResult.unmount();
+  });
+
+  test("renders workspace updates without duplicate workspace-name context item", () => {
+    render(
+      <WorkspaceActivityRow
+        activity={buildActivity({
+          kind: "workspace",
+          action: "workspace_general_updated",
+          fromValue: "Old Workspace",
+          toValue: "New Workspace",
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("Workspace Name")).toBeNull();
+    expect(screen.getByText("From")).toBeInTheDocument();
+    expect(screen.getByText("To")).toBeInTheDocument();
+  });
+
+  test("formats organization sync JSON payload into labeled values", () => {
+    render(
+      <WorkspaceActivityRow
+        activity={buildActivity({
+          kind: "organization",
+          action: "organization_membership_sync",
+          message:
+            "{\"importedMemberships\":2,\"syncedWorkspaceMembers\":2,\"removedMemberships\":0}",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Imported")).toBeInTheDocument();
+    expect(screen.getByText("Synced")).toBeInTheDocument();
+    expect(screen.getByText("Removed")).toBeInTheDocument();
+    expect(screen.queryByText(/importedMemberships/)).toBeNull();
   });
 
   test("supports interactive shell mode with click and keyboard", () => {

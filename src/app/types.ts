@@ -87,6 +87,7 @@ export interface ProjectData {
   archived?: boolean;
   archivedAt?: number | null;
   completedAt?: number | null;
+  lastApprovedAt?: number | null;
   draftData?: ProjectDraftData;
   attachments?: Array<{
     id: number | string;
@@ -153,6 +154,7 @@ export interface DbProjectRecord {
   archived: boolean;
   archivedAt?: number | null;
   completedAt?: number | null;
+  lastApprovedAt?: number | null;
   draftData?: ProjectDraftData | null;
   attachments?: Array<{
     id: number | string;
@@ -183,6 +185,7 @@ export interface WorkspaceActivity {
   actorAvatarUrl: string | null;
   projectPublicId: string | null;
   projectName: string | null;
+  projectCategory?: string | null;
   projectVisibility: ProjectVisibility;
   projectOwnerUserId: string | null;
   taskId: string | null;
@@ -191,6 +194,7 @@ export interface WorkspaceActivity {
   fileTab: ProjectFileTab | null;
   targetUserId: string | null;
   targetUserName: string | null;
+  targetUserAvatarUrl?: string | null;
   targetRole: WorkspaceRole | null;
   fromValue: string | null;
   toValue: string | null;

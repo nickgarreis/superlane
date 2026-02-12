@@ -1,6 +1,7 @@
 import type { ProjectData } from "../../types";
 export type SidebarPartitionedProjects = {
   activeProjects: ProjectData[];
+  draftPendingProjects: ProjectData[];
   completedProjects: ProjectData[];
 };
 export const partitionSidebarProjects = (
@@ -8,10 +9,15 @@ export const partitionSidebarProjects = (
 ): SidebarPartitionedProjects => {
   const allProjects = Object.values(projects);
   const activeProjects = allProjects.filter(
-    (project) => !project.archived && project.status.label !== "Completed",
+    (project) => !project.archived && project.status.label === "Active",
+  );
+  const draftPendingProjects = allProjects.filter(
+    (project) =>
+      !project.archived &&
+      (project.status.label === "Draft" || project.status.label === "Review"),
   );
   const completedProjects = allProjects.filter(
     (project) => !project.archived && project.status.label === "Completed",
   );
-  return { activeProjects, completedProjects };
+  return { activeProjects, draftPendingProjects, completedProjects };
 };

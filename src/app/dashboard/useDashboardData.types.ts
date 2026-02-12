@@ -97,6 +97,7 @@ export type UseDashboardDataResult = {
   activeWorkspace: Workspace | undefined;
   visibleProjects: Record<string, ProjectData>;
   sidebarVisibleProjects: Record<string, ProjectData>;
+  approvedSidebarProjectIds: string[];
   allWorkspaceFiles: ProjectFileData[];
   projectFilesByProject: Record<string, ProjectFileData[]>;
   contentModel: ReturnType<typeof useDashboardController>["contentModel"];

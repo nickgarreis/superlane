@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { toUtcNoonEpochMsFromDateOnly } from "../../../lib/dates";
 import { reportUiError } from "../../../lib/errors";
@@ -27,6 +27,8 @@ type UseWizardSubmissionArgs = {
     | "reviewProject"
     | "onUpdateComments"
     | "onApproveReviewProject"
+    | "onBackToDraftPendingProjects"
+    | "backToDraftPendingProjectsLabel"
     | "onDiscardDraftUploads"
     | "user"
   >;
@@ -69,9 +71,22 @@ export const useWizardSubmission = ({
     onDeleteDraft,
     onUpdateComments,
     onApproveReviewProject,
+    onBackToDraftPendingProjects,
+    backToDraftPendingProjectsLabel,
     onDiscardDraftUploads,
     user,
   } = props;
+  const closeTargetRef = useRef<(() => void) | null>(null);
+
+  const setShowCloseConfirm = useCallback(
+    (show: boolean) => {
+      if (!show) {
+        closeTargetRef.current = null;
+      }
+      patchWizardState({ showCloseConfirm: show });
+    },
+    [patchWizardState],
+  );
   const step2JobLabel = useMemo(() => {
     if (!selectedService) {
       return undefined;
@@ -240,8 +255,10 @@ export const useWizardSubmission = ({
     }
   }, [createProject, isStepValid, onCreate, setStep, step]);
   const handleCancel = useCallback(
-    (options?: { discardUploads?: boolean }) => {
+    (options?: { discardUploads?: boolean; onDone?: () => void }) => {
       const shouldDiscardUploads = options?.discardUploads !== false;
+      const onDone = options?.onDone ?? closeTargetRef.current ?? onClose;
+      closeTargetRef.current = null;
       if (shouldDiscardUploads) {
         markDiscardRequested();
       }
@@ -252,7 +269,7 @@ export const useWizardSubmission = ({
       ) {
         void onDiscardDraftUploads(draftSessionId).catch(() => {});
       }
-      onClose();
+      onDone();
     },
     [
       attachments.length,
@@ -300,11 +317,34 @@ export const useWizardSubmission = ({
       return;
     }
     if (hasUnsavedWork()) {
-      patchWizardState({ showCloseConfirm: true });
+      closeTargetRef.current = null;
+      setShowCloseConfirm(true);
       return;
     }
     handleCancel();
-  }, [handleCancel, hasUnsavedWork, patchWizardState, reviewProject, step]);
+  }, [handleCancel, hasUnsavedWork, reviewProject, setShowCloseConfirm, step]);
+  const handleBackClick = useCallback(() => {
+    if (!onBackToDraftPendingProjects) {
+      return;
+    }
+    if (reviewProject || step === 4) {
+      handleCancel({ onDone: onBackToDraftPendingProjects });
+      return;
+    }
+    if (hasUnsavedWork()) {
+      closeTargetRef.current = onBackToDraftPendingProjects;
+      setShowCloseConfirm(true);
+      return;
+    }
+    handleCancel({ onDone: onBackToDraftPendingProjects });
+  }, [
+    handleCancel,
+    hasUnsavedWork,
+    onBackToDraftPendingProjects,
+    reviewProject,
+    setShowCloseConfirm,
+    step,
+  ]);
   const reviewActions = useWizardReviewActions({
     commentInput,
     setCommentInput,
@@ -327,12 +367,15 @@ export const useWizardSubmission = ({
   return {
     step2JobLabel,
     isNextDisabled,
+    backToDraftPendingProjectsLabel,
     handleNext,
     handleDeleteDraft,
     handleConfirmDelete,
     handleConfirmDeleteProject,
     handleCloseClick,
+    handleBackClick,
     handleCancel,
+    setShowCloseConfirm,
     ...reviewActions,
   };
 };

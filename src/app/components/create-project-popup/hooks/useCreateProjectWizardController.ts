@@ -36,6 +36,8 @@ export type CreateProjectPopupProps = {
     comments: ReviewComment[],
   ) => Promise<unknown>;
   onApproveReviewProject?: (projectId: string) => Promise<unknown>;
+  onBackToDraftPendingProjects?: () => void;
+  backToDraftPendingProjectsLabel?: string;
   onUploadAttachment?: (
     file: File,
     draftSessionId: string,
@@ -60,6 +62,8 @@ export function useCreateProjectWizardController({
   reviewProject,
   onUpdateComments,
   onApproveReviewProject,
+  onBackToDraftPendingProjects,
+  backToDraftPendingProjectsLabel,
   onUploadAttachment,
   onRemovePendingAttachment,
   onDiscardDraftUploads,
@@ -99,6 +103,8 @@ export function useCreateProjectWizardController({
       reviewProject,
       onUpdateComments,
       onApproveReviewProject,
+      onBackToDraftPendingProjects,
+      backToDraftPendingProjectsLabel,
       onDiscardDraftUploads,
       user,
     },
@@ -159,8 +165,10 @@ export function useCreateProjectWizardController({
     handleConfirmCancel: submission.handleConfirmCancel,
     handleCancel: submission.handleCancel,
     requestDeleteReviewProject: submission.requestDeleteReviewProject,
-    setShowCloseConfirm: (show: boolean) =>
-      state.patchWizardState({ showCloseConfirm: show }),
+    handleBackClick: submission.handleBackClick,
+    backToDraftPendingProjectsLabel:
+      submission.backToDraftPendingProjectsLabel,
+    setShowCloseConfirm: submission.setShowCloseConfirm,
     setShowDeleteConfirm: (show: boolean) =>
       state.patchWizardState({ showDeleteConfirm: show }),
     setShowDeleteProjectConfirm: (show: boolean) =>

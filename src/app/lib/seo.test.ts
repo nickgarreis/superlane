@@ -20,6 +20,10 @@ describe("getPageTitle", () => {
   test("returns archive and project titles", () => {
     expect(getPageTitle("/archive")).toBe("Archive | Build Design");
     expect(getPageTitle("/archive/project-123")).toBe("Archived Project | Build Design");
+    expect(getPageTitle("/drafts")).toBe("Drafts & Pending Projects | Build Design");
+    expect(getPageTitle("/pending")).toBe("Drafts & Pending Projects | Build Design");
+    expect(getPageTitle("/drafts/project-123")).toBe("Draft Project | Build Design");
+    expect(getPageTitle("/pending/project-123")).toBe("Pending Project | Build Design");
     expect(getPageTitle("/project/project-123")).toBe("Project | Build Design");
     expect(getPageTitle("/settings")).toBe("Settings | Build Design");
   });

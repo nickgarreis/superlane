@@ -12,6 +12,7 @@ export const useDashboardApiHandlers = () => {
   const unarchiveProjectMutation = useMutation(api.projects.unarchive);
   const removeProjectMutation = useMutation(api.projects.remove);
   const setProjectStatusMutation = useMutation(api.projects.setStatus);
+  const markApprovalSeenMutation = useMutation(api.projects.markApprovalSeen);
   const updateReviewCommentsMutation = useMutation(
     api.projects.updateReviewComments,
   );
@@ -107,6 +108,7 @@ export const useDashboardApiHandlers = () => {
       unarchiveProjectMutation,
       removeProjectMutation,
       setProjectStatusMutation,
+      markApprovalSeenMutation,
       updateReviewCommentsMutation,
       replaceProjectTasksMutation,
       replaceWorkspaceTasksMutation,
@@ -187,6 +189,7 @@ export const useDashboardApiHandlers = () => {
       requestPasswordResetAction,
       unarchiveProjectMutation,
       updateAccountProfileAction,
+      markApprovalSeenMutation,
       updateProjectMutation,
       updateTaskMutation,
       updateReviewCommentsMutation,

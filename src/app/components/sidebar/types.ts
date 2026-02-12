@@ -19,11 +19,13 @@ export type SidebarPrimaryActionsProps = {
 };
 export type SidebarProjectsSectionProps = {
   projects: Record<string, ProjectData>;
+  approvedSidebarProjectIds: string[];
   currentView?: string;
   onNavigate: (view: AppView) => void;
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
   onOpenCompletedProjectsPopup: () => void;
+  onOpenDraftPendingProjectsPopup: () => void;
 };
 export type SidebarProfileMenuProps = {
   viewerIdentity: ViewerIdentity;

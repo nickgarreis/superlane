@@ -84,6 +84,7 @@ describe("useDashboardData", () => {
           description: "Desc",
           category: "Web",
           status: "Active",
+          lastApprovedAt: 1_700_000_000_500,
           archived: false,
           creator: { userId: "viewer-1", name: "Snapshot User", avatarUrl: "" },
         },
@@ -146,6 +147,12 @@ describe("useDashboardData", () => {
       {
         unreadCount: 3,
       },
+      [
+        {
+          projectPublicId: "project-1",
+          lastSeenApprovedAt: 1_700_000_000_000,
+        },
+      ],
     ];
     const paginatedQueryResults = [
       {
@@ -225,6 +232,7 @@ describe("useDashboardData", () => {
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
     expect(result.current.inboxUnreadCount).toBe(3);
+    expect(result.current.approvedSidebarProjectIds).toEqual(["project-1"]);
     expect(result.current.usesWorkspaceTaskFeed).toBe(true);
     expect(result.current.usesProjectTaskFeed).toBe(true);
     expect(queryArgs[4]).toEqual({ workspaceSlug: "alpha" });
@@ -241,6 +249,7 @@ describe("useDashboardData", () => {
     expect(paginatedQueryArgs[4]).toEqual({ projectPublicId: "project-1" });
     expect(paginatedQueryArgs[5]).toEqual({ workspaceSlug: "alpha" });
     expect(paginatedQueryArgs[6]).toEqual({ projectPublicId: "project-1" });
+    expect(queryArgs[7]).toEqual({ workspaceSlug: "alpha" });
 
     await waitFor(() => {
       expect(args.setActiveWorkspaceSlug).toHaveBeenCalledWith("alpha");

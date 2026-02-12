@@ -29,7 +29,10 @@ type UseWizardReviewActionsArgs = {
     showCloseConfirm?: boolean;
     showDeleteProjectConfirm?: boolean;
   }) => void;
-  handleCancel: (options?: { discardUploads?: boolean }) => void;
+  handleCancel: (options?: {
+    discardUploads?: boolean;
+    onDone?: () => void;
+  }) => void;
   createProject: (status: string) => Promise<unknown>;
   initialDraftData: CreateProjectPopupProps["initialDraftData"];
   onCreate: CreateProjectPopupProps["onCreate"];

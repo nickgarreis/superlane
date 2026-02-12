@@ -1,20 +1,9 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import {
-  mapProjectsToUi,
-  mapTasksByProjectToUi,
-  mapWorkspaceFilesToUi,
-  mapWorkspaceTasksToUi,
-  mapWorkspacesToUi,
-  type SnapshotProject,
-  type SnapshotTask,
-  type SnapshotWorkspace,
+  mapProjectsToUi, mapTasksByProjectToUi, mapWorkspaceFilesToUi, mapWorkspaceTasksToUi,
+  mapWorkspacesToUi, type SnapshotProject, type SnapshotTask, type SnapshotWorkspace,
   type SnapshotWorkspaceFile,
 } from "../lib/mappers";
 import { useDashboardController } from "./useDashboardController";
@@ -32,6 +21,10 @@ import {
   type UseDashboardDataArgs,
   type UseDashboardDataResult,
 } from "./useDashboardData.types";
+import {
+  getApprovedSidebarProjectIds,
+  type ProjectApprovalReadSnapshot,
+} from "./lib/approvalReads";
 const PROJECTS_PAGE_SIZE = 50;
 const TASKS_PAGE_SIZE = 50;
 const ACTIVITIES_PAGE_SIZE = 50;
@@ -232,6 +225,12 @@ export const useDashboardData = ({
       ? { workspaceSlug: resolvedWorkspaceSlug }
       : "skip",
   );
+  const projectApprovalReads = useQuery(
+    api.projects.listApprovalReadsForWorkspace,
+    isAuthenticated && resolvedWorkspaceSlug
+      ? { workspaceSlug: resolvedWorkspaceSlug }
+      : "skip",
+  );
   const projectTasksCacheRef = useRef<Record<string, SnapshotTask[]>>({});
   const projectFilesCacheRef = useRef<Record<string, SnapshotWorkspaceFile[]>>(
     {},
@@ -400,6 +399,16 @@ export const useDashboardData = ({
     () => filterProjectsByWorkspace(sidebarProjects, activeWorkspace),
     [sidebarProjects, activeWorkspace],
   );
+  const approvedSidebarProjectIds = useMemo(
+    () =>
+      getApprovedSidebarProjectIds({
+        projects: sidebarVisibleProjects,
+        approvalReads: Array.isArray(projectApprovalReads)
+          ? (projectApprovalReads as ProjectApprovalReadSnapshot[])
+          : [],
+      }),
+    [projectApprovalReads, sidebarVisibleProjects],
+  );
   const visibleProjectIds = useMemo(
     () => Object.keys(sidebarVisibleProjects),
     [sidebarVisibleProjects],
@@ -480,6 +489,7 @@ export const useDashboardData = ({
     activeWorkspace,
     visibleProjects,
     sidebarVisibleProjects,
+    approvedSidebarProjectIds,
     allWorkspaceFiles,
     projectFilesByProject,
     contentModel,

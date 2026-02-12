@@ -115,6 +115,7 @@ const createApiHandlers = () => ({
   unarchiveProjectMutation: vi.fn(),
   removeProjectMutation: vi.fn(),
   setProjectStatusMutation: vi.fn(),
+  markApprovalSeenMutation: vi.fn(),
   updateReviewCommentsMutation: vi.fn(),
   replaceProjectTasksMutation: vi.fn(),
   replaceWorkspaceTasksMutation: vi.fn(),

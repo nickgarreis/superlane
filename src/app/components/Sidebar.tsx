@@ -15,6 +15,7 @@ type SidebarProps = {
   onOpenCreateProjectIntent?: () => void;
   currentView?: string;
   projects: Record<string, ProjectData>;
+  approvedSidebarProjectIds: string[];
   viewerIdentity: ViewerIdentity;
   activeWorkspace?: Workspace;
   workspaces: Workspace[];
@@ -28,6 +29,7 @@ type SidebarProps = {
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
   onOpenCompletedProjectsPopup: () => void;
+  onOpenDraftPendingProjectsPopup: () => void;
   onLogout: () => void;
 };
 export function Sidebar({
@@ -40,6 +42,7 @@ export function Sidebar({
   onOpenCreateProjectIntent,
   currentView,
   projects,
+  approvedSidebarProjectIds,
   viewerIdentity,
   activeWorkspace,
   workspaces,
@@ -51,6 +54,7 @@ export function Sidebar({
   onEditProject,
   onViewReviewProject,
   onOpenCompletedProjectsPopup,
+  onOpenDraftPendingProjectsPopup,
   onLogout,
 }: SidebarProps) {
   return (
@@ -74,11 +78,13 @@ export function Sidebar({
       />
       <SidebarProjectsSection
         projects={projects}
+        approvedSidebarProjectIds={approvedSidebarProjectIds}
         currentView={currentView}
         onNavigate={onNavigate}
         onEditProject={onEditProject}
         onViewReviewProject={onViewReviewProject}
         onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+        onOpenDraftPendingProjectsPopup={onOpenDraftPendingProjectsPopup}
       />
       <SidebarProfileMenu
         viewerIdentity={viewerIdentity}

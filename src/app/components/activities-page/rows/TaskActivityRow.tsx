@@ -3,7 +3,7 @@ import { cn } from "../../../../lib/utils";
 import { formatTaskDueDate } from "../../../lib/dates";
 import type { WorkspaceActivity } from "../../../types";
 import { ActivityRowShell } from "../ActivityRowShell";
-import { formatActivityMeta } from "../activityFormatting";
+import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
@@ -142,6 +142,11 @@ export function TaskActivityRow({
     activity.targetUserName?.trim()
     || activity.toValue?.trim()
     || "Unassigned";
+  const contextItems = buildContextItems([
+    { label: "Task", value: taskTitle },
+    { label: "Assignee", value: activity.action === "assignee_changed" ? assigneeTo : null },
+    { label: "Due", value: activity.action === "due_date_changed" ? nextDueDateLabel : null },
+  ]);
 
   return (
     <ActivityRowShell
@@ -154,6 +159,7 @@ export function TaskActivityRow({
       showReadState={showReadState}
       onMarkRead={onMarkRead}
       onClick={onClick}
+      contextItems={contextItems}
     >
       {activity.action === "due_date_changed" ? (
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 txt-role-body-sm txt-tone-subtle">

@@ -32,7 +32,19 @@ type UseDashboardNavigationArgs = {
   preloadCreateWorkspacePopup: () => void;
   preloadSettingsPopup: () => void;
 };
+
+type DraftPendingRouteKind = "draft" | "pending";
+type DraftPendingStatus = "Draft" | "Review";
+
 const WORKSPACE_SLUG_QUERY_KEY = "workspace";
+const DRAFTS_PATH = viewToPath("drafts");
+const PENDING_PATH = viewToPath("pending");
+
+const isDraftPendingPath = (pathname: string): boolean =>
+  pathname === DRAFTS_PATH ||
+  pathname === PENDING_PATH ||
+  pathname.startsWith(`${DRAFTS_PATH}/`) ||
+  pathname.startsWith(`${PENDING_PATH}/`);
 const isValidWorkspaceSlug = (value: string): boolean =>
   /^[a-z0-9-]+$/.test(value);
 const readPersistedWorkspaceSlug = (
@@ -63,6 +75,9 @@ export type DashboardNavigationState = {
   setIsCreateWorkspaceOpen: Dispatch<SetStateAction<boolean>>;
   isCompletedProjectsOpen: boolean;
   completedProjectDetailId: string | null;
+  isDraftPendingProjectsOpen: boolean;
+  draftPendingProjectDetailId: string | null;
+  draftPendingProjectDetailKind: DraftPendingRouteKind | null;
   highlightedArchiveProjectId: string | null;
   setHighlightedArchiveProjectId: Dispatch<SetStateAction<string | null>>;
   pendingHighlight: PendingHighlight | null;
@@ -88,6 +103,14 @@ export type DashboardNavigationState = {
   closeCompletedProjectsPopup: () => void;
   openCompletedProjectDetail: (projectId: string) => void;
   backToCompletedProjectsList: () => void;
+  openDraftPendingProjectsPopup: () => void;
+  closeDraftPendingProjectsPopup: () => void;
+  openDraftPendingProjectDetail: (
+    projectId: string,
+    status: DraftPendingStatus,
+    options?: { replace?: boolean },
+  ) => void;
+  backToDraftPendingProjectsList: () => void;
   handleOpenSettingsWithFocus: (args: {
     tab?: SettingsTab;
     focus?: SettingsFocusTarget | null;
@@ -140,7 +163,8 @@ export const useDashboardNavigation = ({
     if (location.pathname === "/settings") {
       const fromParam = searchParams.get("from");
       if (fromParam && fromParam.startsWith("/")) {
-        const derivedView = pathToView(fromParam);
+        const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
+        const derivedView = pathToView(fromPathname);
         if (derivedView) {
           return derivedView;
         }
@@ -162,23 +186,64 @@ export const useDashboardNavigation = ({
       if (!candidate || !candidate.startsWith("/")) {
         return null;
       }
-      if (!isProtectedPath(candidate) || candidate === "/settings") {
+      const pathOnly = candidate.split(/[?#]/, 1)[0] ?? candidate;
+      if (!isProtectedPath(pathOnly) || pathOnly === "/settings") {
         return null;
       }
       return candidate;
     },
     [],
   );
+  const currentLocationPath = useMemo(
+    () => `${location.pathname}${location.search}${location.hash}`,
+    [location.hash, location.pathname, location.search],
+  );
+  const resolveDraftPendingFromPath = useCallback((): string => {
+    const fromParam = toProtectedFromPath(searchParams.get("from"));
+    if (fromParam) {
+      return fromParam;
+    }
+    if (
+      isProtectedPath(location.pathname) &&
+      location.pathname !== "/settings" &&
+      !isDraftPendingPath(location.pathname)
+    ) {
+      return currentLocationPath;
+    }
+    return "/tasks";
+  }, [currentLocationPath, location.pathname, searchParams, toProtectedFromPath]);
+  const draftPendingProjectDetailId = useMemo(() => {
+    if (currentView.startsWith("draft-project:")) {
+      return currentView.slice("draft-project:".length);
+    }
+    if (currentView.startsWith("pending-project:")) {
+      return currentView.slice("pending-project:".length);
+    }
+    return null;
+  }, [currentView]);
+  const draftPendingProjectDetailKind = useMemo<DraftPendingRouteKind | null>(
+    () => {
+      if (currentView === "drafts" || currentView.startsWith("draft-project:")) {
+        return "draft";
+      }
+      if (currentView === "pending" || currentView.startsWith("pending-project:")) {
+        return "pending";
+      }
+      return null;
+    },
+    [currentView],
+  );
+  const isDraftPendingProjectsOpen = draftPendingProjectDetailKind != null;
   const resolveSettingsFromPath = useCallback((): string => {
     if (
       isProtectedPath(location.pathname) &&
       location.pathname !== "/settings"
     ) {
-      return location.pathname;
+      return currentLocationPath;
     }
     const fromParam = toProtectedFromPath(searchParams.get("from"));
     return fromParam ?? "/tasks";
-  }, [location.pathname, searchParams, toProtectedFromPath]);
+  }, [currentLocationPath, location.pathname, searchParams, toProtectedFromPath]);
   const navigateView = useCallback(
     (view: AppView) => {
       const nextPath = viewToPath(view);
@@ -243,6 +308,58 @@ export const useDashboardNavigation = ({
   const backToCompletedProjectsList = useCallback(() => {
     setCompletedProjectDetailId(null);
   }, []);
+  const openDraftPendingProjectsPopup = useCallback(() => {
+    const from = resolveDraftPendingFromPath();
+    const params = new URLSearchParams({ from });
+    setIsInboxOpen(false);
+    navigate(`${DRAFTS_PATH}?${params.toString()}`);
+  }, [navigate, resolveDraftPendingFromPath]);
+  const closeDraftPendingProjectsPopup = useCallback(() => {
+    const destination = resolveDraftPendingFromPath();
+    setIsInboxOpen(false);
+    if (currentLocationPath === destination) {
+      return;
+    }
+    navigate(destination, { replace: true });
+  }, [currentLocationPath, navigate, resolveDraftPendingFromPath]);
+  const openDraftPendingProjectDetail = useCallback(
+    (
+      projectId: string,
+      status: DraftPendingStatus,
+      options?: { replace?: boolean },
+    ) => {
+      const detailView: AppView =
+        status === "Draft"
+          ? `draft-project:${projectId}`
+          : `pending-project:${projectId}`;
+      const from = resolveDraftPendingFromPath();
+      const params = new URLSearchParams({ from });
+      const nextPath = `${viewToPath(detailView)}?${params.toString()}`;
+      setIsInboxOpen(false);
+      if (currentLocationPath === nextPath) {
+        return;
+      }
+      navigate(nextPath, { replace: options?.replace });
+    },
+    [currentLocationPath, navigate, resolveDraftPendingFromPath],
+  );
+  const backToDraftPendingProjectsList = useCallback(() => {
+    const from = resolveDraftPendingFromPath();
+    const listView: AppView =
+      draftPendingProjectDetailKind === "pending" ? "pending" : "drafts";
+    const params = new URLSearchParams({ from });
+    const nextPath = `${viewToPath(listView)}?${params.toString()}`;
+    setIsInboxOpen(false);
+    if (currentLocationPath === nextPath) {
+      return;
+    }
+    navigate(nextPath, { replace: true });
+  }, [
+    currentLocationPath,
+    draftPendingProjectDetailKind,
+    navigate,
+    resolveDraftPendingFromPath,
+  ]);
   const handleOpenSettingsWithFocus = useCallback(
     ({
       tab = "Account",
@@ -294,6 +411,9 @@ export const useDashboardNavigation = ({
     setIsCreateWorkspaceOpen,
     isCompletedProjectsOpen,
     completedProjectDetailId,
+    isDraftPendingProjectsOpen,
+    draftPendingProjectDetailId,
+    draftPendingProjectDetailKind,
     highlightedArchiveProjectId,
     setHighlightedArchiveProjectId,
     pendingHighlight,
@@ -319,6 +439,10 @@ export const useDashboardNavigation = ({
     closeCompletedProjectsPopup,
     openCompletedProjectDetail,
     backToCompletedProjectsList,
+    openDraftPendingProjectsPopup,
+    closeDraftPendingProjectsPopup,
+    openDraftPendingProjectDetail,
+    backToDraftPendingProjectsList,
     handleOpenSettingsWithFocus,
     handleOpenSettings,
     handleCloseSettings,

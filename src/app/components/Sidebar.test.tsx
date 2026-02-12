@@ -48,6 +48,7 @@ describe("Sidebar workspace permissions", () => {
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
         projects={{}}
+        approvedSidebarProjectIds={[]}
         viewerIdentity={viewerIdentity}
         activeWorkspace={workspaces[0]}
         workspaces={workspaces}
@@ -58,6 +59,7 @@ describe("Sidebar workspace permissions", () => {
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
@@ -80,6 +82,7 @@ describe("Sidebar workspace permissions", () => {
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
         projects={{}}
+        approvedSidebarProjectIds={[]}
         viewerIdentity={viewerIdentity}
         activeWorkspace={workspaces[0]}
         workspaces={workspaces}
@@ -90,6 +93,7 @@ describe("Sidebar workspace permissions", () => {
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
@@ -110,6 +114,7 @@ describe("Sidebar workspace permissions", () => {
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
         projects={{}}
+        approvedSidebarProjectIds={[]}
         viewerIdentity={viewerIdentity}
         activeWorkspace={workspaces[0]}
         workspaces={workspaces}
@@ -120,6 +125,7 @@ describe("Sidebar workspace permissions", () => {
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
@@ -136,6 +142,7 @@ describe("Sidebar workspace permissions", () => {
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
         projects={{}}
+        approvedSidebarProjectIds={[]}
         viewerIdentity={viewerIdentity}
         activeWorkspace={workspaces[0]}
         workspaces={workspaces}
@@ -146,6 +153,7 @@ describe("Sidebar workspace permissions", () => {
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );
@@ -163,6 +171,7 @@ describe("Sidebar workspace permissions", () => {
         onOpenCreateProject={vi.fn()}
         currentView="tasks"
         projects={{}}
+        approvedSidebarProjectIds={[]}
         viewerIdentity={viewerIdentity}
         activeWorkspace={workspaces[0]}
         workspaces={workspaces}
@@ -173,6 +182,7 @@ describe("Sidebar workspace permissions", () => {
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
         onLogout={vi.fn()}
       />,
     );

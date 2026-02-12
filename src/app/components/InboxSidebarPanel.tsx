@@ -325,7 +325,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
             <div
               ref={scrollContainerRef}
               data-testid="inbox-scroll-region"
-              className="flex-1 overflow-y-auto px-4 py-4"
+              className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4"
               onScroll={handleInboxScroll}
             >
               <div className="relative z-10 mb-4 flex items-center gap-2">
@@ -424,9 +424,8 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  <div className="flex items-center border-b border-border-subtle-soft px-4 py-2 txt-role-meta uppercase tracking-wider txt-tone-faint">
-                    <div className="flex-1 min-w-0">Activity</div>
-                    <div className="w-[120px] shrink-0 text-right">Type</div>
+                  <div className="border-b border-border-subtle-soft py-2 txt-role-meta uppercase tracking-wider txt-tone-faint">
+                    Activity
                   </div>
                   <div className="flex flex-col">
                     {renderedActivities}

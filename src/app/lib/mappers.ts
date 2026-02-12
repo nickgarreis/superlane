@@ -21,6 +21,7 @@ export type SnapshotProject = {
   archived: boolean;
   archivedAt?: number | null;
   completedAt?: number | null;
+  lastApprovedAt?: number | null;
   draftData?: ProjectDraftData | null;
   attachments?: ProjectData["attachments"];
   reviewComments?: ReviewComment[];
@@ -102,6 +103,7 @@ export const mapProjectsToUi = ({
       archived: project.archived,
       archivedAt: project.archivedAt ?? null,
       completedAt: project.completedAt ?? null,
+      lastApprovedAt: project.lastApprovedAt ?? null,
       draftData: project.draftData ?? undefined,
       attachments: project.attachments,
       comments: project.reviewComments,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { pathToView, viewToPath } from "../../lib/routing";
+import { isProtectedPath, pathToView, viewToPath } from "../../lib/routing";
 import { scheduleIdlePrefetch } from "../../lib/prefetch";
 import { reportUiError } from "../../lib/errors";
 import { useGlobalEventListener } from "../../lib/hooks/useGlobalEventListener";
@@ -28,6 +28,7 @@ type UseDashboardLifecycleEffectsArgs = {
   preloadSearchPopupModule: () => Promise<unknown>;
   openSearch: () => void;
   locationPathname: string;
+  locationSearch: string;
   projects: Record<string, ProjectData>;
   navigateToPath: (path: string, replace?: boolean) => void;
   resolvedWorkspaceSlug: string | null;
@@ -45,6 +46,7 @@ export const useDashboardLifecycleEffects = ({
   preloadSearchPopupModule,
   openSearch,
   locationPathname,
+  locationSearch,
   projects,
   navigateToPath,
   resolvedWorkspaceSlug,
@@ -111,6 +113,17 @@ export const useDashboardLifecycleEffects = ({
     type: "keydown",
     listener: handleSearchShortcut,
   });
+  const resolveDraftPendingFromPath = useCallback(() => {
+    const fromParam = new URLSearchParams(locationSearch).get("from");
+    if (!fromParam || !fromParam.startsWith("/")) {
+      return "/tasks";
+    }
+    const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
+    if (!isProtectedPath(fromPathname) || fromPathname === "/settings") {
+      return "/tasks";
+    }
+    return fromParam;
+  }, [locationSearch]);
   useEffect(() => {
     if (!snapshot) {
       return;
@@ -122,7 +135,9 @@ export const useDashboardLifecycleEffects = ({
     }
     const projectRouteLoading =
       (routeView.startsWith("project:") ||
-        routeView.startsWith("archive-project:")) &&
+        routeView.startsWith("archive-project:") ||
+        routeView.startsWith("draft-project:") ||
+        routeView.startsWith("pending-project:")) &&
       projectsPaginationStatus === "LoadingFirstPage";
     if (projectRouteLoading) {
       return;
@@ -161,13 +176,50 @@ export const useDashboardLifecycleEffects = ({
         return;
       }
       invalidRouteRef.current = null;
+      return;
+    }
+    if (
+      routeView.startsWith("draft-project:") ||
+      routeView.startsWith("pending-project:")
+    ) {
+      const routeKind = routeView.startsWith("draft-project:")
+        ? "draft"
+        : "pending";
+      const routePrefix =
+        routeKind === "draft" ? "draft-project:" : "pending-project:";
+      const projectId = routeView.slice(routePrefix.length);
+      const project = projects[projectId] ?? projectCacheRef.current[projectId];
+      const fromPath = resolveDraftPendingFromPath();
+      const fromParams = new URLSearchParams({ from: fromPath });
+      const listView = routeKind === "draft" ? "drafts" : "pending";
+      const listPath = `${viewToPath(listView)}?${fromParams.toString()}`;
+      if (
+        !project ||
+        project.archived ||
+        (project.status.label !== "Draft" && project.status.label !== "Review")
+      ) {
+        navigateToPath(listPath, true);
+        return;
+      }
+      const expectedDetailView =
+        project.status.label === "Draft"
+          ? (`draft-project:${projectId}` as const)
+          : (`pending-project:${projectId}` as const);
+      const expectedPath = `${viewToPath(expectedDetailView)}?${fromParams.toString()}`;
+      if (routeView !== expectedDetailView) {
+        navigateToPath(expectedPath, true);
+        return;
+      }
+      invalidRouteRef.current = null;
     }
   }, [
     snapshot,
     locationPathname,
+    locationSearch,
     projects,
     navigateToPath,
     projectsPaginationStatus,
+    resolveDraftPendingFromPath,
   ]);
   useEffect(() => {
     if (!resolvedWorkspaceSlug || !companySettings) {

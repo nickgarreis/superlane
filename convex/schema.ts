@@ -229,6 +229,7 @@ export default defineSchema({
     deadline: v.optional(v.union(v.string(), v.null())),
     status: projectStatusValidator,
     previousStatus: v.optional(v.union(projectStatusValidator, v.null())),
+    lastApprovedAt: v.optional(v.union(v.number(), v.null())),
     archived: v.boolean(),
     archivedAt: v.optional(v.union(v.number(), v.null())),
     completedAt: v.optional(v.union(v.number(), v.null())),
@@ -257,6 +258,17 @@ export default defineSchema({
       "createdAt",
     ])
     .index("by_workspace_deadlineEpochMs", ["workspaceId", "deadlineEpochMs"]),
+
+  projectApprovalReads: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    projectPublicId: v.string(),
+    lastSeenApprovedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace_user", ["workspaceId", "userId"])
+    .index("by_workspace_user_project", ["workspaceId", "userId", "projectPublicId"]),
 
   tasks: defineTable({
     workspaceId: v.id("workspaces"),

@@ -154,6 +154,30 @@ export const listForWorkspace = query({
   },
 });
 
+export const listApprovalReadsForWorkspace = query({
+  args: {
+    workspaceSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const workspace = await getWorkspaceBySlug(ctx, args.workspaceSlug);
+    const { appUser } = await requireWorkspaceRole(ctx, workspace._id, "member", {
+      workspace,
+    });
+
+    const approvalReads = await ctx.db
+      .query("projectApprovalReads")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", workspace._id).eq("userId", appUser._id),
+      )
+      .collect();
+
+    return approvalReads.map((approvalRead: any) => ({
+      projectPublicId: approvalRead.projectPublicId,
+      lastSeenApprovedAt: approvalRead.lastSeenApprovedAt,
+    }));
+  },
+});
+
 const resolveLifecycleEventType = (previousStatus: string | null, nextStatus: string) => {
   if (nextStatus === "Review" && previousStatus !== "Review") {
     return "submitted" as const;
@@ -163,6 +187,21 @@ const resolveLifecycleEventType = (previousStatus: string | null, nextStatus: st
   }
   if (nextStatus === "Completed" && previousStatus !== "Completed") {
     return "completed" as const;
+  }
+  return null;
+};
+
+const resolveLastApprovedAt = (args: {
+  previousStatus: string;
+  nextStatus: string;
+  currentLastApprovedAt: number | null;
+  transitionAt: number;
+}) => {
+  if (args.previousStatus === args.nextStatus) {
+    return args.currentLastApprovedAt;
+  }
+  if (args.previousStatus === "Review" && args.nextStatus === "Active") {
+    return args.transitionAt;
   }
   return null;
 };
@@ -417,6 +456,7 @@ export const create = mutation({
       deadlineEpochMs,
       status,
       previousStatus: null,
+      lastApprovedAt: null,
       archived: false,
       archivedAt: null,
       completedAt: status === "Completed" ? now : null,
@@ -485,9 +525,10 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { project, appUser, membership } = await requireProjectRole(ctx, args.publicId, "member");
     const previousName = project.name;
+    const now = Date.now();
 
     const patch: Record<string, unknown> = {
-      updatedAt: Date.now(),
+      updatedAt: now,
       updatedByUserId: appUser._id,
       // Remove legacy pre-normalization field when this row is touched.
       deadline: undefined,
@@ -520,8 +561,14 @@ export const update = mutation({
       patch.archived = false;
       patch.previousStatus = null;
       patch.archivedAt = null;
-      patch.completedAt = args.status === "Completed" ? Date.now() : null;
+      patch.completedAt = args.status === "Completed" ? now : null;
       patch.statusUpdatedByUserId = appUser._id;
+      patch.lastApprovedAt = resolveLastApprovedAt({
+        previousStatus: project.status,
+        nextStatus: args.status,
+        currentLastApprovedAt: project.lastApprovedAt ?? null,
+        transitionAt: now,
+      });
     }
 
     await ctx.db.patch(project._id, patch);
@@ -584,6 +631,12 @@ export const setStatus = mutation({
       previousStatus: null,
       archivedAt: null,
       completedAt: args.status === "Completed" ? now : null,
+      lastApprovedAt: resolveLastApprovedAt({
+        previousStatus: project.status,
+        nextStatus: args.status,
+        currentLastApprovedAt: project.lastApprovedAt ?? null,
+        transitionAt: now,
+      }),
       updatedAt: now,
       statusUpdatedByUserId: appUser._id,
     });
@@ -599,6 +652,64 @@ export const setStatus = mutation({
     });
 
     return { publicId: project.publicId };
+  },
+});
+
+export const markApprovalSeen = mutation({
+  args: {
+    publicId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { project, appUser } = await requireProjectRole(ctx, args.publicId, "member");
+    const approvedAt = project.lastApprovedAt ?? null;
+    if (approvedAt === null) {
+      return {
+        publicId: project.publicId,
+        markedSeen: false,
+        lastSeenApprovedAt: null,
+      };
+    }
+
+    const existingRead = await ctx.db
+      .query("projectApprovalReads")
+      .withIndex("by_workspace_user_project", (q) =>
+        q
+          .eq("workspaceId", project.workspaceId)
+          .eq("userId", appUser._id)
+          .eq("projectPublicId", project.publicId),
+      )
+      .unique();
+
+    if (existingRead && existingRead.lastSeenApprovedAt >= approvedAt) {
+      return {
+        publicId: project.publicId,
+        markedSeen: false,
+        lastSeenApprovedAt: existingRead.lastSeenApprovedAt,
+      };
+    }
+
+    const now = Date.now();
+    if (existingRead) {
+      await ctx.db.patch(existingRead._id, {
+        lastSeenApprovedAt: approvedAt,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("projectApprovalReads", {
+        workspaceId: project.workspaceId,
+        userId: appUser._id,
+        projectPublicId: project.publicId,
+        lastSeenApprovedAt: approvedAt,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      publicId: project.publicId,
+      markedSeen: true,
+      lastSeenApprovedAt: approvedAt,
+    };
   },
 });
 
@@ -655,6 +766,7 @@ export const unarchive = mutation({
       status: "Active",
       previousStatus: null,
       completedAt: null,
+      lastApprovedAt: null,
       updatedAt: now,
       statusUpdatedByUserId: appUser._id,
       unarchivedByUserId: appUser._id,
@@ -706,6 +818,7 @@ export const normalizeUnarchivedDraftReviewToActive = mutation({
             status: "Active",
             previousStatus: null,
             completedAt: null,
+            lastApprovedAt: null,
             statusUpdatedByUserId: appUser._id,
             updatedAt: now,
           }),

@@ -114,6 +114,32 @@ describe("useDashboardNavigation", () => {
     expect(result.current.isSettingsOpen).toBe(false);
   });
 
+  test("derives drafts list state from /drafts route", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts?from=/archive"),
+    });
+
+    expect(result.current.currentView).toBe("drafts");
+    expect(result.current.isDraftPendingProjectsOpen).toBe(true);
+    expect(result.current.draftPendingProjectDetailId).toBeNull();
+    expect(result.current.draftPendingProjectDetailKind).toBe("draft");
+  });
+
+  test("derives pending detail state from /pending/:id route", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/pending/review-1?from=/tasks"),
+    });
+
+    expect(result.current.currentView).toBe("pending-project:review-1");
+    expect(result.current.isDraftPendingProjectsOpen).toBe(true);
+    expect(result.current.draftPendingProjectDetailId).toBe("review-1");
+    expect(result.current.draftPendingProjectDetailKind).toBe("pending");
+  });
+
   test("opens search and create dialogs while preloading modules", () => {
     const args = baseArgs();
 
@@ -178,6 +204,78 @@ describe("useDashboardNavigation", () => {
     await waitFor(() => {
       expect(result.current.currentView).toBe("archive");
       expect(result.current.isInboxOpen).toBe(true);
+    });
+  });
+
+  test("opens draft/pending list with preserved from path", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/project/active-1"),
+    });
+
+    act(() => {
+      result.current.openDraftPendingProjectsPopup();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/drafts");
+      expect(result.current.searchParams.get("from")).toBe("/project/active-1");
+      expect(result.current.currentView).toBe("drafts");
+    });
+  });
+
+  test("closes draft/pending popup back to origin from from-query", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts?from=/archive"),
+    });
+
+    act(() => {
+      result.current.closeDraftPendingProjectsPopup();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/archive");
+      expect(result.current.currentView).toBe("archive");
+    });
+  });
+
+  test("opens status-aware draft/pending detail route and keeps from query", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts?from=/archive"),
+    });
+
+    act(() => {
+      result.current.openDraftPendingProjectDetail("review-1", "Review");
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/pending/review-1");
+      expect(result.current.searchParams.get("from")).toBe("/archive");
+      expect(result.current.draftPendingProjectDetailKind).toBe("pending");
+      expect(result.current.draftPendingProjectDetailId).toBe("review-1");
+    });
+  });
+
+  test("backs from pending detail to pending list while preserving from query", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/pending/review-1?from=/tasks"),
+    });
+
+    act(() => {
+      result.current.backToDraftPendingProjectsList();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/pending");
+      expect(result.current.searchParams.get("from")).toBe("/tasks");
+      expect(result.current.draftPendingProjectDetailId).toBeNull();
     });
   });
 

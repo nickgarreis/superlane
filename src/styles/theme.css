@@ -369,6 +369,12 @@
   color: var(--text-tone-warning);
 }
 
+@utility tone-warning-soft {
+  color: var(--text-tone-warning);
+  border-color: var(--activity-collaboration-border);
+  background-color: var(--activity-collaboration-bg);
+}
+
 @utility txt-tone-inverse {
   color: var(--text-tone-inverse);
 }

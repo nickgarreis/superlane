@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { reportUiError } from "../../lib/errors";
 import { useDashboardCommands } from "../useDashboardCommands";
 import type {
   MainContentFileActions,
@@ -27,6 +28,7 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     handleCreateWorkspace,
     workspaceActions,
   } = dataLayer;
+  const { markApprovalSeenMutation } = apiHandlers;
   const { navigateView } = navigation;
   const projectActions = useDashboardProjectActions({
     activeWorkspaceId: data.activeWorkspace?.id,
@@ -113,6 +115,7 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     deleteProject,
     updateProjectStatus,
   } = projectCommands;
+  const markedApprovalRouteKeysRef = useRef<Set<string>>(new Set());
 
   useDraftReviewProjectRouteGuard({
     currentView: navigation.currentView,
@@ -120,12 +123,40 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     projects: data.projects,
     orderedProjectIds: data.visibleProjectIds,
     projectsPaginationStatus: data.projectsPaginationStatus,
-    editProject: projectCommands.editProject,
-    viewReviewProject: projectCommands.viewReviewProject,
     openCompletedProjectsPopup: navigation.openCompletedProjectsPopup,
     navigateToPath: (path, replace = false) =>
       navigation.navigate(path, { replace }),
   });
+
+  useEffect(() => {
+    if (!navigation.currentView.startsWith("project:")) {
+      return;
+    }
+
+    const projectId = navigation.currentView.slice("project:".length);
+    const project = data.projects[projectId];
+    if (!project || project.archived || project.status.label !== "Active") {
+      return;
+    }
+
+    const approvedAt = project.lastApprovedAt;
+    if (typeof approvedAt !== "number") {
+      return;
+    }
+
+    const dedupeKey = `${project.id}:${approvedAt}`;
+    if (markedApprovalRouteKeysRef.current.has(dedupeKey)) {
+      return;
+    }
+    markedApprovalRouteKeysRef.current.add(dedupeKey);
+
+    void markApprovalSeenMutation({ publicId: project.id }).catch((error) => {
+      markedApprovalRouteKeysRef.current.delete(dedupeKey);
+      reportUiError("dashboard.project.markApprovalSeen", error, {
+        showToast: false,
+      });
+    });
+  }, [data.projects, markApprovalSeenMutation, navigation.currentView]);
 
   const mainContentFileActions = useMemo<MainContentFileActions>(
     () => ({

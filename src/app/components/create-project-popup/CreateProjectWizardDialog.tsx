@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { ArrowLeft } from "lucide-react";
 import createProjectBgFallbackPng from "../../../assets/optimized/create-project-bg-fallback.png";
 import createProjectBgWebp from "../../../assets/optimized/create-project-bg.webp";
 import {
@@ -68,10 +69,17 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
     handleConfirmCancel,
     handleCancel,
     requestDeleteReviewProject,
+    handleBackClick,
+    backToDraftPendingProjectsLabel,
     setShowCloseConfirm,
     setShowDeleteConfirm,
     setShowDeleteProjectConfirm,
   } = useCreateProjectWizardController(props);
+
+  const backButtonText = backToDraftPendingProjectsLabel
+    ? `Back to ${backToDraftPendingProjectsLabel}`
+    : null;
+
   if (!isOpen) {
     return null;
   }
@@ -99,6 +107,19 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 />
               </picture>
               <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start px-[32px] py-[24px] relative size-full">
+                {backButtonText && (
+                  <button
+                    type="button"
+                    onClick={handleBackClick}
+                    className="mb-4 inline-flex items-center gap-2 txt-role-body-md text-white/50 hover:text-white/80 transition-colors cursor-pointer group"
+                  >
+                    <ArrowLeft
+                      size={16}
+                      className="group-hover:-translate-x-0.5 transition-transform"
+                    />
+                    <span>{backButtonText}</span>
+                  </button>
+                )}
                 <div className="content-stretch flex items-center relative shrink-0 w-full justify-between">
                   <div className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap">
                     <p className="txt-leading-title">
@@ -116,6 +137,21 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
           {(step === 2 || step === 3) && (
             <div className="absolute right-[25px] top-[25px] z-30">
               <WizardCloseButton onClick={handleCloseClick} />
+            </div>
+          )}
+          {backButtonText && step !== 1 && (
+            <div className="absolute left-[25px] top-[25px] z-30">
+              <button
+                type="button"
+                onClick={handleBackClick}
+                className="inline-flex items-center gap-2 txt-role-body-md text-white/50 hover:text-white/80 transition-colors cursor-pointer group"
+              >
+                <ArrowLeft
+                  size={16}
+                  className="group-hover:-translate-x-0.5 transition-transform"
+                />
+                <span>{backButtonText}</span>
+              </button>
             </div>
           )}
           {step === 3 && (

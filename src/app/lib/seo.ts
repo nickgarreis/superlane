@@ -27,12 +27,28 @@ export const getPageTitle = (pathname: string): string => {
     return `Archive | ${APP_NAME}`;
   }
 
+  if (pathname === "/drafts") {
+    return `Drafts & Pending Projects | ${APP_NAME}`;
+  }
+
+  if (pathname === "/pending") {
+    return `Drafts & Pending Projects | ${APP_NAME}`;
+  }
+
   if (pathname === "/activities") {
     return `Activities | ${APP_NAME}`;
   }
 
   if (pathname.startsWith("/archive/")) {
     return `Archived Project | ${APP_NAME}`;
+  }
+
+  if (pathname.startsWith("/drafts/")) {
+    return `Draft Project | ${APP_NAME}`;
+  }
+
+  if (pathname.startsWith("/pending/")) {
+    return `Pending Project | ${APP_NAME}`;
   }
 
   if (pathname.startsWith("/project/")) {

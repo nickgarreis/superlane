@@ -169,6 +169,58 @@ export const listForWorkspace = query({
         readReceiptActivityEventIds.has(String(event._id)),
     );
 
+    const projectPublicIds = Array.from(
+      new Set(
+        filtered
+          .map((event) => event.projectPublicId)
+          .filter(
+            (projectPublicId): projectPublicId is string =>
+              typeof projectPublicId === "string" && projectPublicId.trim().length > 0,
+          ),
+      ),
+    );
+    const projectRows = await Promise.all(
+      projectPublicIds.map((projectPublicId) =>
+        ctx.db
+          .query("projects")
+          .withIndex("by_publicId", (q) => q.eq("publicId", projectPublicId))
+          .unique(),
+      ),
+    );
+    const projectCategoryByPublicId = new Map<string, string>();
+    for (const project of projectRows) {
+      if (!project || project.workspaceId !== workspace._id) {
+        continue;
+      }
+      const category = typeof project.category === "string" ? project.category.trim() : "";
+      if (category.length === 0) {
+        continue;
+      }
+      projectCategoryByPublicId.set(project.publicId, category);
+    }
+
+    const targetUserIds = Array.from(
+      new Set(
+        filtered
+          .map((event) => event.targetUserId)
+          .filter((targetUserId): targetUserId is Id<"users"> => Boolean(targetUserId)),
+      ),
+    );
+    const targetUsers = await Promise.all(
+      targetUserIds.map((targetUserId) => ctx.db.get(targetUserId)),
+    );
+    const targetUserAvatarUrlById = new Map<string, string>();
+    for (const user of targetUsers) {
+      if (!user) {
+        continue;
+      }
+      const avatarUrl = typeof user.avatarUrl === "string" ? user.avatarUrl.trim() : "";
+      if (avatarUrl.length === 0) {
+        continue;
+      }
+      targetUserAvatarUrlById.set(String(user._id), avatarUrl);
+    }
+
     return {
       ...paginated,
       page: filtered.map((event, index) => ({
@@ -181,6 +233,10 @@ export const listForWorkspace = query({
         actorAvatarUrl: event.actorAvatarUrl ?? null,
         projectPublicId: event.projectPublicId ?? null,
         projectName: event.projectName ?? null,
+        projectCategory:
+          event.projectPublicId
+            ? (projectCategoryByPublicId.get(event.projectPublicId) ?? null)
+            : null,
         projectVisibility: event.projectVisibility ?? "workspace",
         projectOwnerUserId: event.projectOwnerUserId
           ? String(event.projectOwnerUserId)
@@ -191,6 +247,9 @@ export const listForWorkspace = query({
         fileTab: event.fileTab ?? null,
         targetUserId: event.targetUserId ? String(event.targetUserId) : null,
         targetUserName: event.targetUserName ?? null,
+        targetUserAvatarUrl: event.targetUserId
+          ? (targetUserAvatarUrlById.get(String(event.targetUserId)) ?? null)
+          : null,
         targetRole: event.targetRole ?? null,
         fromValue: event.fromValue ?? null,
         toValue: event.toValue ?? null,

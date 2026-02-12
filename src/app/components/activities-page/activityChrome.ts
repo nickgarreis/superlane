@@ -1,5 +1,16 @@
+import {
+  Bell,
+  Building2,
+  HardDrive,
+  ListChecks,
+  Palette,
+  Settings,
+  User,
+  type LucideIcon,
+} from "lucide-react";
+
 export const ACTIVITY_ROW_BASE_CLASS =
-  "group flex items-start gap-3 border-b border-border-subtle-soft px-4 py-3 transition-colors hover:bg-surface-hover-subtle";
+  "group flex w-full min-w-0 items-start gap-3 overflow-x-hidden border-b border-border-subtle-soft px-4 py-5 transition-colors hover:bg-surface-hover-subtle";
 
 export const ACTIVITY_META_CLASS =
   "txt-role-body-sm txt-tone-faint";
@@ -8,7 +19,7 @@ export const ACTIVITY_TITLE_CLASS =
   "txt-role-body-md txt-tone-primary";
 
 export const ACTIVITY_KIND_BADGE_BASE_CLASS =
-  "inline-flex w-[120px] shrink-0 items-center justify-end gap-2 txt-role-kbd uppercase tracking-wider txt-tone-faint";
+  "size-8 rounded-lg flex items-center justify-center shrink-0";
 
 export const ACTIVITY_PAGE_ROOT_CLASS =
   "relative flex h-full flex-1 flex-col overflow-hidden bg-bg-base font-app txt-tone-primary";
@@ -47,23 +58,45 @@ export const ACTIVITY_KIND_LABELS: Record<ActivityKindFilter, string> = {
   organization: "Organization",
 };
 
-export const activityKindToneClass = (kind: ActivityKindFilter) => {
+export const ACTIVITY_KIND_ICONS: Record<ActivityKindFilter, LucideIcon> = {
+  project: Palette,
+  task: ListChecks,
+  collaboration: Bell,
+  file: HardDrive,
+  membership: User,
+  workspace: Building2,
+  organization: Settings,
+};
+
+export const activityKindIconChrome = (kind: ActivityKindFilter) => {
   switch (kind) {
     case "project":
-      return "activity-tone-project";
+      return {
+        containerClass: "bg-surface-hover-soft",
+        iconClass: "text-text-muted-medium",
+      };
     case "task":
-      return "activity-tone-task";
-    case "collaboration":
-      return "activity-tone-collaboration";
+      return {
+        containerClass: "bg-surface-muted-soft",
+        iconClass: "text-text-muted-medium",
+      };
     case "file":
-      return "activity-tone-file";
+      return {
+        containerClass: "bg-surface-muted-soft",
+        iconClass: "text-text-muted-medium",
+      };
+    case "collaboration":
     case "membership":
-      return "activity-tone-membership";
     case "workspace":
-      return "activity-tone-workspace";
     case "organization":
-      return "activity-tone-organization";
+      return {
+        containerClass: "bg-text-tone-accent-soft",
+        iconClass: "txt-tone-accent",
+      };
     default:
-      return "activity-tone-workspace";
+      return {
+        containerClass: "bg-text-tone-accent-soft",
+        iconClass: "txt-tone-accent",
+      };
   }
 };

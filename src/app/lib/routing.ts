@@ -1,10 +1,16 @@
 export type AppView =
   | "tasks"
   | "archive"
+  | "drafts"
+  | "pending"
   | "activities"
   | `project:${string}`
-  | `archive-project:${string}`;
+  | `archive-project:${string}`
+  | `draft-project:${string}`
+  | `pending-project:${string}`;
 const archiveProjectPattern = /^\/archive\/([^/]+)$/;
+const draftProjectPattern = /^\/drafts\/([^/]+)$/;
+const pendingProjectPattern = /^\/pending\/([^/]+)$/;
 const projectPattern = /^\/project\/([^/]+)$/;
 const safeDecodePathSegment = (value: string): string | null => {
   try {
@@ -20,12 +26,26 @@ export const viewToPath = (view: AppView): string => {
   if (view === "archive") {
     return "/archive";
   }
+  if (view === "drafts") {
+    return "/drafts";
+  }
+  if (view === "pending") {
+    return "/pending";
+  }
   if (view === "activities") {
     return "/activities";
   }
   if (view.startsWith("archive-project:")) {
     const projectId = view.slice("archive-project:".length);
     return `/archive/${encodeURIComponent(projectId)}`;
+  }
+  if (view.startsWith("draft-project:")) {
+    const projectId = view.slice("draft-project:".length);
+    return `/drafts/${encodeURIComponent(projectId)}`;
+  }
+  if (view.startsWith("pending-project:")) {
+    const projectId = view.slice("pending-project:".length);
+    return `/pending/${encodeURIComponent(projectId)}`;
   }
   const projectId = view.slice("project:".length);
   return `/project/${encodeURIComponent(projectId)}`;
@@ -37,6 +57,12 @@ export const pathToView = (pathname: string): AppView | null => {
   if (pathname === "/archive") {
     return "archive";
   }
+  if (pathname === "/drafts") {
+    return "drafts";
+  }
+  if (pathname === "/pending") {
+    return "pending";
+  }
   if (pathname === "/activities") {
     return "activities";
   }
@@ -47,6 +73,22 @@ export const pathToView = (pathname: string): AppView | null => {
     );
     if (decodedArchiveProjectId !== null) {
       return `archive-project:${decodedArchiveProjectId}`;
+    }
+  }
+  const draftProjectMatch = pathname.match(draftProjectPattern);
+  if (draftProjectMatch) {
+    const decodedDraftProjectId = safeDecodePathSegment(draftProjectMatch[1]);
+    if (decodedDraftProjectId !== null) {
+      return `draft-project:${decodedDraftProjectId}`;
+    }
+  }
+  const pendingProjectMatch = pathname.match(pendingProjectPattern);
+  if (pendingProjectMatch) {
+    const decodedPendingProjectId = safeDecodePathSegment(
+      pendingProjectMatch[1],
+    );
+    if (decodedPendingProjectId !== null) {
+      return `pending-project:${decodedPendingProjectId}`;
     }
   }
   const projectMatch = pathname.match(projectPattern);
@@ -61,7 +103,11 @@ export const pathToView = (pathname: string): AppView | null => {
 export const isProtectedPath = (pathname: string): boolean =>
   pathname === "/tasks" ||
   pathname === "/archive" ||
+  pathname === "/drafts" ||
+  pathname === "/pending" ||
   pathname === "/activities" ||
   pathname === "/settings" ||
   archiveProjectPattern.test(pathname) ||
+  draftProjectPattern.test(pathname) ||
+  pendingProjectPattern.test(pathname) ||
   projectPattern.test(pathname);

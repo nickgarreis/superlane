@@ -24,6 +24,7 @@ export type SidebarItemProps = {
   projectStatus?: string;
   isDraft?: boolean;
   isReview?: boolean;
+  isApproved?: boolean;
   completionDate?: string;
 };
 export const SidebarItem = React.memo(function SidebarItem({
@@ -42,6 +43,7 @@ export const SidebarItem = React.memo(function SidebarItem({
   projectStatus,
   isDraft,
   isReview,
+  isApproved,
   completionDate,
 }: SidebarItemProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -105,6 +107,11 @@ export const SidebarItem = React.memo(function SidebarItem({
       {isReview && (
         <span className="inline-flex h-[19px] items-center py-[2px] txt-role-kbd font-medium txt-tone-muted ml-2 shrink-0 whitespace-nowrap">
           In Review
+        </span>
+      )}
+      {isApproved && (
+        <span className="inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium tone-warning-soft ml-2 shrink-0 whitespace-nowrap rounded-full border">
+          Approved
         </span>
       )}
       {completionDate && (

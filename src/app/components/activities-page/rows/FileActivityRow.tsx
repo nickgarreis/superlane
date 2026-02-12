@@ -1,7 +1,7 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
 import { ActivityRowShell } from "../ActivityRowShell";
-import { formatActivityMeta } from "../activityFormatting";
+import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
   const fileName = activity.fileName ?? "file";
@@ -34,6 +34,12 @@ export function FileActivityRow({
   onMarkRead,
   onClick,
 }: FileActivityRowProps) {
+  const contextItems = buildContextItems([
+    { label: "File", value: activity.fileName },
+    { label: "Tab", value: activity.fileTab },
+    { label: "Error", value: activity.action === "upload_failed" ? activity.errorCode : null },
+  ]);
+
   return (
     <ActivityRowShell
       kind="file"
@@ -45,9 +51,12 @@ export function FileActivityRow({
       showReadState={showReadState}
       onMarkRead={onMarkRead}
       onClick={onClick}
+      contextItems={contextItems}
     >
       {activity.fileTab ? (
-        <p className="txt-role-body-sm txt-tone-subtle">{activity.fileTab}</p>
+        <p className="txt-role-body-sm txt-tone-subtle">
+          Uploaded in the {activity.fileTab} tab
+        </p>
       ) : null}
     </ActivityRowShell>
   );

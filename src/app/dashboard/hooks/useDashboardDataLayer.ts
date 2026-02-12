@@ -221,6 +221,7 @@ export function useDashboardDataLayer() {
     preloadSearchPopupModule: loadSearchPopupModule,
     openSearch,
     locationPathname: location.pathname,
+    locationSearch: location.search,
     projects: data.projects,
     navigateToPath: navigateToPathWithReplace,
     resolvedWorkspaceSlug: data.resolvedWorkspaceSlug,

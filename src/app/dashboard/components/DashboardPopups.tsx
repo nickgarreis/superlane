@@ -1,6 +1,8 @@
 import React, { Suspense } from "react";
 import type { DashboardPopupsProps } from "./dashboardPopups.types";
 import { Z_LAYERS } from "../../lib/zLayers";
+import type { ProjectData, ProjectDraftData } from "../../types";
+import { categoryToService } from "../hooks/projectActionMappers";
 export const loadSearchPopupModule = () =>
   import("../../components/SearchPopup");
 export const loadCreateProjectPopupModule = () =>
@@ -13,6 +15,8 @@ export const loadCompletedProjectsPopupModule = () =>
   import("../../components/CompletedProjectsPopup");
 export const loadCompletedProjectDetailPopupModule = () =>
   import("../../components/CompletedProjectDetailPopup");
+export const loadDraftPendingProjectsPopupModule = () =>
+  import("../../components/DraftPendingProjectsPopup");
 const LazySearchPopup = React.lazy(async () => {
   const module = await loadSearchPopupModule();
   return { default: module.SearchPopup };
@@ -37,6 +41,10 @@ const LazyCompletedProjectDetailPopup = React.lazy(async () => {
   const module = await loadCompletedProjectDetailPopupModule();
   return { default: module.CompletedProjectDetailPopup };
 });
+const LazyDraftPendingProjectsPopup = React.lazy(async () => {
+  const module = await loadDraftPendingProjectsPopupModule();
+  return { default: module.DraftPendingProjectsPopup };
+});
 const PopupLoadingFallback = (
   <div
     className="fixed inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm txt-tone-secondary font-app text-sm"
@@ -45,6 +53,20 @@ const PopupLoadingFallback = (
     Loading...
   </div>
 );
+
+const buildDraftDataFromProject = (
+  project: ProjectData,
+): ProjectDraftData => ({
+  selectedService:
+    project.draftData?.selectedService ?? categoryToService(project.category),
+  projectName: project.draftData?.projectName ?? project.name,
+  selectedJob: project.draftData?.selectedJob ?? project.scope ?? "",
+  description: project.draftData?.description ?? project.description,
+  isAIEnabled: project.draftData?.isAIEnabled ?? true,
+  deadlineEpochMs:
+    project.draftData?.deadlineEpochMs ?? project.deadlineEpochMs ?? null,
+  lastStep: project.draftData?.lastStep ?? 1,
+});
 export function DashboardPopups({
   isSearchOpen,
   setIsSearchOpen,
@@ -76,6 +98,12 @@ export function DashboardPopups({
   completedProjectDetailId,
   openCompletedProjectDetail,
   backToCompletedProjectsList,
+  isDraftPendingProjectsOpen,
+  closeDraftPendingProjectsPopup,
+  draftPendingProjectDetailId,
+  draftPendingProjectDetailKind,
+  openDraftPendingProjectDetail,
+  backToDraftPendingProjectsList,
   projectFilesByProject,
   projectFilesPaginationStatus,
   loadMoreProjectFiles,
@@ -188,6 +216,60 @@ export function DashboardPopups({
                   projectActions={createMainContentProjectActions(project.id)}
                   navigationActions={baseMainContentNavigationActions}
                 />
+              </Suspense>
+            )}
+          />
+        </Suspense>
+      )}
+      {isDraftPendingProjectsOpen && (
+        <Suspense fallback={PopupLoadingFallback}>
+          <LazyDraftPendingProjectsPopup
+            isOpen={isDraftPendingProjectsOpen}
+            onClose={closeDraftPendingProjectsPopup}
+            projects={projects}
+            draftPendingProjectDetailId={draftPendingProjectDetailId}
+            draftPendingProjectDetailKind={draftPendingProjectDetailKind}
+            onOpenProjectDetail={openDraftPendingProjectDetail}
+            onBackToDraftPendingProjects={backToDraftPendingProjectsList}
+            renderDetail={(project) => (
+              <Suspense fallback={PopupLoadingFallback}>
+                {project.status.label === "Draft" ? (
+                  <LazyCreateProjectPopup
+                    isOpen={isDraftPendingProjectsOpen}
+                    onClose={closeDraftPendingProjectsPopup}
+                    onBackToDraftPendingProjects={backToDraftPendingProjectsList}
+                    backToDraftPendingProjectsLabel="draft & pending projects"
+                    onCreate={dashboardCommands.project.createOrUpdateProject}
+                    user={createProjectViewer}
+                    editProjectId={project.id}
+                    initialDraftData={buildDraftDataFromProject(project)}
+                    onDeleteDraft={dashboardCommands.project.deleteProject}
+                    onUpdateComments={handleUpdateComments}
+                    onApproveReviewProject={handleApproveReviewProject}
+                    onUploadAttachment={
+                      dashboardCommands.file.uploadDraftAttachment
+                    }
+                    onRemovePendingAttachment={
+                      dashboardCommands.file.removeDraftAttachment
+                    }
+                    onDiscardDraftUploads={
+                      dashboardCommands.file.discardDraftSessionUploads
+                    }
+                  />
+                ) : (
+                  <LazyCreateProjectPopup
+                    isOpen={isDraftPendingProjectsOpen}
+                    onClose={closeDraftPendingProjectsPopup}
+                    onBackToDraftPendingProjects={backToDraftPendingProjectsList}
+                    backToDraftPendingProjectsLabel="draft & pending projects"
+                    onCreate={dashboardCommands.project.createOrUpdateProject}
+                    user={createProjectViewer}
+                    onDeleteDraft={dashboardCommands.project.deleteProject}
+                    reviewProject={project}
+                    onUpdateComments={handleUpdateComments}
+                    onApproveReviewProject={handleApproveReviewProject}
+                  />
+                )}
               </Suspense>
             )}
           />

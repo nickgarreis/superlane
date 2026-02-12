@@ -3,6 +3,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { useDraftReviewProjectRouteGuard } from "./useDraftReviewProjectRouteGuard";
+import type { AppView } from "../../lib/routing";
 import type { ProjectData } from "../../types";
 
 const buildProject = (
@@ -25,517 +26,278 @@ const buildProject = (
   tasks: [],
 });
 
+type GuardProps = {
+  currentView: AppView;
+  locationPathname: string;
+  projects: Record<string, ProjectData>;
+  orderedProjectIds: string[];
+  projectsPaginationStatus:
+    | "LoadingFirstPage"
+    | "CanLoadMore"
+    | "LoadingMore"
+    | "Exhausted";
+  openCompletedProjectsPopup: ReturnType<typeof vi.fn>;
+  navigateToPath: ReturnType<typeof vi.fn>;
+};
+
+const createBaseArgs = (): GuardProps => ({
+  currentView: "tasks",
+  locationPathname: "/tasks",
+  projects: {},
+  orderedProjectIds: [],
+  projectsPaginationStatus: "Exhausted",
+  openCompletedProjectsPopup: vi.fn(),
+  navigateToPath: vi.fn(),
+});
+
 describe("useDraftReviewProjectRouteGuard", () => {
-  test("uses tasks fallback for direct deep-link draft routes", () => {
-    const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+  test("redirects direct draft project deep links to /drafts/:id with tasks origin", () => {
+    const args = createBaseArgs();
+    args.currentView = "project:draft-1";
+    args.locationPathname = "/project/draft-1";
+    args.projects = { "draft-1": buildProject("draft-1", "Draft") };
+    args.orderedProjectIds = ["draft-1"];
 
-    renderHook(() =>
-      useDraftReviewProjectRouteGuard({
-        currentView: "project:draft-1",
-        locationPathname: "/project/draft-1",
-        projects: { "draft-1": draftProject },
-        orderedProjectIds: ["draft-1"],
-        projectsPaginationStatus: "Exhausted",
-        editProject,
-        viewReviewProject,
-        openCompletedProjectsPopup,
-        navigateToPath,
-      }),
+    renderHook(() => useDraftReviewProjectRouteGuard(args));
+
+    expect(args.openCompletedProjectsPopup).not.toHaveBeenCalled();
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/drafts/draft-1?from=%2Ftasks",
+      true,
     );
-
-    expect(editProject).toHaveBeenCalledWith(draftProject);
-    expect(viewReviewProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/tasks", true);
   });
 
-  test("redirects back to archive when draft route comes from archive", () => {
+  test("preserves archive origin when redirecting draft project routes", () => {
     const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+    const args = createBaseArgs();
+    args.projects = { "draft-1": draftProject };
+    args.orderedProjectIds = ["draft-1"];
 
     const { rerender } = renderHook(
-      (props: {
-        currentView: "archive" | "project:draft-1";
-        path: string;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: { "draft-1": draftProject },
-          orderedProjectIds: ["draft-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      {
-        initialProps: { currentView: "archive" as const, path: "/archive" },
-      },
-    );
-
-    rerender({ currentView: "project:draft-1", path: "/project/draft-1" });
-
-    expect(editProject).toHaveBeenCalledWith(draftProject);
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/archive", true);
-  });
-
-  test("redirects back to active project when draft route comes from project detail", () => {
-    const activeProject = buildProject("active-1", "Active");
-    const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: {
-        currentView: "project:active-1" | "project:draft-1";
-        path: string;
-        projects: Record<string, ProjectData>;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: props.projects,
-          orderedProjectIds: ["active-1", "draft-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
       {
         initialProps: {
-          currentView: "project:active-1" as const,
-          path: "/project/active-1",
-          projects: { "active-1": activeProject, "draft-1": draftProject },
+          ...args,
+          currentView: "archive",
+          locationPathname: "/archive",
         },
       },
     );
 
     rerender({
+      ...args,
       currentView: "project:draft-1",
-      path: "/project/draft-1",
-      projects: {},
+      locationPathname: "/project/draft-1",
     });
 
-    expect(editProject).toHaveBeenCalledWith(draftProject);
-    expect(viewReviewProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/project/active-1", true);
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/drafts/draft-1?from=%2Farchive",
+      true,
+    );
   });
 
-  test("uses cached project data when draft project temporarily drops from current map", () => {
+  test("uses project detail origin when redirecting draft routes", () => {
+    const activeProject = buildProject("active-1", "Active");
     const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+    const args = createBaseArgs();
+    args.projects = { "active-1": activeProject, "draft-1": draftProject };
+    args.orderedProjectIds = ["active-1", "draft-1"];
 
     const { rerender } = renderHook(
-      (props: {
-        currentView: "archive" | "project:draft-1";
-        path: string;
-        projects: Record<string, ProjectData>;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: props.projects,
-          orderedProjectIds: ["draft-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
       {
         initialProps: {
-          currentView: "archive" as const,
-          path: "/archive",
+          ...args,
+          currentView: "project:active-1",
+          locationPathname: "/project/active-1",
+        },
+      },
+    );
+
+    rerender({
+      ...args,
+      currentView: "project:draft-1",
+      locationPathname: "/project/draft-1",
+    });
+
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/drafts/draft-1?from=%2Fproject%2Factive-1",
+      true,
+    );
+  });
+
+  test("redirects review routes to /pending/:id with preserved origin", () => {
+    const activeProject = buildProject("active-1", "Active");
+    const reviewProject = buildProject("review-1", "Review");
+    const args = createBaseArgs();
+    args.projects = {
+      "active-1": activeProject,
+      "review-1": reviewProject,
+    };
+    args.orderedProjectIds = ["active-1", "review-1"];
+
+    const { rerender } = renderHook(
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
+      {
+        initialProps: {
+          ...args,
+          currentView: "project:active-1",
+          locationPathname: "/project/active-1",
+        },
+      },
+    );
+
+    rerender({
+      ...args,
+      currentView: "project:review-1",
+      locationPathname: "/project/review-1",
+    });
+
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/pending/review-1?from=%2Fproject%2Factive-1",
+      true,
+    );
+  });
+
+  test("uses cached project data when draft/review project temporarily drops from current map", () => {
+    const draftProject = buildProject("draft-1", "Draft");
+    const args = createBaseArgs();
+    args.projects = { "draft-1": draftProject };
+    args.orderedProjectIds = ["draft-1"];
+
+    const { rerender } = renderHook(
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
+      {
+        initialProps: {
+          ...args,
+          currentView: "archive",
+          locationPathname: "/archive",
           projects: { "draft-1": draftProject },
         },
       },
     );
 
     rerender({
+      ...args,
       currentView: "project:draft-1",
-      path: "/project/draft-1",
+      locationPathname: "/project/draft-1",
       projects: {},
     });
 
-    expect(editProject).toHaveBeenCalledWith(draftProject);
-    expect(viewReviewProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/archive", true);
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/drafts/draft-1?from=%2Farchive",
+      true,
+    );
   });
 
-  test("uses cached review project data when project temporarily drops from current map", () => {
-    const reviewProject = buildProject("review-1", "Review");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+  test("opens completed popup and uses tasks fallback for direct deep-link completed routes", () => {
+    const args = createBaseArgs();
+    args.currentView = "project:completed-1";
+    args.locationPathname = "/project/completed-1";
+    args.projects = { "completed-1": buildProject("completed-1", "Completed") };
+    args.orderedProjectIds = ["completed-1"];
+
+    renderHook(() => useDraftReviewProjectRouteGuard(args));
+
+    expect(args.openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+    expect(args.navigateToPath).toHaveBeenCalledWith("/tasks", true);
+  });
+
+  test("opens completed popup and preserves non-project origin", () => {
+    const completedProject = buildProject("completed-1", "Completed");
+    const args = createBaseArgs();
+    args.projects = { "completed-1": completedProject };
+    args.orderedProjectIds = ["completed-1"];
 
     const { rerender } = renderHook(
-      (props: {
-        currentView: "archive" | "project:review-1";
-        path: string;
-        projects: Record<string, ProjectData>;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: props.projects,
-          orderedProjectIds: ["review-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
       {
         initialProps: {
-          currentView: "archive" as const,
-          path: "/archive",
-          projects: { "review-1": reviewProject },
+          ...args,
+          currentView: "archive",
+          locationPathname: "/archive",
         },
       },
     );
 
     rerender({
-      currentView: "project:review-1",
-      path: "/project/review-1",
-      projects: {},
-    });
-
-    expect(editProject).not.toHaveBeenCalled();
-    expect(viewReviewProject).toHaveBeenCalledWith(reviewProject);
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/archive", true);
-  });
-
-  test("redirects back to active project when review route comes from project detail", () => {
-    const activeProject = buildProject("active-1", "Active");
-    const reviewProject = buildProject("review-1", "Review");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: {
-        currentView: "project:active-1" | "project:review-1";
-        path: string;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: { "active-1": activeProject, "review-1": reviewProject },
-          orderedProjectIds: ["active-1", "review-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      {
-        initialProps: {
-          currentView: "project:active-1" as const,
-          path: "/project/active-1",
-        },
-      },
-    );
-
-    rerender({
-      currentView: "project:review-1",
-      path: "/project/review-1",
-    });
-
-    expect(editProject).not.toHaveBeenCalled();
-    expect(viewReviewProject).toHaveBeenCalledWith(reviewProject);
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/project/active-1", true);
-  });
-
-  test("opens review popup and redirects to tasks for review routes", () => {
-    const reviewProject = buildProject("review-1", "Review");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    renderHook(() =>
-      useDraftReviewProjectRouteGuard({
-        currentView: "project:review-1",
-        locationPathname: "/project/review-1",
-        projects: { "review-1": reviewProject },
-        orderedProjectIds: ["review-1"],
-        projectsPaginationStatus: "Exhausted",
-        editProject,
-        viewReviewProject,
-        openCompletedProjectsPopup,
-        navigateToPath,
-      }),
-    );
-
-    expect(editProject).not.toHaveBeenCalled();
-    expect(viewReviewProject).toHaveBeenCalledWith(reviewProject);
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).toHaveBeenCalledWith("/tasks", true);
-  });
-
-  test("opens completed popup and redirects to tasks for direct deep-link completed routes", () => {
-    const completedProject = buildProject("completed-1", "Completed");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    renderHook(() =>
-      useDraftReviewProjectRouteGuard({
-        currentView: "project:completed-1",
-        locationPathname: "/project/completed-1",
-        projects: { "completed-1": completedProject },
-        orderedProjectIds: ["completed-1"],
-        projectsPaginationStatus: "Exhausted",
-        editProject,
-        viewReviewProject,
-        openCompletedProjectsPopup,
-        navigateToPath,
-      }),
-    );
-
-    expect(editProject).not.toHaveBeenCalled();
-    expect(viewReviewProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledWith("/tasks", true);
-  });
-
-  test("redirects back to archive when completed route comes from archive", () => {
-    const completedProject = buildProject("completed-1", "Completed");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: {
-        currentView: "archive" | "project:completed-1";
-        path: string;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: { "completed-1": completedProject },
-          orderedProjectIds: ["completed-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      {
-        initialProps: { currentView: "archive" as const, path: "/archive" },
-      },
-    );
-
-    rerender({
+      ...args,
       currentView: "project:completed-1",
-      path: "/project/completed-1",
+      locationPathname: "/project/completed-1",
     });
 
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledWith("/archive", true);
+    expect(args.openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+    expect(args.navigateToPath).toHaveBeenCalledWith("/archive", true);
   });
 
-  test("redirects back to active project when completed route comes from project detail", () => {
-    const activeProject = buildProject("active-1", "Active");
-    const completedProject = buildProject("completed-1", "Completed");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+  test("redirects to next active project when a project becomes completed on the same route", () => {
+    const primaryProject = buildProject("project-1", "Active");
+    const fallbackProject = buildProject("active-2", "Active");
+    const args = createBaseArgs();
 
     const { rerender } = renderHook(
-      (props: {
-        currentView: "project:active-1" | "project:completed-1";
-        path: string;
-      }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: props.currentView,
-          locationPathname: props.path,
-          projects: { "active-1": activeProject, "completed-1": completedProject },
-          orderedProjectIds: ["active-1", "completed-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
       {
         initialProps: {
-          currentView: "project:active-1" as const,
-          path: "/project/active-1",
+          ...args,
+          currentView: "project:project-1",
+          locationPathname: "/project/project-1",
+          projects: {
+            "project-1": primaryProject,
+            "active-2": fallbackProject,
+          },
+          orderedProjectIds: ["project-1", "active-2"],
         },
       },
     );
 
     rerender({
-      currentView: "project:completed-1",
-      path: "/project/completed-1",
-    });
-
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledWith("/project/active-1", true);
-  });
-
-  test("redirects to next active project when current route status flips to completed", () => {
-    const activeProject = buildProject("active-1", "Active");
-    const nextActiveProject = buildProject("active-2", "Active");
-    const completedProject = buildProject("active-1", "Completed");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: { projects: Record<string, ProjectData> }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: "project:active-1",
-          locationPathname: "/project/active-1",
-          projects: props.projects,
-          orderedProjectIds: ["active-1", "active-2"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      {
-        initialProps: {
-          projects: { "active-1": activeProject, "active-2": nextActiveProject },
-        },
+      ...args,
+      currentView: "project:project-1",
+      locationPathname: "/project/project-1",
+      projects: {
+        "project-1": buildProject("project-1", "Completed"),
+        "active-2": fallbackProject,
       },
-    );
-
-    rerender({
-      projects: { "active-1": completedProject, "active-2": nextActiveProject },
+      orderedProjectIds: ["project-1", "active-2"],
     });
 
-    expect(editProject).not.toHaveBeenCalled();
-    expect(viewReviewProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledWith("/project/active-2", true);
+    expect(args.openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+    expect(args.navigateToPath).toHaveBeenCalledWith("/project/active-2", true);
   });
 
-  test("falls back to tasks when completed status flip has no eligible next active project", () => {
-    const activeProject = buildProject("active-1", "Active");
-    const completedProject = buildProject("active-1", "Completed");
+  test("waits for first page load before redirecting draft/review routes", () => {
     const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
+    const args = createBaseArgs();
 
     const { rerender } = renderHook(
-      (props: { projects: Record<string, ProjectData> }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: "project:active-1",
-          locationPathname: "/project/active-1",
-          projects: props.projects,
-          orderedProjectIds: ["active-1", "draft-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
       {
         initialProps: {
-          projects: { "active-1": activeProject, "draft-1": draftProject },
-        },
-      },
-    );
-
-    rerender({
-      projects: { "active-1": completedProject, "draft-1": draftProject },
-    });
-
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledWith("/tasks", true);
-  });
-
-  test("waits for project pagination before redirecting", () => {
-    const draftProject = buildProject("draft-1", "Draft");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: {
-        status: "LoadingFirstPage" | "Exhausted";
-      }) =>
-        useDraftReviewProjectRouteGuard({
+          ...args,
           currentView: "project:draft-1",
           locationPathname: "/project/draft-1",
           projects: { "draft-1": draftProject },
           orderedProjectIds: ["draft-1"],
-          projectsPaginationStatus: props.status,
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      { initialProps: { status: "LoadingFirstPage" as const } },
+          projectsPaginationStatus: "LoadingFirstPage",
+        },
+      },
     );
 
-    expect(editProject).not.toHaveBeenCalled();
-    expect(openCompletedProjectsPopup).not.toHaveBeenCalled();
-    expect(navigateToPath).not.toHaveBeenCalled();
+    expect(args.navigateToPath).not.toHaveBeenCalled();
 
-    rerender({ status: "Exhausted" });
+    rerender({
+      ...args,
+      currentView: "project:draft-1",
+      locationPathname: "/project/draft-1",
+      projects: { "draft-1": draftProject },
+      orderedProjectIds: ["draft-1"],
+      projectsPaginationStatus: "Exhausted",
+    });
 
-    expect(editProject).toHaveBeenCalledWith(draftProject);
-    expect(navigateToPath).toHaveBeenCalledWith("/tasks", true);
-  });
-
-  test("guards duplicate execution for the same completed route path", () => {
-    const completedProject = buildProject("completed-1", "Completed");
-    const editProject = vi.fn();
-    const viewReviewProject = vi.fn();
-    const openCompletedProjectsPopup = vi.fn();
-    const navigateToPath = vi.fn();
-
-    const { rerender } = renderHook(
-      (props: { path: string }) =>
-        useDraftReviewProjectRouteGuard({
-          currentView: "project:completed-1",
-          locationPathname: props.path,
-          projects: { "completed-1": completedProject },
-          orderedProjectIds: ["completed-1"],
-          projectsPaginationStatus: "Exhausted",
-          editProject,
-          viewReviewProject,
-          openCompletedProjectsPopup,
-          navigateToPath,
-        }),
-      { initialProps: { path: "/project/completed-1" } },
+    expect(args.navigateToPath).toHaveBeenCalledWith(
+      "/drafts/draft-1?from=%2Ftasks",
+      true,
     );
-
-    rerender({ path: "/project/completed-1" });
-
-    expect(openCompletedProjectsPopup).toHaveBeenCalledTimes(1);
-    expect(navigateToPath).toHaveBeenCalledTimes(1);
   });
 });

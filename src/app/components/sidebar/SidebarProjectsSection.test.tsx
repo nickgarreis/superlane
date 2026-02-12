@@ -28,55 +28,29 @@ const project = (overrides: Partial<ProjectData>): ProjectData => ({
 });
 
 describe("SidebarProjectsSection", () => {
-  test("routes active, draft, and review project clicks to correct handlers", () => {
+  test("routes active project clicks and shows approved tags for approved active projects", () => {
     const onNavigate = vi.fn();
-    const onEditProject = vi.fn();
-    const onViewReviewProject = vi.fn();
 
     render(
       <SidebarProjectsSection
         projects={{
-          a: project({ id: "active-1", name: "Active Project" }),
-          b: project({
-            id: "draft-1",
-            name: "Draft Project",
-            status: {
-              label: "Draft",
-              color: "#fff",
-              bgColor: "#000",
-              dotColor: "#fff",
-            },
-          }),
-          c: project({
-            id: "review-1",
-            name: "Review Project",
-            status: {
-              label: "Review",
-              color: "#fff",
-              bgColor: "#000",
-              dotColor: "#fff",
-            },
-          }),
+          a: project({ id: "active-1", name: "Active Approved" }),
+          b: project({ id: "active-2", name: "Active Not Approved" }),
         }}
+        approvedSidebarProjectIds={["active-1"]}
         currentView="tasks"
         onNavigate={onNavigate}
-        onEditProject={onEditProject}
-        onViewReviewProject={onViewReviewProject}
+        onEditProject={vi.fn()}
+        onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByText("Active Project"));
-    fireEvent.click(screen.getByText("Draft Project"));
-    fireEvent.click(screen.getByText("Review Project"));
+    fireEvent.click(screen.getByText("Active Approved"));
 
     expect(onNavigate).toHaveBeenCalledWith("project:active-1");
-    expect(onEditProject).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "draft-1" }),
-    );
-    expect(onViewReviewProject).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "review-1" }),
-    );
+    expect(screen.getByText("Approved")).toBeInTheDocument();
   });
 
   test("opens completed projects popup from completed section", () => {
@@ -97,16 +71,61 @@ describe("SidebarProjectsSection", () => {
             completedAt: Date.UTC(2026, 1, 10),
           }),
         }}
+        approvedSidebarProjectIds={[]}
         currentView="tasks"
         onNavigate={vi.fn()}
         onEditProject={vi.fn()}
         onViewReviewProject={vi.fn()}
         onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+        onOpenDraftPendingProjectsPopup={vi.fn()}
       />,
     );
 
     fireEvent.click(screen.getByText("Completed"));
 
     expect(onOpenCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+  });
+
+  test("opens draft and pending projects popup when draft/review section is clicked", () => {
+    const onOpenDraftPendingProjectsPopup = vi.fn();
+
+    render(
+      <SidebarProjectsSection
+        projects={{
+          draft: project({
+            id: "draft-1",
+            name: "Draft Project",
+            status: {
+              label: "Draft",
+              color: "#fff",
+              bgColor: "#000",
+              dotColor: "#fff",
+            },
+          }),
+          review: project({
+            id: "review-1",
+            name: "Review Project",
+            status: {
+              label: "Review",
+              color: "#fff",
+              bgColor: "#000",
+              dotColor: "#fff",
+            },
+          }),
+        }}
+        approvedSidebarProjectIds={["draft-1", "review-1"]}
+        currentView="tasks"
+        onNavigate={vi.fn()}
+        onEditProject={vi.fn()}
+        onViewReviewProject={vi.fn()}
+        onOpenCompletedProjectsPopup={vi.fn()}
+        onOpenDraftPendingProjectsPopup={onOpenDraftPendingProjectsPopup}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Drafts & pending projects"));
+
+    expect(onOpenDraftPendingProjectsPopup).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Approved")).toBeNull();
   });
 });

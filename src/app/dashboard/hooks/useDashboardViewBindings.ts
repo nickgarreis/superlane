@@ -87,13 +87,15 @@ export function useDashboardViewBindings(
     () =>
       navigation.isSearchOpen ||
       navigation.isCreateProjectOpen ||
-      navigation.isCompletedProjectsOpen
+      navigation.isCompletedProjectsOpen ||
+      navigation.isDraftPendingProjectsOpen
         ? data.projectsById
         : EMPTY_PROJECTS,
     [
       data.projectsById,
       navigation.isCompletedProjectsOpen,
       navigation.isCreateProjectOpen,
+      navigation.isDraftPendingProjectsOpen,
       navigation.isSearchOpen,
     ],
   );
@@ -129,6 +131,14 @@ export function useDashboardViewBindings(
       completedProjectDetailId: navigation.completedProjectDetailId,
       openCompletedProjectDetail: navigation.openCompletedProjectDetail,
       backToCompletedProjectsList: navigation.backToCompletedProjectsList,
+      isDraftPendingProjectsOpen: navigation.isDraftPendingProjectsOpen,
+      closeDraftPendingProjectsPopup:
+        navigation.closeDraftPendingProjectsPopup,
+      draftPendingProjectDetailId: navigation.draftPendingProjectDetailId,
+      draftPendingProjectDetailKind: navigation.draftPendingProjectDetailKind,
+      openDraftPendingProjectDetail: navigation.openDraftPendingProjectDetail,
+      backToDraftPendingProjectsList:
+        navigation.backToDraftPendingProjectsList,
       projectFilesByProject: data.projectFilesByProject,
       projectFilesPaginationStatus: data.projectFilesPaginationStatus,
       loadMoreProjectFiles: data.loadMoreProjectFiles,
@@ -189,19 +199,25 @@ export function useDashboardViewBindings(
       navigation.backToCompletedProjectsList,
       navigation.editDraftData,
       navigation.editProjectId,
+      navigation.closeDraftPendingProjectsPopup,
       navigation.isCompletedProjectsOpen,
       navigation.isCreateProjectOpen,
       navigation.isCreateWorkspaceOpen,
+      navigation.isDraftPendingProjectsOpen,
       navigation.isSearchOpen,
       navigation.isSettingsOpen,
       navigation.navigateView,
       navigation.settingsFocusTarget,
       navigation.openInbox,
       navigation.openCompletedProjectDetail,
+      navigation.openDraftPendingProjectDetail,
       navigation.openCreateProject,
       navigation.reviewProject,
       navigation.setIsSearchOpen,
       navigation.settingsTab,
+      navigation.draftPendingProjectDetailId,
+      navigation.draftPendingProjectDetailKind,
+      navigation.backToDraftPendingProjectsList,
       baseMainContentNavigationActions,
       createMainContentProjectActions,
       mainContentFileActions,
@@ -239,6 +255,7 @@ export function useDashboardViewBindings(
       openCreateProject: navigation.openCreateProject,
       handleCreateProjectIntent,
       visibleProjects: data.sidebarVisibleProjects,
+      approvedSidebarProjectIds: data.approvedSidebarProjectIds,
       viewerIdentity: data.viewerIdentity,
       activeWorkspace: data.activeWorkspace,
       workspaces: data.workspaces,
@@ -251,6 +268,7 @@ export function useDashboardViewBindings(
       onEditProject: dashboardCommands.project.editProject,
       onViewReviewProject: dashboardCommands.project.viewReviewProject,
       onOpenCompletedProjectsPopup: navigation.openCompletedProjectsPopup,
+      onOpenDraftPendingProjectsPopup: navigation.openDraftPendingProjectsPopup,
       workspaceActivities: data.workspaceActivities,
       inboxUnreadCount: data.inboxUnreadCount,
       activitiesPaginationStatus: data.activitiesPaginationStatus,
@@ -270,6 +288,7 @@ export function useDashboardViewBindings(
       data.activitiesPaginationStatus,
       data.inboxUnreadCount,
       data.loadMoreWorkspaceActivities,
+      data.approvedSidebarProjectIds,
       data.viewerIdentity,
       data.sidebarVisibleProjects,
       data.workspaceActivities,
@@ -284,6 +303,7 @@ export function useDashboardViewBindings(
       navigation.isSidebarOpen,
       navigation.navigateView,
       navigation.openCompletedProjectsPopup,
+      navigation.openDraftPendingProjectsPopup,
       navigation.openCreateProject,
       navigation.openInbox,
       navigation.openSearch,

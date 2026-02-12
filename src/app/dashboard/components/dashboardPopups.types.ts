@@ -80,6 +80,16 @@ export type DashboardPopupsProps = {
   completedProjectDetailId: string | null;
   openCompletedProjectDetail: (projectId: string) => void;
   backToCompletedProjectsList: () => void;
+  isDraftPendingProjectsOpen: boolean;
+  closeDraftPendingProjectsPopup: () => void;
+  draftPendingProjectDetailId: string | null;
+  draftPendingProjectDetailKind: "draft" | "pending" | null;
+  openDraftPendingProjectDetail: (
+    projectId: string,
+    status: "Draft" | "Review",
+    options?: { replace?: boolean },
+  ) => void;
+  backToDraftPendingProjectsList: () => void;
   projectFilesByProject: Record<string, ProjectFileData[]>;
   projectFilesPaginationStatus:
     | "LoadingFirstPage"

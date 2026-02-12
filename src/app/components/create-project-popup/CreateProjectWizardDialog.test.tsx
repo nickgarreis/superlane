@@ -243,4 +243,54 @@ describe("CreateProjectPopup", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Save as draft?")).not.toBeInTheDocument();
   });
+
+  test("renders back button and routes back immediately when there is no unsaved work", () => {
+    const onBackToDraftPendingProjects = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={onClose}
+        onBackToDraftPendingProjects={onBackToDraftPendingProjects}
+        backToDraftPendingProjectsLabel="draft & pending projects"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to draft & pending projects" }),
+    );
+
+    expect(onBackToDraftPendingProjects).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByText("Save as draft?")).not.toBeInTheDocument();
+  });
+
+  test("uses close-confirm flow before backing out when unsaved draft work exists", async () => {
+    const onBackToDraftPendingProjects = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <CreateProjectPopup
+        isOpen
+        onClose={onClose}
+        onBackToDraftPendingProjects={onBackToDraftPendingProjects}
+        backToDraftPendingProjectsLabel="draft & pending projects"
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Web Design"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to draft & pending projects" }),
+    );
+
+    expect(screen.getByText("Save as draft?")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => {
+      expect(onBackToDraftPendingProjects).toHaveBeenCalledTimes(1);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

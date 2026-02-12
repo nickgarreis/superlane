@@ -29,6 +29,7 @@ type DashboardChromeProps = {
   openCreateProject: () => void;
   handleCreateProjectIntent: () => void;
   visibleProjects: Record<string, ProjectData>;
+  approvedSidebarProjectIds: string[];
   viewerIdentity: ViewerIdentity;
   activeWorkspace: Workspace | undefined;
   workspaces: Workspace[];
@@ -43,6 +44,7 @@ type DashboardChromeProps = {
   onEditProject: (project: ProjectData) => void;
   onViewReviewProject: (project: ProjectData) => void;
   onOpenCompletedProjectsPopup: () => void;
+  onOpenDraftPendingProjectsPopup: () => void;
   workspaceActivities: WorkspaceActivity[];
   inboxUnreadCount: number;
   activitiesPaginationStatus:
@@ -67,6 +69,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   openCreateProject,
   handleCreateProjectIntent,
   visibleProjects,
+  approvedSidebarProjectIds,
   viewerIdentity,
   activeWorkspace,
   workspaces,
@@ -79,6 +82,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   onEditProject,
   onViewReviewProject,
   onOpenCompletedProjectsPopup,
+  onOpenDraftPendingProjectsPopup,
   workspaceActivities,
   inboxUnreadCount,
   activitiesPaginationStatus,
@@ -139,6 +143,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                   onOpenCreateProject={openCreateProject}
                   onOpenCreateProjectIntent={handleCreateProjectIntent}
                   projects={visibleProjects}
+                  approvedSidebarProjectIds={approvedSidebarProjectIds}
                   viewerIdentity={viewerIdentity}
                   activeWorkspace={activeWorkspace}
                   workspaces={workspaces}
@@ -150,6 +155,9 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                   onEditProject={onEditProject}
                   onViewReviewProject={onViewReviewProject}
                   onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+                  onOpenDraftPendingProjectsPopup={
+                    onOpenDraftPendingProjectsPopup
+                  }
                   inboxUnreadCount={inboxUnreadCount}
                   onLogout={handleSignOut}
                 />

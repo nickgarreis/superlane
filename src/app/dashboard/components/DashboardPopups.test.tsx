@@ -31,10 +31,36 @@ vi.mock("../../components/SearchPopup", () => ({
 }));
 
 vi.mock("../../components/CreateProjectPopup", () => ({
-  CreateProjectPopup: ({ onClose }: { onClose: () => void }) => (
-    <button type="button" onClick={onClose} data-testid="create-project-popup">
-      Create Project
-    </button>
+  CreateProjectPopup: ({
+    onClose,
+    onBackToDraftPendingProjects,
+    backToDraftPendingProjectsLabel,
+    editProjectId,
+    reviewProject,
+  }: {
+    onClose: () => void;
+    onBackToDraftPendingProjects?: () => void;
+    backToDraftPendingProjectsLabel?: string;
+    editProjectId?: string | null;
+    reviewProject?: { id: string } | null;
+  }) => (
+    <div data-testid="create-project-popup">
+      <div>
+        {editProjectId
+          ? `draft-detail:${editProjectId}`
+          : reviewProject
+            ? `review-detail:${reviewProject.id}`
+            : "create-project"}
+      </div>
+      {onBackToDraftPendingProjects ? (
+        <button type="button" onClick={onBackToDraftPendingProjects}>
+          Back to {backToDraftPendingProjectsLabel}
+        </button>
+      ) : null}
+      <button type="button" onClick={onClose}>
+        Close Create Project
+      </button>
+    </div>
   ),
 }));
 
@@ -96,13 +122,49 @@ vi.mock("../../components/CompletedProjectDetailPopup", () => ({
   ),
 }));
 
+vi.mock("../../components/DraftPendingProjectsPopup", () => ({
+  DraftPendingProjectsPopup: ({
+    onClose,
+    projects,
+    draftPendingProjectDetailId,
+    onOpenProjectDetail,
+    onBackToDraftPendingProjects,
+    renderDetail,
+  }: {
+    onClose: () => void;
+    projects: Record<string, ProjectData>;
+    draftPendingProjectDetailId: string | null;
+    onOpenProjectDetail: (projectId: string, status: "Draft" | "Review") => void;
+    onBackToDraftPendingProjects: () => void;
+    renderDetail: (project: ProjectData) => React.ReactNode;
+  }) => (
+    <div data-testid="draft-pending-projects-popup">
+      <button type="button" onClick={onClose}>
+        Close Draft Pending
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenProjectDetail("project-1", "Draft")}
+      >
+        Open Draft Pending Detail
+      </button>
+      <button type="button" onClick={onBackToDraftPendingProjects}>
+        Back Draft Pending List
+      </button>
+      {draftPendingProjectDetailId
+        ? renderDetail(projects[draftPendingProjectDetailId])
+        : null}
+    </div>
+  ),
+}));
+
 const PROJECT: ProjectData = {
   id: "project-1",
   name: "Project",
   description: "Desc",
   creator: { name: "Owner", avatar: "" },
   status: {
-    label: "Active",
+    label: "Draft",
     color: "#58AFFF",
     bgColor: "rgba(88,175,255,0.12)",
     dotColor: "#58AFFF",
@@ -132,6 +194,8 @@ const baseProps = () => ({
   isSearchOpen: false,
   setIsSearchOpen: vi.fn(),
   projects: { [PROJECT.id]: PROJECT },
+  workspaceTasks: [],
+  tasksByProject: { [PROJECT.id]: [] },
   allWorkspaceFiles: [],
   workspaceFilesPaginationStatus: "Exhausted" as const,
   loadMoreWorkspaceFiles: vi.fn(),
@@ -146,6 +210,7 @@ const baseProps = () => ({
     project: {
       createOrUpdateProject: vi.fn(),
       deleteProject: vi.fn(),
+      updateProjectStatus: vi.fn(),
     },
     file: {
       uploadDraftAttachment: vi.fn(),
@@ -155,6 +220,7 @@ const baseProps = () => ({
     settings: {
       closeSettings: vi.fn(),
       saveAccount: vi.fn(),
+      requestPasswordReset: vi.fn(),
       uploadAccountAvatar: vi.fn(),
       removeAccountAvatar: vi.fn(),
       saveNotifications: vi.fn(),
@@ -179,6 +245,12 @@ const baseProps = () => ({
   completedProjectDetailId: null,
   openCompletedProjectDetail: vi.fn(),
   backToCompletedProjectsList: vi.fn(),
+  isDraftPendingProjectsOpen: false,
+  closeDraftPendingProjectsPopup: vi.fn(),
+  draftPendingProjectDetailId: null,
+  draftPendingProjectDetailKind: null as "draft" | "pending" | null,
+  openDraftPendingProjectDetail: vi.fn(),
+  backToDraftPendingProjectsList: vi.fn(),
   projectFilesByProject: { [PROJECT.id]: [] },
   projectFilesPaginationStatus: "Exhausted" as const,
   loadMoreProjectFiles: vi.fn(),
@@ -228,9 +300,12 @@ describe("DashboardPopups", () => {
     expect(
       screen.queryByTestId("completed-projects-popup"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("draft-pending-projects-popup"),
+    ).not.toBeInTheDocument();
   });
 
-  test("renders enabled popups and wires close/settings callbacks", async () => {
+  test("renders enabled base popups and wires close/settings callbacks", async () => {
     const props = {
       ...baseProps(),
       isSearchOpen: true,
@@ -253,7 +328,7 @@ describe("DashboardPopups", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Inbox" }));
     expect(props.openInbox).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(await screen.findByTestId("create-project-popup"));
+    fireEvent.click(await screen.findByRole("button", { name: "Close Create Project" }));
     expect(props.closeCreateProject).toHaveBeenCalledTimes(1);
 
     fireEvent.click(await screen.findByTestId("create-workspace-popup"));
@@ -273,5 +348,51 @@ describe("DashboardPopups", () => {
       await screen.findByRole("button", { name: "Close Completed" }),
     );
     expect(props.closeCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+  });
+
+  test("wires draft/pending popup list, detail open, back, and close callbacks", async () => {
+    const props = {
+      ...baseProps(),
+      isDraftPendingProjectsOpen: true,
+    };
+
+    const { rerender } = render(<DashboardPopups {...props} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Draft Pending Detail" }),
+    );
+    expect(props.openDraftPendingProjectDetail).toHaveBeenCalledWith(
+      "project-1",
+      "Draft",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close Draft Pending" }),
+    );
+    expect(props.closeDraftPendingProjectsPopup).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <DashboardPopups
+        {...props}
+        draftPendingProjectDetailId="project-1"
+        draftPendingProjectDetailKind="draft"
+      />,
+    );
+
+    expect(
+      await screen.findByText("draft-detail:project-1"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Back to draft & pending projects",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Back to draft & pending projects",
+      }),
+    );
+    expect(props.backToDraftPendingProjectsList).toHaveBeenCalledTimes(1);
   });
 });

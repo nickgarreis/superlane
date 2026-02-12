@@ -1,7 +1,8 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
+import { ProjectLogo } from "../../ProjectLogo";
 import { ActivityRowShell } from "../ActivityRowShell";
-import { formatActivityMeta } from "../activityFormatting";
+import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
   switch (activity.action) {
@@ -33,6 +34,12 @@ export function ProjectActivityRow({
   onMarkRead,
   onClick,
 }: ProjectActivityRowProps) {
+  const contextItems = buildContextItems([
+    { label: "From", value: activity.action === "renamed" ? activity.fromValue : null },
+    { label: "To", value: activity.action === "renamed" ? activity.toValue : null },
+    { label: "Status", value: activity.action === "created" ? activity.toValue : null },
+  ]);
+
   return (
     <ActivityRowShell
       kind="project"
@@ -40,10 +47,12 @@ export function ProjectActivityRow({
       meta={formatActivityMeta(activity)}
       actorName={activity.actorName}
       actorAvatarUrl={activity.actorAvatarUrl}
+      kindIcon={<ProjectLogo size={18} category={activity.projectCategory ?? undefined} />}
       isRead={activity.isRead}
       showReadState={showReadState}
       onMarkRead={onMarkRead}
       onClick={onClick}
+      contextItems={contextItems}
     />
   );
 }

@@ -14,8 +14,6 @@ type UseDraftReviewProjectRouteGuardArgs = {
   projects: Record<string, ProjectData>;
   orderedProjectIds: string[];
   projectsPaginationStatus: ProjectsPaginationStatus;
-  editProject: (project: ProjectData) => void;
-  viewReviewProject: (project: ProjectData) => void;
   openCompletedProjectsPopup: () => void;
   navigateToPath: (path: string, replace?: boolean) => void;
 };
@@ -24,6 +22,30 @@ const PROJECT_VIEW_PREFIX = "project:";
 const TASKS_PATH = viewToPath("tasks");
 const PROJECT_PATH_PREFIX = "/project/";
 const isProjectRoute = (path: string) => path.startsWith(PROJECT_PATH_PREFIX);
+const decodeProjectIdFromPath = (path: string): string | null => {
+  if (!isProjectRoute(path)) {
+    return null;
+  }
+  const encodedProjectId =
+    path.slice(PROJECT_PATH_PREFIX.length).split("/", 1)[0] ?? "";
+  try {
+    return decodeURIComponent(encodedProjectId);
+  } catch {
+    return null;
+  }
+};
+const buildDraftPendingDetailPath = (
+  projectId: string,
+  status: "Draft" | "Review",
+  fromPath: string,
+) => {
+  const detailView: AppView =
+    status === "Draft"
+      ? `draft-project:${projectId}`
+      : `pending-project:${projectId}`;
+  const params = new URLSearchParams({ from: fromPath });
+  return `${viewToPath(detailView)}?${params.toString()}`;
+};
 const isDedicatedProjectDetailCandidate = (
   project: ProjectData | undefined,
 ) =>
@@ -41,8 +63,6 @@ export const useDraftReviewProjectRouteGuard = ({
   projects,
   orderedProjectIds,
   projectsPaginationStatus,
-  editProject,
-  viewReviewProject,
   openCompletedProjectsPopup,
   navigateToPath,
 }: UseDraftReviewProjectRouteGuardArgs) => {
@@ -58,18 +78,27 @@ export const useDraftReviewProjectRouteGuard = ({
     status: null,
   });
 
-  if (previousPathRef.current !== locationPathname) {
-    if (
-      previousPathRef.current &&
-      !isProjectRoute(previousPathRef.current)
-    ) {
-      lastOriginPathRef.current = previousPathRef.current;
-    }
-    previousPathRef.current = locationPathname;
-  }
-
   for (const [projectId, project] of Object.entries(projects)) {
     projectCacheRef.current[projectId] = project;
+  }
+
+  if (previousPathRef.current !== locationPathname) {
+    const previousPath = previousPathRef.current;
+    if (previousPath) {
+      if (!isProjectRoute(previousPath)) {
+        lastOriginPathRef.current = previousPath;
+      } else {
+        const previousProjectId = decodeProjectIdFromPath(previousPath);
+        if (previousProjectId) {
+          const previousProject =
+            projects[previousProjectId] ?? projectCacheRef.current[previousProjectId];
+          if (isDedicatedProjectDetailCandidate(previousProject)) {
+            lastOriginPathRef.current = previousPath;
+          }
+        }
+      }
+    }
+    previousPathRef.current = locationPathname;
   }
 
   const resolveNextActiveProjectPath = useCallback(
@@ -164,13 +193,25 @@ export const useDraftReviewProjectRouteGuard = ({
     handledPathRef.current = locationPathname;
 
     if (isDraft) {
-      editProject(project);
-      navigateToPath(lastOriginPathRef.current || TASKS_PATH, true);
+      navigateToPath(
+        buildDraftPendingDetailPath(
+          project.id,
+          "Draft",
+          lastOriginPathRef.current || TASKS_PATH,
+        ),
+        true,
+      );
       return;
     }
     if (isReview) {
-      viewReviewProject(project);
-      navigateToPath(lastOriginPathRef.current || TASKS_PATH, true);
+      navigateToPath(
+        buildDraftPendingDetailPath(
+          project.id,
+          "Review",
+          lastOriginPathRef.current || TASKS_PATH,
+        ),
+        true,
+      );
       return;
     }
 
@@ -183,7 +224,6 @@ export const useDraftReviewProjectRouteGuard = ({
     navigateToPath(redirectPath, true);
   }, [
     currentView,
-    editProject,
     locationPathname,
     navigateToPath,
     openCompletedProjectsPopup,
@@ -191,6 +231,5 @@ export const useDraftReviewProjectRouteGuard = ({
     projects,
     projectsPaginationStatus,
     resolveNextActiveProjectPath,
-    viewReviewProject,
   ]);
 };

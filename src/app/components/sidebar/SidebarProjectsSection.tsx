@@ -65,14 +65,20 @@ function SectionHeader({
 }
 export function SidebarProjectsSection({
   projects,
+  approvedSidebarProjectIds,
   currentView,
   onNavigate,
   onEditProject,
   onViewReviewProject,
   onOpenCompletedProjectsPopup,
+  onOpenDraftPendingProjectsPopup,
 }: SidebarProjectsSectionProps) {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
-  const { activeProjects, completedProjects } = useMemo(
+  const approvedSidebarProjectIdSet = useMemo(
+    () => new Set(approvedSidebarProjectIds),
+    [approvedSidebarProjectIds],
+  );
+  const { activeProjects, draftPendingProjects, completedProjects } = useMemo(
     () => partitionSidebarProjects(projects),
     [projects],
   );
@@ -81,6 +87,9 @@ export function SidebarProjectsSection({
       activeProjects.map((project) => {
         const projectIsDraft = project.status.label === "Draft";
         const projectIsReview = project.status.label === "Review";
+        const projectIsApproved =
+          project.status.label === "Active" &&
+          approvedSidebarProjectIdSet.has(project.id);
         return (
           <SidebarItem
             key={project.id}
@@ -103,11 +112,13 @@ export function SidebarProjectsSection({
             }
             isDraft={projectIsDraft}
             isReview={projectIsReview}
+            isApproved={projectIsApproved}
           />
         );
       }),
     [
       activeProjects,
+      approvedSidebarProjectIdSet,
       currentView,
       onEditProject,
       onNavigate,
@@ -149,28 +160,54 @@ export function SidebarProjectsSection({
             </div>
           </CollapsibleContent>
         </div>
-        {completedProjects.length > 0 && (
+        {(draftPendingProjects.length > 0 || completedProjects.length > 0) && (
           <div className="shrink-0 pb-2 flex flex-col min-h-0">
             <div className="mx-3 mb-1 h-px bg-gradient-to-r from-white/[0.06] via-white/[0.04] to-transparent shrink-0" />
-            <div
-              className="flex items-center justify-between px-3 py-2 cursor-pointer group"
-              onClick={onOpenCompletedProjectsPopup}
-            >
-              <div className="flex items-center gap-2">
-                <span className="txt-role-meta font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
-                  Completed
-                </span>
-                <span className="txt-role-kbd text-white/20 tabular-nums">
-                  {completedProjects.length}
-                </span>
-              </div>
+            {draftPendingProjects.length > 0 && (
               <div
-                className="p-1 hover:bg-white/10 rounded cursor-pointer transition-all opacity-0 group-hover:opacity-100"
-                title="View all"
+                className="flex items-center justify-between px-3 py-2 cursor-pointer group"
+                onClick={onOpenDraftPendingProjectsPopup}
               >
-                <Maximize2 size={12} className="text-white/40" />
+                <div className="flex items-center gap-2">
+                  <span className="txt-role-meta font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
+                    Drafts & pending projects
+                  </span>
+                  <span className="txt-role-kbd text-white/20 tabular-nums">
+                    {draftPendingProjects.length}
+                  </span>
+                </div>
+                <div
+                  className="p-1 hover:bg-white/10 rounded cursor-pointer transition-all opacity-0 group-hover:opacity-100"
+                  title="View all"
+                >
+                  <Maximize2 size={12} className="text-white/40" />
+                </div>
               </div>
-            </div>
+            )}
+            {draftPendingProjects.length > 0 && completedProjects.length > 0 && (
+              <div className="mx-3 my-1 h-px bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent shrink-0" />
+            )}
+            {completedProjects.length > 0 && (
+              <div
+                className="flex items-center justify-between px-3 py-2 cursor-pointer group"
+                onClick={onOpenCompletedProjectsPopup}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="txt-role-meta font-medium uppercase tracking-wider text-white/40 group-hover:text-white/55 transition-colors select-none">
+                    Completed
+                  </span>
+                  <span className="txt-role-kbd text-white/20 tabular-nums">
+                    {completedProjects.length}
+                  </span>
+                </div>
+                <div
+                  className="p-1 hover:bg-white/10 rounded cursor-pointer transition-all opacity-0 group-hover:opacity-100"
+                  title="View all"
+                >
+                  <Maximize2 size={12} className="text-white/40" />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

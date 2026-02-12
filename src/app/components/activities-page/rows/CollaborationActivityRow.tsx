@@ -1,7 +1,7 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
 import { ActivityRowShell } from "../ActivityRowShell";
-import { formatActivityMeta } from "../activityFormatting";
+import { buildContextItems, formatActivityMeta } from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
   switch (activity.action) {
@@ -12,7 +12,7 @@ const actionText = (activity: WorkspaceActivity) => {
     case "comment_deleted":
       return `Deleted comment in ${activity.projectName ?? "project"}`;
     case "mention_added":
-      return `Mentioned ${activity.targetUserName ?? "a teammate"} in a comment`;
+      return `Mentioned ${activity.targetUserName ?? activity.message ?? "a teammate"} in a comment`;
     case "reaction_added":
       return `Added reaction ${activity.message ?? ""}`.trim();
     case "reaction_removed":
@@ -35,6 +35,15 @@ export function CollaborationActivityRow({
   onMarkRead,
   onClick,
 }: CollaborationActivityRowProps) {
+  const contextItems = buildContextItems([
+    { label: "Member", value: activity.targetUserName ?? activity.message },
+    { label: "Reaction", value: activity.action.startsWith("reaction_") ? activity.message : null },
+  ]);
+  const commentSnippet =
+    activity.action === "comment_added" || activity.action === "comment_edited"
+      ? activity.message?.trim() ?? null
+      : null;
+
   return (
     <ActivityRowShell
       kind="collaboration"
@@ -46,6 +55,13 @@ export function CollaborationActivityRow({
       showReadState={showReadState}
       onMarkRead={onMarkRead}
       onClick={onClick}
-    />
+      contextItems={contextItems}
+    >
+      {commentSnippet ? (
+        <p className="txt-role-body-sm txt-tone-subtle">
+          "{commentSnippet}"
+        </p>
+      ) : null}
+    </ActivityRowShell>
   );
 }

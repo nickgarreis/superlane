@@ -1,7 +1,12 @@
 import React from "react";
 import type { WorkspaceActivity } from "../../../types";
 import { ActivityRowShell } from "../ActivityRowShell";
-import { formatActivityMeta } from "../activityFormatting";
+import {
+  buildContextItems,
+  formatActivityMessage,
+  formatActivityMeta,
+  type ActivityContextItem,
+} from "../activityFormatting";
 
 const actionText = (activity: WorkspaceActivity) => {
   switch (activity.action) {
@@ -22,6 +27,26 @@ const actionText = (activity: WorkspaceActivity) => {
   }
 };
 
+const normalizeOrganizationSyncItems = (items: ActivityContextItem[]) => {
+  const valueByLabel = new Map(
+    items.map((item) => [item.label.toLowerCase(), item.value]),
+  );
+  return buildContextItems([
+    {
+      label: "Imported",
+      value: valueByLabel.get("imported memberships") ?? null,
+    },
+    {
+      label: "Synced",
+      value: valueByLabel.get("synced workspace members") ?? null,
+    },
+    {
+      label: "Removed",
+      value: valueByLabel.get("removed memberships") ?? null,
+    },
+  ]);
+};
+
 type WorkspaceActivityRowProps = {
   activity: WorkspaceActivity;
   showReadState?: boolean;
@@ -36,6 +61,33 @@ export function WorkspaceActivityRow({
   onClick,
 }: WorkspaceActivityRowProps) {
   const kind = activity.kind === "organization" ? "organization" : "workspace";
+  const formattedMessage = formatActivityMessage(activity.message);
+  const messageContextItems =
+    activity.action === "organization_membership_sync"
+      ? normalizeOrganizationSyncItems(formattedMessage.structuredItems)
+      : formattedMessage.structuredItems;
+  const contextItems = buildContextItems([
+    {
+      label: "From",
+      value: activity.action === "workspace_general_updated" ? activity.fromValue : null,
+    },
+    {
+      label: "To",
+      value: activity.action === "workspace_general_updated" ? activity.toValue : null,
+    },
+    {
+      label: "Asset",
+      value:
+        activity.action === "brand_asset_uploaded" || activity.action === "brand_asset_removed"
+          ? activity.fileName
+          : null,
+    },
+    ...messageContextItems.map((item) => ({
+      label: item.label,
+      value: item.value,
+    })),
+  ]);
+
   return (
     <ActivityRowShell
       kind={kind}
@@ -47,9 +99,12 @@ export function WorkspaceActivityRow({
       showReadState={showReadState}
       onMarkRead={onMarkRead}
       onClick={onClick}
+      contextItems={contextItems}
     >
-      {activity.message ? (
-        <p className="txt-role-body-sm txt-tone-subtle">{activity.message}</p>
+      {formattedMessage.plainText ? (
+        <p className="txt-role-body-sm txt-tone-subtle [overflow-wrap:anywhere]">
+          {formattedMessage.plainText}
+        </p>
       ) : null}
     </ActivityRowShell>
   );

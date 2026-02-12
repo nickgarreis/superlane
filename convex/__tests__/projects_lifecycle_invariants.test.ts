@@ -98,6 +98,7 @@ describe("projects lifecycle invariants", () => {
       previousStatus?: "Draft" | "Review" | "Active" | "Completed" | null;
       completedAt?: number | null;
       archivedAt?: number | null;
+      lastApprovedAt?: number | null;
       deletedAt?: number | null;
       unarchivedByUserId?: Id<"users">;
     },
@@ -113,6 +114,7 @@ describe("projects lifecycle invariants", () => {
         category: "General",
         status: args.status,
         previousStatus: args.previousStatus ?? null,
+        lastApprovedAt: args.lastApprovedAt ?? null,
         archived: args.archived,
         archivedAt: args.archivedAt ?? null,
         completedAt: args.completedAt ?? null,
@@ -150,9 +152,186 @@ describe("projects lifecycle invariants", () => {
       expect(row?.status).toBe("Active");
       expect(row?.previousStatus).toBeNull();
       expect(row?.completedAt).toBeNull();
+      expect(row?.lastApprovedAt).toBeNull();
       expect(row?.statusUpdatedByUserId).toBe(workspace.adminUserId);
       expect(row?.unarchivedByUserId).toBe(workspace.adminUserId);
     });
+  });
+
+  test("setStatus stamps lastApprovedAt on Review -> Active and clears on other status transitions", async () => {
+    const workspace = await seedWorkspace();
+    const projectPublicId = "project-set-status-approval";
+    await seedProject(workspace, {
+      publicId: projectPublicId,
+      status: "Review",
+      archived: false,
+    });
+
+    const beforeApproval = now();
+    await asOwner().mutation(api.projects.setStatus, {
+      publicId: projectPublicId,
+      status: "Active",
+    });
+
+    await t.run(async (ctx) => {
+      const row = await (ctx.db as any)
+        .query("projects")
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
+        .unique();
+      expect(row?.status).toBe("Active");
+      expect(typeof row?.lastApprovedAt).toBe("number");
+      expect(Number(row?.lastApprovedAt ?? 0)).toBeGreaterThanOrEqual(beforeApproval);
+    });
+
+    await asOwner().mutation(api.projects.setStatus, {
+      publicId: projectPublicId,
+      status: "Completed",
+    });
+
+    await t.run(async (ctx) => {
+      const row = await (ctx.db as any)
+        .query("projects")
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
+        .unique();
+      expect(row?.status).toBe("Completed");
+      expect(row?.lastApprovedAt).toBeNull();
+    });
+  });
+
+  test("update status applies Review -> Active approval timestamp semantics", async () => {
+    const workspace = await seedWorkspace();
+    const projectPublicId = "project-update-approval";
+    await seedProject(workspace, {
+      publicId: projectPublicId,
+      status: "Review",
+      archived: false,
+    });
+
+    const beforeApproval = now();
+    await asOwner().mutation(api.projects.update, {
+      publicId: projectPublicId,
+      status: "Active",
+    });
+
+    let approvedAt = 0;
+    await t.run(async (ctx) => {
+      const row = await (ctx.db as any)
+        .query("projects")
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
+        .unique();
+      expect(row?.status).toBe("Active");
+      expect(typeof row?.lastApprovedAt).toBe("number");
+      expect(Number(row?.lastApprovedAt ?? 0)).toBeGreaterThanOrEqual(beforeApproval);
+      approvedAt = Number(row?.lastApprovedAt ?? 0);
+    });
+
+    await asOwner().mutation(api.projects.update, {
+      publicId: projectPublicId,
+      status: "Active",
+    });
+    await t.run(async (ctx) => {
+      const row = await (ctx.db as any)
+        .query("projects")
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
+        .unique();
+      expect(row?.status).toBe("Active");
+      expect(row?.lastApprovedAt).toBe(approvedAt);
+    });
+
+    await asOwner().mutation(api.projects.update, {
+      publicId: projectPublicId,
+      status: "Review",
+    });
+    await t.run(async (ctx) => {
+      const row = await (ctx.db as any)
+        .query("projects")
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", projectPublicId))
+        .unique();
+      expect(row?.status).toBe("Review");
+      expect(row?.lastApprovedAt).toBeNull();
+    });
+  });
+
+  test("approval seen markers are stored per-user and idempotent", async () => {
+    const workspace = await seedWorkspace();
+    const approvedAt = now() - 1_000;
+    const projectPublicId = "project-approval-read";
+    await seedProject(workspace, {
+      publicId: projectPublicId,
+      status: "Active",
+      archived: false,
+      lastApprovedAt: approvedAt,
+    });
+
+    const firstMark = await asOwner().mutation(api.projects.markApprovalSeen, {
+      publicId: projectPublicId,
+    });
+    expect(firstMark.markedSeen).toBe(true);
+    expect(firstMark.lastSeenApprovedAt).toBe(approvedAt);
+
+    const secondMark = await asOwner().mutation(api.projects.markApprovalSeen, {
+      publicId: projectPublicId,
+    });
+    expect(secondMark.markedSeen).toBe(false);
+    expect(secondMark.lastSeenApprovedAt).toBe(approvedAt);
+
+    const ownerReads = await asOwner().query(
+      api.projects.listApprovalReadsForWorkspace,
+      {
+        workspaceSlug: workspace.workspaceSlug,
+      },
+    );
+    expect(ownerReads).toEqual([
+      {
+        projectPublicId,
+        lastSeenApprovedAt: approvedAt,
+      },
+    ]);
+
+    const adminReadsBefore = await asAdmin().query(
+      api.projects.listApprovalReadsForWorkspace,
+      {
+        workspaceSlug: workspace.workspaceSlug,
+      },
+    );
+    expect(adminReadsBefore).toEqual([]);
+
+    const adminMark = await asAdmin().mutation(api.projects.markApprovalSeen, {
+      publicId: projectPublicId,
+    });
+    expect(adminMark.markedSeen).toBe(true);
+    expect(adminMark.lastSeenApprovedAt).toBe(approvedAt);
+
+    const adminReadsAfter = await asAdmin().query(
+      api.projects.listApprovalReadsForWorkspace,
+      {
+        workspaceSlug: workspace.workspaceSlug,
+      },
+    );
+    expect(adminReadsAfter).toEqual([
+      {
+        projectPublicId,
+        lastSeenApprovedAt: approvedAt,
+      },
+    ]);
+  });
+
+  test("markApprovalSeen returns null timestamp when project has no approval yet", async () => {
+    const workspace = await seedWorkspace();
+    const projectPublicId = "project-unapproved-read";
+    await seedProject(workspace, {
+      publicId: projectPublicId,
+      status: "Review",
+      archived: false,
+      lastApprovedAt: null,
+    });
+
+    const result = await asOwner().mutation(api.projects.markApprovalSeen, {
+      publicId: projectPublicId,
+    });
+
+    expect(result.markedSeen).toBe(false);
+    expect(result.lastSeenApprovedAt).toBeNull();
   });
 
   test("archive only accepts Active projects and rejects already archived rows", async () => {

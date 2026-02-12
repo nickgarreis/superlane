@@ -18,6 +18,7 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
     onOpenInbox: () => void;
     onLogout: () => void;
     onOpenCompletedProjectsPopup: () => void;
+    onOpenDraftPendingProjectsPopup: () => void;
     onSwitchWorkspace: (workspaceSlug: string) => void;
     onCreateWorkspace: () => void;
     onOpenSettings: (
@@ -26,6 +27,7 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
     onEditProject: (project: ProjectData) => void;
     onViewReviewProject: (project: ProjectData) => void;
     projects: Record<string, ProjectData>;
+    approvedSidebarProjectIds: string[];
     inboxUnreadCount: number;
   }) => (
     <div data-testid="sidebar">
@@ -36,6 +38,9 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
       </button>
       <button onClick={props.onOpenCompletedProjectsPopup}>
         open-completed-popup
+      </button>
+      <button onClick={props.onOpenDraftPendingProjectsPopup}>
+        open-draft-pending-popup
       </button>
       <button onClick={props.onOpenSettingsIntent}>settings-intent</button>
       <button onClick={props.onLogout}>logout</button>
@@ -124,6 +129,7 @@ const baseProps = () => ({
   openCreateProject: vi.fn(),
   handleCreateProjectIntent: vi.fn(),
   visibleProjects: { "project-1": PROJECT },
+  approvedSidebarProjectIds: [],
   viewerIdentity: VIEWER,
   activeWorkspace: WORKSPACE,
   workspaces: [WORKSPACE],
@@ -136,6 +142,7 @@ const baseProps = () => ({
   onEditProject: vi.fn(),
   onViewReviewProject: vi.fn(),
   onOpenCompletedProjectsPopup: vi.fn(),
+  onOpenDraftPendingProjectsPopup: vi.fn(),
   workspaceActivities: [],
   inboxUnreadCount: 12,
   activitiesPaginationStatus: "Exhausted" as const,
@@ -163,6 +170,9 @@ describe("DashboardChrome", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "open-completed-popup" }),
     );
+    fireEvent.click(
+      screen.getByRole("button", { name: "open-draft-pending-popup" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "settings-intent" }));
     fireEvent.click(screen.getByRole("button", { name: "logout" }));
     fireEvent.click(screen.getByRole("button", { name: "switch-workspace" }));
@@ -177,6 +187,7 @@ describe("DashboardChrome", () => {
     expect(props.openInbox).toHaveBeenCalledTimes(1);
     expect(props.handleCreateProjectIntent).toHaveBeenCalledTimes(1);
     expect(props.onOpenCompletedProjectsPopup).toHaveBeenCalledTimes(1);
+    expect(props.onOpenDraftPendingProjectsPopup).toHaveBeenCalledTimes(1);
     expect(props.handleSettingsIntent).toHaveBeenCalledTimes(1);
     expect(props.handleSignOut).toHaveBeenCalledTimes(1);
     expect(props.onSwitchWorkspace).toHaveBeenCalledWith("workspace-b");
