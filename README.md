@@ -1,6 +1,6 @@
 # Build Design
 
-https://github.com/nickgarreis/superlane/intro_2.mp4
+[https://github.com/nickgarreis/superlane/intro_2.mp4](https://github.com/user-attachments/assets/48dc5cc8-e78c-4408-a43e-c148c2d781a2)
 
 Build Design is a real-time project operations dashboard for design agencies.
 It combines planning, collaboration, task management, file handling, and workspace governance in one app.
