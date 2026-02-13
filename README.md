@@ -1,3 +1,5 @@
+<video src="intro.mp4" controls playsinline></video>
+
 # Build Design
 
 Build Design is a real-time project operations dashboard for design agencies.
