@@ -21,6 +21,7 @@ export type CreateProjectPopupUser = {
   role?: WorkspaceRole;
 };
 export type CreateProjectPopupProps = {
+  isMobile?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onCreate?: (

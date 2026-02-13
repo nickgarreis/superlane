@@ -63,7 +63,6 @@ describe("ArchivePage", () => {
     render(
       <ArchivePage
         onToggleSidebar={vi.fn()}
-        isSidebarOpen
         projects={{
           "archived-1": archivedProject,
           "active-1": buildProject({

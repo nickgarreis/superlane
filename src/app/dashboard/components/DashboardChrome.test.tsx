@@ -72,6 +72,7 @@ vi.mock("./DashboardSidebarDndBoundary", () => ({
 vi.mock("../../components/InboxSidebarPanel", () => ({
   InboxSidebarPanel: (props: {
     isOpen: boolean;
+    isMobile: boolean;
     unreadCount: number;
     workspaceMembers: Array<{ userId: string }>;
     onMarkActivityRead: (activityId: string) => void;
@@ -79,7 +80,11 @@ vi.mock("../../components/InboxSidebarPanel", () => ({
     onMarkAllRead: () => void;
     onActivityClick: (activity: { id: string; kind: string }) => void;
   }) => (
-    <div data-testid="inbox-panel" data-open={props.isOpen}>
+    <div
+      data-testid="inbox-panel"
+      data-open={props.isOpen}
+      data-mobile={props.isMobile}
+    >
       <span data-testid="panel-unread-count">{props.unreadCount}</span>
       <button onClick={() => props.onMarkActivityRead("activity-1")}>
         mark-one
@@ -140,7 +145,9 @@ const WORKSPACE_MEMBERS: WorkspaceMember[] = [
 ];
 
 const baseProps = () => ({
+  isMobile: false,
   isSidebarOpen: true,
+  onToggleSidebar: vi.fn(),
   navigateView: vi.fn(),
   openInbox: vi.fn(),
   closeInbox: vi.fn(),
@@ -231,6 +238,17 @@ describe("DashboardChrome", () => {
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
   });
 
+  test("renders mobile sidebar drawer and closes it via backdrop", async () => {
+    const props = baseProps();
+    props.isMobile = true;
+
+    render(<DashboardChrome {...props} />);
+
+    expect(await screen.findByTestId("sidebar")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close sidebar" }));
+    expect(props.onToggleSidebar).toHaveBeenCalledTimes(1);
+  });
+
   test("routes inbox button to close callback when inbox is already open", async () => {
     const props = baseProps();
     props.isInboxOpen = true;
@@ -251,6 +269,10 @@ describe("DashboardChrome", () => {
 
     expect(await screen.findByTestId("inbox-panel")).toBeInTheDocument();
     expect(screen.getByTestId("panel-unread-count").textContent).toBe("12");
+    expect(screen.getByTestId("inbox-panel")).toHaveAttribute(
+      "data-mobile",
+      "false",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "mark-one" }));
     fireEvent.click(screen.getByRole("button", { name: "dismiss-one" }));

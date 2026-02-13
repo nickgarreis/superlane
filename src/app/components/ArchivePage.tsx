@@ -5,7 +5,6 @@ import React, {
   useRef,
 } from "react";
 import { Archive, ArchiveRestore, Trash2, Search } from "lucide-react";
-import HorizontalBorder from "../../imports/HorizontalBorder";
 import { cn } from "../../lib/utils";
 import { ProjectData, WorkspaceRole } from "../types";
 import { ProjectLogo } from "./ProjectLogo";
@@ -14,6 +13,8 @@ import { safeScrollIntoView } from "../lib/dom";
 import { DeniedAction } from "./permissions/DeniedAction";
 import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
 import { getProjectLifecycleDeniedReason } from "../lib/permissionRules";
+import { DashboardTopBar } from "./layout/DashboardTopBar";
+import { useIsMobile } from "./ui/use-mobile";
 import {
   DASHBOARD_SEARCH_BORDER_CLASS,
   DASHBOARD_SEARCH_CONTAINER_CLASS,
@@ -21,8 +22,8 @@ import {
   DASHBOARD_SEARCH_INPUT_CLASS,
 } from "./ui/dashboardChrome";
 export function ArchivePage({
+  isMobile = false,
   onToggleSidebar,
-  isSidebarOpen,
   projects,
   viewerRole,
   onNavigateToProject,
@@ -31,8 +32,8 @@ export function ArchivePage({
   highlightedProjectId,
   setHighlightedProjectId,
 }: {
+  isMobile?: boolean;
   onToggleSidebar: () => void;
-  isSidebarOpen: boolean;
   projects: Record<string, ProjectData>;
   viewerRole?: WorkspaceRole | null;
   onNavigateToProject: (id: string) => void;
@@ -41,6 +42,8 @@ export function ArchivePage({
   highlightedProjectId?: string | null;
   setHighlightedProjectId?: (id: string | null) => void;
 }) {
+  const viewportIsMobile = useIsMobile();
+  const useMobileLayout = isMobile || viewportIsMobile;
   const [searchQuery, setSearchQuery] = useSessionBackedState(
     "archive.search",
     "",
@@ -113,13 +116,13 @@ export function ArchivePage({
       <div className="relative bg-bg-surface rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out">
         {/* Top Border / Header */}
         <div className="w-full h-[57px] shrink-0">
-          <HorizontalBorder onToggleSidebar={onToggleSidebar} />
+          <DashboardTopBar onToggleSidebar={onToggleSidebar} />
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="scrollbar-page flex-1 overflow-y-auto px-[80px] py-[40px]">
+        <div className="scrollbar-page flex-1 overflow-y-auto px-4 py-5 md:px-[80px] md:py-[40px]">
           {/* Header Section */}
-          <div className="flex gap-6 mb-10 items-center">
+          <div className="flex gap-6 mb-6 md:mb-10 items-center">
             <div className="flex-1">
               <h1 className="txt-role-page-title txt-tone-primary tracking-tight">
                 Archive
@@ -149,119 +152,228 @@ export function ArchivePage({
 
           {/* Project Table */}
           {filteredProjects.length > 0 ? (
-            <div className="flex flex-col">
-              {/* Table Header */}
-              <div className="flex items-center border-b border-white/5 px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30">
-                <div className="flex-1 min-w-0">Project</div>
-                <div className="w-[140px] shrink-0">Category</div>
-                <div className="w-[140px] shrink-0">Archived on</div>
-                <div className="w-[120px] shrink-0 text-right">Actions</div>
-              </div>
-
-              {/* Table Rows */}
-              <AnimatePresence initial={false}>
-                {filteredProjects.map((project) => (
-                  <motion.div
-                    key={project.id}
-                    ref={(el) => {
-                      rowRefs.current[project.id] = el;
-                    }}
-                    layout
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center px-4 py-3 hover:bg-white/[0.02] transition-colors group cursor-pointer"
-                    onClick={() => onNavigateToProject(project.id)}
-                  >
-                    <div className="flex-1 min-w-0 flex items-center gap-3">
-                      <div className="opacity-60">
-                        <ProjectLogo size={28} category={project.category} />
+            useMobileLayout ? (
+              <div className="flex flex-col gap-2">
+                <AnimatePresence initial={false}>
+                  {filteredProjects.map((project) => (
+                    <motion.div
+                      key={project.id}
+                      ref={(el) => {
+                        rowRefs.current[project.id] = el;
+                      }}
+                      layout
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                      transition={{ duration: 0.2 }}
+                      className="rounded-xl border border-border-subtle-soft bg-surface-hover-subtle px-4 py-3 cursor-pointer"
+                      onClick={() => onNavigateToProject(project.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <ProjectLogo size={24} category={project.category} />
+                        <div className="min-w-0 flex-1">
+                          <p className="txt-role-body-lg txt-tone-primary truncate">
+                            {project.name}
+                          </p>
+                          <p className="txt-role-body-sm text-white/50">
+                            {project.category}
+                          </p>
+                        </div>
                       </div>
-                      <span className="txt-role-body-lg txt-tone-primary truncate">
-                        {project.name}
-                      </span>
-                    </div>
-                    <div className="w-[140px] shrink-0 txt-role-body-md text-white/50">
-                      {project.category}
-                    </div>
-                    <div className="w-[140px] shrink-0 txt-role-body-md text-white/40">
-                      {formatDate(project.archivedAt)}
-                    </div>
-                    <div className="w-[120px] shrink-0 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DeniedAction
-                        denied={!canManageProjectLifecycle}
-                        reason={projectLifecycleDeniedReason}
-                        tooltipAlign="right"
-                      >
-                        <button
-                          className={cn(
-                            "p-1.5 rounded-lg transition-colors",
-                            canManageProjectLifecycle
-                              ? "hover:bg-white/10 cursor-pointer"
-                              : "cursor-not-allowed opacity-55",
-                          )}
-                          title="Unarchive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!canManageProjectLifecycle) {
-                              return;
-                            }
-                            onUnarchiveProject(project.id);
-                          }}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="txt-role-body-sm text-white/40">
+                          Archived {formatDate(project.archivedAt)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <DeniedAction
+                            denied={!canManageProjectLifecycle}
+                            reason={projectLifecycleDeniedReason}
+                            tooltipAlign="right"
+                          >
+                            <button
+                              className={cn(
+                                "p-1.5 rounded-lg transition-colors",
+                                canManageProjectLifecycle
+                                  ? "hover:bg-white/10 cursor-pointer"
+                                  : "cursor-not-allowed opacity-55",
+                              )}
+                              title="Unarchive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!canManageProjectLifecycle) {
+                                  return;
+                                }
+                                onUnarchiveProject(project.id);
+                              }}
+                            >
+                              <ArchiveRestore
+                                size={15}
+                                className={cn(
+                                  canManageProjectLifecycle
+                                    ? "text-white/50 hover:text-white"
+                                    : "text-white/30",
+                                )}
+                              />
+                            </button>
+                          </DeniedAction>
+                          <DeniedAction
+                            denied={!canManageProjectLifecycle}
+                            reason={projectLifecycleDeniedReason}
+                            tooltipAlign="right"
+                          >
+                            <button
+                              className={cn(
+                                "p-1.5 rounded-lg transition-colors",
+                                canManageProjectLifecycle
+                                  ? "hover:bg-red-500/10 cursor-pointer"
+                                  : "cursor-not-allowed opacity-55",
+                              )}
+                              title="Delete permanently"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!canManageProjectLifecycle) {
+                                  return;
+                                }
+                                if (
+                                  window.confirm(
+                                    "Are you sure you want to permanently delete this project?",
+                                  )
+                                ) {
+                                  onDeleteProject(project.id);
+                                }
+                              }}
+                            >
+                              <Trash2
+                                size={15}
+                                className={cn(
+                                  canManageProjectLifecycle
+                                    ? "text-white/50 hover:text-red-400"
+                                    : "text-white/30",
+                                )}
+                              />
+                            </button>
+                          </DeniedAction>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {/* Table Header */}
+                <div className="flex items-center border-b border-white/5 px-4 py-2 txt-role-meta uppercase tracking-wider text-white/30">
+                  <div className="flex-1 min-w-0">Project</div>
+                  <div className="w-[140px] shrink-0">Category</div>
+                  <div className="w-[140px] shrink-0">Archived on</div>
+                  <div className="w-[120px] shrink-0 text-right">Actions</div>
+                </div>
+
+                {/* Table Rows */}
+                <AnimatePresence initial={false}>
+                  {filteredProjects.map((project) => (
+                    <motion.div
+                      key={project.id}
+                      ref={(el) => {
+                        rowRefs.current[project.id] = el;
+                      }}
+                      layout
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center px-4 py-3 hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                      onClick={() => onNavigateToProject(project.id)}
+                    >
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <div className="opacity-60">
+                          <ProjectLogo size={28} category={project.category} />
+                        </div>
+                        <span className="txt-role-body-lg txt-tone-primary truncate">
+                          {project.name}
+                        </span>
+                      </div>
+                      <div className="w-[140px] shrink-0 txt-role-body-md text-white/50">
+                        {project.category}
+                      </div>
+                      <div className="w-[140px] shrink-0 txt-role-body-md text-white/40">
+                        {formatDate(project.archivedAt)}
+                      </div>
+                      <div className="w-[120px] shrink-0 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                        <DeniedAction
+                          denied={!canManageProjectLifecycle}
+                          reason={projectLifecycleDeniedReason}
+                          tooltipAlign="right"
                         >
-                          <ArchiveRestore
-                            size={15}
+                          <button
                             className={cn(
+                              "p-1.5 rounded-lg transition-colors",
                               canManageProjectLifecycle
-                                ? "text-white/50 hover:text-white"
-                                : "text-white/30",
+                                ? "hover:bg-white/10 cursor-pointer"
+                                : "cursor-not-allowed opacity-55",
                             )}
-                          />
-                        </button>
-                      </DeniedAction>
-                      <DeniedAction
-                        denied={!canManageProjectLifecycle}
-                        reason={projectLifecycleDeniedReason}
-                        tooltipAlign="right"
-                      >
-                        <button
-                          className={cn(
-                            "p-1.5 rounded-lg transition-colors",
-                            canManageProjectLifecycle
-                              ? "hover:bg-red-500/10 cursor-pointer"
-                              : "cursor-not-allowed opacity-55",
-                          )}
-                          title="Delete permanently"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!canManageProjectLifecycle) {
-                              return;
-                            }
-                            if (
-                              window.confirm(
-                                "Are you sure you want to permanently delete this project?",
-                              )
-                            ) {
-                              onDeleteProject(project.id);
-                            }
-                          }}
+                            title="Unarchive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!canManageProjectLifecycle) {
+                                return;
+                              }
+                              onUnarchiveProject(project.id);
+                            }}
+                          >
+                            <ArchiveRestore
+                              size={15}
+                              className={cn(
+                                canManageProjectLifecycle
+                                  ? "text-white/50 hover:text-white"
+                                  : "text-white/30",
+                              )}
+                            />
+                          </button>
+                        </DeniedAction>
+                        <DeniedAction
+                          denied={!canManageProjectLifecycle}
+                          reason={projectLifecycleDeniedReason}
+                          tooltipAlign="right"
                         >
-                          <Trash2
-                            size={15}
+                          <button
                             className={cn(
+                              "p-1.5 rounded-lg transition-colors",
                               canManageProjectLifecycle
-                                ? "text-white/50 hover:text-red-400"
-                                : "text-white/30",
+                                ? "hover:bg-red-500/10 cursor-pointer"
+                                : "cursor-not-allowed opacity-55",
                             )}
-                          />
-                        </button>
-                      </DeniedAction>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                            title="Delete permanently"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!canManageProjectLifecycle) {
+                                return;
+                              }
+                              if (
+                                window.confirm(
+                                  "Are you sure you want to permanently delete this project?",
+                                )
+                              ) {
+                                onDeleteProject(project.id);
+                              }
+                            }}
+                          >
+                            <Trash2
+                              size={15}
+                              className={cn(
+                                canManageProjectLifecycle
+                                  ? "text-white/50 hover:text-red-400"
+                                  : "text-white/30",
+                              )}
+                            />
+                          </button>
+                        </DeniedAction>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-white/20">
               <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">

@@ -3,7 +3,9 @@ import { DashboardChrome } from "./components/DashboardChrome";
 import { DashboardContent } from "./components/DashboardContent";
 import { DashboardPopups } from "./components/DashboardPopups";
 import { useDashboardOrchestration } from "./useDashboardOrchestration";
+import { useIsMobile } from "../components/ui/use-mobile";
 export default function DashboardShell() {
+  const isMobile = useIsMobile();
   const { hasSnapshot, popupsProps, chromeProps, contentProps } =
     useDashboardOrchestration();
   if (!hasSnapshot) {
@@ -14,10 +16,10 @@ export default function DashboardShell() {
     );
   }
   return (
-    <div className="flex h-screen w-full bg-bg-base overflow-hidden font-app antialiased txt-tone-primary">
-      <DashboardPopups {...popupsProps} />
-      <DashboardChrome {...chromeProps} />
-      <DashboardContent {...contentProps} />
+    <div className="flex app-shell-dvh w-full bg-bg-base overflow-hidden font-app antialiased txt-tone-primary">
+      <DashboardPopups {...popupsProps} isMobile={isMobile} />
+      <DashboardChrome {...chromeProps} isMobile={isMobile} />
+      <DashboardContent {...contentProps} isMobile={isMobile} />
     </div>
   );
 }

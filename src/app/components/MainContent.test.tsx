@@ -421,6 +421,26 @@ describe("MainContent", () => {
     });
   });
 
+  test("uses wrapping classes to avoid clipping project headline and description", () => {
+    renderMainContent({
+      project: {
+        ...BASE_PROJECT,
+        name: "SUPERLONGPROJECTTITLEWITHOUTSPACES",
+        description: "VERYLONGDESCRIPTIONWITHOUTSPACES".repeat(10),
+      },
+    });
+
+    const heading = screen.getByRole("textbox", {
+      name: "Project name",
+    });
+    const description = screen.getByRole("textbox", {
+      name: "Project description",
+    });
+
+    expect(heading).toHaveClass("w-full", "min-w-0", "break-words");
+    expect(description).toHaveClass("w-full", "min-w-0", "break-words");
+  });
+
   test("keeps inline text stable on blur while backend state catches up", () => {
     const projectActions = buildProjectActions();
     renderMainContent({ projectActions });

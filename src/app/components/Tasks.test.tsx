@@ -32,6 +32,7 @@ vi.mock("./ProjectLogo", () => ({
 vi.mock("./ProjectTasks", () => ({
   ProjectTasks: (props: {
     tasks: Task[];
+    isMobile?: boolean;
     isAddingMode?: boolean;
     onUpdateTasks: (tasks: Task[]) => void;
   }) => {
@@ -281,5 +282,30 @@ describe("Tasks", () => {
       ]),
     );
     expect(updatedTasks.find((task) => task.id === "task-2")).toBeUndefined();
+  });
+
+  test("forwards mobile layout mode to task rows", () => {
+    projectTasksRenderMock.mockClear();
+    render(
+      <Tasks
+        isMobile
+        onToggleSidebar={vi.fn()}
+        projects={{
+          "active-1": buildProject({
+            id: "active-1",
+            name: "Active One",
+            category: "Web",
+          }),
+        }}
+        workspaceTasks={[]}
+        onUpdateWorkspaceTasks={vi.fn()}
+        workspaceMembers={MEMBERS}
+        viewerIdentity={VIEWER}
+      />,
+    );
+
+    expect(projectTasksRenderMock).toHaveBeenCalledWith(
+      expect.objectContaining({ isMobile: true }),
+    );
   });
 });

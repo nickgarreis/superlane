@@ -153,4 +153,10 @@ describe("SettingsPopup", () => {
       screen.getByRole("button", { name: "Delete Workspace" }),
     ).toBeEnabled();
   });
+
+  test("uses fullscreen shell on mobile", () => {
+    render(<SettingsPopup {...buildProps({ isMobile: true })} />);
+
+    expect(screen.getByTestId("settings-popup-shell")).toHaveClass("h-[100dvh]");
+  });
 });

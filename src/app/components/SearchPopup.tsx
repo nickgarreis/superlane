@@ -23,6 +23,7 @@ import {
   POPUP_OVERLAY_BASE_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
+  POPUP_SHELL_MOBILE_CLASS,
 } from "./popup/popupChrome";
 import { KBD_PILL_CLASS } from "./ui/controlChrome";
 import { Z_LAYERS } from "../lib/zLayers";
@@ -75,6 +76,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 const MAX_RECENT = 5;
 export function SearchPopup({
+  isMobile = false,
   isOpen,
   onClose,
   projects,
@@ -249,16 +251,17 @@ export function SearchPopup({
     <AnimatePresence>
       {isOpen && (
         <div
-          className={`${POPUP_OVERLAY_BASE_CLASS} flex items-start justify-center pt-[min(20vh,180px)]`}
+          className={`${POPUP_OVERLAY_BASE_CLASS} flex items-start justify-center ${isMobile ? "p-0" : "pt-[min(20vh,180px)]"}`}
           style={{ zIndex: Z_LAYERS.modalPriority }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -8 }}
+            data-testid="search-popup-shell"
+            initial={isMobile ? { opacity: 0, y: 20 } : { opacity: 0, scale: 0.97, y: -8 }}
+            animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={isMobile ? { opacity: 0, y: 20 } : { opacity: 0, scale: 0.97, y: -8 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className={`${POPUP_SHELL_CLASS} max-w-[560px] flex flex-col max-h-[min(70vh,520px)]`}
+            className={`${POPUP_SHELL_CLASS} ${isMobile ? POPUP_SHELL_MOBILE_CLASS : ""} flex flex-col ${isMobile ? "h-[100dvh] max-h-[100dvh]" : "max-w-[560px] max-h-[min(70vh,520px)]"}`}
             onClick={(event: React.MouseEvent<HTMLDivElement>) =>
               event.stopPropagation()
             }
@@ -293,37 +296,39 @@ export function SearchPopup({
               quickActions={QUICK_ACTIONS}
               actionHandlers={actionHandlers}
             />
-            <div className="flex items-center gap-4 px-4 h-[36px] shrink-0 border-t border-border-subtle-soft bg-surface-hover-subtle">
-              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
-                <span className="flex items-center gap-0.5">
-                  <kbd className={`${KBD_PILL_CLASS} size-4`}>
-                    <ChevronUp size={9} />
+            {!isMobile && (
+              <div className="flex items-center gap-4 px-4 h-[36px] shrink-0 border-t border-border-subtle-soft bg-surface-hover-subtle">
+                <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
+                  <span className="flex items-center gap-0.5">
+                    <kbd className={`${KBD_PILL_CLASS} size-4`}>
+                      <ChevronUp size={9} />
+                    </kbd>
+                    <kbd className={`${KBD_PILL_CLASS} size-4`}>
+                      <ChevronDown size={9} />
+                    </kbd>
+                  </span>
+                  navigate
+                </div>
+                <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
+                  <kbd className={`${KBD_PILL_CLASS} h-4 px-1`}>
+                    <CornerDownLeft size={9} />
                   </kbd>
-                  <kbd className={`${KBD_PILL_CLASS} size-4`}>
-                    <ChevronDown size={9} />
+                  open
+                </div>
+                <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
+                  <kbd className={`${KBD_PILL_CLASS} px-1 h-4 txt-role-micro`}>
+                    esc
                   </kbd>
-                </span>
-                navigate
+                  close
+                </div>
+                {hasSearchQuery && hasResults && (
+                  <span className="ml-auto txt-role-kbd text-text-muted-weak tabular-nums">
+                    {flatResults.length} result
+                    {flatResults.length !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
-                <kbd className={`${KBD_PILL_CLASS} h-4 px-1`}>
-                  <CornerDownLeft size={9} />
-                </kbd>
-                open
-              </div>
-              <div className="flex items-center gap-1.5 txt-role-kbd text-text-muted-weak">
-                <kbd className={`${KBD_PILL_CLASS} px-1 h-4 txt-role-micro`}>
-                  esc
-                </kbd>
-                close
-              </div>
-              {hasSearchQuery && hasResults && (
-                <span className="ml-auto txt-role-kbd text-text-muted-weak tabular-nums">
-                  {flatResults.length} result
-                  {flatResults.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
+            )}
           </motion.div>
         </div>
       )}

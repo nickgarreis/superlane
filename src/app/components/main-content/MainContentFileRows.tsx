@@ -25,6 +25,7 @@ const FILE_THUMBNAIL_BY_TYPE: Record<string, string> = {
   FILE: imgFile4,
 };
 type MainContentFileRowsProps = {
+  isMobile?: boolean;
   filteredFiles: ProjectFileData[];
   fileRowRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   fileActions: MainContentFileActions;
@@ -35,6 +36,7 @@ type MainContentFileRowsProps = {
   fileRowStyle?: React.CSSProperties;
 };
 export const MainContentFileRows = React.memo(function MainContentFileRows({
+  isMobile = false,
   filteredFiles,
   fileRowRefs,
   fileActions,
@@ -141,7 +143,14 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                       </span>
                     </div>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 transition-opacity",
+                      isMobile
+                        ? "opacity-100 ml-2 shrink-0"
+                        : "opacity-0 group-hover:opacity-100 absolute right-3 top-1/2 -translate-y-1/2",
+                    )}
+                  >
                     <button
                       title="Download"
                       onClick={(event) => {
@@ -209,7 +218,14 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                   <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
                 </div>
               </div>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex items-center gap-3 transition-opacity",
+                  isMobile
+                    ? "opacity-100 ml-2 shrink-0"
+                    : "opacity-0 group-hover:opacity-100 absolute right-3 top-1/2 -translate-y-1/2",
+                )}
+              >
                 <button
                   title="Download"
                   onClick={(event) => {

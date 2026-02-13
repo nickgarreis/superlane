@@ -107,4 +107,24 @@ describe("FileSection", () => {
       screen.getByText('No files found matching "missing"'),
     ).toBeInTheDocument();
   });
+
+  test("keeps tabs and upload action in the same row on mobile", () => {
+    render(
+      <FileSection
+        {...buildProps({
+          isMobile: true,
+        })}
+      />,
+    );
+
+    const tabsActionsRow = screen.getByTestId("file-section-tabs-actions-row");
+    const tabsStrip = screen.getByTestId("file-section-tabs-strip");
+
+    expect(tabsActionsRow).toHaveClass("flex", "items-center", "justify-between");
+    expect(tabsActionsRow).not.toHaveClass("flex-col");
+    expect(tabsStrip).toHaveClass("flex-1", "min-w-0", "overflow-x-auto");
+    expect(screen.getByRole("button", { name: "Add asset" })).toHaveClass(
+      "shrink-0",
+    );
+  });
 });

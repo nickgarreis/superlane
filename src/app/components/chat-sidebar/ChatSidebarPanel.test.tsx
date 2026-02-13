@@ -67,6 +67,9 @@ const activeProject: ProjectData = {
 
 describe("ChatSidebar reactions", () => {
   beforeEach(() => {
+    (window as { __setViewportWidth?: (value: number) => void }).__setViewportWidth?.(
+      1280,
+    );
     Object.defineProperty(window, "scrollTo", {
       value: vi.fn(),
       writable: true,
@@ -82,6 +85,34 @@ describe("ChatSidebar reactions", () => {
         continueCursor: null,
       }),
     });
+  });
+
+  test("renders as a full-width drawer on mobile viewports", async () => {
+    (window as { __setViewportWidth?: (value: number) => void }).__setViewportWidth?.(
+      390,
+    );
+    mockUsePaginatedQuery.mockReturnValue({
+      results: [],
+      status: "Exhausted",
+      loadMore: vi.fn(),
+    });
+    mockUseMutation.mockImplementation(() => vi.fn().mockResolvedValue({}));
+
+    render(
+      <ChatSidebar
+        isOpen
+        onClose={vi.fn()}
+        activeProject={activeProject}
+        activeProjectTasks={[]}
+        allProjects={{ [activeProject.id]: activeProject }}
+        workspaceMembers={workspaceMembers}
+        viewerIdentity={viewerIdentity}
+      />,
+    );
+
+    const panel = await screen.findByTestId("chat-sidebar-panel");
+    expect(panel.className).toContain("fixed");
+    expect(panel.className).toContain("w-full");
   });
 
   test("toggles reactions for existing comments", async () => {

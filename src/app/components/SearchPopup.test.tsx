@@ -197,4 +197,22 @@ describe("SearchPopup", () => {
       expect(onNavigate).toHaveBeenCalledWith("completed-project:project-2");
     });
   });
+
+  test("uses fullscreen shell on mobile", () => {
+    render(
+      <SearchPopup
+        isMobile
+        isOpen
+        onClose={vi.fn()}
+        projects={PROJECTS}
+        files={FILES}
+        onNavigate={vi.fn()}
+        onOpenInbox={vi.fn()}
+        onOpenCreateProject={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("search-popup-shell")).toHaveClass("h-[100dvh]");
+  });
 });

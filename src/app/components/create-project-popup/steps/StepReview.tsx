@@ -12,6 +12,7 @@ import { DeniedAction } from "../../permissions/DeniedAction";
 import { WizardCloseButton } from "../WizardCloseButton";
 type ReviewUser = { userId?: string; name: string; avatar: string };
 type StepReviewProps = {
+  isMobile?: boolean;
   editProjectId?: string | null;
   user?: ReviewUser;
   selectedService: string | null;
@@ -59,6 +60,7 @@ const NEXT_STEPS: ReadonlyArray<{ num: string; title: string; desc: string }> =
     },
   ];
 export function StepReview({
+  isMobile = false,
   editProjectId,
   user,
   selectedService,
@@ -85,10 +87,10 @@ export function StepReview({
   return (
     <div className="flex flex-col w-full flex-1 overflow-hidden">
       <div
-        className={`px-[33px] ${showCloseButton ? "pt-[29px]" : "pt-[8px]"} pb-[20px] shrink-0 relative`}
+        className={`${isMobile ? "px-4" : "px-[33px]"} ${showCloseButton ? "pt-[29px]" : "pt-[8px]"} pb-[20px] shrink-0 relative`}
       >
         {showCloseButton && (
-          <div className="absolute right-[25px] top-[25px] z-30">
+          <div className={`absolute z-30 ${isMobile ? "right-4 top-4 safe-pt" : "right-[25px] top-[25px]"}`}>
             <WizardCloseButton onClick={onClose} />
           </div>
         )}
@@ -112,14 +114,14 @@ export function StepReview({
           </motion.div>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-[33px]">
+      <div className={`flex-1 overflow-y-auto custom-scrollbar ${isMobile ? "px-4" : "px-[33px]"}`}>
         <motion.div
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25, duration: 0.35 }}
           className="w-full rounded-[16px] bg-popup-surface-softer border border-popup-border-subtle p-[20px] mb-[28px]"
         >
-          <div className="grid grid-cols-2 gap-y-[16px] gap-x-[24px]">
+          <div className={`grid gap-y-[16px] gap-x-[24px] ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
             <div className="flex flex-col gap-[4px]">
               <span className="txt-role-body-sm txt-tone-faint tracking-wide uppercase">
                 Service
@@ -278,7 +280,7 @@ export function StepReview({
                         }
                         onDeleteComment(comment.id);
                       }}
-                      className={`shrink-0 mt-[2px] opacity-0 group-hover/comment:opacity-100 transition-opacity duration-150 p-[5px] rounded-md ${user?.userId && comment.author.userId === user.userId ? "hover:bg-white/[0.06] cursor-pointer" : "cursor-not-allowed"}`}
+                      className={`shrink-0 mt-[2px] ${isMobile ? "opacity-100" : "opacity-0 group-hover/comment:opacity-100"} transition-opacity duration-150 p-[5px] rounded-md ${user?.userId && comment.author.userId === user.userId ? "hover:bg-white/[0.06] cursor-pointer" : "cursor-not-allowed"}`}
                       title="Delete comment"
                     >
                       <svg
@@ -349,7 +351,7 @@ export function StepReview({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.85, duration: 0.3 }}
-        className="shrink-0 px-[33px] py-[20px] border-t border-popup-border-subtle flex justify-between items-center"
+        className={`shrink-0 border-t border-popup-border-subtle flex justify-between items-center gap-3 ${isMobile ? "px-4 py-3 safe-pb bg-bg-popup flex-wrap" : "px-[33px] py-[20px]"}`}
       >
         <DeniedAction
           denied={!canDeleteReviewProject}

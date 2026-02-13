@@ -170,7 +170,7 @@ export function CompanyTab({
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
           <input
             type="file"
             ref={logoFileInputRef}
@@ -206,13 +206,13 @@ export function CompanyTab({
                 initials
               )}
               {canManageWorkspaceGeneral && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded-2xl">
                   <Camera size={20} className="text-white" />
                 </div>
               )}
             </div>
           </DeniedAction>
-          <div className="flex flex-col gap-2 flex-1 max-w-[460px]">
+          <div className="flex flex-col gap-2 flex-1 max-w-[460px] min-w-0">
             <DeniedAction
               denied={!canManageWorkspaceGeneral}
               reason={workspaceGeneralDeniedReason}

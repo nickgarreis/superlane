@@ -15,6 +15,7 @@ export const STEP_THREE_TITLE = "Let's explore some possibilities";
 export const getStepDetailsJobLabel = (selectedService: string | null) =>
   getServiceJobLabel(selectedService);
 type StepDetailsProps = {
+  isMobile?: boolean;
   step: 2 | 3;
   selectedService: string | null;
   projectName: string;
@@ -38,6 +39,7 @@ type StepDetailsProps = {
   onRemoveAttachment: (clientId: string) => void;
 };
 export function StepDetails({
+  isMobile = false,
   step,
   selectedService,
   projectName,
@@ -68,6 +70,7 @@ export function StepDetails({
   if (step === 2) {
     return (
       <StepDetailsStep2
+        isMobile={isMobile}
         service={service}
         projectName={projectName}
         onProjectNameChange={onProjectNameChange}
@@ -81,6 +84,7 @@ export function StepDetails({
   }
   return (
     <StepDetailsStep3
+      isMobile={isMobile}
       description={description}
       onDescriptionChange={onDescriptionChange}
       attachments={attachments}

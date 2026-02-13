@@ -38,6 +38,7 @@ const paneClassName = (isActive: boolean): string =>
   isActive ? "h-full w-full" : "hidden h-full w-full";
 type MainContentModel = Extract<DashboardContentModel, { kind: "main" }>;
 type DashboardContentProps = {
+  isMobile: boolean;
   contentModel: DashboardContentModel;
   handleToggleSidebar: () => void;
   isSidebarOpen: boolean;
@@ -76,6 +77,7 @@ type DashboardContentProps = {
   openCreateProject: () => void;
 };
 export const DashboardContent = React.memo(function DashboardContent({
+  isMobile,
   contentModel,
   handleToggleSidebar,
   isSidebarOpen,
@@ -184,6 +186,7 @@ export const DashboardContent = React.memo(function DashboardContent({
         <div className={paneClassName(isTasksActive)} aria-hidden={!isTasksActive}>
           <Suspense fallback={ContentLoadingFallback}>
             <LazyTasks
+              isMobile={isMobile}
               onToggleSidebar={handleToggleSidebar}
               projects={visibleProjects}
               workspaceTasks={workspaceTasks}
@@ -203,8 +206,8 @@ export const DashboardContent = React.memo(function DashboardContent({
         >
           <Suspense fallback={ContentLoadingFallback}>
             <LazyArchivePage
+              isMobile={isMobile}
               onToggleSidebar={handleToggleSidebar}
-              isSidebarOpen={isSidebarOpen}
               projects={visibleProjects}
               viewerRole={viewerIdentity.role}
               onNavigateToProject={handleNavigateToArchiveProject}
@@ -220,6 +223,7 @@ export const DashboardContent = React.memo(function DashboardContent({
         <div className={paneClassName(isMainActive)} aria-hidden={!isMainActive}>
           <Suspense fallback={ContentLoadingFallback}>
             <LazyMainContent
+              isMobile={isMobile}
               onToggleSidebar={handleToggleSidebar}
               isSidebarOpen={isSidebarOpen}
               project={activeMainModel.project}

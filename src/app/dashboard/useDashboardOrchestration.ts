@@ -7,9 +7,9 @@ import { useDashboardDataLayer } from "./hooks/useDashboardDataLayer";
 import { useDashboardViewBindings } from "./hooks/useDashboardViewBindings";
 type DashboardOrchestrationResult = {
   hasSnapshot: boolean;
-  popupsProps: ComponentProps<typeof DashboardPopups>;
-  chromeProps: ComponentProps<typeof DashboardChrome>;
-  contentProps: ComponentProps<typeof DashboardContent>;
+  popupsProps: Omit<ComponentProps<typeof DashboardPopups>, "isMobile">;
+  chromeProps: Omit<ComponentProps<typeof DashboardChrome>, "isMobile">;
+  contentProps: Omit<ComponentProps<typeof DashboardContent>, "isMobile">;
 };
 export function useDashboardOrchestration(): DashboardOrchestrationResult {
   const dataLayer = useDashboardDataLayer();

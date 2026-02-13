@@ -32,6 +32,7 @@ export type SearchHighlight = {
 };
 
 export type DashboardPopupsProps = {
+  isMobile: boolean;
   currentView: AppView;
   isSearchOpen: boolean;
   setIsSearchOpen: (value: boolean) => void;

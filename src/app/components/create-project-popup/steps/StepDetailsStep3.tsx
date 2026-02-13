@@ -8,6 +8,7 @@ import {
 } from "../../../lib/dates";
 import type { PendingDraftAttachmentUpload } from "../../../types";
 type StepDetailsStep3Props = {
+  isMobile?: boolean;
   description: string;
   onDescriptionChange: (value: string) => void;
   attachments: PendingDraftAttachmentUpload[];
@@ -35,6 +36,7 @@ const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
   }
 };
 export const StepDetailsStep3 = memo(function StepDetailsStep3({
+  isMobile = false,
   description,
   onDescriptionChange,
   attachments,
@@ -52,7 +54,9 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
   calendarRef,
 }: StepDetailsStep3Props) {
   return (
-    <div className="pt-[16px] w-full flex flex-col h-[480px] overflow-y-auto custom-scrollbar pr-1">
+    <div
+      className={`w-full flex flex-col overflow-y-auto custom-scrollbar ${isMobile ? "pt-3 h-auto min-h-0 pr-0" : "pt-[16px] h-[480px] pr-1"}`}
+    >
       <motion.div
         initial={{ y: 8, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -111,7 +115,9 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
                   className="flex items-center justify-between text-xs text-white/60 bg-white/5 rounded px-2 py-1"
                 >
                   <div className="flex flex-col min-w-0">
-                    <span className="truncate max-w-[250px]">{file.name}</span>
+                    <span className={`truncate ${isMobile ? "max-w-[180px]" : "max-w-[250px]"}`}>
+                      {file.name}
+                    </span>
                     <span className="txt-role-kbd text-white/40">
                       {file.status === "uploading" && "Uploading..."}
                       {file.status === "uploaded" && "Uploaded"}
@@ -226,7 +232,7 @@ export const StepDetailsStep3 = memo(function StepDetailsStep3({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-[calc(100%+8px)] right-0 z-50 p-2 bg-popup-surface-opaque rounded-[14px] shadow-popup-calendar border border-popup-border-medium"
+                className={`absolute z-50 p-2 bg-popup-surface-opaque rounded-[14px] shadow-popup-calendar border border-popup-border-medium ${isMobile ? "left-0 right-auto bottom-[calc(100%+8px)]" : "bottom-[calc(100%+8px)] right-0"}`}
               >
                 <DayPicker
                   className="rdp-dark-theme"

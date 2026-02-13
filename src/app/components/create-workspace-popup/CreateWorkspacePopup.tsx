@@ -6,9 +6,11 @@ import {
   POPUP_OVERLAY_CENTER_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
+  POPUP_SHELL_MOBILE_CLASS,
 } from "../popup/popupChrome";
 const ACCEPTED_MIME_TYPES = "image/png,image/jpeg,image/gif,image/webp";
 type CreateWorkspacePopupProps = {
+  isMobile?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onCreate: (payload: {
@@ -17,6 +19,7 @@ type CreateWorkspacePopupProps = {
   }) => Promise<void> | void;
 };
 export function CreateWorkspacePopup({
+  isMobile = false,
   isOpen,
   onClose,
   onCreate,
@@ -121,22 +124,25 @@ export function CreateWorkspacePopup({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className={POPUP_OVERLAY_CENTER_CLASS}
+          className={`${POPUP_OVERLAY_CENTER_CLASS} ${isMobile ? "p-0" : ""}`}
           onClick={handleClose}
         >
           <motion.form
-            initial={{ y: 8, opacity: 0, scale: 0.985 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 8, opacity: 0, scale: 0.985 }}
+            data-testid="create-workspace-popup-shell"
+            initial={isMobile ? { y: 20, opacity: 0 } : { y: 8, opacity: 0, scale: 0.985 }}
+            animate={isMobile ? { y: 0, opacity: 1 } : { y: 0, opacity: 1, scale: 1 }}
+            exit={isMobile ? { y: 20, opacity: 0 } : { y: 8, opacity: 0, scale: 0.985 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             onSubmit={handleSubmit}
             onClick={(event: React.MouseEvent<HTMLFormElement>) =>
               event.stopPropagation()
             }
-            className={`${POPUP_SHELL_CLASS} max-w-[520px]`}
+            className={`${POPUP_SHELL_CLASS} ${POPUP_SHELL_MOBILE_CLASS} ${isMobile ? "h-[100dvh] max-h-[100dvh]" : "max-w-[520px]"} flex flex-col`}
           >
             <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
-            <div className="px-[28px] py-[22px] border-b border-white/5 flex items-center justify-between gap-3">
+            <div
+              className={`shrink-0 border-b border-white/5 flex items-center justify-between gap-3 ${isMobile ? "px-4 py-4 safe-pt" : "px-[28px] py-[22px]"}`}
+            >
               <div>
                 <p className="txt-role-panel-title txt-leading-title txt-tone-primary">
                   Create a new Workspace
@@ -156,7 +162,9 @@ export function CreateWorkspacePopup({
                 <X size={16} />
               </button>
             </div>
-            <div className="px-[28px] py-[24px] flex flex-col gap-6">
+            <div
+              className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-6 ${isMobile ? "px-4 py-4" : "px-[28px] py-[24px]"}`}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -231,23 +239,25 @@ export function CreateWorkspacePopup({
                   {submitError}
                 </p>
               )}
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  disabled={isSubmitting}
-                  className="cursor-pointer px-4 py-2 rounded-full border border-white/15 bg-transparent txt-role-body-md font-medium txt-tone-muted hover:txt-tone-primary hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="cursor-pointer px-4 py-2 rounded-full bg-text-tone-primary txt-tone-inverse txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Creating..." : "Create Workspace"}
-                </button>
-              </div>
+            </div>
+            <div
+              className={`shrink-0 border-t border-white/5 flex items-center justify-end gap-2 ${isMobile ? "px-4 py-3 safe-pb bg-bg-popup" : "px-[28px] py-[20px]"}`}
+            >
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="cursor-pointer px-4 py-2 rounded-full border border-white/15 bg-transparent txt-role-body-md font-medium txt-tone-muted hover:txt-tone-primary hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="cursor-pointer px-4 py-2 rounded-full bg-text-tone-primary txt-tone-inverse txt-role-body-md font-medium hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Creating..." : "Create Workspace"}
+              </button>
             </div>
           </motion.form>
         </motion.div>

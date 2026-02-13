@@ -227,4 +227,28 @@ describe("DraftPendingProjectsPopup", () => {
     await user.keyboard("{Enter}");
     expect(projectSortButton.querySelector(".lucide-arrow-up")).not.toBeNull();
   });
+
+  test("renders fullscreen card layout on mobile", () => {
+    const props = buildProps();
+    props.projects = {
+      draft: buildProject({
+        id: "draft",
+        name: "Draft Scope",
+        category: "Web",
+        status: {
+          label: "Draft",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+      }),
+    };
+
+    render(<DraftPendingProjectsPopup {...props} isMobile />);
+
+    expect(
+      screen.getByTestId("draft-pending-projects-popup-shell"),
+    ).toHaveClass("h-[100dvh]");
+    expect(screen.getByText("Draft Scope")).toBeInTheDocument();
+  });
 });

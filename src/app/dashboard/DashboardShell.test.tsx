@@ -61,13 +61,22 @@ describe("DashboardShell", () => {
     render(<DashboardShell />);
 
     expect(screen.getByTestId("dashboard-popups")).toHaveTextContent(
-      '{"isSearchOpen":true}',
+      '"isSearchOpen":true',
+    );
+    expect(screen.getByTestId("dashboard-popups")).toHaveTextContent(
+      '"isMobile":',
     );
     expect(screen.getByTestId("dashboard-chrome")).toHaveTextContent(
-      '{"isSidebarOpen":true}',
+      '"isSidebarOpen":true',
+    );
+    expect(screen.getByTestId("dashboard-chrome")).toHaveTextContent(
+      '"isMobile":',
     );
     expect(screen.getByTestId("dashboard-content")).toHaveTextContent(
-      '{"contentModel":{"kind":"tasks"}}',
+      '"contentModel":{"kind":"tasks"}',
+    );
+    expect(screen.getByTestId("dashboard-content")).toHaveTextContent(
+      '"isMobile":',
     );
   });
 });

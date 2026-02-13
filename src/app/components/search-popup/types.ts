@@ -39,6 +39,7 @@ export interface SearchIndexedFile {
   searchable: string;
 }
 export interface SearchPopupProps {
+  isMobile?: boolean;
   isOpen: boolean;
   onClose: () => void;
   projects: Record<string, ProjectData>;

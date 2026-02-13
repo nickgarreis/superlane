@@ -72,6 +72,7 @@ const VIEWER: ViewerIdentity = {
 };
 
 const baseProps = () => ({
+  isMobile: false,
   handleToggleSidebar: vi.fn(),
   isSidebarOpen: true,
   visibleProjects: { [BASE_PROJECT.id]: BASE_PROJECT },

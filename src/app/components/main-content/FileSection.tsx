@@ -16,6 +16,7 @@ import {
   DASHBOARD_SEARCH_INPUT_CLASS,
 } from "../ui/dashboardChrome";
 type FileSectionProps = {
+  isMobile?: boolean;
   activeTab: ProjectFileTab;
   setActiveTab: (value: ProjectFileTab) => void;
   handleUploadClick: () => void;
@@ -34,6 +35,7 @@ type FileSectionProps = {
   filteredFilesLength: number;
 };
 export const FileSection = React.memo(function FileSection({
+  isMobile = false,
   activeTab,
   setActiveTab,
   handleUploadClick,
@@ -53,13 +55,19 @@ export const FileSection = React.memo(function FileSection({
 }: FileSectionProps) {
   return (
     <>
-      <div className="flex items-center justify-between mb-8 pt-[45px] pr-[0px] pb-[0px] pl-[0px]">
-        <div className="flex gap-4">
+      <div
+        data-testid="file-section-tabs-actions-row"
+        className="flex items-center justify-between gap-3 md:gap-4 mb-8 pt-[24px] md:pt-[45px] pr-[0px] pb-[0px] pl-[0px]"
+      >
+        <div
+          data-testid="file-section-tabs-strip"
+          className="flex flex-1 min-w-0 items-center gap-2 md:gap-4 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <button
             type="button"
             onClick={() => setActiveTab("Assets")}
             className={cn(
-              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              "shrink-0 px-[14px] md:px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Assets"
                 ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
@@ -71,7 +79,7 @@ export const FileSection = React.memo(function FileSection({
             type="button"
             onClick={() => setActiveTab("Contract")}
             className={cn(
-              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              "shrink-0 px-[14px] md:px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Contract"
                 ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
@@ -83,7 +91,7 @@ export const FileSection = React.memo(function FileSection({
             type="button"
             onClick={() => setActiveTab("Attachments")}
             className={cn(
-              "px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
+              "shrink-0 px-[14px] md:px-[17px] py-[7px] txt-role-body-lg font-medium rounded-full transition-all cursor-pointer",
               activeTab === "Attachments"
                 ? "bg-control-surface-soft txt-tone-primary backdrop-blur-[6px]"
                 : "txt-tone-subtle hover:txt-tone-primary",
@@ -93,6 +101,7 @@ export const FileSection = React.memo(function FileSection({
           </button>
         </div>
         <DeniedAction
+          className="shrink-0"
           denied={!canMutateProjectFiles}
           reason={fileMutationDisabledMessage}
           tooltipAlign="right"
@@ -101,7 +110,7 @@ export const FileSection = React.memo(function FileSection({
             onClick={handleUploadClick}
             disabled={!canMutateProjectFiles}
             className={cn(
-              "flex items-center gap-1 pl-[9px] pr-[13px] py-[7.75px] rounded-full transition-colors",
+              "shrink-0 flex items-center gap-1 pl-[9px] pr-[13px] py-[7.75px] rounded-full transition-colors",
               canMutateProjectFiles
                 ? "bg-text-tone-primary hover:bg-white txt-tone-inverse cursor-pointer"
                 : "bg-popup-primary-disabled-45 text-text-inverse-strong/45 cursor-not-allowed",
@@ -130,7 +139,7 @@ export const FileSection = React.memo(function FileSection({
           className="hidden"
         />
       </div>
-      <div className="flex items-center justify-between mb-6 z-10 relative">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-6 z-10 relative">
         <div className={DASHBOARD_SEARCH_CONTAINER_CLASS}>
           <div className={DASHBOARD_SEARCH_BORDER_CLASS} />
           <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
@@ -148,7 +157,7 @@ export const FileSection = React.memo(function FileSection({
             />
           </div>
         </div>
-        <div className="relative">
+        <div className={cn("relative", isMobile && "self-end")}>
           <button
             type="button"
             onClick={() => setIsSortOpen(!isSortOpen)}

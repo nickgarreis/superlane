@@ -18,8 +18,8 @@ export function PendingInvitationRow({
   onRevokeInvitation,
 }: PendingInvitationRowProps) {
   return (
-    <div className={`flex items-center justify-between py-3 ${ROW_HOVER_CLASS}`}>
-      <div className="flex items-center gap-3">
+    <div className={`flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 ${ROW_HOVER_CLASS}`}>
+      <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-full bg-bg-avatar-fallback flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden border border-border-soft">
           {invitation.email.charAt(0).toUpperCase()}
         </div>
@@ -36,7 +36,7 @@ export function PendingInvitationRow({
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 self-end sm:self-auto">
         <DeniedAction
           denied={isMemberManagementDenied}
           reason={memberManagementDeniedReason}

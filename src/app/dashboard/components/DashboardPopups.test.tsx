@@ -222,6 +222,7 @@ const viewer: ViewerIdentity = {
 };
 
 const baseProps = () => ({
+  isMobile: false,
   currentView: "tasks" as const,
   isSearchOpen: false,
   setIsSearchOpen: vi.fn(),

@@ -7,6 +7,7 @@ import type { AppView } from "../../lib/routing";
 import { Z_LAYERS } from "../../lib/zLayers";
 import { MentionTextarea } from "../MentionTextarea";
 import type { MentionItem as MentionItemType } from "../mentions/types";
+import { useIsMobile } from "../ui/use-mobile";
 import {
   DIVIDER_SUBTLE_CLASS,
   GHOST_ICON_BUTTON_CLASS,
@@ -80,15 +81,22 @@ export const ChatSidebarView = React.memo(function ChatSidebarView({
   onMentionClick,
   onSubmitComment,
 }: ChatSidebarViewProps) {
+  const isMobile = useIsMobile();
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          data-testid="chat-sidebar-panel"
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute top-0 right-0 bottom-0 w-[420px] bg-bg-surface border-l border-border-subtle-soft shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+          className={cn(
+            "bg-bg-surface shadow-2xl flex flex-col overflow-hidden pointer-events-auto",
+            isMobile
+              ? "fixed inset-0 w-full safe-pt safe-pb safe-px"
+              : "absolute top-0 right-0 bottom-0 w-[420px] border-l border-border-subtle-soft",
+          )}
           style={{ zIndex: Z_LAYERS.dropdown }}
         >
           <div className="shrink-0 px-4 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20">

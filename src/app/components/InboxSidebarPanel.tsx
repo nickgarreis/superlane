@@ -20,17 +20,12 @@ import {
   ACTIVITY_KINDS,
   type ActivityKindFilter,
 } from "./activities-page/activityChrome";
-import { CollaborationActivityRow } from "./activities-page/rows/CollaborationActivityRow";
-import { FileActivityRow } from "./activities-page/rows/FileActivityRow";
-import { MembershipActivityRow } from "./activities-page/rows/MembershipActivityRow";
-import { ProjectActivityRow } from "./activities-page/rows/ProjectActivityRow";
-import { TaskActivityRow } from "./activities-page/rows/TaskActivityRow";
-import { WorkspaceActivityRow } from "./activities-page/rows/WorkspaceActivityRow";
-import { buildInboxMentionRenderOptions } from "./activities-page/inboxMentionRender";
+import { renderInboxActivity } from "./activities-page/inboxActivityRenderer";
 import { SidebarTag } from "./sidebar/SidebarTag";
 import { buildMentionUserAvatarLookup } from "./mentions/userAvatarLookup";
 type InboxSidebarPanelProps = {
   isOpen: boolean;
+  isMobile: boolean;
   onClose: () => void;
   activities: WorkspaceActivity[];
   workspaceMembers: WorkspaceMember[];
@@ -67,123 +62,10 @@ const deserializeKinds = (value: unknown): ActivityKindFilter[] | undefined => {
   );
   return next.slice(0, 20);
 };
-type RenderInboxActivityArgs = {
-  showReadState: boolean;
-  onMarkActivityRead?: (activityId: string) => void;
-  onDismissActivity?: (activityId: string) => void;
-  onActivityClick?: (activity: WorkspaceActivity) => void;
-  onClose?: () => void;
-  workspaceMemberAvatarLookup: ReadonlyMap<string, string>;
-};
-const renderInboxActivity = (
-  activity: WorkspaceActivity,
-  args: RenderInboxActivityArgs,
-) => {
-  const mentionRenderOptions = buildInboxMentionRenderOptions(
-    activity,
-    args.workspaceMemberAvatarLookup,
-  );
-  const onMarkRead = activity.isRead === false && args.onMarkActivityRead
-    ? () => args.onMarkActivityRead?.(activity.id)
-    : undefined;
-  const onDismiss = args.onDismissActivity
-    ? () => args.onDismissActivity?.(activity.id)
-    : undefined;
-  const onMentionClick = args.onActivityClick
-    ? () => {
-        if (activity.isRead === false) {
-          args.onMarkActivityRead?.(activity.id);
-        }
-        args.onActivityClick?.(activity);
-        args.onClose?.();
-      }
-    : undefined;
-  switch (activity.kind) {
-    case "project":
-      return (
-        <ProjectActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-    case "task":
-      return (
-        <TaskActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-    case "collaboration":
-      return (
-        <CollaborationActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-    case "file":
-      return (
-        <FileActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-    case "membership":
-      return (
-        <MembershipActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-    case "workspace":
-    case "organization":
-    default:
-      return (
-        <WorkspaceActivityRow
-          key={activity.id}
-          activity={activity}
-          showReadState={args.showReadState}
-          onMarkRead={onMarkRead}
-          onDismiss={onDismiss}
-          mentionMode="inbox"
-          onMentionClick={onMentionClick}
-          mentionRenderOptions={mentionRenderOptions}
-        />
-      );
-  }
-};
 
 export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
   isOpen,
+  isMobile,
   onClose,
   activities,
   workspaceMembers,
@@ -325,16 +207,44 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
   return (
     <AnimatePresence>
       {isOpen ? (
-        <motion.div
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 420, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          className="absolute left-full top-0 bottom-0 bg-bg-surface border-l border-r border-border-subtle-soft shadow-[16px_0_28px_-20px_rgba(0,0,0,0.75)] flex flex-col overflow-hidden pointer-events-auto"
-          style={{ zIndex: Z_LAYERS.dropdown }}
-        >
-          <div className="h-full w-[420px] flex flex-col">
-            <div className="shrink-0 px-6 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20">
+        <>
+          {isMobile ? (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              style={{ zIndex: Z_LAYERS.dropdown - 1 }}
+              aria-label="Close inbox"
+              onClick={onClose}
+            />
+          ) : null}
+          <motion.div
+            initial={isMobile ? { x: "100%" } : { width: 0, opacity: 0 }}
+            animate={isMobile ? { x: 0 } : { width: 420, opacity: 1 }}
+            exit={isMobile ? { x: "100%" } : { width: 0, opacity: 0 }}
+            transition={
+              isMobile
+                ? { duration: 0.28, ease: [0.32, 0.72, 0, 1] }
+                : { duration: 0.5, ease: [0.32, 0.72, 0, 1] }
+            }
+            className={cn(
+              "fixed top-0 bottom-0 bg-bg-surface shadow-[16px_0_28px_-20px_rgba(0,0,0,0.75)] flex flex-col overflow-hidden pointer-events-auto",
+              isMobile
+                ? "left-0 w-full safe-pt safe-pb safe-px border-r border-border-subtle-soft"
+                : "left-[260px] border-l border-r border-border-subtle-soft",
+            )}
+            style={{ zIndex: Z_LAYERS.dropdown }}
+          >
+            <div className={cn("h-full flex flex-col", isMobile ? "w-full" : "w-[420px]")}>
+              <div
+                className={cn(
+                  "shrink-0 h-[57px] flex items-center border-b border-border-subtle-soft bg-bg-surface relative z-20",
+                  isMobile ? "px-4" : "px-6",
+                )}
+              >
               <div className="flex items-center gap-2 min-w-0">
                 <InboxIcon className="w-4 h-4 txt-tone-primary shrink-0" />
                 <h2 className="txt-role-body-lg txt-tone-primary">Inbox</h2>
@@ -371,7 +281,10 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
             <div
               ref={scrollContainerRef}
               data-testid="inbox-scroll-region"
-              className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4"
+              className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden py-4",
+                isMobile ? "px-4" : "px-6",
+              )}
               onScroll={handleInboxScroll}
             >
               <div className="relative z-10 mb-4 flex items-center gap-2">
@@ -489,7 +402,8 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
               </div>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </>
       ) : null}
     </AnimatePresence>
   );

@@ -341,4 +341,19 @@ describe("CreateProjectPopup", () => {
     });
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  test("uses fullscreen shell on mobile", () => {
+    render(
+      <CreateProjectPopup
+        isMobile
+        isOpen
+        onClose={() => {}}
+        onCreate={vi.fn().mockResolvedValue({ publicId: "project-1" })}
+      />,
+    );
+
+    expect(screen.getByTestId("create-project-popup-shell")).toHaveClass(
+      "h-[100dvh]",
+    );
+  });
 });

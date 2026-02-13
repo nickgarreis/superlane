@@ -2,6 +2,7 @@ import React, { memo, type KeyboardEvent } from "react";
 import { motion } from "motion/react";
 import { ProjectLogo } from "../../ProjectLogo";
 type StepDetailsStep2Props = {
+  isMobile?: boolean;
   service: string;
   projectName: string;
   onProjectNameChange: (value: string) => void;
@@ -20,6 +21,7 @@ const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
 const PROJECT_NAME_INPUT_ID = "project-name";
 const OPTION_ENTRANCE_EASE = [0.22, 1, 0.36, 1] as const;
 export const StepDetailsStep2 = memo(function StepDetailsStep2({
+  isMobile = false,
   service,
   projectName,
   onProjectNameChange,
@@ -31,20 +33,22 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
 }: StepDetailsStep2Props) {
   const showJobSelection = jobOptions.length > 0;
   return (
-    <div className="pt-[29px] flex flex-col items-center gap-[32px] w-full">
-      <div className="flex flex-col items-center gap-4 pt-[20px]">
+    <div
+      className={`w-full flex flex-col items-center ${isMobile ? "pt-4 gap-6" : "pt-[29px] gap-[32px]"}`}
+    >
+      <div className={`flex flex-col items-center gap-4 ${isMobile ? "pt-2" : "pt-[20px]"}`}>
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
-          <ProjectLogo size={108} category={service} />
+          <ProjectLogo size={isMobile ? 88 : 108} category={service} />
         </motion.div>
         <motion.div
           initial={{ y: 6, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.35 }}
-          className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap"
+          className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title"
         >
           <p className="txt-leading-title">Define project details</p>
         </motion.div>

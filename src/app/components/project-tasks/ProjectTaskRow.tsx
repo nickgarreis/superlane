@@ -18,6 +18,7 @@ import {
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
 type ProjectTaskRowProps = {
+  isMobile?: boolean;
   task: Task;
   taskIsEditable: boolean;
   hasOpenDropdown: boolean;
@@ -47,6 +48,7 @@ const areProjectTaskRowPropsEqual = (
   next: ProjectTaskRowProps,
 ) => {
   if (prev.task !== next.task) return false;
+  if (prev.isMobile !== next.isMobile) return false;
   if (prev.taskIsEditable !== next.taskIsEditable) return false;
   if (prev.hasOpenDropdown !== next.hasOpenDropdown) return false;
   if (prev.showProjectColumn !== next.showProjectColumn) return false;
@@ -74,6 +76,7 @@ const areProjectTaskRowPropsEqual = (
 };
 
 function ProjectTaskRowComponent({
+  isMobile = false,
   task,
   taskIsEditable,
   hasOpenDropdown,
@@ -127,7 +130,10 @@ function ProjectTaskRowComponent({
       }}
       layout={!disableLayoutAnimation}
       className={cn(
-        "project-task-row group flex items-center justify-between py-3 hover:bg-white/[0.02] transition-colors relative",
+        "project-task-row group flex transition-colors relative",
+        isMobile
+          ? "flex-col items-stretch gap-2 rounded-xl border border-border-subtle-soft px-3 py-3 bg-surface-hover-subtle"
+          : "items-center justify-between py-3 hover:bg-white/[0.02]",
         hasOpenDropdown && "z-50",
       )}
       style={taskRowStyle}
@@ -162,9 +168,14 @@ function ProjectTaskRowComponent({
           {task.title}
         </span>
       </div>
-      <div className="flex items-center gap-3 shrink-0 pl-4 relative">
+      <div
+        className={cn(
+          "flex items-center gap-3 shrink-0 relative",
+          isMobile ? "pl-8 flex-wrap pt-1" : "pl-4",
+        )}
+      >
         {showProjectColumn && (
-          <div className="w-[170px] relative">
+          <div className={cn("relative", isMobile ? "min-w-0 flex-1" : "w-[170px]")}>
             <div
               onClick={(event) => {
                 if (!taskIsEditable) {
@@ -272,7 +283,7 @@ function ProjectTaskRowComponent({
             </AnimatePresence>
           </div>
         )}
-        <div className="relative w-[120px]">
+        <div className={cn("relative", isMobile ? "w-auto" : "w-[120px]")}>
           <div
             onClick={(event) => {
               if (!taskIsEditable) {
@@ -435,7 +446,8 @@ function ProjectTaskRowComponent({
             disabled={!taskIsEditable}
             title={taskIsEditable ? "Delete task" : editTaskDisabledMessage}
             className={cn(
-              "p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100",
+              "p-1.5 rounded-lg transition-colors",
+              isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               taskIsEditable
                 ? "hover:bg-red-500/10 hover:text-red-500 text-white/20 cursor-pointer"
                 : "text-white/10 cursor-not-allowed",

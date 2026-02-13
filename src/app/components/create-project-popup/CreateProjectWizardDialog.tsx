@@ -6,6 +6,7 @@ import {
   POPUP_OVERLAY_CENTER_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
+  POPUP_SHELL_MOBILE_CLASS,
 } from "../popup/popupChrome";
 import { CreateProjectWizardConfirmDialogs } from "./CreateProjectWizardConfirmDialogs";
 import { WizardCloseButton } from "./WizardCloseButton";
@@ -17,7 +18,7 @@ import { StepDetails, STEP_THREE_TITLE } from "./steps/StepDetails";
 import { StepReview } from "./steps/StepReview";
 import { StepService } from "./steps/StepService";
 export function CreateProjectPopup(props: CreateProjectPopupProps) {
-  const { isOpen, editProjectId, user } = props;
+  const { isOpen, editProjectId, user, isMobile = false } = props;
   const {
     step,
     showCloseConfirm,
@@ -86,16 +87,21 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
   }
   return (
     <div
-      className={POPUP_OVERLAY_CENTER_CLASS}
+      className={`${POPUP_OVERLAY_CENTER_CLASS} ${isMobile ? "p-0" : ""}`}
       onClick={handleCloseClick}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[514px] transition-all duration-300 max-h-[90vh] flex flex-col`}
+        data-testid="create-project-popup-shell"
+        className={`${POPUP_SHELL_CLASS} ${POPUP_SHELL_MOBILE_CLASS} ${isMobile ? "h-[100dvh] max-h-[100dvh]" : "max-w-[514px] max-h-[90vh]"} transition-all duration-300 flex flex-col`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden="true" className={`${POPUP_SHELL_BORDER_CLASS} z-20`} />
         <div
-          className={`flex flex-col items-start w-full relative rounded-[inherit] ${step === 4 ? "flex-1 overflow-hidden" : "overflow-y-auto custom-scrollbar"}`}
+          className={`flex flex-col items-start w-full relative rounded-[inherit] ${
+            step === 4
+              ? "flex-1 overflow-hidden"
+              : "flex-1 min-h-0 overflow-y-auto custom-scrollbar"
+          }`}
         >
           {step === 1 && (
             <div className="h-[187px] relative shrink-0 w-full">
@@ -136,12 +142,12 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
             </div>
           )}
           {(step === 2 || step === 3) && !hasDraftPendingHeader && (
-            <div className="absolute right-[25px] top-[25px] z-30">
+            <div className={`absolute z-30 ${isMobile ? "right-4 top-4 safe-pt" : "right-[25px] top-[25px]"}`}>
               <WizardCloseButton onClick={handleCloseClick} />
             </div>
           )}
           {hasDraftPendingHeader && (
-            <div className="w-full px-[25px] pt-[25px] pb-[8px] flex items-center justify-between shrink-0">
+            <div className={`w-full flex items-center justify-between shrink-0 ${isMobile ? "px-4 pt-4 pb-2 safe-pt" : "px-[25px] pt-[25px] pb-[8px]"}`}>
               <button
                 type="button"
                 onClick={handleBackClick}
@@ -161,7 +167,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
               initial={{ y: 6, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.05, duration: 0.35 }}
-              className={`px-[33px] ${hasDraftPendingHeader ? "pt-[12px]" : "pt-[29px]"} w-full`}
+              className={`${isMobile ? "px-4" : "px-[33px]"} ${hasDraftPendingHeader ? "pt-[12px]" : "pt-[29px]"} w-full`}
             >
               <div className="flex flex-col font-app justify-center leading-none relative shrink-0 txt-tone-primary txt-role-panel-title whitespace-nowrap">
                 <p className="txt-leading-title">{STEP_THREE_TITLE}</p>
@@ -169,7 +175,17 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
             </motion.div>
           )}
           <div
-            className={`${step === 1 ? "p-[32px]" : step === 4 ? "flex-1 flex flex-col overflow-hidden" : "px-[33px] pb-[33px]"} w-full flex flex-col`}
+            className={`${
+              step === 1
+                ? isMobile
+                  ? "p-4"
+                  : "p-[32px]"
+                : step === 4
+                  ? "flex-1 flex flex-col overflow-hidden"
+                  : isMobile
+                    ? "px-4 pb-4"
+                    : "px-[33px] pb-[33px]"
+            } w-full flex flex-col`}
           >
             {step === 1 && (
               <StepService
@@ -185,6 +201,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
             )}
             {(step === 2 || step === 3) && (
               <StepDetails
+                isMobile={isMobile}
                 step={step as 2 | 3}
                 selectedService={selectedService}
                 projectName={projectName}
@@ -210,6 +227,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
             )}
             {step === 4 && (
               <StepReview
+                isMobile={isMobile}
                 editProjectId={editProjectId}
                 user={user}
                 selectedService={selectedService}
@@ -239,7 +257,7 @@ export function CreateProjectPopup(props: CreateProjectPopupProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
-                className="w-full flex items-center pt-[24px]"
+                className={`w-full flex items-center ${isMobile ? "sticky bottom-0 z-20 mt-auto border-t border-popup-border-subtle bg-bg-popup px-4 py-3 safe-pb" : "pt-[24px]"}`}
               >
                 {step > 1 && (
                   <button

@@ -69,6 +69,7 @@ const buildDraftDataFromProject = (
   lastStep: project.draftData?.lastStep ?? 1,
 });
 export function DashboardPopups({
+  isMobile,
   currentView,
   isSearchOpen,
   setIsSearchOpen,
@@ -233,6 +234,7 @@ export function DashboardPopups({
       {isSearchOpen && (
         <Suspense fallback={popupFallback}>
           <LazySearchPopup
+            isMobile={isMobile}
             isOpen={isSearchOpen}
             onClose={handleSearchClose}
             projects={projects}
@@ -251,6 +253,7 @@ export function DashboardPopups({
       {isCreateProjectOpen && (
         <Suspense fallback={popupFallback}>
           <LazyCreateProjectPopup
+            isMobile={isMobile}
             isOpen={isCreateProjectOpen}
             onClose={closeCreateProject}
             onCreate={dashboardCommands.project.createOrUpdateProject}
@@ -274,6 +277,7 @@ export function DashboardPopups({
       {isCreateWorkspaceOpen && (
         <Suspense fallback={popupFallback}>
           <LazyCreateWorkspacePopup
+            isMobile={isMobile}
             isOpen={isCreateWorkspaceOpen}
             onClose={closeCreateWorkspace}
             onCreate={handleCreateWorkspaceSubmit}
@@ -283,6 +287,7 @@ export function DashboardPopups({
       {isCompletedProjectsOpen && (
         <Suspense fallback={popupFallback}>
           <LazyCompletedProjectsPopup
+            isMobile={isMobile}
             isOpen={isCompletedProjectsOpen}
             onClose={closeCompletedProjectsPopup}
             projects={projects}
@@ -296,6 +301,7 @@ export function DashboardPopups({
             renderDetail={(project) => (
               <Suspense fallback={popupFallback}>
                 <LazyCompletedProjectDetailPopup
+                  isMobile={isMobile}
                   isOpen={isCompletedProjectsOpen}
                   onClose={closeCompletedProjectsPopup}
                   onBackToCompletedProjects={backToCompletedProjectsList}
@@ -319,6 +325,7 @@ export function DashboardPopups({
       {isDraftPendingProjectsOpen && (
         <Suspense fallback={popupFallback}>
           <LazyDraftPendingProjectsPopup
+            isMobile={isMobile}
             isOpen={isDraftPendingProjectsOpen}
             onClose={closeDraftPendingProjectsPopup}
             projects={projects}
@@ -330,6 +337,7 @@ export function DashboardPopups({
               <Suspense fallback={popupFallback}>
                 {project.status.label === "Draft" ? (
                   <LazyCreateProjectPopup
+                    isMobile={isMobile}
                     isOpen={isDraftPendingProjectsOpen}
                     onClose={closeDraftPendingProjectsPopup}
                     onBackToDraftPendingProjects={backToDraftPendingProjectsList}
@@ -353,6 +361,7 @@ export function DashboardPopups({
                   />
                 ) : (
                   <LazyCreateProjectPopup
+                    isMobile={isMobile}
                     isOpen={isDraftPendingProjectsOpen}
                     onClose={closeDraftPendingProjectsPopup}
                     onBackToDraftPendingProjects={backToDraftPendingProjectsList}
@@ -373,6 +382,7 @@ export function DashboardPopups({
       {isSettingsOpen && (
         <Suspense fallback={popupFallback}>
           <LazySettingsPopup
+            isMobile={isMobile}
             isOpen={isSettingsOpen}
             onClose={dashboardCommands.settings.closeSettings}
             initialTab={settingsTab}

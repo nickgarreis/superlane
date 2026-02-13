@@ -2,10 +2,11 @@ import React from "react";
 import { Filter, Plus, ArrowUpDown } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import svgPaths from "../../../imports/svg-0erue6fqwq";
-import HorizontalBorder from "../../../imports/HorizontalBorder";
 import { ProjectTasks } from "../ProjectTasks";
 import { ProjectLogo } from "../ProjectLogo";
 import type { ProjectData, Task, ViewerIdentity, WorkspaceMember } from "../../types";
+import { DashboardTopBar } from "../layout/DashboardTopBar";
+import { useIsMobile } from "../ui/use-mobile";
 import {
   MENU_CHECK_ICON_CLASS,
   MENU_HEADER_CLASS,
@@ -28,6 +29,7 @@ import {
 type TaskSortBy = "dueDate" | "name" | "status";
 
 type TasksViewProps = {
+  isMobile: boolean;
   onToggleSidebar: () => void;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -52,6 +54,7 @@ type TasksViewProps = {
 };
 
 export function TasksView({
+  isMobile,
   onToggleSidebar,
   searchQuery,
   setSearchQuery,
@@ -74,19 +77,25 @@ export function TasksView({
   scrollContainerRef,
   onScroll,
 }: TasksViewProps) {
+  const viewportIsMobile = useIsMobile();
+  const useMobileLayout = isMobile || viewportIsMobile;
+
   return (
     <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-bg-base font-app txt-tone-primary">
       <div className="relative flex flex-1 flex-col overflow-hidden rounded-none bg-bg-surface transition-all duration-500 ease-in-out">
         <div className="h-[57px] w-full shrink-0">
-          <HorizontalBorder onToggleSidebar={onToggleSidebar} />
+          <DashboardTopBar onToggleSidebar={onToggleSidebar} />
         </div>
 
         <div
           ref={scrollContainerRef}
-          className="scrollbar-page flex-1 overflow-y-auto px-[80px] py-[40px]"
+          className={cn(
+            "scrollbar-page flex-1 overflow-y-auto px-4 py-5 md:px-[80px] md:py-[40px]",
+            useMobileLayout && "pb-8",
+          )}
           onScroll={onScroll}
         >
-          <div className="mb-10 flex items-center gap-6">
+          <div className="mb-6 md:mb-10 flex items-center gap-6">
             <div className="flex-1">
               <h1 className="tracking-tight txt-role-page-title txt-tone-primary">
                 Tasks
@@ -94,7 +103,7 @@ export function TasksView({
             </div>
           </div>
 
-          <div className="relative z-10 mb-6 flex items-center justify-between">
+          <div className="relative z-10 mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className={DASHBOARD_SEARCH_CONTAINER_CLASS}>
               <div className={DASHBOARD_SEARCH_BORDER_CLASS} />
               <div className={DASHBOARD_SEARCH_CONTENT_CLASS}>
@@ -113,13 +122,13 @@ export function TasksView({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={() => setIsAdding(true)}
-                className="mr-2 flex cursor-pointer items-center gap-1 txt-role-body-sm font-medium txt-tone-accent transition-colors"
+                className="mr-1 md:mr-2 flex cursor-pointer items-center gap-1 txt-role-body-sm font-medium txt-tone-accent transition-colors"
               >
                 <Plus size={14} />
-                Add Task
+                <span>{useMobileLayout ? "Add" : "Add Task"}</span>
               </button>
 
               <div className="relative">
@@ -146,6 +155,7 @@ export function TasksView({
                     <div
                       className={cn(
                         "absolute right-0 top-full z-20 mt-2 w-60 animate-in fade-in zoom-in-95 duration-100 p-1",
+                        useMobileLayout && "w-[min(92vw,320px)]",
                         MENU_SURFACE_CLASS,
                       )}
                     >
@@ -218,6 +228,7 @@ export function TasksView({
                     <div
                       className={cn(
                         "absolute right-0 top-full z-20 mt-2 w-48 animate-in fade-in zoom-in-95 duration-100 p-1",
+                        useMobileLayout && "w-[min(80vw,220px)]",
                         MENU_SURFACE_CLASS,
                       )}
                     >
@@ -260,6 +271,7 @@ export function TasksView({
           </div>
 
           <ProjectTasks
+            isMobile={useMobileLayout}
             tasks={filteredTasks}
             onUpdateTasks={handleUpdateTasks}
             hideHeader

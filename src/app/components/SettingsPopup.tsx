@@ -13,6 +13,7 @@ import {
   POPUP_OVERLAY_CENTER_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
+  POPUP_SHELL_MOBILE_CLASS,
 } from "./popup/popupChrome";
 import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
 
@@ -48,6 +49,7 @@ const normalizeSection = (section: SettingsTab): VisibleSettingsSection =>
   section === "Billing" || section === "Workspace" ? "Company" : section;
 
 export function SettingsPopup({
+  isMobile = false,
   isOpen,
   onClose,
   initialTab = "Account",
@@ -144,16 +146,22 @@ export function SettingsPopup({
   }
   return (
     <div
-      className={POPUP_OVERLAY_CENTER_CLASS}
+      className={`${POPUP_OVERLAY_CENTER_CLASS} ${isMobile ? "p-0" : ""}`}
       style={{ zIndex: Z_LAYERS.modalPriority }}
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[660px] h-[min(88vh,700px)] flex flex-col font-app txt-tone-primary`}
+        data-testid="settings-popup-shell"
+        className={`${POPUP_SHELL_CLASS} ${POPUP_SHELL_MOBILE_CLASS} ${isMobile ? "h-[100dvh] max-h-[100dvh]" : "max-w-[660px] h-[min(88vh,700px)]"} flex flex-col font-app txt-tone-primary`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
-        <div className="shrink-0 border-b border-border-subtle-soft px-5 py-4 sm:px-7">
+        <div
+          className={cn(
+            "shrink-0 border-b border-border-subtle-soft px-5 py-4 sm:px-7",
+            isMobile && "safe-pt",
+          )}
+        >
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -175,7 +183,12 @@ export function SettingsPopup({
               <X size={18} />
             </button>
           </div>
-          <div className="mt-4 flex items-center gap-2">
+          <div
+            className={cn(
+              "mt-4 flex items-center gap-2",
+              isMobile && "flex-col items-stretch",
+            )}
+          >
             <div className="min-w-0 flex flex-1 overflow-x-auto pr-1">
               <div className="inline-flex min-w-max items-stretch rounded-[10px] bg-bg-muted-surface p-1">
                 {SETTINGS_SECTIONS.map((section) => (
@@ -232,7 +245,7 @@ export function SettingsPopup({
         <div
           ref={contentRef}
           onScroll={handleContentScroll}
-          className="flex-1 overflow-y-auto overflow-x-hidden bg-bg-popup"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-bg-popup"
         >
           <div className="mx-auto w-full px-5 py-4 sm:px-7">
             <div className="flex flex-col gap-12">

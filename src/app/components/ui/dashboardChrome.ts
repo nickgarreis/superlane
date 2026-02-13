@@ -1,4 +1,5 @@
-export const DASHBOARD_SEARCH_CONTAINER_CLASS = "relative w-[384px] h-[36px]";
+export const DASHBOARD_SEARCH_CONTAINER_CLASS =
+  "relative w-full md:w-[384px] h-[36px]";
 
 export const DASHBOARD_SEARCH_BORDER_CLASS =
   "absolute inset-0 rounded-[18px] border border-popup-border-emphasis pointer-events-none";

@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { cn } from "../../lib/utils";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import "react-day-picker/dist/style.css";
 import { ProjectTaskRows } from "./project-tasks/ProjectTaskRows";
@@ -58,6 +59,7 @@ const prunePendingCreatedTasks = (
 };
 
 interface ProjectTasksProps {
+  isMobile?: boolean;
   tasks: Task[];
   onUpdateTasks: (tasks: Task[]) => void;
   assignableMembers: WorkspaceMember[];
@@ -78,6 +80,7 @@ interface ProjectTasksProps {
   editTaskDisabledMessage?: string;
 }
 export function ProjectTasks({
+  isMobile = false,
   tasks: serverTasks,
   onUpdateTasks,
   assignableMembers,
@@ -299,46 +302,53 @@ export function ProjectTasks({
         sortBy={sortBy}
         onSortSelect={setSortBy}
       />{" "}
-      <div className="flex flex-col">
-        {" "}
-        {showProjectColumn && <ProjectTaskTableHeader />}{" "}
-        {isAdding && (
-          <AddTaskRow
-            addTaskRowRef={addTaskRowRef}
-            newTaskTitle={newTaskTitle}
-            onTitleChange={setNewTaskTitle}
-            canCreateTask={canCreateTask}
-            onAddTask={handleAddTask}
-            onKeyDown={handleKeyDown}
+      <div className={cn("flex flex-col", isMobile && "overflow-x-auto pb-1")}>
+        <div
+          className={cn(
+            isMobile && (showProjectColumn ? "min-w-[760px]" : "min-w-[560px]"),
+          )}
+        >
+          {showProjectColumn && <ProjectTaskTableHeader />}
+          {isAdding && (
+            <AddTaskRow
+              addTaskRowRef={addTaskRowRef}
+              newTaskTitle={newTaskTitle}
+              onTitleChange={setNewTaskTitle}
+              canCreateTask={canCreateTask}
+              onAddTask={handleAddTask}
+              onKeyDown={handleKeyDown}
+            />
+          )}
+          <ProjectTaskRows
+            // Keep task rows in desktop mode on mobile; container handles horizontal scrolling.
+            isMobile={false}
+            initialTasks={visibleTasks}
+            sortedTasks={sortedTasks}
+            showProjectColumn={showProjectColumn}
+            projectOptions={projectOptions}
+            assignableMembers={assignableMembers}
+            openCalendarTaskId={openCalendarTaskId}
+            setOpenCalendarTaskId={setOpenCalendarTaskId}
+            calendarPosition={calendarPosition}
+            setCalendarPosition={setCalendarPosition}
+            openAssigneeTaskId={openAssigneeTaskId}
+            setOpenAssigneeTaskId={setOpenAssigneeTaskId}
+            openProjectTaskId={openProjectTaskId}
+            setOpenProjectTaskId={setOpenProjectTaskId}
+            closeAllDropdowns={closeAllDropdowns}
+            handleToggle={handleToggle}
+            handleDelete={handleDelete}
+            handleDateSelect={handleDateSelect}
+            handleAssigneeSelect={handleAssigneeSelect}
+            handleProjectSelect={handleProjectSelect}
+            isAdding={isAdding}
+            highlightedTaskId={highlightedTaskId}
+            taskRowRefs={taskRowRefs}
+            taskRowStyle={taskRowStyle}
+            editTaskDisabledMessage={editTaskDisabledMessage}
+            isTaskEditable={isTaskEditable}
           />
-        )}{" "}
-        <ProjectTaskRows
-          initialTasks={visibleTasks}
-          sortedTasks={sortedTasks}
-          showProjectColumn={showProjectColumn}
-          projectOptions={projectOptions}
-          assignableMembers={assignableMembers}
-          openCalendarTaskId={openCalendarTaskId}
-          setOpenCalendarTaskId={setOpenCalendarTaskId}
-          calendarPosition={calendarPosition}
-          setCalendarPosition={setCalendarPosition}
-          openAssigneeTaskId={openAssigneeTaskId}
-          setOpenAssigneeTaskId={setOpenAssigneeTaskId}
-          openProjectTaskId={openProjectTaskId}
-          setOpenProjectTaskId={setOpenProjectTaskId}
-          closeAllDropdowns={closeAllDropdowns}
-          handleToggle={handleToggle}
-          handleDelete={handleDelete}
-          handleDateSelect={handleDateSelect}
-          handleAssigneeSelect={handleAssigneeSelect}
-          handleProjectSelect={handleProjectSelect}
-          isAdding={isAdding}
-          highlightedTaskId={highlightedTaskId}
-          taskRowRefs={taskRowRefs}
-          taskRowStyle={taskRowStyle}
-          editTaskDisabledMessage={editTaskDisabledMessage}
-          isTaskEditable={isTaskEditable}
-        />{" "}
+        </div>
       </div>{" "}
     </div>
   );

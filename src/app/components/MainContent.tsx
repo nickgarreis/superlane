@@ -7,7 +7,6 @@ import React, {
   useMemo,
   useDeferredValue,
 } from "react";
-import HorizontalBorder from "../../imports/HorizontalBorder";
 import { ProjectTasks } from "./ProjectTasks";
 import {
   ProjectData,
@@ -33,6 +32,8 @@ import {
   CompletedProjectCommentsHistory,
   type CompletedCommentHistoryItem,
 } from "./main-content/CompletedProjectCommentsHistory";
+import { DashboardTopBar } from "./layout/DashboardTopBar";
+import { useIsMobile } from "./ui/use-mobile";
 
 const deserializeProjectFileTab = (
   value: unknown,
@@ -53,6 +54,7 @@ const LazyChatSidebar = React.lazy(async () => {
   return { default: module.ChatSidebar };
 });
 interface MainContentProps {
+  isMobile?: boolean;
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
   layoutMode?: "page" | "popup";
@@ -77,6 +79,7 @@ interface MainContentProps {
   onClearPendingHighlight?: () => void;
 }
 export function MainContent({
+  isMobile = false,
   onToggleSidebar,
   isSidebarOpen,
   layoutMode = "page",
@@ -96,6 +99,8 @@ export function MainContent({
   pendingHighlight,
   onClearPendingHighlight,
 }: MainContentProps) {
+  const viewportIsMobile = useIsMobile();
+  const useMobileLayout = isMobile || viewportIsMobile;
   const stateKeyPrefix = `project.${project.id}`;
   const [activeTab, setActiveTab] = useSessionBackedState<ProjectFileTab>(
     `${stateKeyPrefix}.activeTab`,
@@ -268,7 +273,7 @@ export function MainContent({
       >
         {layoutMode === "page" && (
           <div className="w-full h-[57px] shrink-0">
-            <HorizontalBorder
+            <DashboardTopBar
               onToggleSidebar={onToggleSidebar}
               onToggleChat={handleOpenChat}
             />
@@ -276,18 +281,26 @@ export function MainContent({
         )}
         <div
           ref={contentScrollRef}
-          className={`flex-1 overflow-y-auto py-[40px] ${
-            layoutMode === "popup" ? "px-[56px]" : "scrollbar-page px-[80px]"
+          className={`flex-1 overflow-y-auto ${
+            layoutMode === "popup"
+              ? useMobileLayout
+                ? "px-4 py-5"
+                : "px-[56px] py-[40px]"
+              : useMobileLayout
+                ? "scrollbar-page px-4 py-5"
+                : "scrollbar-page px-[80px] py-[40px]"
           }`}
           onScroll={handleMainContentScroll}
         >
           <ProjectOverview
+            isMobile={useMobileLayout}
             project={project}
             viewerIdentity={viewerIdentity}
             projectActions={projectActions}
             navigationActions={navigationActions}
           />
           <ProjectTasks
+            isMobile={useMobileLayout}
             key={project.id}
             tasks={projectTasks}
             onUpdateTasks={(newTasks) =>
@@ -311,6 +324,7 @@ export function MainContent({
             />
           )}
           <FileSection
+            isMobile={useMobileLayout}
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
             handleUploadClick={handleUploadClick}
@@ -327,6 +341,7 @@ export function MainContent({
             shouldOptimizeFileRows={shouldOptimizeFileRows}
             renderedFileRows={
               <MainContentFileRows
+                isMobile={useMobileLayout}
                 filteredFiles={filteredFiles}
                 fileRowRefs={fileRowRefs}
                 fileActions={fileActions}
@@ -340,7 +355,11 @@ export function MainContent({
             filteredFilesLength={filteredFiles.length}
           />
         </div>
-        <div className="absolute inset-0 z-50 pointer-events-none rounded-none overflow-hidden">
+        <div
+          className={`absolute inset-0 z-50 rounded-none overflow-hidden ${
+            isChatOpen ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+        >
           {(hasLoadedChatSidebar || isChatOpen) && (
             <Suspense fallback={null}>
               <LazyChatSidebar

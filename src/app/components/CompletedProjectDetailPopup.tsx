@@ -7,6 +7,7 @@ import {
   POPUP_OVERLAY_CENTER_CLASS,
   POPUP_SHELL_BORDER_CLASS,
   POPUP_SHELL_CLASS,
+  POPUP_SHELL_MOBILE_CLASS,
 } from "./popup/popupChrome";
 import { Z_LAYERS } from "../lib/zLayers";
 import type {
@@ -30,6 +31,7 @@ const LazyMainContent = React.lazy(async () => {
 });
 
 type CompletedProjectDetailPopupProps = {
+  isMobile?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onBackToCompletedProjects: () => void;
@@ -51,6 +53,7 @@ type CompletedProjectDetailPopupProps = {
 };
 
 export function CompletedProjectDetailPopup({
+  isMobile = false,
   isOpen,
   onClose,
   onBackToCompletedProjects,
@@ -85,19 +88,19 @@ export function CompletedProjectDetailPopup({
 
   return (
     <div
-      className={POPUP_OVERLAY_CENTER_CLASS}
+      className={`${POPUP_OVERLAY_CENTER_CLASS} ${isMobile ? "p-0" : ""}`}
       style={{ zIndex: Z_LAYERS.modalPriority }}
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[980px] w-full h-[86vh] max-h-[86vh] flex flex-col font-app`}
+        className={`${POPUP_SHELL_CLASS} ${POPUP_SHELL_MOBILE_CLASS} ${isMobile ? "h-[100dvh] max-h-[100dvh]" : "max-w-[980px] w-full h-[86vh] max-h-[86vh]"} flex flex-col font-app`}
         role="dialog"
         aria-modal="true"
         aria-label={`Completed project details for ${project.name}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden className={POPUP_SHELL_BORDER_CLASS} />
-        <div className="absolute top-6 right-6 z-30">
+        <div className={`absolute z-30 ${isMobile ? "top-4 right-4 safe-pt" : "top-6 right-6"}`}>
           <button
             type="button"
             onClick={onClose}
@@ -110,6 +113,7 @@ export function CompletedProjectDetailPopup({
         <div className="flex-1 min-h-0">
           <Suspense fallback={null}>
             <LazyMainContent
+              isMobile={isMobile}
               onToggleSidebar={() => {}}
               isSidebarOpen={false}
               layoutMode="popup"

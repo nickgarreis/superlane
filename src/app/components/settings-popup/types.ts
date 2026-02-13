@@ -78,6 +78,7 @@ export type CompanySettingsData = {
   viewerRole: CompanyRole;
 };
 export interface SettingsPopupProps {
+  isMobile?: boolean;
   isOpen: boolean;
   onClose: () => void;
   initialTab?: SettingsTab;

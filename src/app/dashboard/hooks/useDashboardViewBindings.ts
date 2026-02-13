@@ -15,9 +15,15 @@ import type { DashboardDataLayer } from "./useDashboardDataLayer";
 import type { ProjectData } from "../../types";
 type DashboardViewBindings = {
   hasSnapshot: boolean;
-  popupsProps: ComponentProps<typeof DashboardPopups>;
-  chromeProps: ComponentProps<typeof DashboardChrome>;
-  contentProps: ComponentProps<typeof DashboardContent>;
+  popupsProps: Omit<ComponentProps<typeof DashboardPopups>, "isMobile">;
+  chromeProps: Omit<
+    ComponentProps<typeof DashboardChrome>,
+    "isMobile"
+  >;
+  contentProps: Omit<
+    ComponentProps<typeof DashboardContent>,
+    "isMobile"
+  >;
 };
 const EMPTY_PROJECTS: Record<string, ProjectData> = {};
 export function useDashboardViewBindings(
@@ -100,7 +106,9 @@ export function useDashboardViewBindings(
       navigation.isSearchOpen,
     ],
   );
-  const popupsProps = useMemo<ComponentProps<typeof DashboardPopups>>(
+  const popupsProps = useMemo<
+    Omit<ComponentProps<typeof DashboardPopups>, "isMobile">
+  >(
     () => ({
       currentView: navigation.currentView,
       isSearchOpen: navigation.isSearchOpen,
@@ -247,9 +255,12 @@ export function useDashboardViewBindings(
       workspaceActions.handleUploadWorkspaceLogo,
     ],
   );
-  const chromeProps = useMemo<ComponentProps<typeof DashboardChrome>>(
+  const chromeProps = useMemo<
+    Omit<ComponentProps<typeof DashboardChrome>, "isMobile">
+  >(
     () => ({
       isSidebarOpen: navigation.isSidebarOpen,
+      onToggleSidebar: data.handleToggleSidebar,
       navigateView: navigation.navigateView,
       openInbox: navigation.openInbox,
       closeInbox: navigation.closeInbox,
@@ -298,6 +309,7 @@ export function useDashboardViewBindings(
       data.approvedSidebarProjectIds,
       data.viewerIdentity,
       data.sidebarVisibleProjects,
+      data.handleToggleSidebar,
       data.workspaceActivities,
       data.workspaceMembers,
       data.workspaces,
@@ -321,7 +333,9 @@ export function useDashboardViewBindings(
       handleInboxActivityClick,
     ],
   );
-  const contentProps = useMemo<ComponentProps<typeof DashboardContent>>(
+  const contentProps = useMemo<
+    Omit<ComponentProps<typeof DashboardContent>, "isMobile">
+  >(
     () => ({
       contentModel: data.contentModel,
       handleToggleSidebar: data.handleToggleSidebar,

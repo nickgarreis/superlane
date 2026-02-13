@@ -11,6 +11,7 @@ import type { TaskProjectOption } from "./useProjectTaskHandlers";
 import { ProjectTaskRow } from "./ProjectTaskRow";
 import { CALENDAR_POPOVER_SURFACE_CLASS } from "../ui/menuChrome";
 type ProjectTaskRowsProps = {
+  isMobile?: boolean;
   initialTasks: Task[];
   sortedTasks: Task[];
   showProjectColumn: boolean;
@@ -38,6 +39,7 @@ type ProjectTaskRowsProps = {
   isTaskEditable: (task: Task) => boolean;
 };
 export const ProjectTaskRows = React.memo(function ProjectTaskRows({
+  isMobile = false,
   initialTasks,
   sortedTasks,
   showProjectColumn,
@@ -143,6 +145,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
                   }}
                 >
                   <ProjectTaskRow
+                    isMobile={isMobile}
                     task={task}
                     taskIsEditable={isTaskEditable(task)}
                     hasOpenDropdown={
@@ -178,6 +181,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
         ) : (
           sortedTasks.map((task) => (
             <ProjectTaskRow
+              isMobile={isMobile}
               key={task.id}
               task={task}
               taskIsEditable={isTaskEditable(task)}

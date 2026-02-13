@@ -43,8 +43,8 @@ export function MemberRow({
   const avatarAlt =
     member.name?.trim() || member.email?.trim() || "User avatar";
   return (
-    <div className={`flex items-center justify-between py-3 ${ROW_HOVER_CLASS}`}>
-      <div className="flex items-center gap-3">
+    <div className={`flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 ${ROW_HOVER_CLASS}`}>
+      <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-full bg-bg-avatar-fallback flex items-center justify-center txt-role-body-sm font-medium text-white overflow-hidden">
           {member.avatarUrl ? (
             <img
@@ -65,7 +65,7 @@ export function MemberRow({
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 self-end sm:self-auto">
         {member.role === "owner" ? (
           <DeniedAction
             denied={viewerRole !== "owner"}

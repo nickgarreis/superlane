@@ -38,6 +38,7 @@ const deserializeProjectFilter = (value: unknown): string[] | undefined => {
 };
 
 type TasksProps = {
+  isMobile?: boolean;
   onToggleSidebar: () => void;
   projects: Record<string, ProjectData>;
   workspaceTasks: Task[];
@@ -53,6 +54,7 @@ type TasksProps = {
 };
 
 export function Tasks({
+  isMobile = false,
   onToggleSidebar,
   projects,
   workspaceTasks,
@@ -195,6 +197,7 @@ export function Tasks({
 
   return (
     <TasksView
+      isMobile={isMobile}
       onToggleSidebar={onToggleSidebar}
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}

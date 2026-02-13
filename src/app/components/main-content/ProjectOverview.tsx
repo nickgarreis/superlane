@@ -293,12 +293,14 @@ function InlineEditableText({
 }
 
 type ProjectOverviewProps = {
+  isMobile?: boolean;
   project: ProjectData;
   viewerIdentity: ViewerIdentity;
   projectActions: MainContentProjectActions;
   navigationActions?: MainContentNavigationActions;
 };
 export function ProjectOverview({
+  isMobile = false,
   project,
   viewerIdentity,
   projectActions,
@@ -328,10 +330,10 @@ export function ProjectOverview({
           <span>Back to {backToLabel}</span>
         </button>
       )}
-      <div className="flex gap-6 mb-10 items-center">
-        <ProjectLogo size={140} category={project.category} />
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="flex items-center gap-5 w-full">
+      <div className="flex w-full min-w-0 gap-4 md:gap-6 mb-8 md:mb-10 items-start md:items-center">
+        <ProjectLogo size={isMobile ? 92 : 140} category={project.category} />
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div className="flex min-w-0 items-start md:items-center gap-4 md:gap-5 w-full">
             <InlineEditableText
               value={project.name}
               maxLength={PROJECT_NAME_MAX_LENGTH}
@@ -339,7 +341,7 @@ export function ProjectOverview({
               onCommit={(nextName) =>
                 projectActions.updateProject?.({ name: nextName })
               }
-              className="txt-role-screen-title txt-tone-primary txt-leading-hero focus:outline-none"
+              className="w-full min-w-0 break-words txt-role-screen-title txt-tone-primary txt-leading-hero focus:outline-none [overflow-wrap:anywhere]"
               element="h1"
               ariaLabel="Project name"
             />
@@ -358,7 +360,7 @@ export function ProjectOverview({
               }
             />
           </div>
-          <div className="max-w-[672px]">
+          <div className="w-full min-w-0 max-w-[672px]">
             <InlineEditableText
               value={project.description}
               maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
@@ -366,14 +368,14 @@ export function ProjectOverview({
               onCommit={(nextDescription) =>
                 projectActions.updateProject?.({ description: nextDescription })
               }
-              className="txt-role-body-lg txt-tone-subtle font-normal txt-leading-title focus:outline-none"
+              className="w-full min-w-0 break-words txt-role-body-lg txt-tone-subtle font-normal txt-leading-title focus:outline-none [overflow-wrap:anywhere]"
               element="p"
               ariaLabel="Project description"
             />
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-12 pt-[24px] pb-[55px] w-full border-t border-[rgba(232,232,232,0.05)] pr-[0px] pl-[0px]">
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-5 pt-[24px] pb-[32px] md:pb-[55px] w-full border-t border-[rgba(232,232,232,0.05)] pr-[0px] pl-[0px]">
         <div className="flex flex-col gap-1.5">
           <div className="txt-role-body-sm font-medium text-white/40 uppercase tracking-wide">
             Created by

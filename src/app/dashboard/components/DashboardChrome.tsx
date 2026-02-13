@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster } from "sonner";
 import type { AppView } from "../../lib/routing";
+import { Z_LAYERS } from "../../lib/zLayers";
 import type {
   ProjectData,
   ViewerIdentity,
@@ -19,7 +20,9 @@ const LazyInboxSidebarPanel = React.lazy(async () => {
   return { default: module.InboxSidebarPanel };
 });
 type DashboardChromeProps = {
+  isMobile: boolean;
   isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
   navigateView: (view: AppView) => void;
   openInbox: () => void;
   closeInbox: () => void;
@@ -61,7 +64,9 @@ type DashboardChromeProps = {
   onInboxActivityClick: (activity: WorkspaceActivity) => void;
 };
 export const DashboardChrome = React.memo(function DashboardChrome({
+  isMobile,
   isSidebarOpen,
+  onToggleSidebar,
   navigateView,
   openInbox,
   closeInbox,
@@ -99,7 +104,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   const [hasLoadedInboxPanel, setHasLoadedInboxPanel] = useState(isInboxOpen);
 
   useEffect(() => {
-    if (!isSidebarOpen && isInboxOpen) {
+    if (!isMobile && !isSidebarOpen && isInboxOpen) {
       closeInbox();
       return;
     }
@@ -107,7 +112,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
       setHasLoadedInboxPanel(true);
       void loadInboxSidebarPanelModule();
     }
-  }, [closeInbox, isInboxOpen, isSidebarOpen]);
+  }, [closeInbox, isInboxOpen, isMobile, isSidebarOpen]);
 
   return (
     <>
@@ -128,66 +133,127 @@ export const DashboardChrome = React.memo(function DashboardChrome({
           },
         }}
       />
-      <AnimatePresence mode="wait" initial={false}>
-        {isSidebarOpen && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="h-full shrink-0 overflow-visible"
-          >
-            <div className="w-[260px] h-full relative">
-              <Suspense fallback={<div className="h-full w-full" />}>
-                <LazyDashboardSidebarDndBoundary
-                  onNavigate={navigateView}
-                  onOpenInbox={isInboxOpen ? closeInbox : openInbox}
-                  onSearch={openSearch}
-                  onSearchIntent={handleSearchIntent}
-                  currentView={currentView}
-                  onOpenCreateProject={openCreateProject}
-                  onOpenCreateProjectIntent={handleCreateProjectIntent}
-                  projects={visibleProjects}
-                  approvedSidebarProjectIds={approvedSidebarProjectIds}
-                  viewerIdentity={viewerIdentity}
-                  activeWorkspace={activeWorkspace}
-                  workspaces={workspaces}
-                  onSwitchWorkspace={onSwitchWorkspace}
-                  onCreateWorkspace={onCreateWorkspace}
-                  canCreateWorkspace={canCreateWorkspace}
-                  onOpenSettings={onOpenSettings}
-                  onOpenSettingsIntent={handleSettingsIntent}
-                  onEditProject={onEditProject}
-                  onViewReviewProject={onViewReviewProject}
-                  onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
-                  onOpenDraftPendingProjectsPopup={
-                    onOpenDraftPendingProjectsPopup
-                  }
-                  inboxUnreadCount={inboxUnreadCount}
-                  onLogout={handleSignOut}
-                />
-              </Suspense>
-              {(hasLoadedInboxPanel || isInboxOpen) && (
-                <Suspense fallback={null}>
-                  <LazyInboxSidebarPanel
-                    isOpen={isInboxOpen}
-                    onClose={closeInbox}
-                    activities={workspaceActivities}
-                    workspaceMembers={workspaceMembers}
-                    unreadCount={inboxUnreadCount}
-                    onMarkActivityRead={onMarkInboxActivityRead}
-                    onDismissActivity={onDismissInboxActivity}
-                    onMarkAllRead={onMarkAllInboxActivitiesRead}
-                    onActivityClick={onInboxActivityClick}
-                    activitiesPaginationStatus={activitiesPaginationStatus}
-                    loadMoreWorkspaceActivities={loadMoreWorkspaceActivities}
+      {isMobile ? (
+        <AnimatePresence initial={false}>
+          {isSidebarOpen ? (
+            <>
+              <motion.button
+                type="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                style={{ zIndex: Z_LAYERS.dropdown - 1 }}
+                aria-label="Close sidebar"
+                onClick={onToggleSidebar}
+              />
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+                className="fixed inset-y-0 left-0 safe-pt safe-pl safe-pb"
+                style={{ zIndex: Z_LAYERS.dropdown }}
+              >
+                <div className="h-full w-[min(88vw,320px)] bg-bg-base border-r border-border-subtle-soft shadow-2xl">
+                  <Suspense fallback={<div className="h-full w-full" />}>
+                    <LazyDashboardSidebarDndBoundary
+                      onNavigate={navigateView}
+                      onOpenInbox={isInboxOpen ? closeInbox : openInbox}
+                      onSearch={openSearch}
+                      onSearchIntent={handleSearchIntent}
+                      currentView={currentView}
+                      onOpenCreateProject={openCreateProject}
+                      onOpenCreateProjectIntent={handleCreateProjectIntent}
+                      projects={visibleProjects}
+                      approvedSidebarProjectIds={approvedSidebarProjectIds}
+                      viewerIdentity={viewerIdentity}
+                      activeWorkspace={activeWorkspace}
+                      workspaces={workspaces}
+                      onSwitchWorkspace={onSwitchWorkspace}
+                      onCreateWorkspace={onCreateWorkspace}
+                      canCreateWorkspace={canCreateWorkspace}
+                      onOpenSettings={onOpenSettings}
+                      onOpenSettingsIntent={handleSettingsIntent}
+                      onEditProject={onEditProject}
+                      onViewReviewProject={onViewReviewProject}
+                      onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+                      onOpenDraftPendingProjectsPopup={
+                        onOpenDraftPendingProjectsPopup
+                      }
+                      inboxUnreadCount={inboxUnreadCount}
+                      onLogout={handleSignOut}
+                    />
+                  </Suspense>
+                </div>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+      ) : (
+        <AnimatePresence mode="wait" initial={false}>
+          {isSidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="h-full shrink-0 overflow-visible"
+            >
+              <div className="w-[260px] h-full relative">
+                <Suspense fallback={<div className="h-full w-full" />}>
+                  <LazyDashboardSidebarDndBoundary
+                    onNavigate={navigateView}
+                    onOpenInbox={isInboxOpen ? closeInbox : openInbox}
+                    onSearch={openSearch}
+                    onSearchIntent={handleSearchIntent}
+                    currentView={currentView}
+                    onOpenCreateProject={openCreateProject}
+                    onOpenCreateProjectIntent={handleCreateProjectIntent}
+                    projects={visibleProjects}
+                    approvedSidebarProjectIds={approvedSidebarProjectIds}
+                    viewerIdentity={viewerIdentity}
+                    activeWorkspace={activeWorkspace}
+                    workspaces={workspaces}
+                    onSwitchWorkspace={onSwitchWorkspace}
+                    onCreateWorkspace={onCreateWorkspace}
+                    canCreateWorkspace={canCreateWorkspace}
+                    onOpenSettings={onOpenSettings}
+                    onOpenSettingsIntent={handleSettingsIntent}
+                    onEditProject={onEditProject}
+                    onViewReviewProject={onViewReviewProject}
+                    onOpenCompletedProjectsPopup={onOpenCompletedProjectsPopup}
+                    onOpenDraftPendingProjectsPopup={
+                      onOpenDraftPendingProjectsPopup
+                    }
+                    inboxUnreadCount={inboxUnreadCount}
+                    onLogout={handleSignOut}
                   />
                 </Suspense>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+      {(hasLoadedInboxPanel || isInboxOpen) && (
+        <Suspense fallback={null}>
+          <LazyInboxSidebarPanel
+            isOpen={isInboxOpen}
+            isMobile={isMobile}
+            onClose={closeInbox}
+            activities={workspaceActivities}
+            workspaceMembers={workspaceMembers}
+            unreadCount={inboxUnreadCount}
+            onMarkActivityRead={onMarkInboxActivityRead}
+            onDismissActivity={onDismissInboxActivity}
+            onMarkAllRead={onMarkAllInboxActivitiesRead}
+            onActivityClick={onInboxActivityClick}
+            activitiesPaginationStatus={activitiesPaginationStatus}
+            loadMoreWorkspaceActivities={loadMoreWorkspaceActivities}
+          />
+        </Suspense>
+      )}
     </>
   );
 });

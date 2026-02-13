@@ -44,6 +44,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen={false}
+        isMobile={false}
         onClose={vi.fn()}
         activities={[]}
         workspaceMembers={[]}
@@ -82,6 +83,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={onClose}
         activities={activities}
         workspaceMembers={[]}
@@ -136,6 +138,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={vi.fn()}
         activities={activities}
         workspaceMembers={[]}
@@ -164,6 +167,29 @@ describe("InboxSidebarPanel", () => {
     expect(loadMoreWorkspaceActivities).toHaveBeenCalledWith(100);
   });
 
+  test("renders mobile backdrop and closes when backdrop is tapped", () => {
+    const onClose = vi.fn();
+
+    render(
+      <InboxSidebarPanel
+        isOpen
+        isMobile
+        onClose={onClose}
+        activities={[]}
+        workspaceMembers={[]}
+        unreadCount={0}
+        activitiesPaginationStatus="Exhausted"
+      />,
+    );
+
+    const closeButtons = screen.getAllByRole("button", {
+      name: "Close inbox",
+    });
+    expect(closeButtons).toHaveLength(2);
+    fireEvent.click(closeButtons[0]);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   test("does not call onActivityClick when the row container is clicked", () => {
     const onActivityClick = vi.fn();
     const activity = buildActivity({
@@ -176,6 +202,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={vi.fn()}
         activities={[activity]}
         workspaceMembers={[]}
@@ -207,6 +234,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={onClose}
         activities={[activity]}
         workspaceMembers={[]}
@@ -236,6 +264,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={vi.fn()}
         activities={[activity]}
         workspaceMembers={[]}
@@ -263,6 +292,7 @@ describe("InboxSidebarPanel", () => {
     render(
       <InboxSidebarPanel
         isOpen
+        isMobile={false}
         onClose={vi.fn()}
         activities={[activity]}
         workspaceMembers={[

@@ -165,4 +165,32 @@ describe("CompletedProjectsPopup", () => {
       expect(props.onBackToCompletedProjects).toHaveBeenCalledTimes(1);
     });
   });
+
+  test("renders fullscreen card layout on mobile", () => {
+    const props = buildProps();
+    props.projects = {
+      "project-1": buildProject({
+        id: "project-1",
+        name: "Brand Refresh",
+        category: "Brand",
+        status: {
+          label: "Completed",
+          color: "#fff",
+          bgColor: "#000",
+          dotColor: "#fff",
+        },
+        completedAt: Date.now(),
+      }),
+    };
+
+    render(<CompletedProjectsPopup {...props} isMobile />);
+
+    expect(screen.getByTestId("completed-projects-popup-shell")).toHaveClass(
+      "h-[100dvh]",
+    );
+    expect(
+      screen.queryByText("Completed on", { exact: false }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTitle("Revert to Active")).toBeInTheDocument();
+  });
 });

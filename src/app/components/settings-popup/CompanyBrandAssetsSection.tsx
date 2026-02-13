@@ -93,7 +93,7 @@ export function CompanyBrandAssetsSection({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h4 className="txt-role-body-md font-medium txt-tone-subtle uppercase tracking-wider">
           Brand Assets ({brandAssets.length})
         </h4>
@@ -103,7 +103,7 @@ export function CompanyBrandAssetsSection({
           tooltipAlign="right"
         >
           <label
-            className={`inline-flex items-center gap-2 px-3 py-2 bg-text-tone-primary rounded-full text-bg-base txt-role-body-md font-medium ${canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"}`}
+            className={`inline-flex items-center gap-2 px-3 py-2 bg-text-tone-primary rounded-full text-bg-base txt-role-body-md font-medium w-fit ${canManageBrandAssets ? "cursor-pointer" : "opacity-50 cursor-not-allowed pointer-events-none"}`}
             aria-disabled={!canManageBrandAssets}
             tabIndex={canManageBrandAssets ? 0 : -1}
           >
@@ -151,7 +151,7 @@ export function CompanyBrandAssetsSection({
                   {new Date(asset.displayDateEpochMs).toLocaleDateString()}
                 </span>
               </div>
-              <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   className="txt-role-body-sm txt-tone-accent hover:txt-tone-accent transition-colors disabled:opacity-50 cursor-pointer"
                   onClick={() => {

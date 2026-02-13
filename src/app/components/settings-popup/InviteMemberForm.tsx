@@ -53,7 +53,7 @@ export function InviteMemberForm({
       <h4 className="txt-role-body-md font-medium txt-tone-subtle uppercase tracking-wider">
         Invite Team Members
       </h4>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 relative">
           <DeniedAction
             denied={isMemberManagementDenied}
@@ -70,7 +70,7 @@ export function InviteMemberForm({
             />
           </DeniedAction>
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           {isInviteRoleOpen && (
             <div
               className="fixed inset-0 z-10"
@@ -96,7 +96,7 @@ export function InviteMemberForm({
               }}
               disabled={inviting}
               className={cn(
-                "h-[42px] px-3 bg-transparent txt-role-body-md font-medium flex items-center gap-2 min-w-[100px] justify-between rounded-lg transition-colors relative z-20 disabled:opacity-50 disabled:cursor-not-allowed",
+                "h-[42px] px-3 bg-transparent txt-role-body-md font-medium flex items-center gap-2 min-w-[100px] justify-between rounded-lg transition-colors relative z-20 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto",
                 isMemberManagementDenied
                   ? "opacity-50 cursor-not-allowed txt-tone-faint"
                   : "cursor-pointer txt-tone-primary hover:bg-surface-hover-soft",
@@ -118,7 +118,7 @@ export function InviteMemberForm({
               role="listbox"
               aria-label="Invite role"
               className={cn(
-                "absolute right-0 top-full mt-1 w-[140px] z-20 animate-in fade-in zoom-in-95 duration-100",
+                "absolute right-0 top-full mt-1 w-full sm:w-[140px] z-20 animate-in fade-in zoom-in-95 duration-100",
                 MENU_SURFACE_CLASS,
               )}
             >
@@ -166,7 +166,7 @@ export function InviteMemberForm({
           <button
             onClick={onInvite}
             disabled={!inviteEmail || isMemberManagementDenied || inviting}
-            className={`h-[42px] px-5 rounded-lg txt-role-body-md font-medium cursor-pointer ${PRIMARY_ACTION_BUTTON_CLASS}`}
+            className={`h-[42px] px-5 rounded-lg txt-role-body-md font-medium cursor-pointer w-full sm:w-auto ${PRIMARY_ACTION_BUTTON_CLASS}`}
           >
             {inviting ? "Inviting..." : "Invite"}
           </button>

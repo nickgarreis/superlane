@@ -335,6 +335,36 @@
   font-family: var(--font-family-heading);
 }
 
+@utility app-shell-dvh {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+@utility app-shell-min-dvh {
+  min-height: 100dvh;
+}
+
+@utility safe-pt {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+@utility safe-pr {
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
+@utility safe-pb {
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+@utility safe-pl {
+  padding-left: max(0px, env(safe-area-inset-left));
+}
+
+@utility safe-px {
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
 @utility txt-tone-primary {
   color: var(--text-tone-primary);
 }
