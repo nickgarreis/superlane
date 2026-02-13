@@ -6,11 +6,12 @@ import { AuthPage } from "./components/AuthPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { RootPage } from "./components/RootPage";
+import { viewToPath } from "./lib/routing";
 import { getPageTitle } from "./lib/seo";
 import { useSharedScrollbarVisibility } from "./lib/useSharedScrollbarVisibility";
 
 const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
-const demoRootRedirectUrl = "https://superlane.vercel.app/project/proj-client-portal";
+const demoRootRedirectPath = viewToPath("project:proj-client-portal");
 
 const DashboardApp = React.lazy(() => import("./DashboardApp"));
 
@@ -30,14 +31,6 @@ function useRouteTitle() {
   }, [location.pathname]);
 }
 
-function ExternalRedirect({ to }: { to: string }) {
-  useEffect(() => {
-    window.location.replace(to);
-  }, [to]);
-
-  return null;
-}
-
 export default function App() {
   const { isAuthenticated } = useConvexAuth();
   useRouteTitle();
@@ -46,10 +39,10 @@ export default function App() {
   return (
     <>
       <Routes>
-        {/* In demo mode, redirect root externally and auth routes straight to tasks */}
+        {/* In demo mode, redirect root and auth routes straight to in-app destinations */}
         {isDemo ? (
           <>
-            <Route path="/" element={<ExternalRedirect to={demoRootRedirectUrl} />} />
+            <Route path="/" element={<Navigate to={demoRootRedirectPath} replace />} />
             <Route path="/login" element={<Navigate to="/tasks" replace />} />
             <Route path="/signup" element={<Navigate to="/tasks" replace />} />
           </>
