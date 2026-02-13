@@ -4,9 +4,16 @@ dist/
 *.local
 .env
 .env.*
+docs/**
 docs/private/**
 security-reports/**
 performance-reports/**
 
 .firecrawl/
 .vercel
+
+# Root plan/problem notes (keep local, never commit)
+/DRAFT_REVIEW_ARCHIVE_REDIRECT_PROBLEM.md
+/PRODUCTION_REMEDIATION_PLAN.md
+/workos-linked-logins-plan.md
+/workos-linked-logins-problem.md
