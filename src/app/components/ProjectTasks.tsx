@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { Task, ViewerIdentity, WorkspaceMember } from "../types";
 import "react-day-picker/dist/style.css";
 import { ProjectTaskRows } from "./project-tasks/ProjectTaskRows";
@@ -19,6 +25,37 @@ import {
 } from "./project-tasks/useProjectTaskHandlers";
 
 const EMPTY_PROJECT_OPTIONS: TaskProjectOption[] = [];
+const PENDING_CREATED_TASK_TTL_MS = 30_000;
+
+type PendingCreatedTask = {
+  task: Task;
+  expiresAtMs: number;
+};
+
+const prunePendingCreatedTasks = (
+  entries: PendingCreatedTask[],
+  {
+    existingTaskIds,
+    nowMs,
+  }: {
+    existingTaskIds?: Set<string>;
+    nowMs: number;
+  },
+): PendingCreatedTask[] => {
+  let changed = false;
+  const next = entries.filter((entry) => {
+    if (entry.expiresAtMs <= nowMs) {
+      changed = true;
+      return false;
+    }
+    if (existingTaskIds?.has(entry.task.id)) {
+      changed = true;
+      return false;
+    }
+    return true;
+  });
+  return changed ? next : entries;
+};
 
 interface ProjectTasksProps {
   tasks: Task[];
@@ -41,7 +78,7 @@ interface ProjectTasksProps {
   editTaskDisabledMessage?: string;
 }
 export function ProjectTasks({
-  tasks: initialTasks,
+  tasks: serverTasks,
   onUpdateTasks,
   assignableMembers,
   viewerIdentity,
@@ -77,11 +114,54 @@ export function ProjectTasks({
   const [openProjectTaskId, setOpenProjectTaskId] = useState<string | null>(
     null,
   );
+  const [pendingCreatedTasks, setPendingCreatedTasks] = useState<
+    PendingCreatedTask[]
+  >([]);
+
+  const visibleTasks = useMemo(() => {
+    if (pendingCreatedTasks.length === 0) {
+      return serverTasks;
+    }
+    const existingTaskIds = new Set(serverTasks.map((task) => task.id));
+    const pending = pendingCreatedTasks
+      .map((entry) => entry.task)
+      .filter((task) => !existingTaskIds.has(task.id));
+    if (pending.length === 0) {
+      return serverTasks;
+    }
+    return [...serverTasks, ...pending];
+  }, [pendingCreatedTasks, serverTasks]);
+
+  const handleUpdateTasks = useCallback(
+    (nextTasks: Task[]) => {
+      const previousTaskIds = new Set(serverTasks.map((task) => task.id));
+      const nowMs = Date.now();
+      const createdTasks = nextTasks.filter((task) => !previousTaskIds.has(task.id));
+      if (createdTasks.length > 0) {
+        setPendingCreatedTasks((current) => {
+          const currentTaskIds = new Set(current.map((entry) => entry.task.id));
+          const additions = createdTasks
+            .filter((task) => !currentTaskIds.has(task.id))
+            .map((task) => ({
+              task,
+              expiresAtMs: nowMs + PENDING_CREATED_TASK_TTL_MS,
+            }));
+          if (additions.length === 0) {
+            return current;
+          }
+          return [...current, ...additions];
+        });
+      }
+      onUpdateTasks(nextTasks);
+    },
+    [onUpdateTasks, serverTasks],
+  );
+
   const addTaskRowRef = useRef<HTMLDivElement | null>(null);
   const [sortBy, setSortBy] = useState<TaskSortBy>("dueDate");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const { sortedTasks, taskRowStyle } = useWorkspaceTaskFiltering({
-    initialTasks,
+    initialTasks: visibleTasks,
     disableInternalSort,
     sortBy,
   });
@@ -97,8 +177,8 @@ export function ProjectTasks({
     handleProjectSelect,
     handleKeyDown,
   } = useProjectTaskHandlers({
-    initialTasks,
-    onUpdateTasks,
+    initialTasks: serverTasks,
+    onUpdateTasks: handleUpdateTasks,
     assignableMembers,
     viewerIdentity,
     projectOptions,
@@ -113,6 +193,38 @@ export function ProjectTasks({
     setOpenAssigneeTaskId,
     setOpenProjectTaskId,
   });
+
+  useEffect(() => {
+    if (pendingCreatedTasks.length === 0) {
+      return;
+    }
+    const existingTaskIds = new Set(serverTasks.map((task) => task.id));
+    const nowMs = Date.now();
+    setPendingCreatedTasks((current) =>
+      prunePendingCreatedTasks(current, { existingTaskIds, nowMs }),
+    );
+  }, [pendingCreatedTasks.length, serverTasks]);
+
+  useEffect(() => {
+    if (pendingCreatedTasks.length === 0) {
+      return;
+    }
+    const nextExpiryMs = pendingCreatedTasks.reduce(
+      (minimumMs, entry) => Math.min(minimumMs, entry.expiresAtMs),
+      Number.POSITIVE_INFINITY,
+    );
+    const timeoutMs = Math.max(0, nextExpiryMs - Date.now());
+    const timeoutId = window.setTimeout(() => {
+      const nowMs = Date.now();
+      setPendingCreatedTasks((current) =>
+        prunePendingCreatedTasks(current, { nowMs }),
+      );
+    }, timeoutMs);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [pendingCreatedTasks]);
+
   const closeAllDropdowns = useCallback(() => {
     setOpenCalendarTaskId(null);
     setCalendarPosition(null);
@@ -176,7 +288,7 @@ export function ProjectTasks({
         />
       )}{" "}
       <TasksToolbar
-        taskCount={initialTasks.length}
+        taskCount={visibleTasks.length}
         hideHeader={hideHeader}
         canAddTasks={canAddTasks}
         addTaskDisabledMessage={addTaskDisabledMessage}
@@ -201,7 +313,7 @@ export function ProjectTasks({
           />
         )}{" "}
         <ProjectTaskRows
-          initialTasks={initialTasks}
+          initialTasks={visibleTasks}
           sortedTasks={sortedTasks}
           showProjectColumn={showProjectColumn}
           projectOptions={projectOptions}

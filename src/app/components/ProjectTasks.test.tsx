@@ -85,6 +85,42 @@ describe("ProjectTasks", () => {
     ]);
   });
 
+  test("keeps a newly created task visible until parent tasks refresh", () => {
+    const onUpdateTasks = vi.fn();
+
+    const { rerender } = render(
+      <ProjectTasks
+        tasks={[]}
+        onUpdateTasks={onUpdateTasks}
+        assignableMembers={MEMBERS}
+        viewerIdentity={VIEWER}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /add task/i }));
+
+    const input = screen.getByPlaceholderText("What needs to be done?");
+    fireEvent.change(input, { target: { value: "Keep visible while creating" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getByText("Keep visible while creating")).toBeInTheDocument();
+    expect(onUpdateTasks).toHaveBeenCalledTimes(1);
+
+    const createdTask = (onUpdateTasks.mock.calls[0]?.[0] as Task[])[0];
+    expect(createdTask).toBeTruthy();
+
+    rerender(
+      <ProjectTasks
+        tasks={[createdTask]}
+        onUpdateTasks={onUpdateTasks}
+        assignableMembers={MEMBERS}
+        viewerIdentity={VIEWER}
+      />,
+    );
+
+    expect(screen.getAllByText("Keep visible while creating")).toHaveLength(1);
+  });
+
   test("does not open add mode when task creation is disabled", () => {
     const onUpdateTasks = vi.fn();
 
