@@ -264,6 +264,7 @@ const buildDashboardData = (overrides?: Partial<Record<string, unknown>>) => ({
   loadMoreWorkspaceTasks: vi.fn(),
   activeWorkspace: WORKSPACE,
   visibleProjects: { [BASE_PROJECT.id]: BASE_PROJECT },
+  chatProjects: { [BASE_PROJECT.id]: BASE_PROJECT },
   approvedSidebarProjectIds: [],
   allWorkspaceFiles: [],
   workspaceFilesPaginationStatus: "Exhausted",

@@ -103,8 +103,8 @@ describe("CompanyTab", () => {
       screen.queryByText("Workspace Name"),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Manage billing" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Manage billing" }),
+    ).not.toBeInTheDocument();
 
     act(() => {
       fireEvent.change(nameInput as HTMLInputElement, {

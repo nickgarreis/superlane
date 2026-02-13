@@ -12,6 +12,7 @@ const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
     action();
   }
 };
+const OPTION_ENTRANCE_EASE = [0.22, 1, 0.36, 1] as const;
 export function StepService({
   selectedService,
   onSelectService,
@@ -40,14 +41,19 @@ export function StepService({
             key={service}
             initial={{ y: 6, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.12 + idx * 0.05, duration: 0.3 }}
+            transition={{
+              delay: 0.12 + idx * 0.05,
+              duration: 0.3,
+              type: "tween",
+              ease: OPTION_ENTRANCE_EASE,
+            }}
             onClick={() => handleServiceSelect(service)}
             role="button"
             tabIndex={0}
             onKeyDown={(event: KeyboardEvent) =>
               handleKeyDown(event, () => handleServiceSelect(service))
             }
-            className={` content-stretch flex gap-[8px] h-[36px] items-center px-[14px] relative rounded-full shrink-0 cursor-pointer transition-all border outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedService === service ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-transparent hover:bg-white/5 txt-tone-primary"} `}
+            className={` content-stretch flex gap-[8px] h-[36px] items-center px-[14px] relative rounded-full shrink-0 cursor-pointer transition-colors border outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedService === service ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-transparent hover:bg-white/5 txt-tone-primary"} `}
           >
             <ProjectLogo size={16} category={service} />
             <div className="flex flex-col font-app font-medium justify-center leading-none relative shrink-0 txt-role-body-lg whitespace-nowrap">

@@ -117,7 +117,7 @@ const buildProject = (
 });
 
 describe("Tasks", () => {
-  test("filters tasks by search and project and toggles add mode", async () => {
+  test("shows only active-project tasks and supports search/filter/add mode", async () => {
     const projects: Record<string, ProjectData> = {
       "active-1": buildProject({
         id: "active-1",
@@ -174,12 +174,16 @@ describe("Tasks", () => {
       />,
     );
 
-    expect(screen.getByTestId("task-count")).toHaveTextContent("2");
+    expect(screen.getByTestId("task-count")).toHaveTextContent("1");
     expect(projectTasksRenderMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        defaultProjectId: "active-1",
+        projectOptions: expect.arrayContaining([
+          expect.objectContaining({ id: "active-1" }),
+          expect.objectContaining({ id: "active-2" }),
+        ]),
         tasks: expect.arrayContaining([
           expect.objectContaining({ id: "task-1" }),
-          expect.objectContaining({ id: "task-3" }),
         ]),
       }),
     );
@@ -187,6 +191,7 @@ describe("Tasks", () => {
       expect.objectContaining({
         tasks: expect.arrayContaining([
           expect.objectContaining({ id: "task-2" }),
+          expect.objectContaining({ id: "task-3" }),
         ]),
       }),
     );

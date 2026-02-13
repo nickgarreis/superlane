@@ -70,4 +70,18 @@ describe("SidebarTag", () => {
     expect(tag).not.toHaveClass("txt-tone-danger");
     expect(tag).not.toHaveClass("txt-tone-warning");
   });
+
+  test("applies archived gray token classes", () => {
+    render(<SidebarTag tone="archived">Archived</SidebarTag>);
+
+    const tag = screen.getByText("Archived");
+    expect(tag).toHaveAttribute("data-sidebar-tag-tone", "archived");
+    expect(tag.className).toContain("[color:var(--text-muted-medium)]");
+    expect(tag.className).toContain(
+      "[background-color:var(--surface-muted-soft)]",
+    );
+    expect(tag.className).toContain("[border-color:var(--border-soft)]");
+    expect(tag).not.toHaveClass("txt-tone-warning");
+    expect(tag).not.toHaveClass("txt-tone-accent");
+  });
 });

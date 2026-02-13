@@ -42,6 +42,7 @@ type DashboardContentProps = {
   handleToggleSidebar: () => void;
   isSidebarOpen: boolean;
   visibleProjects: Record<string, ProjectData>;
+  chatProjects: Record<string, ProjectData>;
   tasksByProject?: Record<string, Task[]>;
   workspaceTasks: Task[];
   tasksPaginationStatus:
@@ -79,6 +80,7 @@ export const DashboardContent = React.memo(function DashboardContent({
   handleToggleSidebar,
   isSidebarOpen,
   visibleProjects,
+  chatProjects,
   tasksByProject = {},
   workspaceTasks,
   tasksPaginationStatus,
@@ -230,7 +232,7 @@ export const DashboardContent = React.memo(function DashboardContent({
               fileActions={mainContentFileActions}
               projectActions={createMainContentProjectActions(mainProjectId)}
               navigationActions={mainNavigationActions}
-              allProjects={visibleProjects}
+              allProjects={chatProjects}
               pendingHighlight={isMainActive ? pendingHighlight : null}
               onClearPendingHighlight={clearPendingHighlight}
             />

@@ -305,7 +305,7 @@ export function ProjectOverview({
   navigationActions,
 }: ProjectOverviewProps) {
   const canInlineEditText =
-    project.archived || project.status.label === "Active";
+    !project.archived && project.status.label === "Active";
   const backToLabel = navigationActions?.backLabel
     ? navigationActions.backLabel
     : navigationActions?.backTo

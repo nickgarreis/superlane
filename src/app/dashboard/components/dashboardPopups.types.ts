@@ -36,6 +36,7 @@ export type DashboardPopupsProps = {
   isSearchOpen: boolean;
   setIsSearchOpen: (value: boolean) => void;
   projects: Record<string, ProjectData>;
+  chatProjects: Record<string, ProjectData>;
   workspaceTasks: Task[];
   tasksByProject: Record<string, Task[]>;
   allWorkspaceFiles: ProjectFileData[];

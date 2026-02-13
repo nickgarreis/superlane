@@ -83,6 +83,12 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
         createdAt,
         updatedAt: createdAt,
       });
+      await ctx.db.insert("users", {
+        workosUserId: IDENTITIES.outsider.subject,
+        name: "Outsider User",
+        createdAt,
+        updatedAt: createdAt,
+      });
 
       const workspaceSlug = "workspace-comments";
       const workspaceId = await ctx.db.insert("workspaces", {
@@ -386,6 +392,132 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
           comment.parentCommentId === String(inserted.newestThreadId),
       ),
     ).toBe(true);
+  });
+
+  test("listHistoryForProject returns threaded read-only history and enforces membership", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    const inserted = await t.run(async (ctx) => {
+      const project = await ((ctx.db
+        .query("projects") as any)
+        .withIndex("by_publicId", (q: any) => q.eq("publicId", seeded.projectPublicId))
+        .unique());
+      if (!project) {
+        throw new Error("Project not found for history query test");
+      }
+
+      const baseTs = Date.now() + 2_000;
+      const resolvedThreadId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Resolved thread",
+        resolved: true,
+        edited: false,
+        createdAt: baseTs + 1,
+        updatedAt: baseTs + 1,
+      });
+      const newestThreadId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        authorUserId: seeded.memberTwoUserId,
+        authorSnapshotName: "Member Two User",
+        content: "Newest thread",
+        resolved: false,
+        edited: false,
+        createdAt: baseTs + 2,
+        updatedAt: baseTs + 2,
+      });
+      const replyAId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: newestThreadId,
+        authorUserId: seeded.memberUserId,
+        authorSnapshotName: "Member User",
+        content: "Reply A",
+        resolved: false,
+        edited: false,
+        createdAt: baseTs + 3,
+        updatedAt: baseTs + 3,
+      });
+      const replyBId = await ctx.db.insert("projectComments", {
+        workspaceId: seeded.workspaceId,
+        projectId: project._id,
+        projectPublicId: seeded.projectPublicId,
+        parentCommentId: newestThreadId,
+        authorUserId: seeded.ownerUserId,
+        authorSnapshotName: "Owner User",
+        content: "Reply B",
+        resolved: true,
+        edited: false,
+        createdAt: baseTs + 4,
+        updatedAt: baseTs + 4,
+      });
+
+      return {
+        resolvedThreadId,
+        newestThreadId,
+        replyAId,
+        replyBId,
+      };
+    });
+
+    await asOwner().mutation(api.comments.toggleReaction, {
+      commentId: inserted.resolvedThreadId,
+      emoji: "🔥",
+    });
+    await asMemberTwo().mutation(api.comments.toggleReaction, {
+      commentId: inserted.replyBId,
+      emoji: "✅",
+    });
+
+    const history = await asMember().query(api.comments.listHistoryForProject, {
+      projectPublicId: seeded.projectPublicId,
+    });
+    expect(history.map((entry: any) => entry.content)).toEqual([
+      "Newest thread",
+      "Resolved thread",
+      "Initial comment",
+    ]);
+
+    const newestThread = history.find(
+      (entry: any) => entry.id === String(inserted.newestThreadId),
+    );
+    expect(newestThread).toBeDefined();
+    expect(newestThread?.replies.map((reply: any) => reply.content)).toEqual([
+      "Reply A",
+      "Reply B",
+    ]);
+    expect(newestThread?.replies[1]?.resolved).toBe(true);
+    expect(newestThread?.replies[1]?.reactions).toEqual([
+      {
+        emoji: "✅",
+        users: ["Member Two User"],
+        userIds: [String(seeded.memberTwoUserId)],
+      },
+    ]);
+
+    const resolvedThread = history.find(
+      (entry: any) => entry.id === String(inserted.resolvedThreadId),
+    );
+    expect(resolvedThread?.resolved).toBe(true);
+    expect(resolvedThread?.reactions).toEqual([
+      {
+        emoji: "🔥",
+        users: ["Owner User"],
+        userIds: [String(seeded.ownerUserId)],
+      },
+    ]);
+
+    await expect(
+      asOutsider().query(api.comments.listHistoryForProject, {
+        projectPublicId: seeded.projectPublicId,
+      }),
+    ).rejects.toThrow("Forbidden");
   });
 
   test("creating and removing replies keeps parent replyCount accurate", async () => {

@@ -31,6 +31,7 @@ type MainContentFileRowsProps = {
   canMutateProjectFiles: boolean;
   fileMutationDisabledMessage: string;
   onRemoveFile: (id: string, event: React.MouseEvent) => void;
+  highlightedFileId?: string | null;
   fileRowStyle?: React.CSSProperties;
 };
 export const MainContentFileRows = React.memo(function MainContentFileRows({
@@ -40,6 +41,7 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
   canMutateProjectFiles,
   fileMutationDisabledMessage,
   onRemoveFile,
+  highlightedFileId,
   fileRowStyle,
 }: MainContentFileRowsProps) {
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
@@ -68,6 +70,18 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
     estimateSize: () => 72,
     overscan: 8,
   });
+  useEffect(() => {
+    if (!highlightedFileId || !shouldVirtualizeRows) {
+      return;
+    }
+    const highlightedFileIndex = filteredFiles.findIndex(
+      (file) => file.id === highlightedFileId,
+    );
+    if (highlightedFileIndex < 0) {
+      return;
+    }
+    rowVirtualizer.scrollToIndex(highlightedFileIndex, { align: "center" });
+  }, [filteredFiles, highlightedFileId, rowVirtualizer, shouldVirtualizeRows]);
   return (
     <div ref={rowsRootRef}>
       {shouldVirtualizeRows ? (

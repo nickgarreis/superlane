@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MainContent } from "./MainContent";
 import type {
@@ -210,33 +210,42 @@ describe("MainContent", () => {
     expect(fileActions.remove).not.toHaveBeenCalled();
   });
 
-  test("consumes pending file highlight and clears it", async () => {
+  test("consumes pending file highlight and clears it", () => {
     const onClearPendingHighlight = vi.fn();
+    vi.useFakeTimers();
 
-    renderMainContent({
-      projectFiles: [
-        {
-          id: "file-1",
-          projectPublicId: "project-1",
-          tab: "Contract",
-          name: "agreement.pdf",
-          type: "PDF",
-          displayDateEpochMs: 1700000000000,
+    try {
+      renderMainContent({
+        projectFiles: [
+          {
+            id: "file-1",
+            projectPublicId: "project-1",
+            tab: "Contract",
+            name: "agreement.pdf",
+            type: "PDF",
+            displayDateEpochMs: 1700000000000,
+          },
+        ],
+        pendingHighlight: {
+          projectId: "project-1",
+          type: "file",
+          fileName: "agreement.pdf",
+          fileTab: "Contract",
         },
-      ],
-      pendingHighlight: {
-        projectId: "project-1",
-        type: "file",
-        fileName: "agreement.pdf",
-        fileTab: "Contract",
-      },
-      onClearPendingHighlight,
-    });
+        onClearPendingHighlight,
+      });
 
-    await waitFor(() => {
       expect(screen.getByText("agreement.pdf")).toBeInTheDocument();
+      expect(onClearPendingHighlight).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(50 + 1600);
+      });
       expect(onClearPendingHighlight).toHaveBeenCalledTimes(1);
-    });
+    } finally {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    }
   });
 
   test("downloads and removes files for active projects", () => {
@@ -430,7 +439,7 @@ describe("MainContent", () => {
     expect(nameField.textContent).toBe("Instant Update");
   });
 
-  test("allows inline edits in archive project detail pages", () => {
+  test("keeps archived project detail text non-editable", () => {
     const projectActions = buildProjectActions();
     renderMainContent({
       projectActions,
@@ -440,10 +449,20 @@ describe("MainContent", () => {
       },
     });
 
-    const nameField = screen.getByRole("textbox", {
-      name: "Project name",
-    });
-    expect(nameField).toHaveAttribute("contenteditable", "true");
+    const heading = screen.getByText(BASE_PROJECT.name);
+    const description = screen.getByText(BASE_PROJECT.description);
+
+    expect(heading).toHaveAttribute("contenteditable", "false");
+    expect(description).toHaveAttribute("contenteditable", "false");
+
+    heading.textContent = "Archived heading";
+    fireEvent.input(heading);
+
+    description.textContent = "Archived description";
+    fireEvent.input(description);
+    fireEvent.blur(description);
+
+    expect(projectActions.updateProject).not.toHaveBeenCalled();
   });
 
   test("keeps completed project detail text non-editable", () => {

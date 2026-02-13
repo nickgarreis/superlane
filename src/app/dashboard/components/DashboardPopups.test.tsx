@@ -226,6 +226,7 @@ const baseProps = () => ({
   isSearchOpen: false,
   setIsSearchOpen: vi.fn(),
   projects: { [PROJECT.id]: PROJECT },
+  chatProjects: { [PROJECT.id]: PROJECT },
   workspaceTasks: [],
   tasksByProject: { [PROJECT.id]: [] },
   allWorkspaceFiles: [],

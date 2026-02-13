@@ -75,6 +75,7 @@ const baseProps = () => ({
   handleToggleSidebar: vi.fn(),
   isSidebarOpen: true,
   visibleProjects: { [BASE_PROJECT.id]: BASE_PROJECT },
+  chatProjects: { [BASE_PROJECT.id]: BASE_PROJECT },
   workspaceTasks: [],
   tasksPaginationStatus: "Exhausted" as const,
   loadMoreWorkspaceTasks: vi.fn(),

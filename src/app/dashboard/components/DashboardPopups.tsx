@@ -73,6 +73,7 @@ export function DashboardPopups({
   isSearchOpen,
   setIsSearchOpen,
   projects,
+  chatProjects,
   workspaceTasks,
   tasksByProject,
   allWorkspaceFiles,
@@ -300,7 +301,7 @@ export function DashboardPopups({
                   onBackToCompletedProjects={backToCompletedProjectsList}
                   project={project}
                   projectTasks={tasksByProject[project.id] ?? []}
-                  projects={projects}
+                  allProjects={chatProjects}
                   projectFiles={projectFilesByProject[project.id] ?? []}
                   projectFilesPaginationStatus={projectFilesPaginationStatus}
                   loadMoreProjectFiles={loadMoreProjectFiles}

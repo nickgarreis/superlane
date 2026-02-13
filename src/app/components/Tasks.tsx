@@ -103,7 +103,9 @@ export function Tasks({
   const mutableWorkspaceTasks = useMemo(
     () =>
       workspaceTasks.filter(
-        (task) => !task.projectId || activeProjectIds.has(task.projectId),
+        (task) =>
+          typeof task.projectId === "string"
+          && activeProjectIds.has(task.projectId),
       ),
     [activeProjectIds, workspaceTasks],
   );

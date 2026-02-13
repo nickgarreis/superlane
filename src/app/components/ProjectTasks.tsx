@@ -9,7 +9,10 @@ import {
 } from "./project-tasks/useWorkspaceTaskFiltering";
 import { AddTaskRow } from "./project-tasks/AddTaskRow";
 import { ProjectTaskTableHeader } from "./project-tasks/ProjectTaskTableHeader";
-import { useTaskHighlight } from "./project-tasks/useTaskHighlight";
+import {
+  useTaskHighlight,
+  type TaskHighlightResult,
+} from "./project-tasks/useTaskHighlight";
 import {
   useProjectTaskHandlers,
   type TaskProjectOption,
@@ -30,7 +33,7 @@ interface ProjectTasksProps {
   isAddingMode?: boolean;
   onAddingModeChange?: (isAdding: boolean) => void;
   highlightedTaskId?: string | null;
-  onHighlightDone?: () => void;
+  onHighlightDone?: (result: TaskHighlightResult) => void;
   canAddTasks?: boolean;
   addTaskDisabledMessage?: string;
   canEditTasks?: boolean;
@@ -218,6 +221,7 @@ export function ProjectTasks({
           handleAssigneeSelect={handleAssigneeSelect}
           handleProjectSelect={handleProjectSelect}
           isAdding={isAdding}
+          highlightedTaskId={highlightedTaskId}
           taskRowRefs={taskRowRefs}
           taskRowStyle={taskRowStyle}
           editTaskDisabledMessage={editTaskDisabledMessage}

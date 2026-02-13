@@ -8,13 +8,16 @@ export type SidebarTagTone =
   | "approved"
   | "inboxUnread"
   | "important"
-  | "pending";
+  | "pending"
+  | "archived";
 
 const SIDEBAR_TAG_TONE_CLASS: Record<SidebarTagTone, string> = {
   approved:
     "txt-tone-warning [background-color:var(--activity-collaboration-bg)] [border-color:var(--activity-collaboration-border)]",
   pending:
     "[color:var(--status-review)] [background-color:var(--status-review-soft)] [border-color:var(--status-review-border)]",
+  archived:
+    "[color:var(--text-muted-medium)] [background-color:var(--surface-muted-soft)] [border-color:var(--border-soft)]",
   inboxUnread:
     "h-[20px] min-w-[20px] justify-center px-1.5 txt-role-meta txt-tone-accent bg-accent-soft-bg border-accent-soft-border",
   important:

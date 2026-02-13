@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ProjectTasks } from "./ProjectTasks";
 import type { Task, ViewerIdentity, WorkspaceMember } from "../types";
@@ -124,23 +124,111 @@ describe("ProjectTasks", () => {
     expect(onUpdateTasks).not.toHaveBeenCalled();
   });
 
-  test("clears missing highlight immediately", async () => {
-    const onHighlightDone = vi.fn();
+  test("dims task titles and checkboxes when editing is disabled", () => {
+    const onUpdateTasks = vi.fn();
+    const completedTask: Task = {
+      ...TASKS[0],
+      id: "task-2",
+      title: "Finalize QA pass",
+      completed: true,
+    };
 
     render(
       <ProjectTasks
-        tasks={[]}
-        onUpdateTasks={vi.fn()}
+        tasks={[TASKS[0], completedTask]}
+        onUpdateTasks={onUpdateTasks}
         assignableMembers={MEMBERS}
         viewerIdentity={VIEWER}
-        highlightedTaskId="missing-task"
-        onHighlightDone={onHighlightDone}
+        canEditTasks={false}
       />,
     );
 
-    await waitFor(() => {
+    const openTaskTitle = screen.getByText("Draft hero section");
+    expect(openTaskTitle).toHaveClass("text-white/40");
+    const openTaskCheckbox = openTaskTitle.previousElementSibling;
+    expect(openTaskCheckbox).not.toBeNull();
+    expect(openTaskCheckbox).toHaveClass("opacity-50");
+
+    const completedTaskTitle = screen.getByText("Finalize QA pass");
+    expect(completedTaskTitle).toHaveClass("text-white/30", "line-through");
+    const completedTaskCheckbox = completedTaskTitle.previousElementSibling;
+    expect(completedTaskCheckbox).not.toBeNull();
+    expect(completedTaskCheckbox).toHaveClass("bg-white/15", "opacity-60");
+    expect(completedTaskCheckbox).not.toHaveClass("bg-text-tone-accent");
+  });
+
+  test("reports missing highlight after retry timeout", () => {
+    const onHighlightDone = vi.fn();
+    vi.useFakeTimers();
+    try {
+      render(
+        <ProjectTasks
+          tasks={[]}
+          onUpdateTasks={vi.fn()}
+          assignableMembers={MEMBERS}
+          viewerIdentity={VIEWER}
+          highlightedTaskId="missing-task"
+          onHighlightDone={onHighlightDone}
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
       expect(onHighlightDone).toHaveBeenCalledTimes(1);
-    });
+      expect(onHighlightDone).toHaveBeenCalledWith({ status: "missing" });
+    } finally {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    }
+  });
+
+  test("applies highlight when task row mounts during retry window", () => {
+    const onHighlightDone = vi.fn();
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(
+        <ProjectTasks
+          tasks={[]}
+          onUpdateTasks={vi.fn()}
+          assignableMembers={MEMBERS}
+          viewerIdentity={VIEWER}
+          highlightedTaskId="task-1"
+          onHighlightDone={onHighlightDone}
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(onHighlightDone).not.toHaveBeenCalled();
+
+      rerender(
+        <ProjectTasks
+          tasks={TASKS}
+          onUpdateTasks={vi.fn()}
+          assignableMembers={MEMBERS}
+          viewerIdentity={VIEWER}
+          highlightedTaskId="task-1"
+          onHighlightDone={onHighlightDone}
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(50);
+      });
+      expect(onHighlightDone).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(1600);
+      });
+      expect(onHighlightDone).toHaveBeenCalledTimes(1);
+      expect(onHighlightDone).toHaveBeenCalledWith({ status: "applied" });
+    } finally {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    }
   });
 
   test("toggles completion and deletes tasks when editable", () => {

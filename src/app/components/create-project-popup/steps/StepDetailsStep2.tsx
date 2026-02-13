@@ -18,6 +18,7 @@ const handleKeyDown = (event: KeyboardEvent, action: () => void) => {
   }
 };
 const PROJECT_NAME_INPUT_ID = "project-name";
+const OPTION_ENTRANCE_EASE = [0.22, 1, 0.36, 1] as const;
 export const StepDetailsStep2 = memo(function StepDetailsStep2({
   service,
   projectName,
@@ -92,14 +93,19 @@ export const StepDetailsStep2 = memo(function StepDetailsStep2({
                   key={job}
                   initial={{ y: 6, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.42 + idx * 0.04, duration: 0.3 }}
+                  transition={{
+                    delay: 0.42 + idx * 0.04,
+                    duration: 0.3,
+                    type: "tween",
+                    ease: OPTION_ENTRANCE_EASE,
+                  }}
                   onClick={() => onSelectJob(job)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(event: KeyboardEvent) =>
                     handleKeyDown(event, () => onSelectJob(job))
                   }
-                  className={` backdrop-blur-[6px] bg-popup-surface-soft content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-popup-surface-soft hover:bg-white/5 txt-tone-primary"} `}
+                  className={` backdrop-blur-[6px] bg-popup-surface-soft content-stretch flex h-[36px] items-center px-[17px] py-[7px] relative rounded-full shrink-0 cursor-pointer border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${selectedJob === job ? "bg-white/10 border-white/20 text-white" : "border-popup-surface-soft hover:bg-white/5 txt-tone-primary"} `}
                 >
                   <p className="font-medium txt-role-body-lg txt-leading-body whitespace-nowrap">
                     {jobIcons?.[job] && (

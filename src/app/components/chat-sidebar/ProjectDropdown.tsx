@@ -6,6 +6,7 @@ import type { ProjectData } from "../../types";
 import type { AppView } from "../../lib/routing";
 import { Z_LAYERS } from "../../lib/zLayers";
 import { ProjectLogo } from "../ProjectLogo";
+import { SidebarTag } from "../sidebar/SidebarTag";
 import {
   MENU_CHECK_ICON_CLASS,
   MENU_ITEM_ACTIVE_CLASS,
@@ -87,7 +88,11 @@ export function ProjectDropdown({
                     key={project.id}
                     onClick={() => {
                       if (onSwitchProject) {
-                        onSwitchProject(`project:${project.id}`);
+                        onSwitchProject(
+                          project.archived
+                            ? `archive-project:${project.id}`
+                            : `project:${project.id}`,
+                        );
                       }
                       onOpenChange(false);
                     }}
@@ -119,9 +124,9 @@ export function ProjectDropdown({
                       <Check className={MENU_CHECK_ICON_CLASS} />
                     )}
                     {project.archived && (
-                      <span className="txt-role-micro text-text-muted-weak uppercase tracking-wider shrink-0">
+                      <SidebarTag tone="archived" className="h-[18px] px-1.5">
                         Archived
-                      </span>
+                      </SidebarTag>
                     )}
                   </button>
                 ))}

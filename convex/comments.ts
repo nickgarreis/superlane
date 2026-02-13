@@ -14,6 +14,17 @@ type UserDoc = Doc<"users">;
 type ReactionUsers = { users: string[]; userIds: string[] };
 type ReactionSummary = { emoji: string; users: string[]; userIds: string[] };
 type ReactionSummarySnapshot = NonNullable<ProjectCommentDoc["reactionSummary"]>;
+type CommentHistoryRow = {
+  id: string;
+  parentCommentId: string | null;
+  author: { userId: string; name: string; avatar: string };
+  content: string;
+  createdAtEpochMs: number;
+  resolved: boolean;
+  edited: boolean;
+  reactions: ReactionSummary[];
+  replies: CommentHistoryRow[];
+};
 type LegacyCommentNode = {
   id: string;
   author: { userId: string; name: string; avatar: string };
@@ -402,6 +413,37 @@ const mapCommentFeedRow = (args: {
   };
 };
 
+const mapCommentHistoryRow = (args: {
+  comment: ProjectCommentDoc;
+  userMap: Map<Id<"users">, UserDoc>;
+  reactionMap: Map<string, Map<string, ReactionUsers>>;
+}): CommentHistoryRow => {
+  const { comment, userMap, reactionMap } = args;
+  const author = userMap.get(comment.authorUserId);
+  const reactionByEmoji = reactionMap.get(String(comment._id));
+  return {
+    id: String(comment._id),
+    parentCommentId: comment.parentCommentId ? String(comment.parentCommentId) : null,
+    author: {
+      userId: String(comment.authorUserId),
+      name: comment.authorSnapshotName ?? author?.name ?? "Unknown user",
+      avatar: comment.authorSnapshotAvatarUrl ?? author?.avatarUrl ?? "",
+    },
+    content: comment.content,
+    createdAtEpochMs: comment.createdAt,
+    resolved: comment.resolved,
+    edited: comment.edited,
+    reactions: reactionByEmoji
+      ? Array.from(reactionByEmoji.entries()).map(([emoji, reaction]) => ({
+          emoji,
+          users: reaction.users,
+          userIds: reaction.userIds,
+        }))
+      : [],
+    replies: [],
+  };
+};
+
 export const listThreadsPaginated = query({
   args: {
     projectPublicId: v.string(),
@@ -469,6 +511,63 @@ export const listReplies = query({
           replyCount: replyCounts.get(String(comment._id)) ?? 0,
         })),
     };
+  },
+});
+
+export const listHistoryForProject = query({
+  args: {
+    projectPublicId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { project } = await requireProjectRole(ctx, args.projectPublicId, "member");
+    const comments = await ctx.db
+      .query("projectComments")
+      .withIndex("by_projectPublicId", (q) => q.eq("projectPublicId", project.publicId))
+      .collect();
+
+    if (comments.length === 0) {
+      return [] as CommentHistoryRow[];
+    }
+
+    const { reactionMap, userMap } = await getReactionAndUserMaps({
+      ctx,
+      comments,
+    });
+
+    const orderedComments = [...comments].sort((left, right) => left.createdAt - right.createdAt);
+    const rowsById = new Map<string, CommentHistoryRow>();
+    for (const comment of orderedComments) {
+      rowsById.set(
+        String(comment._id),
+        mapCommentHistoryRow({
+          comment,
+          userMap,
+          reactionMap,
+        }),
+      );
+    }
+
+    const threadRoots: CommentHistoryRow[] = [];
+    for (const comment of orderedComments) {
+      const commentId = String(comment._id);
+      const row = rowsById.get(commentId);
+      if (!row) {
+        continue;
+      }
+
+      const parentId = comment.parentCommentId ? String(comment.parentCommentId) : null;
+      if (parentId) {
+        const parentRow = rowsById.get(parentId);
+        if (parentRow) {
+          parentRow.replies.push(row);
+          continue;
+        }
+      }
+      threadRoots.push(row);
+    }
+
+    threadRoots.sort((left, right) => right.createdAtEpochMs - left.createdAtEpochMs);
+    return threadRoots;
   },
 });
 

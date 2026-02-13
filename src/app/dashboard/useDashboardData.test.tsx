@@ -229,6 +229,7 @@ describe("useDashboardData", () => {
     expect(result.current.visibleProjects["project-1"]?.name).toBe(
       "Project One",
     );
+    expect(result.current.chatProjects["project-1"]?.name).toBe("Project One");
     expect(result.current.allWorkspaceFiles).toHaveLength(1);
     expect(result.current.projectFilesByProject["project-1"]).toHaveLength(1);
     expect(result.current.inboxUnreadCount).toBe(3);

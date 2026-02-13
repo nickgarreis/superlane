@@ -214,4 +214,96 @@ describe("ChatSidebar reactions", () => {
       screen.getByRole("button", { name: /collapse resolved threads/i }),
     ).toHaveAttribute("aria-expanded", "true");
   });
+
+  test("dropdown shows only active and archived projects and routes archived to archive detail", async () => {
+    mockUsePaginatedQuery.mockReturnValue({
+      results: [],
+      status: "Exhausted",
+      loadMore: vi.fn(),
+    });
+    mockUseMutation.mockImplementation(() => vi.fn().mockResolvedValue({}));
+
+    const onSwitchProject = vi.fn();
+    const archiveProject: ProjectData = {
+      ...activeProject,
+      id: "project-archive",
+      name: "Archive Candidate",
+      archived: true,
+    };
+    const activeCandidate: ProjectData = {
+      ...activeProject,
+      id: "project-active",
+      name: "Active Candidate",
+      archived: false,
+      status: { ...activeProject.status, label: "Active" },
+    };
+    const draftCandidate: ProjectData = {
+      ...activeProject,
+      id: "project-draft",
+      name: "Draft Candidate",
+      archived: false,
+      status: { ...activeProject.status, label: "Draft" },
+    };
+    const reviewCandidate: ProjectData = {
+      ...activeProject,
+      id: "project-review",
+      name: "Review Candidate",
+      archived: false,
+      status: { ...activeProject.status, label: "Review" },
+    };
+    const completedCandidate: ProjectData = {
+      ...activeProject,
+      id: "project-completed",
+      name: "Completed Candidate",
+      archived: false,
+      status: { ...activeProject.status, label: "Completed" },
+    };
+
+    render(
+      <ChatSidebar
+        isOpen
+        onClose={vi.fn()}
+        activeProject={activeProject}
+        activeProjectTasks={[]}
+        allProjects={{
+          [activeProject.id]: activeProject,
+          [archiveProject.id]: archiveProject,
+          [activeCandidate.id]: activeCandidate,
+          [draftCandidate.id]: draftCandidate,
+          [reviewCandidate.id]: reviewCandidate,
+          [completedCandidate.id]: completedCandidate,
+        }}
+        workspaceMembers={workspaceMembers}
+        viewerIdentity={viewerIdentity}
+        onSwitchProject={onSwitchProject}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /open project dropdown\. current project: project alpha/i,
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /active candidate/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /archive candidate/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /draft candidate/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /review candidate/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /completed candidate/i })).toBeNull();
+    expect(screen.getByText("Archived")).toHaveAttribute(
+      "data-sidebar-tag-tone",
+      "archived",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /archive candidate/i }));
+    expect(onSwitchProject).toHaveBeenCalledWith("archive-project:project-archive");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /open project dropdown\. current project: project alpha/i,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /active candidate/i }));
+    expect(onSwitchProject).toHaveBeenCalledWith("project:project-active");
+  });
 });

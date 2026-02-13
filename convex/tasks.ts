@@ -83,8 +83,8 @@ export const listMutableForWorkspace = query({
       page: paginated.page
         .filter(
           (task) =>
-            task.projectPublicId == null
-            || mutableProjectPublicIds.has(task.projectPublicId),
+            task.projectPublicId != null
+            && mutableProjectPublicIds.has(task.projectPublicId),
         )
         .map(mapTaskForClient),
     };

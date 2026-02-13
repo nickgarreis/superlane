@@ -29,6 +29,10 @@ import { ProjectOverview } from "./main-content/ProjectOverview";
 import { MainContentFileRows } from "./main-content/MainContentFileRows";
 import { useMainContentHighlighting } from "./main-content/useMainContentHighlighting";
 import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
+import {
+  CompletedProjectCommentsHistory,
+  type CompletedCommentHistoryItem,
+} from "./main-content/CompletedProjectCommentsHistory";
 
 const deserializeProjectFileTab = (
   value: unknown,
@@ -67,6 +71,8 @@ interface MainContentProps {
   projectActions: MainContentProjectActions;
   navigationActions?: MainContentNavigationActions;
   allProjects?: Record<string, ProjectData>;
+  completedCommentsHistory?: CompletedCommentHistoryItem[];
+  completedCommentsHistoryLoading?: boolean;
   pendingHighlight?: PendingHighlight | null;
   onClearPendingHighlight?: () => void;
 }
@@ -85,6 +91,8 @@ export function MainContent({
   projectActions,
   navigationActions,
   allProjects,
+  completedCommentsHistory,
+  completedCommentsHistoryLoading = false,
   pendingHighlight,
   onClearPendingHighlight,
 }: MainContentProps) {
@@ -141,6 +149,7 @@ export function MainContent({
   }, [projectFiles]);
   const {
     highlightedTaskId,
+    highlightedFileId,
     handleTaskHighlightDone,
     fileRowRefs,
     handleMentionClick,
@@ -227,6 +236,9 @@ export function MainContent({
     !project.archived &&
     project.status.label === "Active" &&
     !project.completedAt;
+  const showCompletedCommentsHistory =
+    completedCommentsHistoryLoading ||
+    completedCommentsHistory !== undefined;
   const handleMainContentScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       if (projectFilesPaginationStatus !== "CanLoadMore") {
@@ -290,6 +302,14 @@ export function MainContent({
             canEditTasks={canCreateProjectTasks}
             editTaskDisabledMessage="Tasks can only be edited for active projects"
           />
+          {showCompletedCommentsHistory && (
+            <CompletedProjectCommentsHistory
+              comments={completedCommentsHistory ?? []}
+              loading={completedCommentsHistoryLoading}
+              workspaceMembers={workspaceMembers}
+              onMentionClick={handleMentionClick}
+            />
+          )}
           <FileSection
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
@@ -313,6 +333,7 @@ export function MainContent({
                 canMutateProjectFiles={canMutateProjectFiles}
                 fileMutationDisabledMessage={fileMutationDisabledMessage}
                 onRemoveFile={handleRemoveFile}
+                highlightedFileId={highlightedFileId}
                 fileRowStyle={fileRowStyle}
               />
             }

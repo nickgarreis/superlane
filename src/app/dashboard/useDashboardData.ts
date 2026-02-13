@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import {
-  mapProjectsToUi, mapTasksByProjectToUi, mapWorkspaceFilesToUi, mapWorkspaceTasksToUi,
+  mapTasksByProjectToUi, mapWorkspaceFilesToUi, mapWorkspaceTasksToUi,
   mapWorkspacesToUi, type SnapshotProject, type SnapshotTask, type SnapshotWorkspace,
   type SnapshotWorkspaceFile,
 } from "../lib/mappers";
@@ -25,12 +25,17 @@ import {
   getApprovedSidebarProjectIds,
   type ProjectApprovalReadSnapshot,
 } from "./lib/approvalReads";
-const PROJECTS_PAGE_SIZE = 50;
-const TASKS_PAGE_SIZE = 50;
-const ACTIVITIES_PAGE_SIZE = 50;
-const WORKSPACE_FILES_PAGE_SIZE = 40;
-const PROJECT_FILES_PAGE_SIZE = 40;
-const SETTINGS_PAGE_SIZE = 100;
+import {
+  ACTIVITIES_PAGE_SIZE,
+  buildProjectFilesByProject,
+  getRouteProjectPublicId,
+  mapProjectsForWorkspace,
+  PROJECTS_PAGE_SIZE,
+  PROJECT_FILES_PAGE_SIZE,
+  SETTINGS_PAGE_SIZE,
+  TASKS_PAGE_SIZE,
+  WORKSPACE_FILES_PAGE_SIZE,
+} from "./useDashboardData.helpers";
 export const useDashboardData = ({
   isAuthenticated,
   activeWorkspaceSlug,
@@ -80,11 +85,7 @@ export const useDashboardData = ({
       : "skip",
     { initialNumItems: PROJECTS_PAGE_SIZE },
   );
-  const routeProjectPublicId = currentView.startsWith("project:")
-    ? currentView.slice("project:".length)
-    : currentView.startsWith("archive-project:")
-      ? currentView.slice("archive-project:".length)
-      : null;
+  const routeProjectPublicId = getRouteProjectPublicId(currentView);
   const activeProjectPublicId = completedProjectDetailId ?? routeProjectPublicId;
   const shouldLoadWorkspaceTasks = Boolean(isAuthenticated && resolvedWorkspaceSlug);
   const shouldLoadProjectTasks = activeProjectPublicId != null;
@@ -327,20 +328,16 @@ export const useDashboardData = ({
     [snapshot?.workspaces],
   );
   const projectsByRoute = useMemo(
-    () =>
-      mapProjectsToUi({
-        projects: paginatedProjects as SnapshotProject[],
-        workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
-      }),
+    () => mapProjectsForWorkspace(paginatedProjects as SnapshotProject[], snapshot?.activeWorkspaceSlug),
     [paginatedProjects, snapshot?.activeWorkspaceSlug],
   );
   const sidebarProjects = useMemo(
-    () =>
-      mapProjectsToUi({
-        projects: paginatedSidebarProjects as SnapshotProject[],
-        workspaceSlug: snapshot?.activeWorkspaceSlug ?? null,
-      }),
+    () => mapProjectsForWorkspace(paginatedSidebarProjects as SnapshotProject[], snapshot?.activeWorkspaceSlug),
     [paginatedSidebarProjects, snapshot?.activeWorkspaceSlug],
+  );
+  const chatProjectsByRoute = useMemo(
+    () => mapProjectsForWorkspace(paginatedProjectsWithArchived as SnapshotProject[], snapshot?.activeWorkspaceSlug),
+    [paginatedProjectsWithArchived, snapshot?.activeWorkspaceSlug],
   );
   const workspaceTasks = useMemo(
     () => mapWorkspaceTasksToUi(paginatedWorkspaceTasks as SnapshotTask[]),
@@ -399,6 +396,10 @@ export const useDashboardData = ({
     () => filterProjectsByWorkspace(sidebarProjects, activeWorkspace),
     [sidebarProjects, activeWorkspace],
   );
+  const chatProjects = useMemo(
+    () => filterProjectsByWorkspace(chatProjectsByRoute, activeWorkspace),
+    [chatProjectsByRoute, activeWorkspace],
+  );
   const approvedSidebarProjectIds = useMemo(
     () =>
       getApprovedSidebarProjectIds({
@@ -443,18 +444,15 @@ export const useDashboardData = ({
     }
     return projectFilesCacheRef.current[activeProjectPublicId] ?? [];
   }, [activeProjectPublicId, paginatedProjectFiles, projectFilesPaginationStatus]);
-  const projectFilesByProject = useMemo(() => {
-    const grouped: Record<string, ProjectFileData[]> = {};
-    for (const [projectId, files] of Object.entries(projectFilesCacheRef.current)) {
-      grouped[projectId] = mapWorkspaceFilesToUi(files).filter(
-        (file) => file.projectPublicId === projectId,
-      );
-    }
-    if (activeProjectPublicId) {
-      grouped[activeProjectPublicId] = mapWorkspaceFilesToUi(activeProjectFilesSource);
-    }
-    return grouped;
-  }, [activeProjectFilesSource, activeProjectPublicId]);
+  const projectFilesByProject = useMemo(
+    () =>
+      buildProjectFilesByProject({
+        cachedProjectFiles: projectFilesCacheRef.current,
+        activeProjectPublicId,
+        activeProjectFilesSource,
+      }),
+    [activeProjectFilesSource, activeProjectPublicId],
+  );
   return {
     snapshot,
     resolvedWorkspaceSlug,
@@ -489,6 +487,7 @@ export const useDashboardData = ({
     activeWorkspace,
     visibleProjects,
     sidebarVisibleProjects,
+    chatProjects,
     approvedSidebarProjectIds,
     allWorkspaceFiles,
     projectFilesByProject,

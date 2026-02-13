@@ -139,7 +139,7 @@ describe("tasks.listMutableForWorkspace", () => {
       });
     });
 
-  test("returns only mutable tasks and paginates across filtered-out rows", async () => {
+  test("returns only active-project tasks and paginates across filtered-out rows", async () => {
     const workspace = await seedWorkspace();
     const activeProject = await seedProject(workspace, { publicId: "project-active", status: "Active" });
     const archivedProject = await seedProject(workspace, {
@@ -217,13 +217,13 @@ describe("tasks.listMutableForWorkspace", () => {
 
     expect(collectedTaskIds).toEqual([
       "task-active-1",
-      "task-unassigned",
       "task-active-2",
     ]);
     expect(collectedTaskIds).not.toEqual(
       expect.arrayContaining([
         "task-archived",
         "task-completed",
+        "task-unassigned",
         "task-draft",
         "task-review",
       ]),

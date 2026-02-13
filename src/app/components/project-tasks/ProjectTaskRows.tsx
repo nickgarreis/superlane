@@ -31,6 +31,7 @@ type ProjectTaskRowsProps = {
   handleAssigneeSelect: (taskId: string, member: WorkspaceMember) => void;
   handleProjectSelect: (taskId: string, projectId: string) => void;
   isAdding: boolean;
+  highlightedTaskId?: string | null;
   taskRowRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   taskRowStyle?: React.CSSProperties;
   editTaskDisabledMessage: string;
@@ -57,6 +58,7 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
   handleAssigneeSelect,
   handleProjectSelect,
   isAdding,
+  highlightedTaskId,
   taskRowRefs,
   taskRowStyle,
   editTaskDisabledMessage,
@@ -100,6 +102,18 @@ export const ProjectTaskRows = React.memo(function ProjectTaskRows({
     estimateSize: () => 56,
     overscan: 8,
   });
+  useEffect(() => {
+    if (!highlightedTaskId || !shouldVirtualizeRows) {
+      return;
+    }
+    const highlightedTaskIndex = sortedTasks.findIndex(
+      (task) => task.id === highlightedTaskId,
+    );
+    if (highlightedTaskIndex < 0) {
+      return;
+    }
+    rowVirtualizer.scrollToIndex(highlightedTaskIndex, { align: "center" });
+  }, [highlightedTaskId, rowVirtualizer, shouldVirtualizeRows, sortedTasks]);
   return (
     <>
       <div ref={rowsRootRef}>

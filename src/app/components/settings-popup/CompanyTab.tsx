@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ArrowUpRight, Camera } from "lucide-react";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import type { Workspace } from "../../types";
 import type { SettingsFocusTarget } from "../../dashboard/types";
@@ -16,7 +16,6 @@ import { CompanyMembersSection } from "./CompanyMembersSection";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getWorkspaceGeneralDeniedReason } from "../../lib/permissionRules";
 import {
-  SECONDARY_ACTION_BUTTON_CLASS,
   UNDERLINE_INPUT_CLASS,
 } from "../ui/controlChrome";
 type CompanyTabProps = {
@@ -171,7 +170,7 @@ export function CompanyTab({
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-6">
-        <div className="flex items-start gap-6">
+        <div className="flex items-center gap-6">
           <input
             type="file"
             ref={logoFileInputRef}
@@ -234,19 +233,6 @@ export function CompanyTab({
                 className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
               />
             </DeniedAction>
-            <button
-              type="button"
-              onClick={() => toast("Billing management is coming soon")}
-              className={`mt-2 w-fit cursor-pointer px-3 py-1.5 rounded-full txt-role-body-sm font-medium inline-flex items-center gap-1 ${SECONDARY_ACTION_BUTTON_CLASS}`}
-            >
-              Manage billing
-              <ArrowUpRight
-                size={14}
-                strokeWidth={2}
-                aria-hidden="true"
-                className="pointer-events-none shrink-0"
-              />
-            </button>
           </div>
         </div>
       </div>

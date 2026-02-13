@@ -1,5 +1,7 @@
 import React, { Suspense, useMemo } from "react";
+import { useQuery } from "convex/react";
 import { X } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
 import {
   POPUP_CLOSE_BUTTON_CLASS,
   POPUP_OVERLAY_CENTER_CLASS,
@@ -12,6 +14,7 @@ import type {
   MainContentNavigationActions,
   MainContentProjectActions,
 } from "../dashboard/types";
+import type { CompletedCommentHistoryItem } from "./main-content/CompletedProjectCommentsHistory";
 import type {
   ProjectData,
   ProjectFileData,
@@ -32,7 +35,7 @@ type CompletedProjectDetailPopupProps = {
   onBackToCompletedProjects: () => void;
   project: ProjectData;
   projectTasks?: Task[];
-  projects: Record<string, ProjectData>;
+  allProjects: Record<string, ProjectData>;
   projectFiles: ProjectFileData[];
   projectFilesPaginationStatus:
     | "LoadingFirstPage"
@@ -53,7 +56,7 @@ export function CompletedProjectDetailPopup({
   onBackToCompletedProjects,
   project,
   projectTasks,
-  projects,
+  allProjects,
   projectFiles,
   projectFilesPaginationStatus,
   loadMoreProjectFiles,
@@ -63,6 +66,9 @@ export function CompletedProjectDetailPopup({
   projectActions,
   navigationActions,
 }: CompletedProjectDetailPopupProps) {
+  const completedCommentsHistory = useQuery(api.comments.listHistoryForProject, {
+    projectPublicId: project.id,
+  }) as CompletedCommentHistoryItem[] | undefined;
   const popupNavigationActions = useMemo<MainContentNavigationActions>(
     () => ({
       ...navigationActions,
@@ -117,7 +123,9 @@ export function CompletedProjectDetailPopup({
               fileActions={fileActions}
               projectActions={projectActions}
               navigationActions={popupNavigationActions}
-              allProjects={projects}
+              allProjects={allProjects}
+              completedCommentsHistory={completedCommentsHistory}
+              completedCommentsHistoryLoading={completedCommentsHistory === undefined}
               pendingHighlight={null}
               onClearPendingHighlight={undefined}
             />

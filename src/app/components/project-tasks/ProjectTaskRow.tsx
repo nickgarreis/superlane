@@ -107,6 +107,18 @@ function ProjectTaskRowComponent({
   );
   const isSelectedAssignee = (member: WorkspaceMember) =>
     selectedAssigneeUserId != null && selectedAssigneeUserId === member.userId;
+  const checkboxStateClassName = !taskIsEditable
+    ? task.completed
+      ? "bg-white/15 border-white/15 text-white/50 opacity-60"
+      : "border-white/15 bg-transparent opacity-50"
+    : task.completed
+      ? "bg-text-tone-accent border-text-tone-accent text-text-tone-inverse"
+      : "border-white/20 group-hover:border-white/40 bg-transparent";
+  const taskTitleStateClassName = task.completed
+    ? "text-white/30 line-through"
+    : taskIsEditable
+      ? "txt-tone-primary"
+      : "text-white/40";
   return (
     <motion.div
       key={task.id}
@@ -136,11 +148,7 @@ function ProjectTaskRowComponent({
         <div
           className={cn(
             "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all",
-            task.completed
-              ? "bg-text-tone-accent border-text-tone-accent text-text-tone-inverse"
-              : taskIsEditable
-                ? "border-white/20 group-hover:border-white/40 bg-transparent"
-                : "border-white/15 bg-transparent",
+            checkboxStateClassName,
           )}
         >
           {task.completed && <Check size={12} strokeWidth={3} />}
@@ -148,7 +156,7 @@ function ProjectTaskRowComponent({
         <span
           className={cn(
             "txt-role-body-lg font-medium truncate transition-all",
-            task.completed ? "text-white/30 line-through" : "txt-tone-primary",
+            taskTitleStateClassName,
           )}
         >
           {task.title}

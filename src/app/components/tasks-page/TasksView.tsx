@@ -268,6 +268,12 @@ export function TasksView({
             assignableMembers={workspaceMembers}
             viewerIdentity={viewerIdentity}
             showProjectColumn
+            projectOptions={activeProjects.map((project) => ({
+              id: project.id,
+              name: project.name,
+              category: project.category,
+            }))}
+            defaultProjectId={activeProjects[0]?.id ?? null}
           />
         </div>
       </div>

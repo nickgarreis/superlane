@@ -435,10 +435,17 @@ export function ChatSidebar({
     });
   const sortedProjects = useMemo(
     () =>
-      [...Object.values(allProjects)].sort((a, b) => {
-        if (a.archived === b.archived) return 0;
-        return a.archived ? 1 : -1;
-      }),
+      Object.values(allProjects)
+        .filter(
+          (project) =>
+            project.archived === true || project.status.label === "Active",
+        )
+        .sort((a, b) => {
+          if (a.archived !== b.archived) {
+            return a.archived ? 1 : -1;
+          }
+          return a.name.localeCompare(b.name);
+        }),
     [allProjects],
   );
   return (
