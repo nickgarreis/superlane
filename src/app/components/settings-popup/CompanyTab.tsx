@@ -64,7 +64,7 @@ export function CompanyTab({
   onGetBrandAssetDownloadUrl,
 }: CompanyTabProps) {
   const workspaceName =
-    company?.workspace.name ?? activeWorkspace?.name ?? "Workspace";
+    company?.workspace?.name ?? activeWorkspace?.name ?? "Workspace";
   const [nameDraft, setNameDraft] = useState(workspaceName);
   const [logoBusy, setLogoBusy] = useState(false);
   const logoFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -75,27 +75,27 @@ export function CompanyTab({
   const pendingInvitations = company?.pendingInvitations ?? [];
   const brandAssets = company?.brandAssets ?? [];
   const viewerRole = company?.viewerRole;
-  const hasOrganizationLink = company?.capability.hasOrganizationLink ?? false;
+  const hasOrganizationLink = company?.capability?.hasOrganizationLink ?? false;
   const canManageWorkspaceGeneral =
-    company?.capability.canManageWorkspaceGeneral ?? false;
-  const canManageMembers = company?.capability.canManageMembers ?? false;
+    company?.capability?.canManageWorkspaceGeneral ?? false;
+  const canManageMembers = company?.capability?.canManageMembers ?? false;
   const canManageBrandAssets =
-    company?.capability.canManageBrandAssets ?? false;
+    company?.capability?.canManageBrandAssets ?? false;
   const workspaceGeneralDeniedReason =
     getWorkspaceGeneralDeniedReason(viewerRole);
   const initials = useMemo(() => {
-    if (company?.workspace.logoText) {
+    if (company?.workspace?.logoText) {
       return company.workspace.logoText;
     }
     return workspaceName.charAt(0).toUpperCase() || "W";
-  }, [company?.workspace.logoText, workspaceName]);
+  }, [company?.workspace?.logoText, workspaceName]);
   const saveWorkspaceName = useCallback(
     async (name: string) => {
       if (!company) {
         return;
       }
       const trimmed = name.trim();
-      if (!trimmed || trimmed === company.workspace.name) {
+      if (!trimmed || trimmed === company.workspace?.name) {
         return;
       }
       try {
@@ -186,7 +186,7 @@ export function CompanyTab({
             <div
               className="w-[80px] h-[80px] rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 border border-border-soft bg-brand-avatar overflow-hidden group relative cursor-pointer"
               style={
-                company?.workspace.logoColor
+                company?.workspace?.logoColor
                   ? { backgroundColor: company.workspace.logoColor }
                   : undefined
               }
@@ -196,10 +196,10 @@ export function CompanyTab({
                 logoFileInputRef.current?.click()
               }
             >
-              {company?.workspace.logo ? (
+              {company?.workspace?.logo ? (
                 <img
                   src={company.workspace.logo}
-                  alt={company.workspace.name}
+                  alt={company.workspace?.name ?? workspaceName}
                   className="w-full h-full object-cover"
                 />
               ) : (

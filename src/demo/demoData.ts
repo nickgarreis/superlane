@@ -545,31 +545,79 @@ export const DEMO_BOOTSTRAP = {
 
 // ── Settings ────────────────────────────────────────────
 export const DEMO_ACCOUNT_SETTINGS = {
-  userId: DEMO_VIEWER.userId,
-  name: DEMO_VIEWER.name,
+  firstName: "Alex",
+  lastName: "Demo",
   email: DEMO_VIEWER.email,
   avatarUrl: DEMO_VIEWER.avatarUrl,
   linkedIdentityProviders: ["google"],
-  authenticationMethod: "GoogleOAuth",
 };
 
 export const DEMO_NOTIFICATION_SETTINGS = {
-  email: true,
-  push: false,
   events: {
     eventNotifications: true,
     teamActivities: true,
     productUpdates: false,
   },
+  exists: true,
 };
 
 export const DEMO_COMPANY_SUMMARY = {
-  name: DEMO_WORKSPACE.name,
-  slug: DEMO_WORKSPACE.slug,
-  plan: DEMO_WORKSPACE.plan,
-  logo: DEMO_WORKSPACE.logo,
-  logoColor: DEMO_WORKSPACE.logoColor,
-  logoText: DEMO_WORKSPACE.logoText,
-  memberCount: DEMO_MEMBERS.length,
-  ownerUserId: DEMO_VIEWER.userId,
+  workspace: {
+    id: DEMO_WORKSPACE.id,
+    slug: DEMO_WORKSPACE.slug,
+    name: DEMO_WORKSPACE.name,
+    plan: DEMO_WORKSPACE.plan,
+    logo: DEMO_WORKSPACE.logo ?? null,
+    logoColor: DEMO_WORKSPACE.logoColor ?? null,
+    logoText: DEMO_WORKSPACE.logoText ?? null,
+    workosOrganizationId: "org-demo",
+  },
+  capability: {
+    hasOrganizationLink: true,
+    canManageWorkspaceGeneral: true,
+    canManageMembers: true,
+    canManageBrandAssets: true,
+    canDeleteWorkspace: true,
+  },
+  viewerRole: "owner",
 };
+
+export const DEMO_COMPANY_MEMBERS = DEMO_MEMBERS.map((member) => ({
+  userId: member.userId,
+  name: member.name,
+  email: member.email,
+  avatarUrl: member.avatarUrl,
+  role: member.role,
+  status: "active" as const,
+}));
+
+export const DEMO_PENDING_INVITATIONS = [
+  {
+    invitationId: "inv-demo-001",
+    email: "newmember@superlane.demo",
+    state: "pending" as const,
+    requestedRole: "member" as const,
+    expiresAt: new Date(now + 7 * DAY).toISOString(),
+  },
+];
+
+export const DEMO_BRAND_ASSETS = [
+  {
+    id: "asset-demo-001",
+    name: "Brand Guidelines.pdf",
+    type: "PDF",
+    mimeType: "application/pdf",
+    sizeBytes: 1_520_000,
+    displayDateEpochMs: now - 9 * DAY,
+    downloadUrl: null,
+  },
+  {
+    id: "asset-demo-002",
+    name: "Color Palette.png",
+    type: "PNG",
+    mimeType: "image/png",
+    sizeBytes: 182_000,
+    displayDateEpochMs: now - 5 * DAY,
+    downloadUrl: null,
+  },
+];

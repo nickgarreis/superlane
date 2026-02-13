@@ -24,6 +24,9 @@ import {
   DEMO_ACCOUNT_SETTINGS,
   DEMO_NOTIFICATION_SETTINGS,
   DEMO_COMPANY_SUMMARY,
+  DEMO_COMPANY_MEMBERS,
+  DEMO_PENDING_INVITATIONS,
+  DEMO_BRAND_ASSETS,
   DEMO_COMMENTS,
   DEMO_VIEWER,
 } from "./demoData";
@@ -32,8 +35,16 @@ import {
 const FN_NAME_SYM = Symbol.for("functionName");
 
 function getFnName(ref: unknown): string {
-  if (ref && typeof ref === "object" && FN_NAME_SYM in (ref as Record<symbol, unknown>)) {
-    return String((ref as Record<symbol, string>)[FN_NAME_SYM]);
+  if (typeof ref === "string") {
+    return ref;
+  }
+  if (!ref || typeof ref !== "object") {
+    return "";
+  }
+  // Convex API refs are Proxies; "in" checks do not surface symbol-based names.
+  const maybeName = (ref as Record<symbol, unknown>)[FN_NAME_SYM];
+  if (typeof maybeName === "string") {
+    return maybeName;
   }
   return "";
 }
@@ -172,19 +183,14 @@ function resolveQuery(name: string, args: unknown, store: DemoStore): unknown {
   if (name === "settings:getAccountSettings") return DEMO_ACCOUNT_SETTINGS;
   if (name === "settings:getNotificationPreferences") return DEMO_NOTIFICATION_SETTINGS;
   if (name === "settings:getCompanySettingsSummary") return DEMO_COMPANY_SUMMARY;
-  if (name === "settings:listCompanyMembers") {
-    return DEMO_MEMBERS.map((m) => ({
-      id: m.userId,
-      name: m.name,
-      email: m.email,
-      avatarUrl: m.avatarUrl,
-      role: m.role,
-      status: "active",
-      joinedAt: Date.now() - 30 * 86_400_000,
-    }));
+  if (name === "settings:listCompanyMembers") return DEMO_COMPANY_MEMBERS;
+  if (name === "settings:listPendingInvitations") return DEMO_PENDING_INVITATIONS;
+  if (name === "settings:listBrandAssets") return DEMO_BRAND_ASSETS;
+  if (name === "settings:getBrandAssetDownloadUrl") {
+    const a = args as { brandAssetId?: string } | undefined;
+    const asset = DEMO_BRAND_ASSETS.find((entry) => entry.id === a?.brandAssetId);
+    return { downloadUrl: asset?.downloadUrl ?? null };
   }
-  if (name === "settings:listPendingInvitations") return [];
-  if (name === "settings:listBrandAssets") return [];
 
   // Collaboration
   if (name === "collaboration:listWorkspaceMembers") return DEMO_MEMBERS;
@@ -210,7 +216,12 @@ function resolveQuery(name: string, args: unknown, store: DemoStore): unknown {
   if (name === "activities:getUnreadSummary") return { unreadCount: 2 };
 
   // Project approval reads
-  if (name === "projects:getApprovalReads") return null;
+  if (
+    name === "projects:getApprovalReads" ||
+    name === "projects:listApprovalReadsForWorkspace"
+  ) {
+    return [];
+  }
 
   // Viewer membership
   if (name === "collaboration:getViewerMembership") {
@@ -359,9 +370,29 @@ export function useConvexAuth() {
 
 // Client ref (some code calls useConvex().query etc.)
 const _mockClient = {
-  query: async () => null,
-  mutation: async () => null,
-  action: async () => null,
+  query: async (queryRef: unknown, args?: unknown) =>
+    resolveQuery(getFnName(queryRef), args, getSnapshot()),
+  mutation: async (mutationRef: unknown, args: Record<string, unknown> = {}) =>
+    resolveMutation(getFnName(mutationRef), args),
+  action: async (actionRef: unknown, args: Record<string, unknown> = {}) => {
+    const name = getFnName(actionRef);
+    if (name === "workspaces:ensureDefaultWorkspace") {
+      return { slug: "demo-workspace" };
+    }
+    if (name === "workspaces:create") {
+      return { slug: "new-workspace" };
+    }
+    if (name === "workspaces:ensureOrganizationLink") {
+      return { alreadyLinked: true };
+    }
+    if (name === "auth:syncCurrentUserLinkedIdentityProviders") {
+      return { synced: true, linkedIdentityProviders: ["google"] };
+    }
+    if (name === "auth:requestPasswordReset") {
+      return { accepted: true };
+    }
+    return resolveMutation(name, args);
+  },
 };
 export function useConvex() {
   return _mockClient as unknown;
@@ -449,6 +480,15 @@ export function useAction(actionRef: unknown) {
       }
       if (name === "workspaces:create") {
         return { slug: "new-workspace" };
+      }
+      if (name === "workspaces:ensureOrganizationLink") {
+        return { alreadyLinked: true };
+      }
+      if (name === "auth:syncCurrentUserLinkedIdentityProviders") {
+        return { synced: true, linkedIdentityProviders: ["google"] };
+      }
+      if (name === "auth:requestPasswordReset") {
+        return { accepted: true };
       }
       return resolveMutation(name, args ?? {});
     },
