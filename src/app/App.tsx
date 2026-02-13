@@ -10,11 +10,6 @@ import { getPageTitle } from "./lib/seo";
 import { useSharedScrollbarVisibility } from "./lib/useSharedScrollbarVisibility";
 
 const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
-const LazyDemoBanner = isDemo
-  ? React.lazy(() =>
-      import("../demo/DemoBanner").then((m) => ({ default: m.DemoBanner })),
-    )
-  : null;
 
 const DashboardApp = React.lazy(() => import("./DashboardApp"));
 
@@ -41,11 +36,6 @@ export default function App() {
 
   return (
     <>
-      {LazyDemoBanner && (
-        <Suspense fallback={null}>
-          <LazyDemoBanner />
-        </Suspense>
-      )}
       <Routes>
         {/* In demo mode, redirect root and auth routes straight to tasks */}
         {isDemo ? (
