@@ -18,6 +18,7 @@ const buildProps = (
     name: "Workspace",
     plan: "Starter",
   },
+  viewerRole: "owner",
   account: {
     firstName: "Alex",
     lastName: "Owner",
@@ -124,5 +125,21 @@ describe("SettingsPopup", () => {
 
     fireEvent.click(container.firstChild as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("renders delete button immediately while company data is loading for owners", () => {
+    render(
+      <SettingsPopup
+        {...buildProps({
+          company: null,
+          loadingCompany: true,
+          viewerRole: "owner",
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Delete Workspace" }),
+    ).toBeEnabled();
   });
 });

@@ -10,6 +10,8 @@ import {
 import type { CompanySettingsData } from "./types";
 
 const WORKSPACE_DELETE_CONFIRMATION_TEXT = "DELETE";
+const SOLID_DANGER_BUTTON_CLASS =
+  "border border-red-600 bg-red-600 text-white transition-colors hover:bg-red-500 hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-50";
 
 type SettingsDangerZoneSectionProps = {
   company: CompanySettingsData | null;
@@ -170,8 +172,8 @@ export function SettingsDangerZoneSection({
         disabled={!canDeleteWorkspace || deletingWorkspace}
         className={
           layout === "button"
-            ? "h-[36px] shrink-0 rounded-full border border-red-500/25 bg-red-500/10 px-4 txt-role-body-sm font-medium text-red-300 transition-colors cursor-pointer hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
-            : "px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg txt-role-body-md font-medium transition-colors cursor-pointer disabled:opacity-50"
+            ? `h-[36px] shrink-0 rounded-full px-4 txt-role-body-sm font-medium cursor-pointer whitespace-nowrap ${SOLID_DANGER_BUTTON_CLASS}`
+            : `rounded-lg px-4 py-2 txt-role-body-md font-medium cursor-pointer ${SOLID_DANGER_BUTTON_CLASS}`
         }
       >
         {deletingWorkspace ? "Deleting..." : "Delete Workspace"}
@@ -243,7 +245,7 @@ export function SettingsDangerZoneSection({
               void handleSoftDeleteWorkspace();
             }}
             disabled={!isDeleteConfirmationMatched || deletingWorkspace}
-            className="h-[38px] rounded-full border border-red-500/30 bg-red-500/10 px-4 txt-role-body-sm font-medium text-red-300 transition-colors cursor-pointer hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+            className="h-[38px] rounded-full border border-red-600 bg-red-600 px-4 txt-role-body-sm font-medium text-white transition-colors cursor-pointer hover:bg-red-500 hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {deletingWorkspace ? "Deleting..." : "Delete Workspace"}
           </button>

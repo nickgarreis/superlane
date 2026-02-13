@@ -41,6 +41,18 @@ type UseDashboardLifecycleEffectsArgs = {
   }) => Promise<{ alreadyLinked: boolean }>;
   runWorkspaceSettingsReconciliation: (workspaceSlug: string) => Promise<void>;
 };
+
+const COMPLETED_PATH = viewToPath("completed");
+const DRAFTS_PATH = viewToPath("drafts");
+const PENDING_PATH = viewToPath("pending");
+const isCompletedPath = (pathname: string): boolean =>
+  pathname === COMPLETED_PATH || pathname.startsWith(`${COMPLETED_PATH}/`);
+const isDraftPendingPath = (pathname: string): boolean =>
+  pathname === DRAFTS_PATH ||
+  pathname === PENDING_PATH ||
+  pathname.startsWith(`${DRAFTS_PATH}/`) ||
+  pathname.startsWith(`${PENDING_PATH}/`);
+
 export const useDashboardLifecycleEffects = ({
   snapshot,
   projectsPaginationStatus,
@@ -152,28 +164,88 @@ export const useDashboardLifecycleEffects = ({
     type: "keydown",
     listener: handleGlobalShortcuts,
   });
-  const resolveDraftPendingFromPath = useCallback(() => {
-    const fromParam = new URLSearchParams(locationSearch).get("from");
-    if (!fromParam || !fromParam.startsWith("/")) {
-      return "/tasks";
-    }
-    const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
-    if (!isProtectedPath(fromPathname) || fromPathname === "/settings") {
-      return "/tasks";
-    }
-    return fromParam;
-  }, [locationSearch]);
+  const toProtectedFromPath = useCallback(
+    (
+      candidate: string | null | undefined,
+      options?: { allowCompleted?: boolean; allowDraftPending?: boolean },
+    ): string | null => {
+      if (!candidate || !candidate.startsWith("/")) {
+        return null;
+      }
+      const pathOnly = candidate.split(/[?#]/, 1)[0] ?? candidate;
+      if (!isProtectedPath(pathOnly) || pathOnly === "/settings") {
+        return null;
+      }
+      if (options?.allowCompleted === false && isCompletedPath(pathOnly)) {
+        return null;
+      }
+      if (
+        options?.allowDraftPending === false &&
+        isDraftPendingPath(pathOnly)
+      ) {
+        return null;
+      }
+      return candidate;
+    },
+    [],
+  );
+  const toValidDraftPendingFromPath = useCallback(
+    (
+      candidate: string | null | undefined,
+      options?: { draftPendingProjectId?: string },
+    ): string | null => {
+      const protectedPath = toProtectedFromPath(candidate, {
+        allowCompleted: false,
+        allowDraftPending: false,
+      });
+      if (!protectedPath) {
+        return null;
+      }
+      const pathOnly = protectedPath.split(/[?#]/, 1)[0] ?? protectedPath;
+      const fromView = pathToView(pathOnly);
+      if (
+        !fromView ||
+        fromView === "completed" ||
+        fromView === "drafts" ||
+        fromView === "pending" ||
+        fromView.startsWith("completed-project:") ||
+        fromView.startsWith("draft-project:") ||
+        fromView.startsWith("pending-project:")
+      ) {
+        return null;
+      }
+      if (
+        options?.draftPendingProjectId &&
+        fromView === `project:${options.draftPendingProjectId}`
+      ) {
+        return null;
+      }
+      return protectedPath;
+    },
+    [toProtectedFromPath],
+  );
+  const resolveDraftPendingFromPath = useCallback(
+    (options?: { draftPendingProjectId?: string }) => {
+      const fromParam = toValidDraftPendingFromPath(
+        new URLSearchParams(locationSearch).get("from"),
+        { draftPendingProjectId: options?.draftPendingProjectId },
+      );
+      return fromParam ?? "/tasks";
+    },
+    [locationSearch, toValidDraftPendingFromPath],
+  );
   const resolveCompletedFromPath = useCallback(
     (options?: { completedProjectId?: string }) => {
-      const fromParam = new URLSearchParams(locationSearch).get("from");
-      if (!fromParam || !fromParam.startsWith("/")) {
+      const fromParam = toProtectedFromPath(
+        new URLSearchParams(locationSearch).get("from"),
+        { allowCompleted: false },
+      );
+      if (!fromParam) {
         return "/tasks";
       }
       const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
       const fromView = pathToView(fromPathname);
       if (
-        !isProtectedPath(fromPathname) ||
-        fromPathname === "/settings" ||
         !fromView ||
         fromView === "completed" ||
         fromView.startsWith("completed-project:") ||
@@ -183,7 +255,7 @@ export const useDashboardLifecycleEffects = ({
       }
       return fromParam;
     },
-    [locationSearch],
+    [locationSearch, toProtectedFromPath],
   );
   useEffect(() => {
     if (!snapshot) {
@@ -243,6 +315,17 @@ export const useDashboardLifecycleEffects = ({
       invalidRouteRef.current = null;
       return;
     }
+    if (routeView === "drafts" || routeView === "pending") {
+      const fromPath = resolveDraftPendingFromPath();
+      const fromParams = new URLSearchParams({ from: fromPath });
+      const expectedPath = `${viewToPath(routeView)}?${fromParams.toString()}`;
+      if (`${locationPathname}${locationSearch}` !== expectedPath) {
+        navigateToPath(expectedPath, true);
+        return;
+      }
+      invalidRouteRef.current = null;
+      return;
+    }
     if (
       routeView.startsWith("draft-project:") ||
       routeView.startsWith("pending-project:")
@@ -254,7 +337,9 @@ export const useDashboardLifecycleEffects = ({
         routeKind === "draft" ? "draft-project:" : "pending-project:";
       const projectId = routeView.slice(routePrefix.length);
       const project = projects[projectId] ?? projectCacheRef.current[projectId];
-      const fromPath = resolveDraftPendingFromPath();
+      const fromPath = resolveDraftPendingFromPath({
+        draftPendingProjectId: projectId,
+      });
       const fromParams = new URLSearchParams({ from: fromPath });
       const listView = routeKind === "draft" ? "drafts" : "pending";
       const listPath = `${viewToPath(listView)}?${fromParams.toString()}`;
@@ -271,7 +356,7 @@ export const useDashboardLifecycleEffects = ({
           ? (`draft-project:${projectId}` as const)
           : (`pending-project:${projectId}` as const);
       const expectedPath = `${viewToPath(expectedDetailView)}?${fromParams.toString()}`;
-      if (routeView !== expectedDetailView) {
+      if (`${locationPathname}${locationSearch}` !== expectedPath) {
         navigateToPath(expectedPath, true);
         return;
       }

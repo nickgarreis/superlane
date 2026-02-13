@@ -292,6 +292,7 @@ export function DashboardPopups({
             initialTab={settingsTab}
             initialFocusTarget={settingsFocusTarget}
             activeWorkspace={activeWorkspace}
+            viewerRole={viewerIdentity.role}
             account={settingsAccountData}
             notifications={settingsNotificationsData}
             company={settingsCompanyData}

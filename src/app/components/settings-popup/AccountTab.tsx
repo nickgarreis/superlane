@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   Blocks,
   Building2,
-  Chrome,
   CircleDashed,
   CircleUserRound,
   Cloud,
@@ -23,6 +22,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
+import googleSocialLogo from "../../../../google logo.svg";
 import { reportUiError } from "../../lib/errors";
 import { UNDERLINE_INPUT_CLASS } from "../ui/controlChrome";
 import type { AccountSettingsData } from "./types";
@@ -59,11 +59,29 @@ const formatAuthMethodCode = (
   return authenticationMethod;
 };
 
+const AUTH_MODE_ROW_CLASS = "flex flex-wrap items-start gap-3";
+
+const GoogleAuthIcon = ({
+  size = 24,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <img
+    src={googleSocialLogo}
+    alt="Google"
+    width={size}
+    height={size}
+    className={className}
+  />
+);
+
 const resolveAuthMethodIcon = (
   authenticationMethod: AccountSettingsData["authenticationMethod"],
 ) => {
   if (authenticationMethod === "GoogleOAuth") {
-    return Chrome;
+    return GoogleAuthIcon;
   }
   if (authenticationMethod === "AppleOAuth") {
     return Apple;
@@ -369,87 +387,88 @@ export function AccountTab({
       </div>
       <div className="pt-3">
         {data.isPasswordAuthSession ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="email-input"
-                className="txt-role-body-md font-medium txt-tone-secondary"
-              >
-                Email Address
-              </label>
-              <input
-                id="email-input"
-                type="email"
-                value={email}
-                onChange={(event) => {
-                  hasEditedRef.current = true;
-                  setEmail(event.target.value);
-                }}
-                className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="password-input"
-                className="txt-role-body-md font-medium txt-tone-secondary"
-              >
-                Password
-              </label>
-              <div className="flex items-end gap-3">
-                <input
-                  id="password-input"
-                  type="text"
-                  value={PASSWORD_PLACEHOLDER}
-                  readOnly
-                  aria-readonly="true"
-                  className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg cursor-default`}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleSendPasswordReset();
-                  }}
-                  disabled={passwordResetStatus === "sending"}
-                  className="h-[38px] shrink-0 rounded-lg border border-border-soft bg-surface-hover-soft px-3 txt-role-body-sm txt-tone-primary hover:bg-surface-active-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {passwordResetStatus === "sending"
-                    ? "Sending..."
-                    : "Reset password"}
-                </button>
+          <div className={AUTH_MODE_ROW_CLASS}>
+            <div className="min-w-0 flex-1">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="email-input"
+                    className="txt-role-body-md font-medium txt-tone-secondary"
+                  >
+                    Email Address
+                  </label>
+                  <input
+                    id="email-input"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      hasEditedRef.current = true;
+                      setEmail(event.target.value);
+                    }}
+                    className={`${UNDERLINE_INPUT_CLASS} py-2 txt-role-body-lg`}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="password-input"
+                    className="txt-role-body-md font-medium txt-tone-secondary"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password-input"
+                      type="text"
+                      value={PASSWORD_PLACEHOLDER}
+                      readOnly
+                      aria-readonly="true"
+                      className={`${UNDERLINE_INPUT_CLASS} w-full py-2 pr-28 txt-role-body-lg cursor-default`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleSendPasswordReset();
+                      }}
+                      disabled={passwordResetStatus === "sending"}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 h-7 rounded-md border border-border-soft bg-surface-hover-soft px-2 txt-role-body-xs txt-tone-primary hover:bg-surface-active-soft transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {passwordResetStatus === "sending"
+                        ? "Sending..."
+                        : "Reset password"}
+                    </button>
+                  </div>
+                  {passwordResetStatus === "sent" && (
+                    <span className="txt-role-body-sm txt-tone-faint">
+                      Reset link sent to your account email.
+                    </span>
+                  )}
+                  {passwordResetStatus === "error" && (
+                    <span className="txt-role-body-sm txt-tone-danger">
+                      Could not send reset link. Please try again.
+                    </span>
+                  )}
+                </div>
               </div>
-              {passwordResetStatus === "sent" && (
-                <span className="txt-role-body-sm txt-tone-faint">
-                  Reset link sent to your account email.
-                </span>
-              )}
-              {passwordResetStatus === "error" && (
-                <span className="txt-role-body-sm txt-tone-danger">
-                  Could not send reset link. Please try again.
-                </span>
-              )}
             </div>
           </div>
         ) : (
-          <div className="relative overflow-hidden rounded-2xl border border-border-soft bg-gradient-to-br from-surface-muted-soft via-bg-muted-surface to-surface-hover-soft p-4">
-            <div className="pointer-events-none absolute -right-10 -top-10 size-28 rounded-full bg-white/10 blur-3xl" />
-            <div className="relative flex flex-wrap items-start gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border-soft bg-surface-hover-soft txt-tone-primary">
-                <AuthMethodIcon size={20} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="txt-role-body-md font-medium txt-tone-primary">
-                  Signed in with {authProviderName}
-                </p>
-                {authProviderEmail.length > 0 && (
-                  <p className="txt-role-body-sm txt-tone-faint">
-                    {authProviderEmail}
-                  </p>
-                )}
-              </div>
-              <span className="inline-flex h-7 items-center rounded-full border border-border-soft bg-surface-muted-soft px-3 txt-role-body-sm txt-tone-secondary">
-                {authMethodLabel}
-              </span>
+          <div className={AUTH_MODE_ROW_CLASS}>
+            <div className="shrink-0 self-center txt-tone-primary leading-none">
+              <AuthMethodIcon size={24} />
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="txt-role-body-md font-medium txt-tone-primary">
+                Signed in with {authProviderName}
+              </p>
+              {authProviderEmail.length > 0 && (
+                <p className="txt-role-body-sm txt-tone-faint">
+                  {authProviderEmail}
+                </p>
+              )}
+            </div>
+            <span className="inline-flex h-7 items-center txt-role-body-sm txt-tone-secondary">
+              {authMethodLabel}
+            </span>
           </div>
         )}
       </div>

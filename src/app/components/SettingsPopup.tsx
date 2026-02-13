@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Building2, Settings, User, X } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { AccountTab } from "./settings-popup/AccountTab";
 import { CompanyTab } from "./settings-popup/CompanyTab";
@@ -153,11 +154,11 @@ export function SettingsPopup({
       >
         <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
         <div className="shrink-0 border-b border-border-subtle-soft px-5 py-4 sm:px-7">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <Settings size={16} className="txt-tone-subtle" />
-                <h2 className="txt-role-body-xl font-medium txt-tone-primary">
+                <Settings size={17} className="txt-tone-subtle" />
+                <h2 className="txt-role-body-xl font-medium txt-tone-primary text-[18px] leading-[1.35]">
                   Settings
                 </h2>
               </div>
@@ -167,7 +168,7 @@ export function SettingsPopup({
               className={cn(
                 POPUP_CLOSE_BUTTON_CLASS,
                 GHOST_ICON_BUTTON_CLASS,
-                "mt-0.5 p-2 text-text-muted-medium hover:text-text-tone-primary",
+                "p-2 text-text-muted-medium hover:text-text-tone-primary",
               )}
               aria-label="Close settings popup"
             >
@@ -191,9 +192,16 @@ export function SettingsPopup({
                     )}
                   >
                     {activeSection === section.id ? (
-                      <span
+                      <motion.span
+                        layoutId="settings-nav-active-indicator"
                         aria-hidden="true"
                         className="pointer-events-none absolute inset-0 rounded-[6px] bg-surface-active-soft"
+                        transition={{
+                          type: "spring",
+                          stiffness: 520,
+                          damping: 40,
+                          mass: 0.45,
+                        }}
                       />
                     ) : null}
                     <span className="relative z-10 flex items-center gap-1.5">

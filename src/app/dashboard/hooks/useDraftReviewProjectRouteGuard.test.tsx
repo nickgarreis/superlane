@@ -35,8 +35,8 @@ type GuardProps = {
     | "CanLoadMore"
     | "LoadingMore"
     | "Exhausted";
+  openDraftPendingProjectDetail: ReturnType<typeof vi.fn>;
   openCompletedProjectDetail: ReturnType<typeof vi.fn>;
-  navigateToPath: ReturnType<typeof vi.fn>;
 };
 
 const createBaseArgs = (): GuardProps => ({
@@ -44,12 +44,12 @@ const createBaseArgs = (): GuardProps => ({
   locationPathname: "/tasks",
   projects: {},
   projectsPaginationStatus: "Exhausted",
+  openDraftPendingProjectDetail: vi.fn(),
   openCompletedProjectDetail: vi.fn(),
-  navigateToPath: vi.fn(),
 });
 
 describe("useDraftReviewProjectRouteGuard", () => {
-  test("redirects direct draft project deep links to /drafts/:id with tasks origin", () => {
+  test("redirects direct draft project deep links with tasks origin", () => {
     const args = createBaseArgs();
     args.currentView = "project:draft-1";
     args.locationPathname = "/project/draft-1";
@@ -57,11 +57,11 @@ describe("useDraftReviewProjectRouteGuard", () => {
 
     renderHook(() => useDraftReviewProjectRouteGuard(args));
 
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("draft-1", "Draft", {
+      replace: true,
+      from: "/tasks",
+    });
     expect(args.openCompletedProjectDetail).not.toHaveBeenCalled();
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/drafts/draft-1?from=%2Ftasks",
-      true,
-    );
   });
 
   test("preserves archive origin when redirecting draft project routes", () => {
@@ -86,10 +86,10 @@ describe("useDraftReviewProjectRouteGuard", () => {
       locationPathname: "/project/draft-1",
     });
 
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/drafts/draft-1?from=%2Farchive",
-      true,
-    );
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("draft-1", "Draft", {
+      replace: true,
+      from: "/archive",
+    });
   });
 
   test("uses project detail origin when redirecting draft routes", () => {
@@ -115,13 +115,13 @@ describe("useDraftReviewProjectRouteGuard", () => {
       locationPathname: "/project/draft-1",
     });
 
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/drafts/draft-1?from=%2Fproject%2Factive-1",
-      true,
-    );
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("draft-1", "Draft", {
+      replace: true,
+      from: "/project/active-1",
+    });
   });
 
-  test("redirects review routes to /pending/:id with preserved origin", () => {
+  test("redirects review routes with preserved origin", () => {
     const activeProject = buildProject("active-1", "Active");
     const reviewProject = buildProject("review-1", "Review");
     const args = createBaseArgs();
@@ -147,10 +147,10 @@ describe("useDraftReviewProjectRouteGuard", () => {
       locationPathname: "/project/review-1",
     });
 
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/pending/review-1?from=%2Fproject%2Factive-1",
-      true,
-    );
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("review-1", "Review", {
+      replace: true,
+      from: "/project/active-1",
+    });
   });
 
   test("uses cached project data when draft/review project temporarily drops from current map", () => {
@@ -177,10 +177,76 @@ describe("useDraftReviewProjectRouteGuard", () => {
       projects: {},
     });
 
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/drafts/draft-1?from=%2Farchive",
-      true,
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("draft-1", "Draft", {
+      replace: true,
+      from: "/archive",
+    });
+  });
+
+  test("uses tasks origin when a project becomes draft on the same route", () => {
+    const primaryProject = buildProject("project-1", "Active");
+    const args = createBaseArgs();
+
+    const { rerender } = renderHook(
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
+      {
+        initialProps: {
+          ...args,
+          currentView: "project:project-1",
+          locationPathname: "/project/project-1",
+          projects: {
+            "project-1": primaryProject,
+          },
+        },
+      },
     );
+
+    rerender({
+      ...args,
+      currentView: "project:project-1",
+      locationPathname: "/project/project-1",
+      projects: {
+        "project-1": buildProject("project-1", "Draft"),
+      },
+    });
+
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("project-1", "Draft", {
+      replace: true,
+      from: "/tasks",
+    });
+  });
+
+  test("uses tasks origin when a project becomes review on the same route", () => {
+    const primaryProject = buildProject("project-1", "Active");
+    const args = createBaseArgs();
+
+    const { rerender } = renderHook(
+      (props: GuardProps) => useDraftReviewProjectRouteGuard(props),
+      {
+        initialProps: {
+          ...args,
+          currentView: "project:project-1",
+          locationPathname: "/project/project-1",
+          projects: {
+            "project-1": primaryProject,
+          },
+        },
+      },
+    );
+
+    rerender({
+      ...args,
+      currentView: "project:project-1",
+      locationPathname: "/project/project-1",
+      projects: {
+        "project-1": buildProject("project-1", "Review"),
+      },
+    });
+
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("project-1", "Review", {
+      replace: true,
+      from: "/tasks",
+    });
   });
 
   test("redirects direct deep-link completed routes into completed detail with tasks origin", () => {
@@ -198,7 +264,6 @@ describe("useDraftReviewProjectRouteGuard", () => {
         from: "/tasks",
       },
     );
-    expect(args.navigateToPath).not.toHaveBeenCalledWith("/tasks", true);
   });
 
   test("preserves non-project origin when redirecting to completed detail", () => {
@@ -282,7 +347,7 @@ describe("useDraftReviewProjectRouteGuard", () => {
       },
     );
 
-    expect(args.navigateToPath).not.toHaveBeenCalled();
+    expect(args.openDraftPendingProjectDetail).not.toHaveBeenCalled();
 
     rerender({
       ...args,
@@ -292,9 +357,9 @@ describe("useDraftReviewProjectRouteGuard", () => {
       projectsPaginationStatus: "Exhausted",
     });
 
-    expect(args.navigateToPath).toHaveBeenCalledWith(
-      "/drafts/draft-1?from=%2Ftasks",
-      true,
-    );
+    expect(args.openDraftPendingProjectDetail).toHaveBeenCalledWith("draft-1", "Draft", {
+      replace: true,
+      from: "/tasks",
+    });
   });
 });

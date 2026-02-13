@@ -85,8 +85,19 @@ vi.mock("../../components/CreateWorkspacePopup", () => ({
 }));
 
 vi.mock("../../components/SettingsPopup", () => ({
-  SettingsPopup: ({ onClose }: { onClose: () => void }) => (
-    <button type="button" onClick={onClose} data-testid="settings-popup">
+  SettingsPopup: ({
+    onClose,
+    viewerRole,
+  }: {
+    onClose: () => void;
+    viewerRole: "owner" | "admin" | "member" | null;
+  }) => (
+    <button
+      type="button"
+      onClick={onClose}
+      data-testid="settings-popup"
+      data-viewer-role={viewerRole ?? "none"}
+    >
       Settings
     </button>
   ),
@@ -407,5 +418,20 @@ describe("DashboardPopups", () => {
       }),
     );
     expect(props.backToDraftPendingProjectsList).toHaveBeenCalledTimes(1);
+  });
+
+  test("passes viewer role through to settings popup", async () => {
+    render(
+      <DashboardPopups
+        {...baseProps()}
+        isSettingsOpen={true}
+        viewerIdentity={{ ...viewer, role: "admin" }}
+      />,
+    );
+
+    expect(await screen.findByTestId("settings-popup")).toHaveAttribute(
+      "data-viewer-role",
+      "admin",
+    );
   });
 });

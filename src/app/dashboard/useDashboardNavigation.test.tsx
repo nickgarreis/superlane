@@ -125,30 +125,53 @@ describe("useDashboardNavigation", () => {
     expect(result.current.isSettingsOpen).toBe(false);
   });
 
-  test("derives drafts list state from /drafts route", () => {
+  test("derives drafts list state from /drafts route and keeps background current view from query", () => {
     const args = baseArgs();
 
     const { result } = renderHook(() => useDashboardNavigation(args), {
       wrapper: buildWrapper("/drafts?from=/archive"),
     });
 
-    expect(result.current.currentView).toBe("drafts");
+    expect(result.current.currentView).toBe("archive");
     expect(result.current.isDraftPendingProjectsOpen).toBe(true);
     expect(result.current.draftPendingProjectDetailId).toBeNull();
     expect(result.current.draftPendingProjectDetailKind).toBe("draft");
   });
 
-  test("derives pending detail state from /pending/:id route", () => {
+  test("derives pending detail state from /pending/:id route while preserving background", () => {
     const args = baseArgs();
 
     const { result } = renderHook(() => useDashboardNavigation(args), {
       wrapper: buildWrapper("/pending/review-1?from=/tasks"),
     });
 
-    expect(result.current.currentView).toBe("pending-project:review-1");
+    expect(result.current.currentView).toBe("tasks");
     expect(result.current.isDraftPendingProjectsOpen).toBe(true);
     expect(result.current.draftPendingProjectDetailId).toBe("review-1");
     expect(result.current.draftPendingProjectDetailKind).toBe("pending");
+  });
+
+  test("falls back to tasks as background for invalid draft/pending from query", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts?from=/completed/completed-1"),
+    });
+
+    expect(result.current.currentView).toBe("tasks");
+    expect(result.current.isDraftPendingProjectsOpen).toBe(true);
+  });
+
+  test("falls back to tasks as background for same-project draft/pending from query", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts/draft-1?from=/project/draft-1"),
+    });
+
+    expect(result.current.currentView).toBe("tasks");
+    expect(result.current.isDraftPendingProjectsOpen).toBe(true);
+    expect(result.current.draftPendingProjectDetailId).toBe("draft-1");
   });
 
   test("derives completed list state and keeps background current view from query", () => {
@@ -267,7 +290,27 @@ describe("useDashboardNavigation", () => {
     await waitFor(() => {
       expect(result.current.location.pathname).toBe("/drafts");
       expect(result.current.searchParams.get("from")).toBe("/project/active-1");
-      expect(result.current.currentView).toBe("drafts");
+      expect(result.current.currentView).toBe("project:active-1");
+    });
+  });
+
+  test("no-ops when opening draft/pending list on same canonical route", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/drafts?from=%2Farchive"),
+    });
+    const initialLocationKey = result.current.location.key;
+
+    act(() => {
+      result.current.openDraftPendingProjectsPopup();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/drafts");
+      expect(result.current.searchParams.get("from")).toBe("/archive");
+      expect(result.current.currentView).toBe("archive");
+      expect(result.current.location.key).toBe(initialLocationKey);
     });
   });
 
@@ -387,6 +430,27 @@ describe("useDashboardNavigation", () => {
       expect(result.current.searchParams.get("from")).toBe("/archive");
       expect(result.current.draftPendingProjectDetailKind).toBe("pending");
       expect(result.current.draftPendingProjectDetailId).toBe("review-1");
+      expect(result.current.currentView).toBe("archive");
+    });
+  });
+
+  test("normalizes invalid explicit from when opening draft/pending detail", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/archive"),
+    });
+
+    act(() => {
+      result.current.openDraftPendingProjectDetail("draft-1", "Draft", {
+        from: "/project/draft-1",
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/drafts/draft-1");
+      expect(result.current.searchParams.get("from")).toBe("/tasks");
+      expect(result.current.currentView).toBe("tasks");
     });
   });
 

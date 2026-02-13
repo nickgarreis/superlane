@@ -87,7 +87,7 @@ export type DashboardPopupsProps = {
   openDraftPendingProjectDetail: (
     projectId: string,
     status: "Draft" | "Review",
-    options?: { replace?: boolean },
+    options?: { replace?: boolean; from?: string },
   ) => void;
   backToDraftPendingProjectsList: () => void;
   projectFilesByProject: Record<string, ProjectFileData[]>;

@@ -13,18 +13,29 @@ type UseDraftReviewProjectRouteGuardArgs = {
   locationPathname: string;
   projects: Record<string, ProjectData>;
   projectsPaginationStatus: ProjectsPaginationStatus;
+  openDraftPendingProjectDetail: (
+    projectId: string,
+    status: "Draft" | "Review",
+    options?: { replace?: boolean; from?: string },
+  ) => void;
   openCompletedProjectDetail: (
     projectId: string,
     options?: { replace?: boolean; from?: string },
   ) => void;
-  navigateToPath: (path: string, replace?: boolean) => void;
 };
 
 const PROJECT_VIEW_PREFIX = "project:";
 const TASKS_PATH = viewToPath("tasks");
 const COMPLETED_PATH = viewToPath("completed");
+const DRAFTS_PATH = viewToPath("drafts");
+const PENDING_PATH = viewToPath("pending");
 const PROJECT_PATH_PREFIX = "/project/";
 const isProjectRoute = (path: string) => path.startsWith(PROJECT_PATH_PREFIX);
+const isDraftPendingRoute = (path: string) =>
+  path === DRAFTS_PATH ||
+  path === PENDING_PATH ||
+  path.startsWith(`${DRAFTS_PATH}/`) ||
+  path.startsWith(`${PENDING_PATH}/`);
 const isCompletedRoute = (path: string) =>
   path === COMPLETED_PATH || path.startsWith(`${COMPLETED_PATH}/`);
 const decodeProjectIdFromPath = (path: string): string | null => {
@@ -38,18 +49,6 @@ const decodeProjectIdFromPath = (path: string): string | null => {
   } catch {
     return null;
   }
-};
-const buildDraftPendingDetailPath = (
-  projectId: string,
-  status: "Draft" | "Review",
-  fromPath: string,
-) => {
-  const detailView: AppView =
-    status === "Draft"
-      ? `draft-project:${projectId}`
-      : `pending-project:${projectId}`;
-  const params = new URLSearchParams({ from: fromPath });
-  return `${viewToPath(detailView)}?${params.toString()}`;
 };
 const isDedicatedProjectDetailCandidate = (
   project: ProjectData | undefined,
@@ -67,8 +66,8 @@ export const useDraftReviewProjectRouteGuard = ({
   locationPathname,
   projects,
   projectsPaginationStatus,
+  openDraftPendingProjectDetail,
   openCompletedProjectDetail,
-  navigateToPath,
 }: UseDraftReviewProjectRouteGuardArgs) => {
   const handledPathRef = useRef<string | null>(null);
   const previousPathRef = useRef<string | null>(null);
@@ -149,26 +148,40 @@ export const useDraftReviewProjectRouteGuard = ({
     }
     handledPathRef.current = locationPathname;
 
+    const lastOriginProjectId = decodeProjectIdFromPath(
+      lastOriginPathRef.current,
+    );
+    const sanitizedOriginPath =
+      isCompletedRoute(lastOriginPathRef.current) ||
+      isDraftPendingRoute(lastOriginPathRef.current) ||
+      lastOriginProjectId === project.id
+        ? TASKS_PATH
+        : (lastOriginPathRef.current || TASKS_PATH);
+
     if (isDraft) {
-      navigateToPath(
-        buildDraftPendingDetailPath(
-          project.id,
-          "Draft",
-          lastOriginPathRef.current || TASKS_PATH,
-        ),
-        true,
-      );
+      const becameDraftOnSameRoute =
+        previousStatusOnPath != null && previousStatusOnPath !== "Draft";
+      const from =
+        becameDraftOnSameRoute || lastOriginPathRef.current === locationPathname
+          ? TASKS_PATH
+          : sanitizedOriginPath;
+      openDraftPendingProjectDetail(project.id, "Draft", {
+        replace: true,
+        from,
+      });
       return;
     }
     if (isReview) {
-      navigateToPath(
-        buildDraftPendingDetailPath(
-          project.id,
-          "Review",
-          lastOriginPathRef.current || TASKS_PATH,
-        ),
-        true,
-      );
+      const becameReviewOnSameRoute =
+        previousStatusOnPath != null && previousStatusOnPath !== "Review";
+      const from =
+        becameReviewOnSameRoute || lastOriginPathRef.current === locationPathname
+          ? TASKS_PATH
+          : sanitizedOriginPath;
+      openDraftPendingProjectDetail(project.id, "Review", {
+        replace: true,
+        from,
+      });
       return;
     }
 
@@ -179,9 +192,9 @@ export const useDraftReviewProjectRouteGuard = ({
       lastOriginPathRef.current === locationPathname
         ? TASKS_PATH
         : (lastOriginPathRef.current || TASKS_PATH);
-    const originProjectId = decodeProjectIdFromPath(rawOriginPath);
+    const rawOriginProjectId = decodeProjectIdFromPath(rawOriginPath);
     const originPath =
-      isCompletedRoute(rawOriginPath) || originProjectId === project.id
+      isCompletedRoute(rawOriginPath) || rawOriginProjectId === project.id
         ? TASKS_PATH
         : rawOriginPath;
     openCompletedProjectDetail(project.id, {
@@ -191,7 +204,7 @@ export const useDraftReviewProjectRouteGuard = ({
   }, [
     currentView,
     locationPathname,
-    navigateToPath,
+    openDraftPendingProjectDetail,
     openCompletedProjectDetail,
     projects,
     projectsPaginationStatus,

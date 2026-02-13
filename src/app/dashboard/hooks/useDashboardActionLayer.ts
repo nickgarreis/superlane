@@ -122,9 +122,8 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     locationPathname: navigation.location.pathname,
     projects: data.projects,
     projectsPaginationStatus: data.projectsPaginationStatus,
+    openDraftPendingProjectDetail: navigation.openDraftPendingProjectDetail,
     openCompletedProjectDetail: navigation.openCompletedProjectDetail,
-    navigateToPath: (path, replace = false) =>
-      navigation.navigate(path, { replace }),
   });
 
   useEffect(() => {

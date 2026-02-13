@@ -330,6 +330,43 @@ describe("useDashboardLifecycleEffects", () => {
     });
   });
 
+  test("canonicalizes draft/pending list and detail routes with safe from query", async () => {
+    const draftProject: ProjectData = {
+      ...buildProject("draft-1", false),
+      status: {
+        label: "Draft",
+        color: "#fff",
+        bgColor: "#000",
+        dotColor: "#fff",
+      },
+    };
+
+    const listArgs = createBaseArgs();
+    listArgs.locationPathname = "/drafts";
+    listArgs.locationSearch = "?from=/pending/review-1";
+    renderHook(() => useDashboardLifecycleEffects(listArgs));
+
+    await waitFor(() => {
+      expect(listArgs.navigateToPath).toHaveBeenCalledWith(
+        "/drafts?from=%2Ftasks",
+        true,
+      );
+    });
+
+    const detailArgs = createBaseArgs();
+    detailArgs.locationPathname = "/drafts/draft-1";
+    detailArgs.locationSearch = "?from=/project/draft-1";
+    detailArgs.projects = { "draft-1": draftProject };
+    renderHook(() => useDashboardLifecycleEffects(detailArgs));
+
+    await waitFor(() => {
+      expect(detailArgs.navigateToPath).toHaveBeenCalledWith(
+        "/drafts/draft-1?from=%2Ftasks",
+        true,
+      );
+    });
+  });
+
   test("redirects invalid completed detail routes back to completed list", async () => {
     const args = createBaseArgs();
     args.locationPathname = "/completed/missing";
@@ -340,6 +377,35 @@ describe("useDashboardLifecycleEffects", () => {
     await waitFor(() => {
       expect(args.navigateToPath).toHaveBeenCalledWith(
         "/completed?from=%2Farchive",
+        true,
+      );
+    });
+  });
+
+  test("redirects invalid draft/pending detail routes back to list with sanitized from", async () => {
+    const missingPendingArgs = createBaseArgs();
+    missingPendingArgs.locationPathname = "/pending/missing";
+    missingPendingArgs.locationSearch = "?from=/completed/completed-1";
+    renderHook(() => useDashboardLifecycleEffects(missingPendingArgs));
+
+    await waitFor(() => {
+      expect(missingPendingArgs.navigateToPath).toHaveBeenCalledWith(
+        "/pending?from=%2Ftasks",
+        true,
+      );
+    });
+
+    const activeProjectArgs = createBaseArgs();
+    activeProjectArgs.locationPathname = "/drafts/active-1";
+    activeProjectArgs.locationSearch = "?from=/archive";
+    activeProjectArgs.projects = {
+      "active-1": buildProject("active-1", false),
+    };
+    renderHook(() => useDashboardLifecycleEffects(activeProjectArgs));
+
+    await waitFor(() => {
+      expect(activeProjectArgs.navigateToPath).toHaveBeenCalledWith(
+        "/drafts?from=%2Farchive",
         true,
       );
     });
