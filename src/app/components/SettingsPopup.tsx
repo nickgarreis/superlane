@@ -166,7 +166,7 @@ export function SettingsPopup({
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Settings size={17} className="txt-tone-subtle" />
-                <h2 className="txt-role-body-xl font-medium txt-tone-primary text-[18px] leading-[1.35]">
+                <h2 className="txt-role-body-xl font-medium txt-tone-primary">
                   Settings
                 </h2>
               </div>

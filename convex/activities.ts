@@ -4,6 +4,16 @@ import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireWorkspaceRole } from "./lib/auth";
 import type { ActivityKind } from "./lib/activityEvents";
+import {
+  findWorkspaceIdsMissingActivityCount,
+  getDismissedActivityEventIds,
+  getReadReceiptActivityEventIds,
+  getWorkspaceBySlug,
+  getWorkspaceInboxState,
+  initializeWorkspaceActivityEventCount,
+  resolveTargetUserAvatarUrl,
+  resolveWorkspaceActivityEventCount,
+} from "./lib/activityInbox";
 
 const activityKindValidator = v.union(
   v.literal("project"),
@@ -14,163 +24,6 @@ const activityKindValidator = v.union(
   v.literal("workspace"),
   v.literal("organization"),
 );
-
-const getWorkspaceBySlug = async (ctx: any, workspaceSlug: string) => {
-  const workspace = await ctx.db
-    .query("workspaces")
-    .withIndex("by_slug", (q: any) => q.eq("slug", workspaceSlug))
-    .unique();
-  if (!workspace || workspace.deletedAt != null) {
-    throw new ConvexError("Workspace not found");
-  }
-  return workspace;
-};
-
-const recountWorkspaceActivityEvents = async (ctx: any, workspaceId: any) => {
-  const events = await ctx.db
-    .query("workspaceActivityEvents")
-    .withIndex("by_workspace_createdAt", (q: any) => q.eq("workspaceId", workspaceId))
-    .collect();
-  return events.length;
-};
-
-const countWorkspaceActivityEvents = (workspace: any) =>
-  Math.max(0, Number(workspace.activityEventCount ?? 0));
-
-const initializeWorkspaceActivityEventCount = async (ctx: any, workspace: any) => {
-  if (typeof workspace.activityEventCount === "number") {
-    return countWorkspaceActivityEvents(workspace);
-  }
-  const counted = await recountWorkspaceActivityEvents(ctx, workspace._id);
-  await ctx.db.patch(workspace._id, {
-    activityEventCount: counted,
-  });
-  return counted;
-};
-
-const resolveWorkspaceActivityEventCount = async (ctx: any, workspace: any) => {
-  if (typeof workspace.activityEventCount === "number") {
-    return countWorkspaceActivityEvents(workspace);
-  }
-  // Query contexts are read-only; rely on seeded/backfilled counters there.
-  if (typeof ctx.db.patch === "function") {
-    return initializeWorkspaceActivityEventCount(ctx, workspace);
-  }
-  return 0;
-};
-
-const getWorkspaceInboxState = async (
-  ctx: any,
-  workspaceId: any,
-  userId: any,
-) =>
-  ctx.db
-    .query("workspaceActivityInboxStates")
-    .withIndex("by_workspace_user", (q: any) =>
-      q.eq("workspaceId", workspaceId).eq("userId", userId),
-    )
-    .unique();
-
-const getReadReceiptActivityEventIds = async (
-  ctx: any,
-  workspaceId: any,
-  userId: any,
-  activityEventIds: any[],
-) => {
-  if (activityEventIds.length === 0) {
-    return new Set<string>();
-  }
-  const queryByWorkspaceUser = ctx.db
-    .query("workspaceActivityReadReceipts")
-    .withIndex("by_workspace_user", (q: any) =>
-      q.eq("workspaceId", workspaceId).eq("userId", userId),
-    );
-
-  const readReceipts =
-    activityEventIds.length === 1
-      ? await queryByWorkspaceUser
-          .filter((q: any) => q.eq(q.field("activityEventId"), activityEventIds[0]))
-          .collect()
-      : await queryByWorkspaceUser
-          .filter((q: any) =>
-            q.or(
-              ...activityEventIds.map((activityEventId) =>
-                q.eq(q.field("activityEventId"), activityEventId),
-              ),
-            ),
-          )
-          .collect();
-
-  return new Set<string>(readReceipts.map((receipt: any) => String(receipt.activityEventId)));
-};
-
-const getDismissedActivityEventIds = async (
-  ctx: any,
-  workspaceId: any,
-  userId: any,
-  activityEventIds: any[],
-) => {
-  if (activityEventIds.length === 0) {
-    return new Set<string>();
-  }
-  const queryByWorkspaceUser = ctx.db
-    .query("workspaceActivityDismissals")
-    .withIndex("by_workspace_user", (q: any) =>
-      q.eq("workspaceId", workspaceId).eq("userId", userId),
-    );
-
-  const dismissals =
-    activityEventIds.length === 1
-      ? await queryByWorkspaceUser
-          .filter((q: any) => q.eq(q.field("activityEventId"), activityEventIds[0]))
-          .collect()
-      : await queryByWorkspaceUser
-          .filter((q: any) =>
-            q.or(
-              ...activityEventIds.map((activityEventId) =>
-                q.eq(q.field("activityEventId"), activityEventId),
-              ),
-            ),
-          )
-          .collect();
-
-  return new Set<string>(dismissals.map((dismissal: any) => String(dismissal.activityEventId)));
-};
-
-const findWorkspaceIdsMissingActivityCount = async (
-  ctx: any,
-  maxWorkspaces: number,
-): Promise<Id<"workspaces">[]> => {
-  const workspaces = await ctx.db.query("workspaces").collect();
-  const missingWorkspaceIds: Id<"workspaces">[] = [];
-
-  for (const workspace of workspaces as Array<{
-    _id: Id<"workspaces">;
-    deletedAt?: number | null;
-    activityEventCount?: number;
-  }>) {
-    if (workspace.deletedAt != null || typeof workspace.activityEventCount === "number") {
-      continue;
-    }
-    missingWorkspaceIds.push(workspace._id);
-    if (missingWorkspaceIds.length >= maxWorkspaces) {
-      break;
-    }
-  }
-
-  return missingWorkspaceIds;
-};
-
-const resolveTargetUserAvatarUrl = async (ctx: any, user: any) => {
-  const avatarUrl = typeof user?.avatarUrl === "string" ? user.avatarUrl.trim() : "";
-  if (avatarUrl.length > 0) {
-    return avatarUrl;
-  }
-  if (user?.avatarStorageId) {
-    return (await ctx.storage.getUrl(user.avatarStorageId)) ?? null;
-  }
-  return null;
-};
 
 export const listForWorkspace = query({
   args: {
@@ -416,7 +269,7 @@ export const markActivityRead = mutation({
 
     const existingDismissal = await ctx.db
       .query("workspaceActivityDismissals")
-      .withIndex("by_workspace_user_activityEvent", (q: any) =>
+      .withIndex("by_workspace_user_activityEvent", (q) =>
         q
           .eq("workspaceId", workspace._id)
           .eq("userId", appUser._id)
@@ -439,7 +292,7 @@ export const markActivityRead = mutation({
 
     const existingReceipt = await ctx.db
       .query("workspaceActivityReadReceipts")
-      .withIndex("by_workspace_user_activityEvent", (q: any) =>
+      .withIndex("by_workspace_user_activityEvent", (q) =>
         q
           .eq("workspaceId", workspace._id)
           .eq("userId", appUser._id)
@@ -512,7 +365,7 @@ export const dismissActivity = mutation({
 
     const existingDismissal = await ctx.db
       .query("workspaceActivityDismissals")
-      .withIndex("by_workspace_user_activityEvent", (q: any) =>
+      .withIndex("by_workspace_user_activityEvent", (q) =>
         q
           .eq("workspaceId", workspace._id)
           .eq("userId", appUser._id)
@@ -532,7 +385,7 @@ export const dismissActivity = mutation({
     if (wasUnread) {
       const existingReceipt = await ctx.db
         .query("workspaceActivityReadReceipts")
-        .withIndex("by_workspace_user_activityEvent", (q: any) =>
+        .withIndex("by_workspace_user_activityEvent", (q) =>
           q
             .eq("workspaceId", workspace._id)
             .eq("userId", appUser._id)

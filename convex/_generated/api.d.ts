@@ -23,6 +23,7 @@ import type * as devSeedShared from "../devSeedShared.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as lib_activityEvents from "../lib/activityEvents.js";
+import type * as lib_activityInbox from "../lib/activityInbox.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dashboardContext from "../lib/dashboardContext.js";
 import type * as lib_dateNormalization from "../lib/dateNormalization.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   http: typeof http;
   "lib/activityEvents": typeof lib_activityEvents;
+  "lib/activityInbox": typeof lib_activityInbox;
   "lib/auth": typeof lib_auth;
   "lib/dashboardContext": typeof lib_dashboardContext;
   "lib/dateNormalization": typeof lib_dateNormalization;
