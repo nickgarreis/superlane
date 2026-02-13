@@ -7,6 +7,8 @@ import { clearStoredAuthMode, clearStoredReturnTo, readStoredReturnTo } from "./
 import { ConvexProviderWithAuthKit } from "./app/providers/ConvexProviderWithAuthKit.tsx";
 import "./styles/index.css";
 
+const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
+
 const requireEnv = (value: string | undefined, name: string) => {
   if (!value || value.trim().length === 0) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -52,37 +54,53 @@ const validateWorkosRedirectUri = (value: string, isDev: boolean): string => {
   return parsed.toString();
 };
 
-const convexUrl = requireEnv(import.meta.env.VITE_CONVEX_URL, "VITE_CONVEX_URL");
-const workosClientId = requireEnv(import.meta.env.VITE_WORKOS_CLIENT_ID, "VITE_WORKOS_CLIENT_ID");
-const configuredWorkosRedirectUri = requireEnv(import.meta.env.VITE_WORKOS_REDIRECT_URI, "VITE_WORKOS_REDIRECT_URI");
-const configuredWorkosApiHostname = import.meta.env.VITE_WORKOS_API_HOSTNAME?.trim();
-const workosRedirectUri = validateWorkosRedirectUri(configuredWorkosRedirectUri, import.meta.env.DEV);
+// ── Demo mode: skip real env validation, use mock providers ─────
+if (isDemo) {
+  const convex = new ConvexReactClient("https://demo.convex.cloud");
 
-const convex = new ConvexReactClient(convexUrl);
+  createRoot(document.getElementById("root")!).render(
+    <AuthKitProvider>
+      <ConvexProviderWithAuthKit client={convex}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ConvexProviderWithAuthKit>
+    </AuthKitProvider>,
+  );
+} else {
+  // ── Production mode ───────────────────────────────────────
+  const convexUrl = requireEnv(import.meta.env.VITE_CONVEX_URL, "VITE_CONVEX_URL");
+  const workosClientId = requireEnv(import.meta.env.VITE_WORKOS_CLIENT_ID, "VITE_WORKOS_CLIENT_ID");
+  const configuredWorkosRedirectUri = requireEnv(import.meta.env.VITE_WORKOS_REDIRECT_URI, "VITE_WORKOS_REDIRECT_URI");
+  const configuredWorkosApiHostname = import.meta.env.VITE_WORKOS_API_HOSTNAME?.trim();
+  const workosRedirectUri = validateWorkosRedirectUri(configuredWorkosRedirectUri, import.meta.env.DEV);
 
-createRoot(document.getElementById("root")!).render(
-  <AuthKitProvider
-    clientId={workosClientId}
-    apiHostname={configuredWorkosApiHostname && configuredWorkosApiHostname.length > 0 ? configuredWorkosApiHostname : undefined}
-    redirectUri={workosRedirectUri}
-    devMode={import.meta.env.DEV}
-    onRedirectCallback={({ state }) => {
-      const stateReturnTo = sanitizeReturnToPath(state?.returnTo);
-      const returnTo = stateReturnTo ?? readStoredReturnTo() ?? "/tasks";
-      clearStoredAuthMode();
-      clearStoredReturnTo();
-      const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      if (currentPath !== returnTo) {
-        window.location.assign(returnTo);
-        return;
-      }
-      window.location.reload();
-    }}
-  >
-    <ConvexProviderWithAuthKit client={convex}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ConvexProviderWithAuthKit>
-  </AuthKitProvider>,
-);
+  const convex = new ConvexReactClient(convexUrl);
+
+  createRoot(document.getElementById("root")!).render(
+    <AuthKitProvider
+      clientId={workosClientId}
+      apiHostname={configuredWorkosApiHostname && configuredWorkosApiHostname.length > 0 ? configuredWorkosApiHostname : undefined}
+      redirectUri={workosRedirectUri}
+      devMode={import.meta.env.DEV}
+      onRedirectCallback={({ state }) => {
+        const stateReturnTo = sanitizeReturnToPath(state?.returnTo);
+        const returnTo = stateReturnTo ?? readStoredReturnTo() ?? "/tasks";
+        clearStoredAuthMode();
+        clearStoredReturnTo();
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (currentPath !== returnTo) {
+          window.location.assign(returnTo);
+          return;
+        }
+        window.location.reload();
+      }}
+    >
+      <ConvexProviderWithAuthKit client={convex}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ConvexProviderWithAuthKit>
+    </AuthKitProvider>,
+  );
+}
