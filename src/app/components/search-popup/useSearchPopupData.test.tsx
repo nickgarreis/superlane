@@ -324,7 +324,7 @@ describe("useSearchPopupData", () => {
 
     draftProjectResult?.action();
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onNavigate).toHaveBeenCalledWith("project:project-2");
+    expect(onNavigate).toHaveBeenCalledWith("draft-project:project-2");
 
     rerender({
       ...baseArgs,
@@ -347,6 +347,11 @@ describe("useSearchPopupData", () => {
         (entry) => entry.type === "file" && entry.projectId === "project-3",
       ),
     ).toBe(false);
+    const reviewProjectResult = result.current.flatResults.find(
+      (entry) => entry.type === "project" && entry.projectId === "project-3",
+    );
+    reviewProjectResult?.action();
+    expect(onNavigate).toHaveBeenCalledWith("pending-project:project-3");
 
     rerender({
       ...baseArgs,

@@ -1,5 +1,6 @@
 import { RotateCcw, X } from "lucide-react";
 import { DeniedAction } from "../permissions/DeniedAction";
+import { SidebarTag } from "../sidebar/SidebarTag";
 import { GHOST_ICON_BUTTON_CLASS, ROW_HOVER_CLASS } from "../ui/controlChrome";
 import type { CompanyPendingInvitation } from "./types";
 type PendingInvitationRowProps = {
@@ -27,9 +28,7 @@ export function PendingInvitationRow({
             <span className="txt-role-body-lg font-medium txt-tone-muted">
               {invitation.email}
             </span>
-            <span className="px-1.5 py-0.5 txt-role-kbd font-medium bg-amber-500/15 text-amber-300/80 rounded">
-              Pending
-            </span>
+            <SidebarTag tone="pending">Pending</SidebarTag>
           </div>
           <span className="txt-role-body-sm txt-tone-faint">
             {invitation.requestedRole} · expires

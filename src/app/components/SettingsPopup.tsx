@@ -242,7 +242,11 @@ export function SettingsPopup({
                     ref={(node) => {
                       sectionRefs.current[section.id] = node;
                     }}
-                    className="scroll-mt-24 flex flex-col"
+                    className={cn(
+                      "scroll-mt-24 flex flex-col",
+                      section.id === "Account" ? "pt-2" : null,
+                      section.id === "Notifications" ? "pb-8" : null,
+                    )}
                   >
                     <div className="mb-4 flex items-center gap-2">
                       <section.icon size={14} className="txt-tone-subtle" />

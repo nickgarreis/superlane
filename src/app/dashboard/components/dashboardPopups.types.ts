@@ -32,6 +32,7 @@ export type SearchHighlight = {
 };
 
 export type DashboardPopupsProps = {
+  currentView: AppView;
   isSearchOpen: boolean;
   setIsSearchOpen: (value: boolean) => void;
   projects: Record<string, ProjectData>;
@@ -78,7 +79,10 @@ export type DashboardPopupsProps = {
   isCompletedProjectsOpen: boolean;
   closeCompletedProjectsPopup: () => void;
   completedProjectDetailId: string | null;
-  openCompletedProjectDetail: (projectId: string) => void;
+  openCompletedProjectDetail: (
+    projectId: string,
+    options?: { replace?: boolean; from?: string },
+  ) => void;
   backToCompletedProjectsList: () => void;
   isDraftPendingProjectsOpen: boolean;
   closeDraftPendingProjectsPopup: () => void;

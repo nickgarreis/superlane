@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useConvex, useConvexAuth } from "convex/react";
 import { useAuth } from "@workos-inc/authkit-react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
+import { reportUiError } from "../../lib/errors";
 import {
   loadCreateProjectPopupModule,
   loadCreateWorkspacePopupModule,
@@ -89,7 +90,9 @@ export function useDashboardDataLayer() {
     reconcileWorkspaceInvitationsAction,
     reconcileWorkspaceOrganizationMembershipsAction,
     ensureOrganizationLinkAction,
+    syncCurrentUserLinkedIdentityProvidersAction,
   } = apiHandlers;
+  const linkedIdentitySyncSignatureRef = useRef<string | null>(null);
   const viewerFallback = useMemo(
     () => ({
       name:
@@ -229,6 +232,32 @@ export function useDashboardDataLayer() {
     asBrandAssetId,
     omitUndefined,
   });
+  useEffect(() => {
+    if (!isAuthenticated) {
+      linkedIdentitySyncSignatureRef.current = null;
+      return;
+    }
+    const signature = `${user?.email ?? "authenticated-user"}:${authenticationMethod ?? "unknown"}`;
+    if (linkedIdentitySyncSignatureRef.current === signature) {
+      return;
+    }
+    linkedIdentitySyncSignatureRef.current = signature;
+    void Promise.resolve(
+      syncCurrentUserLinkedIdentityProvidersAction({
+        sessionAuthenticationMethod: authenticationMethod ?? undefined,
+      }),
+    ).catch((error) => {
+      linkedIdentitySyncSignatureRef.current = null;
+      reportUiError("dashboard.syncLinkedIdentityProviders", error, {
+        showToast: false,
+      });
+    });
+  }, [
+    authenticationMethod,
+    isAuthenticated,
+    syncCurrentUserLinkedIdentityProvidersAction,
+    user?.email,
+  ]);
   useDashboardLifecycleEffects({
     snapshot: data.snapshot,
     projectsPaginationStatus: data.projectsPaginationStatus,

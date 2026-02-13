@@ -65,6 +65,11 @@ describe("CompanyMembersSection", () => {
 
     render(<CompanyMembersSection {...props} />);
 
+    expect(screen.getByText("Pending")).toHaveAttribute(
+      "data-sidebar-tag-tone",
+      "pending",
+    );
+
     fireEvent.change(screen.getByPlaceholderText("Email address"), {
       target: { value: "invitee@example.com" },
     });

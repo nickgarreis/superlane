@@ -24,6 +24,7 @@ const buildProps = (
     lastName: "Owner",
     email: "alex@example.com",
     avatarUrl: null,
+    linkedIdentityProviders: ["email_password"],
     authenticationMethod: "Password",
     isPasswordAuthSession: true,
     socialLoginLabel: null,
@@ -104,8 +105,18 @@ describe("SettingsPopup", () => {
       screen.getByRole("heading", { name: "My Account" }),
     ).toBeInTheDocument();
     expect(
+      screen
+        .getByRole("heading", { name: "My Account" })
+        .closest("section"),
+    ).toHaveClass("pt-2");
+    expect(
       screen.getByRole("heading", { name: "Notifications" }),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("heading", { name: "Notifications" })
+        .closest("section"),
+    ).toHaveClass("pb-8");
     expect(screen.getByRole("heading", { name: "Company" })).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Workspace" }),

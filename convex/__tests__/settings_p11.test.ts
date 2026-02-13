@@ -215,6 +215,29 @@ describe("P1.1 settings backendization", () => {
     expect(noAvatar.avatarUrl).toBeNull();
   });
 
+  test("account settings returns normalized linked identity providers", async () => {
+    const workspace = await seedWorkspace();
+    const createdAt = now();
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(workspace.memberUserId, {
+        linkedIdentityProviders: [
+          "Google",
+          "email_password",
+          "google",
+          "   ",
+        ],
+        updatedAt: createdAt,
+      });
+    });
+
+    const account = await asMember().query(api.settings.getAccountSettings, {});
+    expect(account.linkedIdentityProviders).toEqual([
+      "email_password",
+      "google",
+    ]);
+  });
+
   test("brand assets enforce admin role for management", async () => {
     const workspace = await seedWorkspace();
     const stored = await storeBlob("brand-asset", "text/plain");

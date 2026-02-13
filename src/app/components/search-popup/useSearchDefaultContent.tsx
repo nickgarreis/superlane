@@ -5,6 +5,7 @@ import { formatTaskDueDate } from "../../lib/dates";
 import type { AppView } from "../../lib/routing";
 import type { ProjectData, Task } from "../../types";
 import type { SearchResult } from "./types";
+import { toProjectSearchIntent } from "./navigationIntent";
 
 type UseSearchDefaultContentArgs = {
   projects: Record<string, ProjectData>;
@@ -60,16 +61,8 @@ export function useSearchDefaultContent({
         status: project.status,
         projectId: project.id,
         action: () => {
+          onNavigate(toProjectSearchIntent(project));
           onClose();
-          if (project.archived) {
-            onNavigate(`archive-project:${project.id}`);
-            return;
-          }
-          if (project.status.label === "Completed") {
-            onNavigate(`completed-project:${project.id}`);
-            return;
-          }
-          onNavigate(`project:${project.id}`);
         },
       });
     });
@@ -85,8 +78,8 @@ export function useSearchDefaultContent({
           status: project.status,
           projectId: project.id,
           action: () => {
+            onNavigate(toProjectSearchIntent(project));
             onClose();
-            onNavigate(`project:${project.id}`);
           },
         });
       });
@@ -157,8 +150,8 @@ export function useSearchDefaultContent({
           status: project.status,
           projectId: project.id,
           action: () => {
+            onNavigate(toProjectSearchIntent(project));
             onClose();
-            onNavigate(`project:${project.id}`);
           },
         });
       });
@@ -183,8 +176,8 @@ export function useSearchDefaultContent({
           status: project.status,
           projectId: project.id,
           action: () => {
+            onNavigate(toProjectSearchIntent(project));
             onClose();
-            onNavigate(`project:${project.id}`);
           },
         });
       });

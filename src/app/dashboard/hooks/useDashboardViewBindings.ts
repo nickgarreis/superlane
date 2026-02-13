@@ -102,6 +102,7 @@ export function useDashboardViewBindings(
   );
   const popupsProps = useMemo<ComponentProps<typeof DashboardPopups>>(
     () => ({
+      currentView: navigation.currentView,
       isSearchOpen: navigation.isSearchOpen,
       setIsSearchOpen: navigation.setIsSearchOpen,
       projects: popupProjects,
@@ -197,6 +198,7 @@ export function useDashboardViewBindings(
       navigation.closeCreateWorkspace,
       navigation.closeCompletedProjectsPopup,
       navigation.completedProjectDetailId,
+      navigation.currentView,
       navigation.backToCompletedProjectsList,
       navigation.editDraftData,
       navigation.editProjectId,

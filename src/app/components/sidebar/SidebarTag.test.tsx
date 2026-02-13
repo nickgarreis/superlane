@@ -53,4 +53,21 @@ describe("SidebarTag", () => {
     expect(tag).not.toHaveClass("txt-tone-accent");
     expect(tag).not.toHaveClass("txt-tone-warning");
   });
+
+  test("applies pending orange review token classes", () => {
+    render(<SidebarTag tone="pending">Pending</SidebarTag>);
+
+    const tag = screen.getByText("Pending");
+    expect(tag).toHaveAttribute("data-sidebar-tag-tone", "pending");
+    expect(tag.className).toContain("[color:var(--status-review)]");
+    expect(tag.className).toContain(
+      "[background-color:var(--status-review-soft)]",
+    );
+    expect(tag.className).toContain(
+      "[border-color:var(--status-review-border)]",
+    );
+    expect(tag).not.toHaveClass("txt-tone-accent");
+    expect(tag).not.toHaveClass("txt-tone-danger");
+    expect(tag).not.toHaveClass("txt-tone-warning");
+  });
 });

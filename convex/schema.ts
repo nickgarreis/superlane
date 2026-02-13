@@ -30,6 +30,7 @@ export default defineSchema({
     name: v.string(),
     avatarUrl: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
+    linkedIdentityProviders: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_workosUserId", ["workosUserId"]),

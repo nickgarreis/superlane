@@ -34,6 +34,18 @@ vi.mock("../../components/SearchPopup", () => ({
       >
         Open Completed From Search
       </button>
+      <button
+        type="button"
+        onClick={() => onNavigate("draft-project:project-1")}
+      >
+        Open Draft From Search
+      </button>
+      <button
+        type="button"
+        onClick={() => onNavigate("pending-project:project-1")}
+      >
+        Open Pending From Search
+      </button>
     </div>
   ),
 }));
@@ -210,6 +222,7 @@ const viewer: ViewerIdentity = {
 };
 
 const baseProps = () => ({
+  currentView: "tasks" as const,
   isSearchOpen: false,
   setIsSearchOpen: vi.fn(),
   projects: { [PROJECT.id]: PROJECT },
@@ -350,7 +363,27 @@ describe("DashboardPopups", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Open Completed From Search" }),
     );
-    expect(props.openCompletedProjectDetail).toHaveBeenCalledWith("project-1");
+    expect(props.openCompletedProjectDetail).toHaveBeenCalledWith("project-1", {
+      from: "/tasks",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open Draft From Search" }),
+    );
+    expect(props.openDraftPendingProjectDetail).toHaveBeenCalledWith(
+      "project-1",
+      "Draft",
+      { from: "/tasks" },
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open Pending From Search" }),
+    );
+    expect(props.openDraftPendingProjectDetail).toHaveBeenCalledWith(
+      "project-1",
+      "Review",
+      { from: "/tasks" },
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Close Create Project" }));
     expect(props.closeCreateProject).toHaveBeenCalledTimes(1);

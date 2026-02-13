@@ -53,6 +53,26 @@ const resolveSocialLoginLabel = (
   return AUTH_METHOD_SOCIAL_LABELS[authenticationMethod] ?? authenticationMethod;
 };
 
+const normalizeLinkedIdentityProviders = (
+  providers: string[] | undefined,
+): string[] => {
+  if (!Array.isArray(providers) || providers.length === 0) {
+    return [];
+  }
+  const unique = new Set<string>();
+  for (const provider of providers) {
+    if (typeof provider !== "string") {
+      continue;
+    }
+    const normalized = provider.trim().toLowerCase();
+    if (normalized.length === 0) {
+      continue;
+    }
+    unique.add(normalized);
+  }
+  return Array.from(unique).sort((left, right) => left.localeCompare(right));
+};
+
 type UseDashboardSettingsDataArgs = {
   accountSettings: AccountSettingsResult;
   notificationSettings: NotificationSettingsResult;
@@ -97,9 +117,13 @@ export const useDashboardSettingsData = ({
         lastName: user?.lastName ?? "",
         email: user?.email ?? "",
         avatarUrl: fallbackAvatarUrl ?? user?.profilePictureUrl ?? null,
+        linkedIdentityProviders: [],
       };
       return {
         ...accountProfile,
+        linkedIdentityProviders: normalizeLinkedIdentityProviders(
+          accountProfile.linkedIdentityProviders,
+        ),
         authenticationMethod,
         isPasswordAuthSession,
         socialLoginLabel,

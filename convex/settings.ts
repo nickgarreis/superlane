@@ -47,6 +47,26 @@ const computeDisplayName = (firstName?: string, lastName?: string, fallbackEmail
   return fullName.length > 0 ? fullName : (fallbackEmail ?? "Unknown user");
 };
 
+const normalizeLinkedIdentityProviders = (
+  providers: string[] | undefined,
+): string[] => {
+  if (!Array.isArray(providers) || providers.length === 0) {
+    return [];
+  }
+  const unique = new Set<string>();
+  for (const provider of providers) {
+    if (typeof provider !== "string") {
+      continue;
+    }
+    const normalized = provider.trim().toLowerCase();
+    if (normalized.length === 0) {
+      continue;
+    }
+    unique.add(normalized);
+  }
+  return Array.from(unique).sort((left, right) => left.localeCompare(right));
+};
+
 const getWorkspaceBySlug = async (ctx: SettingsCtx, slug: string): Promise<WorkspaceDoc> => {
   const workspace = await ctx.db
     .query("workspaces")
@@ -223,6 +243,9 @@ export const getAccountSettings = query({
       lastName: appUser.lastName ?? "",
       email: appUser.email ?? "",
       avatarUrl: await getResolvedAvatarUrl(ctx, appUser),
+      linkedIdentityProviders: normalizeLinkedIdentityProviders(
+        appUser.linkedIdentityProviders,
+      ),
     };
   },
 });

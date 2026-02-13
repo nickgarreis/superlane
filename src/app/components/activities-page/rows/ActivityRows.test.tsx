@@ -96,7 +96,7 @@ describe("Activity row renderers", () => {
     expect(screen.getByText("Moved 5 days later")).toBeInTheDocument();
   });
 
-  test("renders collaboration row with search-style accent icon chrome", () => {
+  test("renders collaboration row with neutral icon chrome", () => {
     render(
       <CollaborationActivityRow
         activity={buildActivity({
@@ -117,7 +117,7 @@ describe("Activity row renderers", () => {
     expect(importantBadge).toHaveClass("rounded-full");
     expect(importantBadge).toHaveClass("border");
     const typeIcon = screen.getByLabelText("Collaboration activity type");
-    expect(typeIcon).toHaveClass("bg-text-tone-accent-soft");
+    expect(typeIcon).toHaveClass("bg-surface-muted-soft");
   });
 
   test("shows important tag for upload-failed file activities", () => {
@@ -166,7 +166,7 @@ describe("Activity row renderers", () => {
     ).toBeInTheDocument();
   });
 
-  test("renders membership row with search-style accent icon chrome", () => {
+  test("renders membership row with neutral icon chrome", () => {
     render(
       <MembershipActivityRow
         activity={buildActivity({
@@ -178,7 +178,7 @@ describe("Activity row renderers", () => {
     );
     expect(screen.getByText("Removed Jordan")).toBeInTheDocument();
     const typeIcon = screen.getByLabelText("Members activity type");
-    expect(typeIcon).toHaveClass("bg-text-tone-accent-soft");
+    expect(typeIcon).toHaveClass("bg-surface-muted-soft");
   });
 
   test("renders membership row with target user profile image type icon", () => {
@@ -197,7 +197,7 @@ describe("Activity row renderers", () => {
     expect(typeIcon.querySelector("img[alt='Jordan profile image']")).not.toBeNull();
   });
 
-  test("renders workspace and organization rows with search-style accent icon chrome", () => {
+  test("renders workspace and organization rows with neutral icon chrome", () => {
     const workspaceResult = render(
       <WorkspaceActivityRow
         activity={buildActivity({
@@ -208,7 +208,7 @@ describe("Activity row renderers", () => {
     );
     expect(screen.getByText("Updated workspace logo")).toBeInTheDocument();
     const workspaceTypeIcon = screen.getByLabelText("Workspace activity type");
-    expect(workspaceTypeIcon).toHaveClass("bg-text-tone-accent-soft");
+    expect(workspaceTypeIcon).toHaveClass("bg-surface-muted-soft");
 
     const organizationResult = render(
       <WorkspaceActivityRow
@@ -221,7 +221,7 @@ describe("Activity row renderers", () => {
     );
     expect(screen.getByText("Synced organization members")).toBeInTheDocument();
     const organizationTypeIcon = screen.getByLabelText("Organization activity type");
-    expect(organizationTypeIcon).toHaveClass("bg-text-tone-accent-soft");
+    expect(organizationTypeIcon).toHaveClass("bg-surface-muted-soft");
     workspaceResult.unmount();
     organizationResult.unmount();
   });

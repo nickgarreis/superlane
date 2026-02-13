@@ -18,6 +18,7 @@ export type AccountSettingsData = {
   lastName: string;
   email: string;
   avatarUrl: string | null;
+  linkedIdentityProviders: string[];
   authenticationMethod: AuthenticationMethod | null;
   isPasswordAuthSession: boolean;
   socialLoginLabel: string | null;

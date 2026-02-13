@@ -72,6 +72,9 @@ export const useDashboardApiHandlers = () => {
     api.settings.softDeleteWorkspace,
   );
   const requestPasswordResetAction = useAction(api.auth.requestPasswordReset);
+  const syncCurrentUserLinkedIdentityProvidersAction = useAction(
+    api.auth.syncCurrentUserLinkedIdentityProviders,
+  );
   const updateAccountProfileAction = useAction(
     api.settings.updateAccountProfile,
   );
@@ -139,6 +142,7 @@ export const useDashboardApiHandlers = () => {
       removeBrandAssetMutation,
       softDeleteWorkspaceMutation,
       requestPasswordResetAction,
+      syncCurrentUserLinkedIdentityProvidersAction,
       updateAccountProfileAction,
       inviteWorkspaceMemberAction,
       resendWorkspaceInvitationAction,
@@ -190,6 +194,7 @@ export const useDashboardApiHandlers = () => {
       setProjectStatusMutation,
       softDeleteWorkspaceMutation,
       requestPasswordResetAction,
+      syncCurrentUserLinkedIdentityProvidersAction,
       unarchiveProjectMutation,
       updateAccountProfileAction,
       markApprovalSeenMutation,

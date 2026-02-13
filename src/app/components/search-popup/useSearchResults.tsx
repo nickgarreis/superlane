@@ -5,6 +5,7 @@ import type { AppView } from "../../lib/routing";
 import type { ProjectData, Task } from "../../types";
 import { groupSearchResults } from "./searchIndex";
 import { useSearchDefaultContent } from "./useSearchDefaultContent";
+import { toProjectSearchIntent } from "./navigationIntent";
 import type {
   QuickAction,
   SearchIndexedFile,
@@ -57,16 +58,8 @@ export function useSearchResults({
     const handlers = new Map<string, () => void>();
     for (const { project } of matchedEntries.projectEntries) {
       handlers.set(project.id, () => {
+        onNavigate(toProjectSearchIntent(project));
         onClose();
-        if (project.archived) {
-          onNavigate(`archive-project:${project.id}`);
-          return;
-        }
-        if (project.status.label === "Completed") {
-          onNavigate(`completed-project:${project.id}`);
-          return;
-        }
-        onNavigate(`project:${project.id}`);
       });
     }
     return handlers;

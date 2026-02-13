@@ -30,6 +30,7 @@ describe("useDashboardSettingsData", () => {
       lastName: "User",
       email: "nick@example.com",
       avatarUrl: "https://cdn.test/fallback.png",
+      linkedIdentityProviders: [],
       authenticationMethod: "Password",
       isPasswordAuthSession: true,
       socialLoginLabel: null,
@@ -52,6 +53,7 @@ describe("useDashboardSettingsData", () => {
           lastName: "Owner",
           email: "jane@example.com",
           avatarUrl: "https://cdn.test/jane.png",
+          linkedIdentityProviders: ["Google", "email_password", "google"],
         },
         notificationSettings: {
           events: {
@@ -127,6 +129,7 @@ describe("useDashboardSettingsData", () => {
       lastName: "Owner",
       email: "jane@example.com",
       avatarUrl: "https://cdn.test/jane.png",
+      linkedIdentityProviders: ["email_password", "google"],
       authenticationMethod: "GoogleOAuth",
       isPasswordAuthSession: false,
       socialLoginLabel: "Google",
@@ -167,5 +170,8 @@ describe("useDashboardSettingsData", () => {
 
     expect(result.current.settingsAccountData.isPasswordAuthSession).toBe(false);
     expect(result.current.settingsAccountData.socialLoginLabel).toBeNull();
+    expect(result.current.settingsAccountData.linkedIdentityProviders).toEqual(
+      [],
+    );
   });
 });

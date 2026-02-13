@@ -1,8 +1,14 @@
 import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
-import { action, internalQuery, query } from "./_generated/server";
-import type { DataModel } from "./_generated/dataModel";
+import {
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  query,
+} from "./_generated/server";
+import type { DataModel, Id } from "./_generated/dataModel";
 import {
   syncWorkspaceMemberFromOrganizationMembership,
   upsertWorkosOrganizationMembership,
@@ -65,6 +71,102 @@ const PASSWORD_RESET_RETURN_TO_BY_SOURCE = {
   login: "/tasks",
   settings: "/settings?tab=Account",
 } as const;
+
+const AUTH_METHOD_TO_PROVIDER_KEY: Record<string, string> = {
+  Password: "email_password",
+  AppleOAuth: "apple",
+  BitbucketOAuth: "bitbucket",
+  CrossAppAuth: "cross_app_auth",
+  DiscordOAuth: "discord",
+  ExternalAuth: "external_auth",
+  GitHubOAuth: "github",
+  GitLabOAuth: "gitlab",
+  GoogleOAuth: "google",
+  LinkedInOAuth: "linkedin",
+  MagicAuth: "magic_auth",
+  MicrosoftOAuth: "microsoft",
+  SalesforceOAuth: "salesforce",
+  SlackOAuth: "slack",
+  SSO: "sso",
+  Passkey: "passkey",
+  Impersonation: "impersonation",
+  MigratedSession: "migrated_session",
+  VercelMarketplaceOAuth: "vercel_marketplace",
+  VercelOAuth: "vercel",
+  XeroOAuth: "xero",
+};
+
+const normalizeProviderKey = (
+  value: string | null | undefined,
+): string | null => {
+  if (!value) {
+    return null;
+  }
+  const mapped = AUTH_METHOD_TO_PROVIDER_KEY[value];
+  if (mapped) {
+    return mapped;
+  }
+
+  const normalized = value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toSortedUniqueProviderKeys = (
+  values: Array<string | null | undefined>,
+): string[] => {
+  const unique = new Set<string>();
+  for (const value of values) {
+    const normalized = normalizeProviderKey(value);
+    if (!normalized) {
+      continue;
+    }
+    unique.add(normalized);
+  }
+  return Array.from(unique).sort((left, right) => left.localeCompare(right));
+};
+
+const areProviderListsEqual = (left: string[], right: string[]): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((entry, index) => entry === right[index]);
+};
+
+type LinkedIdentitySyncResult = {
+  synced: boolean;
+  linkedIdentityProviders: string[];
+  updated?: boolean;
+  reason?: "unauthorized" | "not_provisioned" | "sync_failed";
+};
+
+type SyncLinkedIdentityProvidersCtx = {
+  auth: {
+    getUserIdentity: () => Promise<{ subject?: string | null } | null>;
+  };
+  runQuery: (
+    query: typeof getUserByWorkosUserId,
+    args: { workosUserId: string },
+  ) => Promise<{
+    _id: Id<"users">;
+    linkedIdentityProviders?: string[];
+  } | null>;
+  runMutation: (
+    mutation: typeof internalSetLinkedIdentityProviders,
+    args: {
+      userId: Id<"users">;
+      linkedIdentityProviders: string[];
+    },
+  ) => Promise<{
+    updated: boolean;
+    linkedIdentityProviders: string[];
+  }>;
+};
 
 type IndexEqQuery = {
   eq: (field: string, value: string) => unknown;
@@ -428,6 +530,129 @@ export const getUserByWorkosUserId = internalQuery({
       .query("users")
       .withIndex("by_workosUserId", (q) => q.eq("workosUserId", args.workosUserId))
       .unique();
+  },
+});
+
+export const internalSetLinkedIdentityProviders = internalMutation({
+  args: {
+    userId: v.id("users"),
+    linkedIdentityProviders: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+
+    const nextProviders = toSortedUniqueProviderKeys(args.linkedIdentityProviders);
+    const previousProviders = toSortedUniqueProviderKeys(
+      user.linkedIdentityProviders ?? [],
+    );
+    if (areProviderListsEqual(previousProviders, nextProviders)) {
+      return {
+        updated: false,
+        linkedIdentityProviders: previousProviders,
+      } as const;
+    }
+
+    await ctx.db.patch(user._id, {
+      linkedIdentityProviders: nextProviders,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      updated: true,
+      linkedIdentityProviders: nextProviders,
+    } as const;
+  },
+});
+
+const syncCurrentUserLinkedIdentityProvidersImpl = async (
+  ctx: SyncLinkedIdentityProvidersCtx,
+  sessionAuthenticationMethod?: string,
+): Promise<LinkedIdentitySyncResult> => {
+  const identity = await ctx.auth.getUserIdentity();
+  const workosUserId = identity?.subject;
+  if (!workosUserId) {
+    return {
+      synced: false,
+      reason: "unauthorized",
+      linkedIdentityProviders: [] as string[],
+    } as const;
+  }
+
+  const user = await ctx.runQuery(getUserByWorkosUserId, {
+    workosUserId,
+  });
+  if (!user) {
+    return {
+      synced: false,
+      reason: "not_provisioned",
+      linkedIdentityProviders: [] as string[],
+    } as const;
+  }
+
+  try {
+    const identities = await authKit.workos.userManagement.getUserIdentities(
+      workosUserId,
+    );
+    const linkedIdentityProviders = toSortedUniqueProviderKeys([
+      ...(user.linkedIdentityProviders ?? []),
+      ...identities.map((workosIdentity) => workosIdentity.provider),
+      sessionAuthenticationMethod,
+    ]);
+
+    const updateResult = await ctx.runMutation(internalSetLinkedIdentityProviders, {
+      userId: user._id,
+      linkedIdentityProviders,
+    });
+
+    return {
+      synced: true,
+      updated: updateResult.updated,
+      linkedIdentityProviders: updateResult.linkedIdentityProviders,
+    } as const;
+  } catch (error) {
+    logError(
+      "auth.syncCurrentUserLinkedIdentityProviders",
+      "Failed to sync linked identity providers from WorkOS",
+      {
+        workosUserId,
+        error,
+      },
+    );
+
+    return {
+      synced: false,
+      reason: "sync_failed",
+      linkedIdentityProviders: toSortedUniqueProviderKeys(
+        user.linkedIdentityProviders ?? [],
+      ),
+    } as const;
+  }
+};
+
+export const internalSyncCurrentUserLinkedIdentityProviders = internalAction({
+  args: {
+    sessionAuthenticationMethod: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await syncCurrentUserLinkedIdentityProvidersImpl(
+      ctx as SyncLinkedIdentityProvidersCtx,
+      args.sessionAuthenticationMethod,
+    );
+  },
+});
+
+export const syncCurrentUserLinkedIdentityProviders = action({
+  args: v.object({
+    sessionAuthenticationMethod: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    return await syncCurrentUserLinkedIdentityProvidersImpl(
+      ctx as SyncLinkedIdentityProvidersCtx,
+      args.sessionAuthenticationMethod,
+    );
   },
 });
 

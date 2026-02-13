@@ -90,13 +90,13 @@ export const activityKindIconChrome = (kind: ActivityKindFilter) => {
     case "workspace":
     case "organization":
       return {
-        containerClass: "bg-text-tone-accent-soft",
-        iconClass: "txt-tone-accent",
+        containerClass: "bg-surface-muted-soft",
+        iconClass: "text-text-muted-medium",
       };
     default:
       return {
-        containerClass: "bg-text-tone-accent-soft",
-        iconClass: "txt-tone-accent",
+        containerClass: "bg-surface-muted-soft",
+        iconClass: "text-text-muted-medium",
       };
   }
 };

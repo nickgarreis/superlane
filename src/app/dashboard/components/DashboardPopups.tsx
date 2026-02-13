@@ -1,7 +1,7 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useCallback, useEffect, useRef } from "react";
 import type { DashboardPopupsProps } from "./dashboardPopups.types";
 import { Z_LAYERS } from "../../lib/zLayers";
-import type { AppView } from "../../lib/routing";
+import { viewToPath, type AppView } from "../../lib/routing";
 import type { ProjectData, ProjectDraftData } from "../../types";
 import { categoryToService } from "../hooks/projectActionMappers";
 export const loadSearchPopupModule = () =>
@@ -69,6 +69,7 @@ const buildDraftDataFromProject = (
   lastStep: project.draftData?.lastStep ?? 1,
 });
 export function DashboardPopups({
+  currentView,
   isSearchOpen,
   setIsSearchOpen,
   projects,
@@ -134,21 +135,105 @@ export function DashboardPopups({
   handleGetWorkspaceBrandAssetDownloadUrl,
   handleSoftDeleteWorkspace,
 }: DashboardPopupsProps) {
-  const handleSearchNavigate = (view: AppView) => {
-    if (view.startsWith("completed-project:")) {
-      openCompletedProjectDetail(view.slice("completed-project:".length));
+  const wasAnyPopupOpenRef = useRef(false);
+  const suppressNextPopupFallbackRef = useRef(false);
+  const pendingSearchHandoffTargetRef = useRef<
+    "completed" | "draftPending" | null
+  >(null);
+  const isAnyPopupOpen =
+    isSearchOpen ||
+    isCreateProjectOpen ||
+    isCreateWorkspaceOpen ||
+    isCompletedProjectsOpen ||
+    isDraftPendingProjectsOpen ||
+    isSettingsOpen;
+  const shouldSuppressFullscreenFallback =
+    wasAnyPopupOpenRef.current || suppressNextPopupFallbackRef.current;
+  const popupFallback = shouldSuppressFullscreenFallback
+    ? null
+    : PopupLoadingFallback;
+
+  useEffect(() => {
+    const pendingSearchHandoffTarget = pendingSearchHandoffTargetRef.current;
+    if (
+      pendingSearchHandoffTarget === "completed" &&
+      isCompletedProjectsOpen
+    ) {
+      pendingSearchHandoffTargetRef.current = null;
+      setIsSearchOpen(false);
+    }
+    if (
+      pendingSearchHandoffTarget === "draftPending" &&
+      isDraftPendingProjectsOpen
+    ) {
+      pendingSearchHandoffTargetRef.current = null;
+      setIsSearchOpen(false);
+    }
+    if (isAnyPopupOpen && suppressNextPopupFallbackRef.current) {
+      suppressNextPopupFallbackRef.current = false;
+    }
+    wasAnyPopupOpenRef.current = isAnyPopupOpen;
+  }, [
+    isAnyPopupOpen,
+    isCompletedProjectsOpen,
+    isDraftPendingProjectsOpen,
+    setIsSearchOpen,
+  ]);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      pendingSearchHandoffTargetRef.current = null;
+    }
+  }, [isSearchOpen]);
+
+  const searchOriginPath = viewToPath(currentView);
+  const handleSearchClose = useCallback(() => {
+    if (pendingSearchHandoffTargetRef.current) {
       return;
     }
+    setIsSearchOpen(false);
+  }, [setIsSearchOpen]);
+  const handleSearchNavigate = useCallback((view: AppView) => {
+    if (view.startsWith("completed-project:")) {
+      pendingSearchHandoffTargetRef.current = "completed";
+      suppressNextPopupFallbackRef.current = true;
+      openCompletedProjectDetail(view.slice("completed-project:".length), {
+        from: searchOriginPath,
+      });
+      return;
+    }
+    if (view.startsWith("draft-project:")) {
+      pendingSearchHandoffTargetRef.current = "draftPending";
+      suppressNextPopupFallbackRef.current = true;
+      openDraftPendingProjectDetail(view.slice("draft-project:".length), "Draft", {
+        from: searchOriginPath,
+      });
+      return;
+    }
+    if (view.startsWith("pending-project:")) {
+      pendingSearchHandoffTargetRef.current = "draftPending";
+      suppressNextPopupFallbackRef.current = true;
+      openDraftPendingProjectDetail(view.slice("pending-project:".length), "Review", {
+        from: searchOriginPath,
+      });
+      return;
+    }
+    pendingSearchHandoffTargetRef.current = null;
     navigateView(view);
-  };
+  }, [
+    navigateView,
+    openCompletedProjectDetail,
+    openDraftPendingProjectDetail,
+    searchOriginPath,
+  ]);
 
   return (
     <>
       {isSearchOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazySearchPopup
             isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
+            onClose={handleSearchClose}
             projects={projects}
             workspaceTasks={workspaceTasks}
             files={allWorkspaceFiles}
@@ -163,7 +248,7 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isCreateProjectOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazyCreateProjectPopup
             isOpen={isCreateProjectOpen}
             onClose={closeCreateProject}
@@ -186,7 +271,7 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isCreateWorkspaceOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazyCreateWorkspacePopup
             isOpen={isCreateWorkspaceOpen}
             onClose={closeCreateWorkspace}
@@ -195,7 +280,7 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isCompletedProjectsOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazyCompletedProjectsPopup
             isOpen={isCompletedProjectsOpen}
             onClose={closeCompletedProjectsPopup}
@@ -208,7 +293,7 @@ export function DashboardPopups({
               dashboardCommands.project.updateProjectStatus(id, "Active")
             }
             renderDetail={(project) => (
-              <Suspense fallback={PopupLoadingFallback}>
+              <Suspense fallback={popupFallback}>
                 <LazyCompletedProjectDetailPopup
                   isOpen={isCompletedProjectsOpen}
                   onClose={closeCompletedProjectsPopup}
@@ -231,7 +316,7 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isDraftPendingProjectsOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazyDraftPendingProjectsPopup
             isOpen={isDraftPendingProjectsOpen}
             onClose={closeDraftPendingProjectsPopup}
@@ -241,7 +326,7 @@ export function DashboardPopups({
             onOpenProjectDetail={openDraftPendingProjectDetail}
             onBackToDraftPendingProjects={backToDraftPendingProjectsList}
             renderDetail={(project) => (
-              <Suspense fallback={PopupLoadingFallback}>
+              <Suspense fallback={popupFallback}>
                 {project.status.label === "Draft" ? (
                   <LazyCreateProjectPopup
                     isOpen={isDraftPendingProjectsOpen}
@@ -285,7 +370,7 @@ export function DashboardPopups({
         </Suspense>
       )}
       {isSettingsOpen && (
-        <Suspense fallback={PopupLoadingFallback}>
+        <Suspense fallback={popupFallback}>
           <LazySettingsPopup
             isOpen={isSettingsOpen}
             onClose={dashboardCommands.settings.closeSettings}
