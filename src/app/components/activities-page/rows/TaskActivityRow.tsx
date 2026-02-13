@@ -4,6 +4,7 @@ import { formatTaskDueDate } from "../../../lib/dates";
 import type { WorkspaceActivity } from "../../../types";
 import { renderCommentContent } from "../../MentionTextarea";
 import type { MentionEntityType } from "../../mentions/types";
+import type { MentionRenderOptions } from "../../mentions/renderCommentContent";
 import { ActivityRowShell } from "../ActivityRowShell";
 import { isImportantActivity } from "../activityImportance";
 import { toMentionToken } from "../activityMentions";
@@ -130,6 +131,7 @@ type TaskActivityRowProps = {
   onClick?: () => void;
   mentionMode?: "plain" | "inbox";
   onMentionClick?: (type: MentionEntityType, label: string) => void;
+  mentionRenderOptions?: MentionRenderOptions;
 };
 
 export function TaskActivityRow({
@@ -140,6 +142,7 @@ export function TaskActivityRow({
   onClick,
   mentionMode = "plain",
   onMentionClick,
+  mentionRenderOptions,
 }: TaskActivityRowProps) {
   const taskTitle = getTaskTitle(activity);
   const taskMention = toMentionToken("task", taskTitle) ?? taskTitle;
@@ -171,7 +174,7 @@ export function TaskActivityRow({
     }
   })();
   const title = mentionMode === "inbox"
-    ? renderCommentContent(mentionTitle, onMentionClick)
+    ? renderCommentContent(mentionTitle, onMentionClick, mentionRenderOptions)
     : actionText(activity);
 
   const previousDueDateEpochMs = parseEpochMs(activity.fromValue);
@@ -199,6 +202,7 @@ export function TaskActivityRow({
       onMarkRead={onMarkRead}
       onDismiss={onDismiss}
       onClick={onClick}
+      isInboxLayout={mentionMode === "inbox"}
       isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     >

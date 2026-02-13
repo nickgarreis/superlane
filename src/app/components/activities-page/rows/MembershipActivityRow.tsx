@@ -2,6 +2,7 @@ import React from "react";
 import type { WorkspaceActivity } from "../../../types";
 import { renderCommentContent } from "../../MentionTextarea";
 import type { MentionEntityType } from "../../mentions/types";
+import type { MentionRenderOptions } from "../../mentions/renderCommentContent";
 import { ActivityRowShell } from "../ActivityRowShell";
 import { isImportantActivity } from "../activityImportance";
 import { toMentionToken } from "../activityMentions";
@@ -31,6 +32,7 @@ type MembershipActivityRowProps = {
   onClick?: () => void;
   mentionMode?: "plain" | "inbox";
   onMentionClick?: (type: MentionEntityType, label: string) => void;
+  mentionRenderOptions?: MentionRenderOptions;
 };
 
 export function MembershipActivityRow({
@@ -41,6 +43,7 @@ export function MembershipActivityRow({
   onClick,
   mentionMode = "plain",
   onMentionClick,
+  mentionRenderOptions,
 }: MembershipActivityRowProps) {
   const normalizedTargetName = activity.targetUserName?.trim() ?? "";
   const targetLabel = normalizedTargetName.length > 0 ? normalizedTargetName : "Member";
@@ -60,7 +63,7 @@ export function MembershipActivityRow({
     }
   })();
   const title = mentionMode === "inbox"
-    ? renderCommentContent(mentionTitle, onMentionClick)
+    ? renderCommentContent(mentionTitle, onMentionClick, mentionRenderOptions)
     : actionText(activity);
 
   const fallbackInitial = targetLabel[0]?.toUpperCase() ?? "M";
@@ -95,6 +98,7 @@ export function MembershipActivityRow({
       onMarkRead={onMarkRead}
       onDismiss={onDismiss}
       onClick={onClick}
+      isInboxLayout={mentionMode === "inbox"}
       isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     />

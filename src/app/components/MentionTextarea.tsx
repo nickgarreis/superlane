@@ -3,6 +3,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from "react";
@@ -23,6 +24,7 @@ import { useDropdownPosition } from "./mentions/useDropdownPosition";
 import { MentionDropdown } from "./mentions/MentionDropdown";
 import { renderCommentContent } from "./mentions/renderCommentContent";
 import { useMentionDropdownState } from "./mentions/useMentionDropdownState";
+import { buildMentionUserAvatarLookup } from "./mentions/userAvatarLookup";
 interface MentionTextareaProps {
   value: string;
   onChange: (value: string) => void;
@@ -65,6 +67,24 @@ export const MentionTextarea = forwardRef<HTMLDivElement, MentionTextareaProps>(
     const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const mentionUserAvatarLookup = useMemo(
+      () =>
+        buildMentionUserAvatarLookup(
+          items
+            .filter(
+              (item): item is MentionItem & { type: "user" } => item.type === "user",
+            )
+            .map((item) => ({
+              label: item.label,
+              avatarUrl: item.avatar ?? null,
+            })),
+        ),
+      [items],
+    );
+    const mentionUserAvatarLookupRef = useRef(mentionUserAvatarLookup);
+    useEffect(() => {
+      mentionUserAvatarLookupRef.current = mentionUserAvatarLookup;
+    }, [mentionUserAvatarLookup]);
     const handleEditorClick = useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
         handleMentionClick({
@@ -80,7 +100,9 @@ export const MentionTextarea = forwardRef<HTMLDivElement, MentionTextareaProps>(
       if (!editorElement) {
         return;
       }
-      editorElement.innerHTML = valueToHTML(nextValue);
+      editorElement.innerHTML = valueToHTML(nextValue, {
+        userAvatarByLabel: mentionUserAvatarLookupRef.current,
+      });
       if (cursorPos != null) {
         setCursorAtOffset(editorElement, cursorPos);
       }
@@ -105,6 +127,16 @@ export const MentionTextarea = forwardRef<HTMLDivElement, MentionTextareaProps>(
       lastEmittedValue.current = value;
       syncDOM(value);
     }, [value, syncDOM]);
+    useEffect(() => {
+      const editorElement = editorRef.current;
+      if (!editorElement) {
+        return;
+      }
+      const cursorPos = document.activeElement === editorElement
+        ? getCursorOffset(editorElement)
+        : undefined;
+      syncDOM(lastEmittedValue.current, cursorPos);
+    }, [mentionUserAvatarLookup, syncDOM]);
     const { filteredItems, renderSections } = useMentionDropdownState({
       items,
       mentionQuery,

@@ -37,9 +37,12 @@ type DraftPendingRouteKind = "draft" | "pending";
 type DraftPendingStatus = "Draft" | "Review";
 
 const WORKSPACE_SLUG_QUERY_KEY = "workspace";
+const COMPLETED_PATH = viewToPath("completed");
 const DRAFTS_PATH = viewToPath("drafts");
 const PENDING_PATH = viewToPath("pending");
 
+const isCompletedPath = (pathname: string): boolean =>
+  pathname === COMPLETED_PATH || pathname.startsWith(`${COMPLETED_PATH}/`);
 const isDraftPendingPath = (pathname: string): boolean =>
   pathname === DRAFTS_PATH ||
   pathname === PENDING_PATH ||
@@ -101,7 +104,10 @@ export type DashboardNavigationState = {
   closeCreateWorkspace: () => void;
   openCompletedProjectsPopup: () => void;
   closeCompletedProjectsPopup: () => void;
-  openCompletedProjectDetail: (projectId: string) => void;
+  openCompletedProjectDetail: (
+    projectId: string,
+    options?: { replace?: boolean; from?: string },
+  ) => void;
   backToCompletedProjectsList: () => void;
   openDraftPendingProjectsPopup: () => void;
   closeDraftPendingProjectsPopup: () => void;
@@ -136,10 +142,6 @@ export const useDashboardNavigation = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
-  const [isCompletedProjectsOpen, setIsCompletedProjectsOpen] = useState(false);
-  const [completedProjectDetailId, setCompletedProjectDetailId] = useState<
-    string | null
-  >(null);
   const [highlightedArchiveProjectId, setHighlightedArchiveProjectId] =
     useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] =
@@ -155,10 +157,38 @@ export const useDashboardNavigation = ({
   useEffect(() => {
     writeDashboardWorkspaceSlug(activeWorkspaceSlug);
   }, [activeWorkspaceSlug]);
+  const routeView = useMemo(
+    () => pathToView(location.pathname),
+    [location.pathname],
+  );
   const currentView = useMemo<AppView>(() => {
-    const directView = pathToView(location.pathname);
-    if (directView) {
-      return directView;
+    if (routeView) {
+      if (
+        routeView === "completed" ||
+        routeView.startsWith("completed-project:")
+      ) {
+        const completedProjectId = routeView.startsWith("completed-project:")
+          ? routeView.slice("completed-project:".length)
+          : null;
+        const fromParam = searchParams.get("from");
+        if (fromParam && fromParam.startsWith("/")) {
+          const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
+          const fromView = pathToView(fromPathname);
+          const fromIsSameCompletedProject =
+            completedProjectId != null &&
+            fromView === `project:${completedProjectId}`;
+          if (
+            fromView &&
+            fromView !== "completed" &&
+            !fromView.startsWith("completed-project:") &&
+            !fromIsSameCompletedProject
+          ) {
+            return fromView;
+          }
+        }
+        return "tasks";
+      }
+      return routeView;
     }
     if (location.pathname === "/settings") {
       const fromParam = searchParams.get("from");
@@ -171,7 +201,7 @@ export const useDashboardNavigation = ({
       }
     }
     return "tasks";
-  }, [location.pathname, searchParams]);
+  }, [location.pathname, routeView, searchParams]);
   const settingsTab = useMemo(
     () => parseSettingsTab(searchParams.get("tab")),
     [searchParams],
@@ -182,12 +212,18 @@ export const useDashboardNavigation = ({
   );
   const isSettingsOpen = location.pathname === "/settings";
   const toProtectedFromPath = useCallback(
-    (candidate: string | null | undefined): string | null => {
+    (
+      candidate: string | null | undefined,
+      options?: { allowCompleted?: boolean },
+    ): string | null => {
       if (!candidate || !candidate.startsWith("/")) {
         return null;
       }
       const pathOnly = candidate.split(/[?#]/, 1)[0] ?? candidate;
       if (!isProtectedPath(pathOnly) || pathOnly === "/settings") {
+        return null;
+      }
+      if (options?.allowCompleted === false && isCompletedPath(pathOnly)) {
         return null;
       }
       return candidate;
@@ -212,26 +248,94 @@ export const useDashboardNavigation = ({
     }
     return "/tasks";
   }, [currentLocationPath, location.pathname, searchParams, toProtectedFromPath]);
-  const draftPendingProjectDetailId = useMemo(() => {
-    if (currentView.startsWith("draft-project:")) {
-      return currentView.slice("draft-project:".length);
-    }
-    if (currentView.startsWith("pending-project:")) {
-      return currentView.slice("pending-project:".length);
+  const resolveCompletedFromPath = useCallback(
+    (options?: {
+      from?: string | null;
+      fallback?: string;
+      completedProjectId?: string | null;
+    }): string => {
+      const toValidCompletedFromPath = (
+        candidate: string | null | undefined,
+      ): string | null => {
+        const protectedPath = toProtectedFromPath(candidate, {
+          allowCompleted: false,
+        });
+        if (!protectedPath) {
+          return null;
+        }
+        if (!options?.completedProjectId) {
+          return protectedPath;
+        }
+        const pathOnly = protectedPath.split(/[?#]/, 1)[0] ?? protectedPath;
+        const fromView = pathToView(pathOnly);
+        if (fromView === `project:${options.completedProjectId}`) {
+          return null;
+        }
+        return protectedPath;
+      };
+      const explicitFromCandidate = options?.from;
+      const explicitFrom = toValidCompletedFromPath(explicitFromCandidate);
+      if (explicitFrom) {
+        return explicitFrom;
+      }
+      if (explicitFromCandidate != null) {
+        const fallbackFromExplicit = toValidCompletedFromPath(options?.fallback);
+        return fallbackFromExplicit ?? "/tasks";
+      }
+      const fromParam = toValidCompletedFromPath(searchParams.get("from"));
+      if (fromParam) {
+        return fromParam;
+      }
+      if (
+        isProtectedPath(location.pathname) &&
+        location.pathname !== "/settings" &&
+        !isCompletedPath(location.pathname)
+      ) {
+        return currentLocationPath;
+      }
+      const fallback = toValidCompletedFromPath(options?.fallback);
+      return fallback ?? "/tasks";
+    },
+    [currentLocationPath, location.pathname, searchParams, toProtectedFromPath],
+  );
+  const completedProjectDetailId = useMemo(() => {
+    if (routeView && routeView.startsWith("completed-project:")) {
+      return routeView.slice("completed-project:".length);
     }
     return null;
-  }, [currentView]);
+  }, [routeView]);
+  const isCompletedProjectsOpen = useMemo(
+    () =>
+      routeView === "completed" ||
+      Boolean(routeView?.startsWith("completed-project:")),
+    [routeView],
+  );
+  const draftPendingProjectDetailId = useMemo(() => {
+    if (routeView && routeView.startsWith("draft-project:")) {
+      return routeView.slice("draft-project:".length);
+    }
+    if (routeView && routeView.startsWith("pending-project:")) {
+      return routeView.slice("pending-project:".length);
+    }
+    return null;
+  }, [routeView]);
   const draftPendingProjectDetailKind = useMemo<DraftPendingRouteKind | null>(
     () => {
-      if (currentView === "drafts" || currentView.startsWith("draft-project:")) {
+      if (
+        routeView === "drafts" ||
+        Boolean(routeView?.startsWith("draft-project:"))
+      ) {
         return "draft";
       }
-      if (currentView === "pending" || currentView.startsWith("pending-project:")) {
+      if (
+        routeView === "pending" ||
+        Boolean(routeView?.startsWith("pending-project:"))
+      ) {
         return "pending";
       }
       return null;
     },
-    [currentView],
+    [routeView],
   );
   const isDraftPendingProjectsOpen = draftPendingProjectDetailKind != null;
   const resolveSettingsFromPath = useCallback((): string => {
@@ -294,20 +398,67 @@ export const useDashboardNavigation = ({
     setIsCreateWorkspaceOpen(false);
   }, []);
   const openCompletedProjectsPopup = useCallback(() => {
-    setCompletedProjectDetailId(null);
-    setIsCompletedProjectsOpen(true);
-  }, []);
+    const from = resolveCompletedFromPath();
+    const params = new URLSearchParams({ from });
+    const nextPath = `${COMPLETED_PATH}?${params.toString()}`;
+    setIsInboxOpen(false);
+    if (currentLocationPath === nextPath) {
+      return;
+    }
+    navigate(nextPath);
+  }, [currentLocationPath, navigate, resolveCompletedFromPath]);
   const closeCompletedProjectsPopup = useCallback(() => {
-    setCompletedProjectDetailId(null);
-    setIsCompletedProjectsOpen(false);
-  }, []);
-  const openCompletedProjectDetail = useCallback((projectId: string) => {
-    setCompletedProjectDetailId(projectId);
-    setIsCompletedProjectsOpen(true);
-  }, []);
+    const destination = resolveCompletedFromPath({
+      completedProjectId: completedProjectDetailId,
+    });
+    setIsInboxOpen(false);
+    if (currentLocationPath === destination) {
+      return;
+    }
+    navigate(destination, { replace: true });
+  }, [
+    completedProjectDetailId,
+    currentLocationPath,
+    navigate,
+    resolveCompletedFromPath,
+  ]);
+  const openCompletedProjectDetail = useCallback(
+    (
+      projectId: string,
+      options?: { replace?: boolean; from?: string },
+    ) => {
+      const from = resolveCompletedFromPath({
+        from: options?.from,
+        completedProjectId: projectId,
+      });
+      const params = new URLSearchParams({ from });
+      const detailView: AppView = `completed-project:${projectId}`;
+      const nextPath = `${viewToPath(detailView)}?${params.toString()}`;
+      setIsInboxOpen(false);
+      if (currentLocationPath === nextPath) {
+        return;
+      }
+      navigate(nextPath, { replace: options?.replace });
+    },
+    [currentLocationPath, navigate, resolveCompletedFromPath],
+  );
   const backToCompletedProjectsList = useCallback(() => {
-    setCompletedProjectDetailId(null);
-  }, []);
+    const from = resolveCompletedFromPath({
+      completedProjectId: completedProjectDetailId,
+    });
+    const params = new URLSearchParams({ from });
+    const nextPath = `${COMPLETED_PATH}?${params.toString()}`;
+    setIsInboxOpen(false);
+    if (currentLocationPath === nextPath) {
+      return;
+    }
+    navigate(nextPath, { replace: true });
+  }, [
+    completedProjectDetailId,
+    currentLocationPath,
+    navigate,
+    resolveCompletedFromPath,
+  ]);
   const openDraftPendingProjectsPopup = useCallback(() => {
     const from = resolveDraftPendingFromPath();
     const params = new URLSearchParams({ from });

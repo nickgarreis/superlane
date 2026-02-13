@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronUp, Plus } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { DeniedAction } from "../permissions/DeniedAction";
 import { getCreateWorkspaceDeniedReason } from "../../lib/permissionRules";
@@ -88,7 +88,7 @@ export function SidebarWorkspaceSwitcher({
             </span>
           </div>
         </div>
-        <ChevronDown
+        <ChevronUp
           className={cn(
             "w-4 h-4 opacity-40 transition-transform duration-200",
             isOpen && "rotate-180",

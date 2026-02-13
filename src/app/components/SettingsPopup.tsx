@@ -52,6 +52,7 @@ export function SettingsPopup({
   initialTab = "Account",
   initialFocusTarget = null,
   activeWorkspace,
+  viewerRole,
   account,
   notifications,
   company,
@@ -147,7 +148,7 @@ export function SettingsPopup({
       onClick={onClose}
     >
       <div
-        className={`${POPUP_SHELL_CLASS} max-w-[700px] h-[min(92vh,760px)] flex flex-col font-app txt-tone-primary`}
+        className={`${POPUP_SHELL_CLASS} max-w-[660px] h-[min(88vh,700px)] flex flex-col font-app txt-tone-primary`}
         onClick={(event) => event.stopPropagation()}
       >
         <div aria-hidden="true" className={POPUP_SHELL_BORDER_CLASS} />
@@ -156,13 +157,10 @@ export function SettingsPopup({
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Settings size={16} className="txt-tone-subtle" />
-                <h2 className="txt-role-body-lg font-medium txt-tone-primary">
+                <h2 className="txt-role-body-xl font-medium txt-tone-primary">
                   Settings
                 </h2>
               </div>
-              <p className="txt-role-body-sm txt-tone-faint">
-                Account and workspace preferences in one place.
-              </p>
             </div>
             <button
               onClick={onClose}
@@ -177,41 +175,50 @@ export function SettingsPopup({
             </button>
           </div>
           <div className="mt-4 flex items-center gap-2">
-            <div className="min-w-0 flex flex-1 gap-2 overflow-x-auto pr-1">
-              {SETTINGS_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => scrollToSection(section.id)}
-                  aria-current={activeSection === section.id ? "page" : undefined}
-                  className={cn(
-                    "cursor-pointer shrink-0 rounded-full border px-3 py-1.5 txt-role-body-sm font-medium transition-colors flex items-center gap-1.5",
-                    activeSection === section.id
-                      ? "border-popup-border-emphasis bg-surface-active-soft txt-tone-primary"
-                      : "border-border-soft txt-tone-subtle hover:txt-tone-primary hover:bg-surface-hover-soft",
-                  )}
-                >
-                  <section.icon
-                    size={14}
-                    strokeWidth={2.1}
+            <div className="min-w-0 flex flex-1 overflow-x-auto pr-1">
+              <div className="inline-flex min-w-max items-stretch rounded-[10px] bg-bg-muted-surface p-1">
+                {SETTINGS_SECTIONS.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => scrollToSection(section.id)}
+                    aria-current={activeSection === section.id ? "page" : undefined}
                     className={cn(
-                      "transition-colors",
+                      "relative isolate cursor-pointer shrink-0 rounded-[6px] px-3 py-1.5 txt-role-body-sm font-medium transition-colors",
                       activeSection === section.id
                         ? "txt-tone-primary"
-                        : "txt-tone-subtle",
+                        : "txt-tone-subtle hover:txt-tone-primary",
                     )}
-                  />
-                  <span>{section.label}</span>
-                </button>
-              ))}
+                  >
+                    {activeSection === section.id ? (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-[6px] bg-surface-active-soft"
+                      />
+                    ) : null}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <section.icon
+                        size={14}
+                        strokeWidth={2.1}
+                        className={cn(
+                          "transition-colors",
+                          activeSection === section.id
+                            ? "txt-tone-primary"
+                            : "txt-tone-subtle",
+                        )}
+                      />
+                      <span>{section.label}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-            {company && (
-              <SettingsDangerZoneSection
-                company={company}
-                onSoftDeleteWorkspace={onSoftDeleteWorkspace}
-                layout="button"
-              />
-            )}
+            <SettingsDangerZoneSection
+              company={company}
+              viewerRole={viewerRole}
+              onSoftDeleteWorkspace={onSoftDeleteWorkspace}
+              layout="button"
+            />
           </div>
         </div>
         <div

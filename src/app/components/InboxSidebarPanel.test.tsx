@@ -46,6 +46,7 @@ describe("InboxSidebarPanel", () => {
         isOpen={false}
         onClose={vi.fn()}
         activities={[]}
+        workspaceMembers={[]}
         unreadCount={0}
         onMarkActivityRead={vi.fn()}
         onMarkAllRead={vi.fn()}
@@ -83,6 +84,7 @@ describe("InboxSidebarPanel", () => {
         isOpen
         onClose={onClose}
         activities={activities}
+        workspaceMembers={[]}
         unreadCount={1}
         onMarkActivityRead={onMarkActivityRead}
         onMarkAllRead={onMarkAllRead}
@@ -91,7 +93,10 @@ describe("InboxSidebarPanel", () => {
     );
 
     expect(screen.getByText("Inbox")).toBeInTheDocument();
-    expect(screen.getByText("1 unread")).toBeInTheDocument();
+    const unreadTag = screen.getByText("1 unread");
+    expect(unreadTag).toBeInTheDocument();
+    expect(unreadTag).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
+    expect(unreadTag).toHaveClass("txt-tone-accent");
     fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Mark read" }));
@@ -133,6 +138,7 @@ describe("InboxSidebarPanel", () => {
         isOpen
         onClose={vi.fn()}
         activities={activities}
+        workspaceMembers={[]}
         unreadCount={1}
         onMarkActivityRead={vi.fn()}
         onMarkAllRead={vi.fn()}
@@ -172,6 +178,7 @@ describe("InboxSidebarPanel", () => {
         isOpen
         onClose={vi.fn()}
         activities={[activity]}
+        workspaceMembers={[]}
         unreadCount={0}
         activitiesPaginationStatus="Exhausted"
         onActivityClick={onActivityClick}
@@ -202,6 +209,7 @@ describe("InboxSidebarPanel", () => {
         isOpen
         onClose={onClose}
         activities={[activity]}
+        workspaceMembers={[]}
         unreadCount={1}
         onMarkActivityRead={onMarkActivityRead}
         onActivityClick={onActivityClick}
@@ -230,6 +238,7 @@ describe("InboxSidebarPanel", () => {
         isOpen
         onClose={vi.fn()}
         activities={[activity]}
+        workspaceMembers={[]}
         unreadCount={0}
         activitiesPaginationStatus="Exhausted"
         onDismissActivity={onDismissActivity}
@@ -239,5 +248,40 @@ describe("InboxSidebarPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dismiss activity" }));
 
     expect(onDismissActivity).toHaveBeenCalledWith("activity-dismiss");
+  });
+
+  test("renders inbox user mention avatar from workspace member lookup", () => {
+    const activity = buildActivity({
+      id: "activity-mention-avatar",
+      kind: "collaboration",
+      action: "comment_added",
+      actorName: "Alex",
+      projectName: "Brand Launch",
+      message: "@[user:Nick Garreis]",
+    });
+
+    render(
+      <InboxSidebarPanel
+        isOpen
+        onClose={vi.fn()}
+        activities={[activity]}
+        workspaceMembers={[
+          {
+            userId: "user-nick",
+            workosUserId: "workos-nick",
+            name: "Nick Garreis",
+            email: "nick@example.com",
+            avatarUrl: "https://example.com/nick.png",
+            role: "member",
+            isViewer: false,
+          },
+        ]}
+        unreadCount={0}
+        activitiesPaginationStatus="Exhausted"
+      />,
+    );
+
+    const avatar = screen.getByAltText("Nick Garreis profile image");
+    expect(avatar).toHaveAttribute("src", "https://example.com/nick.png");
   });
 });

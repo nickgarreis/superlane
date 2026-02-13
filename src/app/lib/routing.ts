@@ -1,12 +1,15 @@
 export type AppView =
   | "tasks"
   | "archive"
+  | "completed"
   | "drafts"
   | "pending"
   | `project:${string}`
+  | `completed-project:${string}`
   | `archive-project:${string}`
   | `draft-project:${string}`
   | `pending-project:${string}`;
+const completedProjectPattern = /^\/completed\/([^/]+)$/;
 const archiveProjectPattern = /^\/archive\/([^/]+)$/;
 const draftProjectPattern = /^\/drafts\/([^/]+)$/;
 const pendingProjectPattern = /^\/pending\/([^/]+)$/;
@@ -25,11 +28,18 @@ export const viewToPath = (view: AppView): string => {
   if (view === "archive") {
     return "/archive";
   }
+  if (view === "completed") {
+    return "/completed";
+  }
   if (view === "drafts") {
     return "/drafts";
   }
   if (view === "pending") {
     return "/pending";
+  }
+  if (view.startsWith("completed-project:")) {
+    const projectId = view.slice("completed-project:".length);
+    return `/completed/${encodeURIComponent(projectId)}`;
   }
   if (view.startsWith("archive-project:")) {
     const projectId = view.slice("archive-project:".length);
@@ -53,11 +63,23 @@ export const pathToView = (pathname: string): AppView | null => {
   if (pathname === "/archive") {
     return "archive";
   }
+  if (pathname === "/completed") {
+    return "completed";
+  }
   if (pathname === "/drafts") {
     return "drafts";
   }
   if (pathname === "/pending") {
     return "pending";
+  }
+  const completedProjectMatch = pathname.match(completedProjectPattern);
+  if (completedProjectMatch) {
+    const decodedCompletedProjectId = safeDecodePathSegment(
+      completedProjectMatch[1],
+    );
+    if (decodedCompletedProjectId !== null) {
+      return `completed-project:${decodedCompletedProjectId}`;
+    }
   }
   const archiveProjectMatch = pathname.match(archiveProjectPattern);
   if (archiveProjectMatch) {
@@ -96,9 +118,11 @@ export const pathToView = (pathname: string): AppView | null => {
 export const isProtectedPath = (pathname: string): boolean =>
   pathname === "/tasks" ||
   pathname === "/archive" ||
+  pathname === "/completed" ||
   pathname === "/drafts" ||
   pathname === "/pending" ||
   pathname === "/settings" ||
+  completedProjectPattern.test(pathname) ||
   archiveProjectPattern.test(pathname) ||
   draftProjectPattern.test(pathname) ||
   pendingProjectPattern.test(pathname) ||

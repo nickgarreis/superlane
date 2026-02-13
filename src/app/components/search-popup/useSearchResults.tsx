@@ -58,7 +58,15 @@ export function useSearchResults({
     for (const { project } of matchedEntries.projectEntries) {
       handlers.set(project.id, () => {
         onClose();
-        onNavigate(project.archived ? `archive-project:${project.id}` : `project:${project.id}`);
+        if (project.archived) {
+          onNavigate(`archive-project:${project.id}`);
+          return;
+        }
+        if (project.status.label === "Completed") {
+          onNavigate(`completed-project:${project.id}`);
+          return;
+        }
+        onNavigate(`project:${project.id}`);
       });
     }
     return handlers;

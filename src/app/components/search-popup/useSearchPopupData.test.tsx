@@ -369,6 +369,12 @@ describe("useSearchPopupData", () => {
         (entry) => entry.type === "file" && entry.projectId === "project-4",
       ),
     ).toBe(false);
+
+    const completedProjectResult = result.current.flatResults.find(
+      (entry) => entry.type === "project" && entry.projectId === "project-4",
+    );
+    completedProjectResult?.action();
+    expect(onNavigate).toHaveBeenCalledWith("completed-project:project-4");
   });
 
   test("builds default content and suggestions when query is empty", () => {

@@ -36,6 +36,30 @@ const PROJECT: ProjectData = {
   ],
 };
 
+const COMPLETED_PROJECT: ProjectData = {
+  id: "project-2",
+  name: "Completed Launch",
+  description: "Shipped design",
+  creator: {
+    name: "Owner",
+    avatar: "",
+  },
+  status: {
+    label: "Completed",
+    color: "#76E39E",
+    bgColor: "rgba(118,227,158,0.12)",
+    dotColor: "#76E39E",
+  },
+  category: "Marketing",
+  archived: false,
+  tasks: [],
+};
+
+const PROJECTS = {
+  [PROJECT.id]: PROJECT,
+  [COMPLETED_PROJECT.id]: COMPLETED_PROJECT,
+};
+
 const FILES: ProjectFileData[] = [
   {
     id: "file-1",
@@ -57,7 +81,7 @@ describe("SearchPopup", () => {
       <SearchPopup
         isOpen
         onClose={onClose}
-        projects={{ [PROJECT.id]: PROJECT }}
+        projects={PROJECTS}
         files={FILES}
         onNavigate={onNavigate}
         onOpenInbox={vi.fn()}
@@ -81,7 +105,7 @@ describe("SearchPopup", () => {
       <SearchPopup
         isOpen
         onClose={onClose}
-        projects={{ [PROJECT.id]: PROJECT }}
+        projects={PROJECTS}
         files={FILES}
         onNavigate={onNavigate}
         onOpenInbox={vi.fn()}
@@ -124,7 +148,7 @@ describe("SearchPopup", () => {
       <SearchPopup
         isOpen
         onClose={onClose}
-        projects={{ [PROJECT.id]: PROJECT }}
+        projects={PROJECTS}
         files={FILES}
         onNavigate={onNavigate}
         onOpenInbox={vi.fn()}
@@ -142,5 +166,35 @@ describe("SearchPopup", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("tasks");
+  });
+
+  test("navigates completed project hits to completed detail intent", async () => {
+    const onNavigate = vi.fn();
+
+    render(
+      <SearchPopup
+        isOpen
+        onClose={vi.fn()}
+        projects={PROJECTS}
+        files={FILES}
+        onNavigate={onNavigate}
+        onOpenInbox={vi.fn()}
+        onOpenCreateProject={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "Search projects, tasks, files, or actions...",
+      ),
+      { target: { value: "completed launch" } },
+    );
+
+    fireEvent.click(await screen.findByText("Completed Launch"));
+
+    await waitFor(() => {
+      expect(onNavigate).toHaveBeenCalledWith("completed-project:project-2");
+    });
   });
 });

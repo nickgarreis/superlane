@@ -161,6 +161,17 @@ const findWorkspaceIdsMissingActivityCount = async (
   return missingWorkspaceIds;
 };
 
+const resolveTargetUserAvatarUrl = async (ctx: any, user: any) => {
+  const avatarUrl = typeof user?.avatarUrl === "string" ? user.avatarUrl.trim() : "";
+  if (avatarUrl.length > 0) {
+    return avatarUrl;
+  }
+  if (user?.avatarStorageId) {
+    return (await ctx.storage.getUrl(user.avatarStorageId)) ?? null;
+  }
+  return null;
+};
+
 export const listForWorkspace = query({
   args: {
     workspaceSlug: v.string(),
@@ -258,8 +269,8 @@ export const listForWorkspace = query({
       if (!user) {
         continue;
       }
-      const avatarUrl = typeof user.avatarUrl === "string" ? user.avatarUrl.trim() : "";
-      if (avatarUrl.length === 0) {
+      const avatarUrl = await resolveTargetUserAvatarUrl(ctx, user);
+      if (!avatarUrl) {
         continue;
       }
       targetUserAvatarUrlById.set(String(user._id), avatarUrl);

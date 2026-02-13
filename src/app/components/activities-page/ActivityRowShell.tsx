@@ -12,10 +12,8 @@ import {
   type ActivityKindFilter,
 } from "./activityChrome";
 import type { ActivityContextItem } from "./activityFormatting";
-import {
-  IMPORTANT_STATUS_PILL_CLASS,
-  TABLE_ACTION_ICON_BUTTON_CLASS,
-} from "../ui/controlChrome";
+import { TABLE_ACTION_ICON_BUTTON_CLASS } from "../ui/controlChrome";
+import { SidebarTag } from "../sidebar/SidebarTag";
 
 type ActivityRowShellProps = {
   kind: ActivityKindFilter;
@@ -29,6 +27,7 @@ type ActivityRowShellProps = {
   onMarkRead?: () => void;
   onDismiss?: () => void;
   onClick?: () => void;
+  isInboxLayout?: boolean;
   isImportant?: boolean;
   contextItems?: ActivityContextItem[];
   children?: React.ReactNode;
@@ -44,6 +43,7 @@ export function ActivityRowShell({
   onMarkRead,
   onDismiss,
   onClick,
+  isInboxLayout = false,
   isImportant = false,
   contextItems,
   children,
@@ -102,7 +102,16 @@ export function ActivityRowShell({
         ) : null}
         <span className="sr-only">{ACTIVITY_KIND_LABELS[kind]}</span>
       </span>
-      <div className={cn("min-w-0 flex-1", hasTopActions ? "pr-16" : undefined)}>
+      <div
+        className={cn(
+          "min-w-0 flex-1",
+          hasTopActions
+            ? isInboxLayout
+              ? "pr-20"
+              : "pr-16"
+            : undefined,
+        )}
+      >
         <p className={cn(ACTIVITY_TITLE_CLASS, "flex min-w-0 items-center gap-2")}>
           <span className="min-w-0 [overflow-wrap:anywhere]">{title}</span>
         </p>
@@ -111,9 +120,9 @@ export function ActivityRowShell({
             {meta}
           </p>
           {isImportant ? (
-            <span className={IMPORTANT_STATUS_PILL_CLASS}>
+            <SidebarTag tone="important">
               Important
-            </span>
+            </SidebarTag>
           ) : null}
         </div>
         {children ? <div className="mt-1 min-w-0 [overflow-wrap:anywhere]">{children}</div> : null}

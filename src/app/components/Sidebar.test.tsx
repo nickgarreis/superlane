@@ -131,7 +131,10 @@ describe("Sidebar workspace permissions", () => {
     );
 
     const inboxItem = screen.getByTitle("Inbox");
-    expect(within(inboxItem).getByText("7")).toBeInTheDocument();
+    const unreadBadge = within(inboxItem).getByText("7");
+    expect(unreadBadge).toBeInTheDocument();
+    expect(unreadBadge).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
+    expect(unreadBadge).toHaveClass("txt-tone-accent");
 
     rerender(
       <Sidebar
@@ -158,7 +161,10 @@ describe("Sidebar workspace permissions", () => {
       />,
     );
 
-    expect(within(screen.getByTitle("Inbox")).getByText("99+")).toBeInTheDocument();
+    const cappedBadge = within(screen.getByTitle("Inbox")).getByText("99+");
+    expect(cappedBadge).toBeInTheDocument();
+    expect(cappedBadge).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
+    expect(cappedBadge).toHaveClass("txt-tone-accent");
   });
 
   test("hides inbox badge when unread count is zero", () => {

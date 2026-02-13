@@ -26,7 +26,7 @@ describe("useDashboardApiHandlers", () => {
 
     expect(useActionMock).toHaveBeenCalled();
     expect(useMutationMock).toHaveBeenCalled();
-    expect(Object.keys(result.current)).toHaveLength(45);
+    expect(Object.keys(result.current)).toHaveLength(47);
     expect(result.current.ensureDefaultWorkspaceAction).toMatchObject({
       kind: "action",
     });

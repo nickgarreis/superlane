@@ -3,6 +3,10 @@ import {
   MENTION_TOKEN_SPLIT_REGEX,
   type MentionToken,
 } from "./types";
+import {
+  resolveMentionUserAvatar,
+  type MentionUserAvatarLookup,
+} from "./userAvatarLookup";
 const BADGE_BASE =
   "mention-badge inline-flex items-center gap-[4px] mx-[1px] whitespace-nowrap select-none align-baseline leading-normal txt-role-body-sm";
 const TASK_BADGE_CLS = `${BADGE_BASE} txt-tone-primary`;
@@ -12,6 +16,11 @@ const TASK_ICON =
   '<span style="font-size:12px;line-height:1;flex-shrink:0">📋</span>';
 const FILE_ICON =
   '<span style="font-size:12px;line-height:1;flex-shrink:0">📂</span>';
+
+export type MentionHTMLRenderOptions = {
+  userAvatarByLabel?: MentionUserAvatarLookup;
+};
+
 function userInitialsHTML(name: string): string {
   const initials = escapeHtml(
     name
@@ -25,6 +34,11 @@ function userInitialsHTML(name: string): string {
   );
   return `<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);font-size:8px;font-weight:600;flex-shrink:0;line-height:1;letter-spacing:0.2px">${initials}</span>`;
 }
+
+function userAvatarHTML(name: string, avatarUrl: string): string {
+  return `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(`${name} profile image`)}" style="display:inline-block;width:14px;height:14px;border-radius:50%;object-fit:cover;flex-shrink:0" />`;
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -40,7 +54,10 @@ export function parseMentionToken(token: string): MentionToken | null {
   }
   return { type: match[1] as MentionToken["type"], label: match[2] };
 }
-export function valueToHTML(value: string): string {
+export function valueToHTML(
+  value: string,
+  options?: MentionHTMLRenderOptions,
+): string {
   if (!value) {
     return "";
   }
@@ -62,7 +79,15 @@ export function valueToHTML(value: string): string {
         ? TASK_ICON
         : isFile
           ? FILE_ICON
-          : userInitialsHTML(token.label);
+          : (() => {
+              const avatarUrl = resolveMentionUserAvatar(
+                options?.userAvatarByLabel,
+                token.label,
+              );
+              return avatarUrl
+                ? userAvatarHTML(token.label, avatarUrl)
+                : userInitialsHTML(token.label);
+            })();
       return `<span contenteditable="false" data-mention="${escapeHtml(segment)}" class="${className}">${icon}<span style="font-weight:600">${escapeHtml(token.label)}</span></span>`;
     })
     .join("");

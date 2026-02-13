@@ -7,6 +7,7 @@ import type {
   ViewerIdentity,
   Workspace,
   WorkspaceActivity,
+  WorkspaceMember,
 } from "../../types";
 
 const LazyDashboardSidebarDndBoundary = React.lazy(
@@ -46,6 +47,7 @@ type DashboardChromeProps = {
   onOpenCompletedProjectsPopup: () => void;
   onOpenDraftPendingProjectsPopup: () => void;
   workspaceActivities: WorkspaceActivity[];
+  workspaceMembers: WorkspaceMember[];
   inboxUnreadCount: number;
   activitiesPaginationStatus:
     | "LoadingFirstPage"
@@ -85,6 +87,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
   onOpenCompletedProjectsPopup,
   onOpenDraftPendingProjectsPopup,
   workspaceActivities,
+  workspaceMembers,
   inboxUnreadCount,
   activitiesPaginationStatus,
   loadMoreWorkspaceActivities,
@@ -170,6 +173,7 @@ export const DashboardChrome = React.memo(function DashboardChrome({
                     isOpen={isInboxOpen}
                     onClose={closeInbox}
                     activities={workspaceActivities}
+                    workspaceMembers={workspaceMembers}
                     unreadCount={inboxUnreadCount}
                     onMarkActivityRead={onMarkInboxActivityRead}
                     onDismissActivity={onDismissInboxActivity}

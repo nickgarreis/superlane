@@ -82,6 +82,7 @@ export interface SettingsPopupProps {
   initialTab?: SettingsTab;
   initialFocusTarget?: SettingsFocusTarget | null;
   activeWorkspace?: Workspace;
+  viewerRole: CompanyRole | null;
   account: AccountSettingsData | null;
   notifications: NotificationSettingsData | null;
   company: CompanySettingsData | null;

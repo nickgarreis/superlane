@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import type { DashboardPopupsProps } from "./dashboardPopups.types";
 import { Z_LAYERS } from "../../lib/zLayers";
+import type { AppView } from "../../lib/routing";
 import type { ProjectData, ProjectDraftData } from "../../types";
 import { categoryToService } from "../hooks/projectActionMappers";
 export const loadSearchPopupModule = () =>
@@ -133,6 +134,14 @@ export function DashboardPopups({
   handleGetWorkspaceBrandAssetDownloadUrl,
   handleSoftDeleteWorkspace,
 }: DashboardPopupsProps) {
+  const handleSearchNavigate = (view: AppView) => {
+    if (view.startsWith("completed-project:")) {
+      openCompletedProjectDetail(view.slice("completed-project:".length));
+      return;
+    }
+    navigateView(view);
+  };
+
   return (
     <>
       {isSearchOpen && (
@@ -145,7 +154,7 @@ export function DashboardPopups({
             files={allWorkspaceFiles}
             workspaceFilesPaginationStatus={workspaceFilesPaginationStatus}
             loadMoreWorkspaceFiles={loadMoreWorkspaceFiles}
-            onNavigate={navigateView}
+            onNavigate={handleSearchNavigate}
             onOpenInbox={openInbox}
             onOpenCreateProject={openCreateProject}
             onOpenSettings={searchPopupOpenSettings}

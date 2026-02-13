@@ -48,9 +48,119 @@ const formatRelativeTime = (timestamp: number, now: number) => {
   });
 };
 
-const parseMentionTokens = (content: string) => {
-  const matches = content.matchAll(/@([a-zA-Z0-9._-]+)/g);
-  return Array.from(new Set(Array.from(matches, (match) => match[1]))).slice(0, 20);
+type MentionTarget = {
+  label: string;
+  normalizedLabel: string;
+};
+
+const normalizeMentionLabel = (value: string | null | undefined) => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const parseMentionTargets = (content: string): MentionTarget[] => {
+  const targets: MentionTarget[] = [];
+  const seenLabels = new Set<string>();
+
+  const appendTarget = (rawLabel: string | undefined) => {
+    const normalizedLabel = normalizeMentionLabel(rawLabel);
+    if (!normalizedLabel || seenLabels.has(normalizedLabel)) {
+      return;
+    }
+    const label = rawLabel?.trim().replace(/\s+/g, " ") ?? "";
+    if (!label) {
+      return;
+    }
+    seenLabels.add(normalizedLabel);
+    targets.push({ label, normalizedLabel });
+  };
+
+  for (const match of content.matchAll(/@\[user:([^\]]+)\]/gi)) {
+    appendTarget(match[1]);
+  }
+
+  // Legacy fallback for historic handle-style mentions such as "@alex".
+  for (const match of content.matchAll(/@([a-zA-Z0-9._-]+)/g)) {
+    appendTarget(match[1]);
+  }
+
+  return targets.slice(0, 20);
+};
+
+type MentionResolutionContext = {
+  userIdsByNormalizedLabel: Map<string, Set<Id<"users">>>;
+  userById: Map<string, UserDoc>;
+};
+
+const addMentionResolutionCandidate = (
+  userIdsByNormalizedLabel: Map<string, Set<Id<"users">>>,
+  value: string | null | undefined,
+  userId: Id<"users">,
+) => {
+  const normalizedLabel = normalizeMentionLabel(value);
+  if (!normalizedLabel) {
+    return;
+  }
+  if (!userIdsByNormalizedLabel.has(normalizedLabel)) {
+    userIdsByNormalizedLabel.set(normalizedLabel, new Set<Id<"users">>());
+  }
+  userIdsByNormalizedLabel.get(normalizedLabel)?.add(userId);
+};
+
+const buildMentionResolutionContext = async (
+  ctx: MutationCtx,
+  workspaceId: Id<"workspaces">,
+): Promise<MentionResolutionContext> => {
+  const memberships = await ctx.db
+    .query("workspaceMembers")
+    .withIndex("by_workspace_status_joinedAt", (q) =>
+      q.eq("workspaceId", workspaceId).eq("status", "active"))
+    .collect();
+
+  const uniqueUserIds = Array.from(new Set(memberships.map((membership) => membership.userId)));
+  const users = await Promise.all(uniqueUserIds.map((userId) => ctx.db.get(userId)));
+  const userById = new Map(
+    users
+      .filter((user): user is UserDoc => user !== null)
+      .map((user) => [String(user._id), user] as const),
+  );
+
+  const userIdsByNormalizedLabel = new Map<string, Set<Id<"users">>>();
+  for (const membership of memberships) {
+    const userId = membership.userId;
+    const user = userById.get(String(userId));
+    if (!user) {
+      continue;
+    }
+
+    addMentionResolutionCandidate(
+      userIdsByNormalizedLabel,
+      membership.nameSnapshot ?? user.name,
+      userId,
+    );
+    addMentionResolutionCandidate(
+      userIdsByNormalizedLabel,
+      membership.emailSnapshot ?? user.email ?? null,
+      userId,
+    );
+
+    const email = membership.emailSnapshot ?? user.email ?? null;
+    if (typeof email === "string" && email.includes("@")) {
+      addMentionResolutionCandidate(
+        userIdsByNormalizedLabel,
+        email.split("@")[0] ?? null,
+        userId,
+      );
+    }
+  }
+
+  return {
+    userIdsByNormalizedLabel,
+    userById,
+  };
 };
 
 const buildReactionSummarySnapshot = (
@@ -581,7 +691,27 @@ export const create = mutation({
         projectPublicId: project.publicId,
       });
     }
-    for (const mention of parseMentionTokens(trimmedContent)) {
+    const mentionTargets = parseMentionTargets(trimmedContent);
+    const mentionResolutionContext = mentionTargets.length > 0
+      ? await buildMentionResolutionContext(ctx, project.workspaceId)
+      : null;
+
+    for (const mention of mentionTargets) {
+      const matchingUserIds = mentionResolutionContext
+        ?.userIdsByNormalizedLabel
+        .get(mention.normalizedLabel);
+      const targetUserId =
+        matchingUserIds && matchingUserIds.size === 1
+          ? Array.from(matchingUserIds)[0]
+          : undefined;
+      const resolvedTargetUser = targetUserId
+        ? mentionResolutionContext?.userById.get(String(targetUserId))
+        : null;
+      const resolvedTargetName =
+        resolvedTargetUser?.name?.trim() && resolvedTargetUser.name.trim().length > 0
+          ? resolvedTargetUser.name.trim()
+          : mention.label;
+
       try {
         await logWorkspaceActivityForActorUser(ctx, {
           workspaceId: project.workspaceId,
@@ -590,13 +720,15 @@ export const create = mutation({
           actorUser: appUser,
           projectPublicId: project.publicId,
           projectName: project.name,
-          message: mention,
+          targetUserId,
+          targetUserName: resolvedTargetName,
+          message: mention.label,
         });
       } catch (error) {
         logError("comments.create", "Failed to log mention_added activity", {
           error,
           projectPublicId: project.publicId,
-          mention,
+          mention: mention.label,
         });
       }
     }

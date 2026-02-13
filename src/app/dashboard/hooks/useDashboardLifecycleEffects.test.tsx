@@ -293,6 +293,58 @@ describe("useDashboardLifecycleEffects", () => {
     });
   });
 
+  test("canonicalizes completed list and detail routes with safe from query", async () => {
+    const completedProject: ProjectData = {
+      ...buildProject("completed-1", false),
+      status: {
+        label: "Completed",
+        color: "#fff",
+        bgColor: "#000",
+        dotColor: "#fff",
+      },
+    };
+
+    const listArgs = createBaseArgs();
+    listArgs.locationPathname = "/completed";
+    listArgs.locationSearch = "?from=/completed/completed-1";
+    renderHook(() => useDashboardLifecycleEffects(listArgs));
+
+    await waitFor(() => {
+      expect(listArgs.navigateToPath).toHaveBeenCalledWith(
+        "/completed?from=%2Ftasks",
+        true,
+      );
+    });
+
+    const detailArgs = createBaseArgs();
+    detailArgs.locationPathname = "/completed/completed-1";
+    detailArgs.locationSearch = "?from=/completed";
+    detailArgs.projects = { "completed-1": completedProject };
+    renderHook(() => useDashboardLifecycleEffects(detailArgs));
+
+    await waitFor(() => {
+      expect(detailArgs.navigateToPath).toHaveBeenCalledWith(
+        "/completed/completed-1?from=%2Ftasks",
+        true,
+      );
+    });
+  });
+
+  test("redirects invalid completed detail routes back to completed list", async () => {
+    const args = createBaseArgs();
+    args.locationPathname = "/completed/missing";
+    args.locationSearch = "?from=/archive";
+
+    renderHook(() => useDashboardLifecycleEffects(args));
+
+    await waitFor(() => {
+      expect(args.navigateToPath).toHaveBeenCalledWith(
+        "/completed?from=%2Farchive",
+        true,
+      );
+    });
+  });
+
   test("ensures organization link for owners and reconciles once per workspace", async () => {
     const args = createBaseArgs();
     args.resolvedWorkspaceSlug = "workspace-1";

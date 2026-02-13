@@ -98,4 +98,29 @@ describe("CommentItem", () => {
 
     expect(onReply).toHaveBeenCalledWith("comment-1");
   });
+
+  test("renders avatar for user mention badges when mention data includes profile image", () => {
+    render(
+      <CommentItem
+        {...createProps({
+          comment: {
+            ...baseComment,
+            content: "Please check with @[user:Alex Owner]",
+          },
+          mentionItems: [
+            {
+              type: "user",
+              id: "user-1",
+              label: "Alex Owner",
+              avatar: "https://cdn.example/alex.png",
+            },
+          ],
+        })}
+      />,
+    );
+
+    const avatar = screen.getByAltText("Alex Owner profile image");
+    expect(avatar).toBeInTheDocument();
+    expect(avatar).toHaveAttribute("src", "https://cdn.example/alex.png");
+  });
 });

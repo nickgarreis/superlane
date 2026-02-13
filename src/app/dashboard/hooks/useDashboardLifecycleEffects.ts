@@ -163,6 +163,28 @@ export const useDashboardLifecycleEffects = ({
     }
     return fromParam;
   }, [locationSearch]);
+  const resolveCompletedFromPath = useCallback(
+    (options?: { completedProjectId?: string }) => {
+      const fromParam = new URLSearchParams(locationSearch).get("from");
+      if (!fromParam || !fromParam.startsWith("/")) {
+        return "/tasks";
+      }
+      const fromPathname = fromParam.split(/[?#]/, 1)[0] ?? fromParam;
+      const fromView = pathToView(fromPathname);
+      if (
+        !isProtectedPath(fromPathname) ||
+        fromPathname === "/settings" ||
+        !fromView ||
+        fromView === "completed" ||
+        fromView.startsWith("completed-project:") ||
+        fromView === `project:${options?.completedProjectId ?? ""}`
+      ) {
+        return "/tasks";
+      }
+      return fromParam;
+    },
+    [locationSearch],
+  );
   useEffect(() => {
     if (!snapshot) {
       return;
@@ -178,6 +200,7 @@ export const useDashboardLifecycleEffects = ({
     const projectRouteLoading =
       (routeView.startsWith("project:") ||
         routeView.startsWith("archive-project:") ||
+        routeView.startsWith("completed-project:") ||
         routeView.startsWith("draft-project:") ||
         routeView.startsWith("pending-project:")) &&
       projectsPaginationStatus === "LoadingFirstPage";
@@ -253,6 +276,42 @@ export const useDashboardLifecycleEffects = ({
         return;
       }
       invalidRouteRef.current = null;
+      return;
+    }
+    if (routeView === "completed") {
+      const fromPath = resolveCompletedFromPath();
+      const fromParams = new URLSearchParams({ from: fromPath });
+      const expectedPath = `${viewToPath("completed")}?${fromParams.toString()}`;
+      if (`${locationPathname}${locationSearch}` !== expectedPath) {
+        navigateToPath(expectedPath, true);
+        return;
+      }
+      invalidRouteRef.current = null;
+      return;
+    }
+    if (routeView.startsWith("completed-project:")) {
+      const projectId = routeView.slice("completed-project:".length);
+      const project = projects[projectId] ?? projectCacheRef.current[projectId];
+      const fromPath = resolveCompletedFromPath({
+        completedProjectId: projectId,
+      });
+      const fromParams = new URLSearchParams({ from: fromPath });
+      const listPath = `${viewToPath("completed")}?${fromParams.toString()}`;
+      if (
+        !project ||
+        project.archived ||
+        project.status.label !== "Completed"
+      ) {
+        navigateToPath(listPath, true);
+        return;
+      }
+      const expectedPath = `${viewToPath(`completed-project:${projectId}`)}?${fromParams.toString()}`;
+      if (`${locationPathname}${locationSearch}` !== expectedPath) {
+        navigateToPath(expectedPath, true);
+        return;
+      }
+      invalidRouteRef.current = null;
+      return;
     }
   }, [
     snapshot,
@@ -261,6 +320,7 @@ export const useDashboardLifecycleEffects = ({
     projects,
     navigateToPath,
     projectsPaginationStatus,
+    resolveCompletedFromPath,
     resolveDraftPendingFromPath,
   ]);
   useEffect(() => {

@@ -8,11 +8,18 @@ import {
   renderCommentContent,
   type MentionItem,
 } from "./MentionTextarea";
+import { buildMentionUserAvatarLookup } from "./mentions/userAvatarLookup";
 
 const mentionItems: MentionItem[] = [
   { type: "task", id: "task-1", label: "Task Alpha" },
   { type: "file", id: "file-1", label: "File Bravo", meta: "PDF" },
-  { type: "user", id: "user-1", label: "Casey User", meta: "Owner" },
+  {
+    type: "user",
+    id: "user-1",
+    label: "Casey User",
+    meta: "Owner",
+    avatar: "https://cdn.example/casey.png",
+  },
 ];
 
 function setSelectionAtEnd(element: HTMLElement) {
@@ -84,6 +91,7 @@ describe("MentionTextarea", () => {
     await waitFor(() => {
       expect(screen.getByText("Task Alpha")).toBeInTheDocument();
     });
+    expect(screen.getByAltText("Casey User profile image")).toBeInTheDocument();
 
     fireEvent.keyDown(editor, { key: "ArrowDown" });
     fireEvent.keyDown(editor, { key: "Enter" });
@@ -126,5 +134,76 @@ describe("MentionTextarea", () => {
     fireEvent.click(screen.getByText("Task Alpha"));
 
     expect(onMentionClick).toHaveBeenCalledWith("task", "Task Alpha");
+  });
+
+  test("renders long mention labels with wrap-safe classes", () => {
+    const longLabel = "ProjectNameWithNoSpacesThatShouldBreakAcrossLinesInNarrowContainers";
+
+    render(
+      <div>
+        {renderCommentContent(`See @[file:${longLabel}]`, vi.fn())}
+      </div>,
+    );
+
+    const label = screen.getByText(longLabel);
+    expect(label).toHaveClass("break-words", "min-w-0");
+    expect(label).not.toHaveClass("break-all");
+    expect(label.parentElement).toHaveClass("max-w-full", "min-w-0", "items-start");
+    expect(label.parentElement).not.toHaveClass("items-center");
+    const leadingVisual = label.parentElement?.firstElementChild;
+    expect(leadingVisual).toHaveClass("shrink-0", "pt-[2px]");
+  });
+
+  test("does not apply top icon padding to user mentions", () => {
+    const userLabel = "Casey User";
+
+    render(
+      <div>
+        {renderCommentContent(`See @[user:${userLabel}]`, vi.fn())}
+      </div>,
+    );
+
+    const label = screen.getByText(userLabel);
+    const leadingVisual = label.parentElement?.firstElementChild;
+    expect(leadingVisual).toHaveClass("shrink-0");
+    expect(leadingVisual).not.toHaveClass("pt-[2px]");
+  });
+
+  test("renders user mention avatar when lookup data is available", () => {
+    const userLabel = "Casey User";
+    const lookup = buildMentionUserAvatarLookup([
+      { label: userLabel, avatarUrl: "https://cdn.example/casey.png" },
+    ]);
+
+    render(
+      <div>
+        {renderCommentContent(`See @[user:${userLabel}]`, vi.fn(), {
+          userAvatarByLabel: lookup,
+        })}
+      </div>,
+    );
+
+    const avatar = screen.getByAltText("Casey User profile image");
+    expect(avatar).toBeInTheDocument();
+    expect(avatar).toHaveAttribute("src", "https://cdn.example/casey.png");
+  });
+
+  test("falls back to initials when user mention label is ambiguous", () => {
+    const userLabel = "Casey User";
+    const lookup = buildMentionUserAvatarLookup([
+      { label: "Casey User", avatarUrl: "https://cdn.example/casey-a.png" },
+      { label: "casey   user", avatarUrl: "https://cdn.example/casey-b.png" },
+    ]);
+
+    render(
+      <div>
+        {renderCommentContent(`See @[user:${userLabel}]`, vi.fn(), {
+          userAvatarByLabel: lookup,
+        })}
+      </div>,
+    );
+
+    expect(screen.queryByAltText("Casey User profile image")).toBeNull();
+    expect(screen.getByText("CU")).toBeInTheDocument();
   });
 });

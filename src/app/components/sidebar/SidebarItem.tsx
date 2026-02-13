@@ -2,13 +2,12 @@ import React, { useRef } from "react";
 import { Archive, ArchiveRestore, Undo2 } from "lucide-react";
 import { useDrag } from "react-dnd";
 import { cn } from "../../../lib/utils";
-import { WARNING_STATUS_PILL_CLASS } from "../ui/controlChrome";
 import {
-  SIDEBAR_BADGE_CLASS,
   SIDEBAR_ITEM_ACTIVE_CLASS,
   SIDEBAR_ITEM_BASE_CLASS,
   SIDEBAR_ITEM_IDLE_CLASS,
 } from "./sidebarChrome";
+import { SidebarTag } from "./SidebarTag";
 export type SidebarItemProps = {
   icon: React.ReactNode;
   label: string;
@@ -96,9 +95,9 @@ export const SidebarItem = React.memo(function SidebarItem({
         </span>
       )}
       {badge != null && (
-        <span className={SIDEBAR_BADGE_CLASS}>
+        <SidebarTag tone="inboxUnread" className="ml-2">
           {badge}
-        </span>
+        </SidebarTag>
       )}
       {isDraft && (
         <span className="inline-flex h-[19px] items-center py-[2px] txt-role-kbd font-medium txt-tone-accent ml-2 shrink-0 whitespace-nowrap">
@@ -111,9 +110,9 @@ export const SidebarItem = React.memo(function SidebarItem({
         </span>
       )}
       {isApproved && (
-        <span className={cn(WARNING_STATUS_PILL_CLASS, "ml-2")}>
+        <SidebarTag tone="approved" className="ml-2">
           Approved
-        </span>
+        </SidebarTag>
       )}
       {completionDate && (
         <span className="txt-role-kbd text-white/30 ml-2 shrink-0 whitespace-nowrap">

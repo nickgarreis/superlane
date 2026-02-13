@@ -27,6 +27,10 @@ export const getPageTitle = (pathname: string): string => {
     return `Archive | ${APP_NAME}`;
   }
 
+  if (pathname === "/completed") {
+    return `Completed Projects | ${APP_NAME}`;
+  }
+
   if (pathname === "/drafts") {
     return `Drafts & Pending Projects | ${APP_NAME}`;
   }
@@ -37,6 +41,10 @@ export const getPageTitle = (pathname: string): string => {
 
   if (pathname.startsWith("/archive/")) {
     return `Archived Project | ${APP_NAME}`;
+  }
+
+  if (pathname.startsWith("/completed/")) {
+    return `Completed Project | ${APP_NAME}`;
   }
 
   if (pathname.startsWith("/drafts/")) {

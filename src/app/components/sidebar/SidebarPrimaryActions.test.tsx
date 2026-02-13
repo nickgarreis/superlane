@@ -46,6 +46,9 @@ describe("SidebarPrimaryActions", () => {
     fireEvent.click(screen.getByText("Archive"));
     expect(onNavigate).toHaveBeenCalledWith("archive");
 
-    expect(screen.getByText("7")).toBeInTheDocument();
+    const unreadTag = screen.getByText("7");
+    expect(unreadTag).toBeInTheDocument();
+    expect(unreadTag).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
+    expect(unreadTag).toHaveClass("txt-tone-accent");
   });
 });

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "../../../lib/utils";
 import { renderCommentContent } from "../MentionTextarea";
 import { getCommentAuthorDeniedReason } from "../../lib/permissionRules";
+import { buildMentionUserAvatarLookup } from "../mentions/userAvatarLookup";
 import type { CommentItemProps } from "./commentItemTypes";
 import { CommentActions } from "./CommentActions";
 import { CommentThread } from "./CommentThread";
@@ -93,6 +94,22 @@ function CommentItemComponent({
   const isCollapsed = collapsedThreads.has(comment.id);
   const replyCount = Math.max(comment.replyCount ?? 0, comment.replies.length);
   const hasReplies = replyCount > 0;
+  const mentionRenderOptions = React.useMemo(
+    () => ({
+      userAvatarByLabel: buildMentionUserAvatarLookup(
+        mentionItems
+          .filter(
+            (item): item is (typeof mentionItems)[number] & { type: "user" } =>
+              item.type === "user",
+          )
+          .map((item) => ({
+            label: item.label,
+            avatarUrl: item.avatar ?? null,
+          })),
+      ),
+    }),
+    [mentionItems],
+  );
   return (
     <div
       className={cn("chat-comment-row group/comment relative")}
@@ -145,7 +162,11 @@ function CommentItemComponent({
             />
           ) : (
             <div className="txt-role-body-md txt-tone-muted txt-leading-reading whitespace-pre-wrap break-words">
-              {renderCommentContent(comment.content, onMentionClick)}
+              {renderCommentContent(
+                comment.content,
+                onMentionClick,
+                mentionRenderOptions,
+              )}
             </div>
           )}
           {!isEditing && (

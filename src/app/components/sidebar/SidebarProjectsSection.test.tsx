@@ -50,7 +50,10 @@ describe("SidebarProjectsSection", () => {
     fireEvent.click(screen.getByText("Active Approved"));
 
     expect(onNavigate).toHaveBeenCalledWith("project:active-1");
-    expect(screen.getByText("Approved")).toBeInTheDocument();
+    const approvedBadge = screen.getByText("Approved");
+    expect(approvedBadge).toBeInTheDocument();
+    expect(approvedBadge).toHaveAttribute("data-sidebar-tag-tone", "approved");
+    expect(approvedBadge).toHaveClass("txt-tone-warning");
   });
 
   test("opens completed projects popup from completed section", () => {

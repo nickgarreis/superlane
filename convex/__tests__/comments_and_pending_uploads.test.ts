@@ -521,6 +521,65 @@ describe("P2.2 critical test gaps: comments + pending uploads", () => {
     });
   });
 
+  test("comment mentions log mention_added with resolved target user and storage-backed avatar fallback", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+    const avatarBlob = await storeBlob("member-two-avatar", "image/png");
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(seeded.memberTwoUserId, {
+        avatarUrl: undefined,
+        avatarStorageId: avatarBlob.storageId,
+      });
+    });
+
+    await asOwner().mutation(api.comments.create, {
+      projectPublicId: seeded.projectPublicId,
+      content: "Please sync with @[user:Member Two User]",
+    });
+
+    const activityFeed = await asOwner().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 50 },
+      kinds: ["collaboration"],
+    });
+    const mentionEvent = activityFeed.page.find(
+      (entry) => entry.action === "mention_added",
+    );
+
+    expect(mentionEvent).toBeDefined();
+    expect(mentionEvent?.targetUserId).toBe(String(seeded.memberTwoUserId));
+    expect(mentionEvent?.targetUserName).toBe("Member Two User");
+    expect(mentionEvent?.targetUserAvatarUrl).toContain("http");
+  });
+
+  test("comment mentions keep targetUserId empty when display name is ambiguous", async () => {
+    const seeded = await seedWorkspaceWithProjectComment();
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(seeded.memberUserId, { name: "Pat Lee" });
+      await ctx.db.patch(seeded.memberTwoUserId, { name: "Pat Lee" });
+    });
+
+    await asOwner().mutation(api.comments.create, {
+      projectPublicId: seeded.projectPublicId,
+      content: "Looping in @[user:Pat Lee]",
+    });
+
+    const activityFeed = await asOwner().query(api.activities.listForWorkspace, {
+      workspaceSlug: seeded.workspaceSlug,
+      paginationOpts: { cursor: null, numItems: 50 },
+      kinds: ["collaboration"],
+    });
+    const mentionEvent = activityFeed.page.find(
+      (entry) => entry.action === "mention_added",
+    );
+
+    expect(mentionEvent).toBeDefined();
+    expect(mentionEvent?.targetUserId).toBeNull();
+    expect(mentionEvent?.targetUserName).toBe("Pat Lee");
+    expect(mentionEvent?.message).toBe("Pat Lee");
+  });
+
   test("discardPendingUploadsForSession removes only current uploader rows and is idempotent", async () => {
     const seeded = await seedWorkspaceWithProjectComment();
 

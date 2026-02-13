@@ -2,6 +2,15 @@ import React, { useRef } from "react";
 import { cn } from "../../../lib/utils";
 import { parseMentionToken } from "./mentionParser";
 import { MENTION_TOKEN_SPLIT_REGEX, type MentionEntityType } from "./types";
+import {
+  resolveMentionUserAvatar,
+  type MentionUserAvatarLookup,
+} from "./userAvatarLookup";
+
+export type MentionRenderOptions = {
+  userAvatarByLabel?: MentionUserAvatarLookup;
+};
+
 function UserInitials({ name }: { name: string }) {
   const initials = name
     .trim()
@@ -17,17 +26,41 @@ function UserInitials({ name }: { name: string }) {
     </span>
   );
 }
+
+function UserAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl: string;
+}) {
+  return (
+    <img
+      src={avatarUrl}
+      alt={`${name} profile image`}
+      className="w-[14px] h-[14px] rounded-full object-cover shrink-0"
+    />
+  );
+}
+
 function MentionBadge({
   type,
   label,
   onClick,
+  options,
 }: {
   type: MentionEntityType;
   label: string;
   onClick?: (type: MentionEntityType, label: string) => void;
+  options?: MentionRenderOptions;
 }) {
   const isTask = type === "task";
   const isFile = type === "file";
+  const isUser = type === "user";
+  const hasIconTopInset = isTask || isFile;
+  const userAvatarUrl = isUser
+    ? resolveMentionUserAvatar(options?.userAvatarByLabel, label)
+    : null;
   const clickable = Boolean(onClick);
   const badgeRef = useRef<HTMLSpanElement>(null);
   const handleClick = clickable
@@ -46,7 +79,7 @@ function MentionBadge({
     <span
       ref={badgeRef}
       className={cn(
-        "inline-flex items-center gap-[4px] mx-[1px] px-[3px] py-[1px] whitespace-nowrap txt-role-body-sm",
+        "inline-flex max-w-full min-w-0 items-start gap-[4px] mx-[1px] px-[3px] py-[1px] txt-role-body-sm",
         "align-baseline relative rounded-[4px] transition-colors",
         clickable
           ? "cursor-pointer hover:bg-surface-hover-soft hover:text-white active:bg-surface-active-soft active:scale-[0.97]"
@@ -55,20 +88,25 @@ function MentionBadge({
       )}
       onClick={handleClick}
     >
-      {isTask ? (
-        <span className="txt-role-body-sm leading-none shrink-0">📋</span>
-      ) : isFile ? (
-        <span className="txt-role-body-sm leading-none shrink-0">📂</span>
-      ) : (
-        <UserInitials name={label} />
-      )}
-      <span className="font-semibold">{label}</span>
+      <span className={cn("shrink-0", hasIconTopInset ? "pt-[2px]" : undefined)}>
+        {isTask ? (
+          <span className="txt-role-body-sm leading-none">📋</span>
+        ) : isFile ? (
+          <span className="txt-role-body-sm leading-none">📂</span>
+        ) : userAvatarUrl ? (
+          <UserAvatar name={label} avatarUrl={userAvatarUrl} />
+        ) : (
+          <UserInitials name={label} />
+        )}
+      </span>
+      <span className="min-w-0 break-words font-semibold">{label}</span>
     </span>
   );
 }
 export function renderCommentContent(
   content: string,
   onMentionClick?: (type: MentionEntityType, label: string) => void,
+  options?: MentionRenderOptions,
 ): React.ReactNode {
   const segments = content.split(MENTION_TOKEN_SPLIT_REGEX);
   if (segments.length === 1) {
@@ -87,6 +125,7 @@ export function renderCommentContent(
             type={token.type}
             label={token.label}
             onClick={onMentionClick}
+            options={options}
           />
         );
       })}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { viewToPath, type AppView } from "../../lib/routing";
 import type { ProjectData } from "../../types";
 
@@ -12,16 +12,21 @@ type UseDraftReviewProjectRouteGuardArgs = {
   currentView: AppView;
   locationPathname: string;
   projects: Record<string, ProjectData>;
-  orderedProjectIds: string[];
   projectsPaginationStatus: ProjectsPaginationStatus;
-  openCompletedProjectsPopup: () => void;
+  openCompletedProjectDetail: (
+    projectId: string,
+    options?: { replace?: boolean; from?: string },
+  ) => void;
   navigateToPath: (path: string, replace?: boolean) => void;
 };
 
 const PROJECT_VIEW_PREFIX = "project:";
 const TASKS_PATH = viewToPath("tasks");
+const COMPLETED_PATH = viewToPath("completed");
 const PROJECT_PATH_PREFIX = "/project/";
 const isProjectRoute = (path: string) => path.startsWith(PROJECT_PATH_PREFIX);
+const isCompletedRoute = (path: string) =>
+  path === COMPLETED_PATH || path.startsWith(`${COMPLETED_PATH}/`);
 const decodeProjectIdFromPath = (path: string): string | null => {
   if (!isProjectRoute(path)) {
     return null;
@@ -61,9 +66,8 @@ export const useDraftReviewProjectRouteGuard = ({
   currentView,
   locationPathname,
   projects,
-  orderedProjectIds,
   projectsPaginationStatus,
-  openCompletedProjectsPopup,
+  openCompletedProjectDetail,
   navigateToPath,
 }: UseDraftReviewProjectRouteGuardArgs) => {
   const handledPathRef = useRef<string | null>(null);
@@ -100,53 +104,6 @@ export const useDraftReviewProjectRouteGuard = ({
     }
     previousPathRef.current = locationPathname;
   }
-
-  const resolveNextActiveProjectPath = useCallback(
-    (currentProjectId: string): string => {
-      const allProjectIds: string[] = [];
-      const seenProjectIds = new Set<string>();
-      const appendProjectId = (projectId: string) => {
-        if (seenProjectIds.has(projectId)) {
-          return;
-        }
-        seenProjectIds.add(projectId);
-        allProjectIds.push(projectId);
-      };
-
-      for (const projectId of orderedProjectIds) {
-        appendProjectId(projectId);
-      }
-      for (const projectId of Object.keys(projects)) {
-        appendProjectId(projectId);
-      }
-      for (const projectId of Object.keys(projectCacheRef.current)) {
-        appendProjectId(projectId);
-      }
-
-      const currentIndex = allProjectIds.indexOf(currentProjectId);
-      const candidateOrder =
-        currentIndex >= 0
-          ? [
-              ...allProjectIds.slice(currentIndex + 1),
-              ...allProjectIds.slice(0, currentIndex),
-            ]
-          : allProjectIds;
-
-      for (const projectId of candidateOrder) {
-        if (projectId === currentProjectId) {
-          continue;
-        }
-        const candidate = projects[projectId] ?? projectCacheRef.current[projectId];
-        if (!isDedicatedProjectDetailCandidate(candidate)) {
-          continue;
-        }
-        return `${PROJECT_PATH_PREFIX}${encodeURIComponent(projectId)}`;
-      }
-
-      return TASKS_PATH;
-    },
-    [orderedProjectIds, projects],
-  );
 
   useEffect(() => {
     if (
@@ -215,21 +172,28 @@ export const useDraftReviewProjectRouteGuard = ({
       return;
     }
 
-    openCompletedProjectsPopup();
     const becameCompletedOnSameRoute =
       previousStatusOnPath != null && previousStatusOnPath !== "Completed";
-    const redirectPath = becameCompletedOnSameRoute
-      ? resolveNextActiveProjectPath(project.id)
-      : (lastOriginPathRef.current || TASKS_PATH);
-    navigateToPath(redirectPath, true);
+    const rawOriginPath =
+      becameCompletedOnSameRoute ||
+      lastOriginPathRef.current === locationPathname
+        ? TASKS_PATH
+        : (lastOriginPathRef.current || TASKS_PATH);
+    const originProjectId = decodeProjectIdFromPath(rawOriginPath);
+    const originPath =
+      isCompletedRoute(rawOriginPath) || originProjectId === project.id
+        ? TASKS_PATH
+        : rawOriginPath;
+    openCompletedProjectDetail(project.id, {
+      replace: true,
+      from: originPath,
+    });
   }, [
     currentView,
     locationPathname,
     navigateToPath,
-    openCompletedProjectsPopup,
-    orderedProjectIds,
+    openCompletedProjectDetail,
     projects,
     projectsPaginationStatus,
-    resolveNextActiveProjectPath,
   ]);
 };

@@ -8,7 +8,7 @@ import {
   MENU_ITEM_CLASS,
   MENU_SURFACE_CLASS,
 } from "../ui/menuChrome";
-import type { MentionEntityType } from "./types";
+import type { MentionItem } from "./types";
 type MentionDropdownPosition = {
   top?: number;
   bottom?: number;
@@ -17,10 +17,11 @@ type MentionDropdownPosition = {
   placement: "above" | "below";
 };
 export type MentionDropdownItem = {
-  type: MentionEntityType;
-  id: string;
-  label: string;
-  meta?: string;
+  type: MentionItem["type"];
+  id: MentionItem["id"];
+  label: MentionItem["label"];
+  meta?: MentionItem["meta"];
+  avatar?: MentionItem["avatar"];
 };
 type MentionSection =
   | { kind: "header"; label: string }
@@ -127,16 +128,24 @@ export function MentionDropdown({
                   📂
                 </span>
               ) : (
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] txt-role-micro text-white/60 shrink-0 font-semibold leading-none">
-                  {item.label
-                    .trim()
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .map((word) => word.charAt(0))
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </span>
+                item.avatar ? (
+                  <img
+                    src={item.avatar}
+                    alt={`${item.label} profile image`}
+                    className="w-[18px] h-[18px] rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-white/[0.1] txt-role-micro text-white/60 shrink-0 font-semibold leading-none">
+                    {item.label
+                      .trim()
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((word) => word.charAt(0))
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </span>
+                )
               )}
               <span
                 className={cn(

@@ -12,6 +12,7 @@ import { ProjectActivityRow } from "./ProjectActivityRow";
 import { TaskActivityRow } from "./TaskActivityRow";
 import { WorkspaceActivityRow } from "./WorkspaceActivityRow";
 import { formatTaskDueDate } from "../../../lib/dates";
+import { buildMentionUserAvatarLookup } from "../../mentions/userAvatarLookup";
 
 const buildActivity = (
   overrides: Partial<WorkspaceActivity>,
@@ -109,6 +110,7 @@ describe("Activity row renderers", () => {
       screen.getByText("Mentioned Taylor in a comment"),
     ).toBeInTheDocument();
     const importantBadge = screen.getByText("Important");
+    expect(importantBadge).toHaveAttribute("data-sidebar-tag-tone", "important");
     expect(importantBadge).toHaveClass("txt-tone-danger");
     expect(importantBadge).toHaveClass("bg-popup-danger-soft");
     expect(importantBadge).toHaveClass("border-popup-danger-soft-strong");
@@ -244,6 +246,32 @@ describe("Activity row renderers", () => {
     expect(onMentionClick).toHaveBeenCalledWith("file", "Mention Project");
   });
 
+  test("uses wrap-safe mention classes for long inbox project titles", () => {
+    const onMentionClick = vi.fn();
+    const longProjectName =
+      "ProjectNameWithNoSpacesThatShouldBreakAcrossLinesInInboxActivityRows";
+
+    render(
+      <ProjectActivityRow
+        activity={buildActivity({
+          kind: "project",
+          action: "created",
+          projectName: longProjectName,
+        })}
+        mentionMode="inbox"
+        onMentionClick={onMentionClick}
+      />,
+    );
+
+    const label = screen.getByText(longProjectName);
+    expect(label).toHaveClass("break-words", "min-w-0");
+    expect(label).not.toHaveClass("break-all");
+    expect(label.parentElement).toHaveClass("max-w-full", "min-w-0", "items-start");
+    expect(label.parentElement).not.toHaveClass("items-center");
+    const leadingVisual = label.parentElement?.firstElementChild;
+    expect(leadingVisual).toHaveClass("shrink-0", "pt-[2px]");
+  });
+
   test("renders inbox comment snippets with mention badges and handles mention clicks", () => {
     const onMentionClick = vi.fn();
     render(
@@ -262,6 +290,70 @@ describe("Activity row renderers", () => {
     expect(screen.queryByText("@[user:Nick Garreis]")).toBeNull();
     fireEvent.click(screen.getByText("Nick Garreis"));
     expect(onMentionClick).toHaveBeenCalledWith("user", "Nick Garreis");
+  });
+
+  test("renders collaboration mention-mode user mention avatar when lookup is provided", () => {
+    render(
+      <CollaborationActivityRow
+        activity={buildActivity({
+          kind: "collaboration",
+          action: "mention_added",
+          targetUserName: "Taylor",
+        })}
+        mentionMode="inbox"
+        mentionRenderOptions={{
+          userAvatarByLabel: buildMentionUserAvatarLookup([
+            { label: "Taylor", avatarUrl: "https://example.com/taylor.png" },
+          ]),
+        }}
+      />,
+    );
+
+    const avatar = screen.getByAltText("Taylor profile image");
+    expect(avatar).toHaveAttribute("src", "https://example.com/taylor.png");
+  });
+
+  test("renders task assignee mention avatar in inbox mode when lookup is provided", () => {
+    render(
+      <TaskActivityRow
+        activity={buildActivity({
+          kind: "task",
+          action: "assignee_changed",
+          taskTitle: "Plan sprint",
+          targetUserName: "Jordan",
+        })}
+        mentionMode="inbox"
+        mentionRenderOptions={{
+          userAvatarByLabel: buildMentionUserAvatarLookup([
+            { label: "Jordan", avatarUrl: "https://example.com/jordan.png" },
+          ]),
+        }}
+      />,
+    );
+
+    const avatar = screen.getByAltText("Jordan profile image");
+    expect(avatar).toHaveAttribute("src", "https://example.com/jordan.png");
+  });
+
+  test("renders membership mention avatar in inbox mode when lookup is provided", () => {
+    render(
+      <MembershipActivityRow
+        activity={buildActivity({
+          kind: "membership",
+          action: "member_removed",
+          targetUserName: "Morgan",
+        })}
+        mentionMode="inbox"
+        mentionRenderOptions={{
+          userAvatarByLabel: buildMentionUserAvatarLookup([
+            { label: "Morgan", avatarUrl: "https://example.com/morgan.png" },
+          ]),
+        }}
+      />,
+    );
+
+    const avatar = screen.getByAltText("Morgan profile image");
+    expect(avatar).toHaveAttribute("src", "https://example.com/morgan.png");
   });
 
   test("renders inbox comment-added title as actor mention then project mention", () => {

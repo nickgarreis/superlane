@@ -11,10 +11,12 @@ vi.mock("../../components/SearchPopup", () => ({
     onClose,
     onOpenSettings,
     onOpenInbox,
+    onNavigate,
   }: {
     onClose: () => void;
     onOpenSettings: (tab?: string) => void;
     onOpenInbox: () => void;
+    onNavigate: (view: string) => void;
   }) => (
     <div data-testid="search-popup">
       <button type="button" onClick={onClose}>
@@ -25,6 +27,12 @@ vi.mock("../../components/SearchPopup", () => ({
       </button>
       <button type="button" onClick={onOpenInbox}>
         Open Inbox
+      </button>
+      <button
+        type="button"
+        onClick={() => onNavigate("completed-project:project-1")}
+      >
+        Open Completed From Search
       </button>
     </div>
   ),
@@ -327,6 +335,11 @@ describe("DashboardPopups", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open Inbox" }));
     expect(props.openInbox).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open Completed From Search" }),
+    );
+    expect(props.openCompletedProjectDetail).toHaveBeenCalledWith("project-1");
 
     fireEvent.click(await screen.findByRole("button", { name: "Close Create Project" }));
     expect(props.closeCreateProject).toHaveBeenCalledTimes(1);

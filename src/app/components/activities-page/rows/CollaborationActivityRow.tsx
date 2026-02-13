@@ -3,6 +3,7 @@ import type { WorkspaceActivity } from "../../../types";
 import { renderCommentContent } from "../../MentionTextarea";
 import { parseMentionToken } from "../../mentions/mentionParser";
 import type { MentionEntityType } from "../../mentions/types";
+import type { MentionRenderOptions } from "../../mentions/renderCommentContent";
 import { ActivityRowShell } from "../ActivityRowShell";
 import { isImportantActivity } from "../activityImportance";
 import { sanitizeMentionLabel, toMentionToken } from "../activityMentions";
@@ -46,6 +47,7 @@ type CollaborationActivityRowProps = {
   onClick?: () => void;
   mentionMode?: "plain" | "inbox";
   onMentionClick?: (type: MentionEntityType, label: string) => void;
+  mentionRenderOptions?: MentionRenderOptions;
 };
 
 export function CollaborationActivityRow({
@@ -56,6 +58,7 @@ export function CollaborationActivityRow({
   onClick,
   mentionMode = "plain",
   onMentionClick,
+  mentionRenderOptions,
 }: CollaborationActivityRowProps) {
   const projectLabel = activity.projectName?.trim() || "project";
   const actorLabel = activity.actorName?.trim() || "A teammate";
@@ -90,7 +93,7 @@ export function CollaborationActivityRow({
     }
   })();
   const title = mentionMode === "inbox"
-    ? renderCommentContent(mentionTitle, onMentionClick)
+    ? renderCommentContent(mentionTitle, onMentionClick, mentionRenderOptions)
     : actionText(activity);
 
   const contextItems = buildContextItems([
@@ -113,10 +116,10 @@ export function CollaborationActivityRow({
     && Boolean(actorMentionLabel)
     && actorMentionLabel === commentMentionLabel;
   const commentSnippetContent = commentSnippet
-    ? hideActorDuplicateSnippet
+      ? hideActorDuplicateSnippet
       ? null
       : mentionMode === "inbox"
-        ? renderCommentContent(commentSnippet, onMentionClick)
+        ? renderCommentContent(commentSnippet, onMentionClick, mentionRenderOptions)
         : `"${commentSnippet}"`
     : null;
 
@@ -132,6 +135,7 @@ export function CollaborationActivityRow({
       onMarkRead={onMarkRead}
       onDismiss={onDismiss}
       onClick={onClick}
+      isInboxLayout={mentionMode === "inbox"}
       isImportant={isImportantActivity(activity)}
       contextItems={contextItems}
     >

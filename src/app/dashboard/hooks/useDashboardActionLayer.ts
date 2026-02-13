@@ -121,9 +121,8 @@ export function useDashboardActionLayer(dataLayer: DashboardDataLayer) {
     currentView: navigation.currentView,
     locationPathname: navigation.location.pathname,
     projects: data.projects,
-    orderedProjectIds: data.visibleProjectIds,
     projectsPaginationStatus: data.projectsPaginationStatus,
-    openCompletedProjectsPopup: navigation.openCompletedProjectsPopup,
+    openCompletedProjectDetail: navigation.openCompletedProjectDetail,
     navigateToPath: (path, replace = false) =>
       navigation.navigate(path, { replace }),
   });

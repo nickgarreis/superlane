@@ -3,7 +3,12 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import type { ProjectData, ViewerIdentity, Workspace } from "../../types";
+import type {
+  ProjectData,
+  ViewerIdentity,
+  Workspace,
+  WorkspaceMember,
+} from "../../types";
 import { DashboardChrome } from "./DashboardChrome";
 
 vi.mock("sonner", () => ({
@@ -68,6 +73,7 @@ vi.mock("../../components/InboxSidebarPanel", () => ({
   InboxSidebarPanel: (props: {
     isOpen: boolean;
     unreadCount: number;
+    workspaceMembers: Array<{ userId: string }>;
     onMarkActivityRead: (activityId: string) => void;
     onDismissActivity: (activityId: string) => void;
     onMarkAllRead: () => void;
@@ -121,6 +127,18 @@ const WORKSPACE: Workspace = {
   plan: "pro",
 };
 
+const WORKSPACE_MEMBERS: WorkspaceMember[] = [
+  {
+    userId: "user-1",
+    workosUserId: "workos-1",
+    name: "Owner",
+    email: "owner@example.com",
+    avatarUrl: null,
+    role: "owner",
+    isViewer: true,
+  },
+];
+
 const baseProps = () => ({
   isSidebarOpen: true,
   navigateView: vi.fn(),
@@ -148,6 +166,7 @@ const baseProps = () => ({
   onOpenCompletedProjectsPopup: vi.fn(),
   onOpenDraftPendingProjectsPopup: vi.fn(),
   workspaceActivities: [],
+  workspaceMembers: WORKSPACE_MEMBERS,
   inboxUnreadCount: 12,
   activitiesPaginationStatus: "Exhausted" as const,
   loadMoreWorkspaceActivities: vi.fn(),

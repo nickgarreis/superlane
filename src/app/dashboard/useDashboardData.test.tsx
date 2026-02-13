@@ -610,6 +610,55 @@ describe("useDashboardData", () => {
     expect(paginatedCallArgs[6]).toEqual({ projectPublicId: "completed-42" });
   });
 
+  test("prioritizes completed detail id over route project id for detail hydration", () => {
+    const paginatedCallArgs: unknown[] = [];
+
+    useQueryMock.mockImplementation((_query: unknown, args: unknown) => {
+      if (args === "skip") {
+        return undefined;
+      }
+      return {
+        activeWorkspaceSlug: "alpha",
+        viewer: null,
+        activeWorkspace: { slug: "alpha", name: "Alpha", plan: "Free" },
+        workspaces: [
+          {
+            slug: "alpha",
+            name: "Alpha",
+            plan: "Free",
+            logo: "",
+            logoColor: "",
+            logoText: "A",
+          },
+        ],
+      };
+    });
+    usePaginatedQueryMock.mockImplementation(
+      (_query: unknown, queryArg: unknown) => {
+        paginatedCallArgs.push(queryArg);
+        return {
+          results: [],
+          status: "Exhausted",
+          isLoading: false,
+          loadMore: vi.fn(),
+        };
+      },
+    );
+
+    renderHook(() =>
+      useDashboardData({
+        ...createBaseArgs(),
+        isSearchOpen: false,
+        isSettingsOpen: false,
+        currentView: "project:active-1",
+        completedProjectDetailId: "completed-42",
+      }),
+    );
+
+    expect(paginatedCallArgs[4]).toEqual({ projectPublicId: "completed-42" });
+    expect(paginatedCallArgs[6]).toEqual({ projectPublicId: "completed-42" });
+  });
+
   test("loads company settings queries while settings is open even when tab is Account", () => {
     const queryCallArgs: unknown[] = [];
     const paginatedCallArgs: unknown[] = [];

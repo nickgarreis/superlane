@@ -44,9 +44,3 @@ export const KBD_PILL_CLASS =
   "inline-flex items-center justify-center rounded border border-border-soft bg-surface-muted-soft text-text-muted-medium";
 
 export const DIVIDER_SUBTLE_CLASS = "bg-border-subtle-soft";
-
-export const WARNING_STATUS_PILL_CLASS =
-  "inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium tone-warning-soft shrink-0 whitespace-nowrap rounded-full border";
-
-export const IMPORTANT_STATUS_PILL_CLASS =
-  "inline-flex h-[19px] items-center px-2 py-[2px] txt-role-kbd font-medium txt-tone-danger border-popup-danger-soft-strong bg-popup-danger-soft shrink-0 whitespace-nowrap rounded-full border";

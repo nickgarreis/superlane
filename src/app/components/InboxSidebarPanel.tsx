@@ -11,7 +11,7 @@ import { Inbox as InboxIcon, Filter, Search, X } from "lucide-react";
 import { useSessionBackedState } from "../dashboard/hooks/useSessionBackedState";
 import { Z_LAYERS } from "../lib/zLayers";
 import { cn } from "../../lib/utils";
-import type { WorkspaceActivity } from "../types";
+import type { WorkspaceActivity, WorkspaceMember } from "../types";
 import { GHOST_ICON_BUTTON_CLASS } from "./ui/controlChrome";
 import {
   ACTIVITY_FILTER_ITEM_CLASS,
@@ -26,11 +26,14 @@ import { MembershipActivityRow } from "./activities-page/rows/MembershipActivity
 import { ProjectActivityRow } from "./activities-page/rows/ProjectActivityRow";
 import { TaskActivityRow } from "./activities-page/rows/TaskActivityRow";
 import { WorkspaceActivityRow } from "./activities-page/rows/WorkspaceActivityRow";
-
+import { buildInboxMentionRenderOptions } from "./activities-page/inboxMentionRender";
+import { SidebarTag } from "./sidebar/SidebarTag";
+import { buildMentionUserAvatarLookup } from "./mentions/userAvatarLookup";
 type InboxSidebarPanelProps = {
   isOpen: boolean;
   onClose: () => void;
   activities: WorkspaceActivity[];
+  workspaceMembers: WorkspaceMember[];
   unreadCount?: number;
   onMarkActivityRead?: (activityId: string) => void;
   onDismissActivity?: (activityId: string) => void;
@@ -43,14 +46,11 @@ type InboxSidebarPanelProps = {
     | "Exhausted";
   loadMoreWorkspaceActivities?: (numItems: number) => void;
 };
-
 const INBOX_UI_SEARCH_KEY = "inbox.search";
 const INBOX_UI_FILTER_KINDS_KEY = "inbox.filterKinds";
 const EMPTY_KIND_FILTERS: ActivityKindFilter[] = [];
-
 const deserializeString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
-
 const deserializeKinds = (value: unknown): ActivityKindFilter[] | undefined => {
   if (!Array.isArray(value)) {
     return undefined;
@@ -67,19 +67,22 @@ const deserializeKinds = (value: unknown): ActivityKindFilter[] | undefined => {
   );
   return next.slice(0, 20);
 };
-
 type RenderInboxActivityArgs = {
   showReadState: boolean;
   onMarkActivityRead?: (activityId: string) => void;
   onDismissActivity?: (activityId: string) => void;
   onActivityClick?: (activity: WorkspaceActivity) => void;
   onClose?: () => void;
+  workspaceMemberAvatarLookup: ReadonlyMap<string, string>;
 };
-
 const renderInboxActivity = (
   activity: WorkspaceActivity,
   args: RenderInboxActivityArgs,
 ) => {
+  const mentionRenderOptions = buildInboxMentionRenderOptions(
+    activity,
+    args.workspaceMemberAvatarLookup,
+  );
   const onMarkRead = activity.isRead === false && args.onMarkActivityRead
     ? () => args.onMarkActivityRead?.(activity.id)
     : undefined;
@@ -106,6 +109,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
     case "task":
@@ -118,6 +122,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
     case "collaboration":
@@ -130,6 +135,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
     case "file":
@@ -142,6 +148,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
     case "membership":
@@ -154,6 +161,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
     case "workspace":
@@ -168,6 +176,7 @@ const renderInboxActivity = (
           onDismiss={onDismiss}
           mentionMode="inbox"
           onMentionClick={onMentionClick}
+          mentionRenderOptions={mentionRenderOptions}
         />
       );
   }
@@ -177,6 +186,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
   isOpen,
   onClose,
   activities,
+  workspaceMembers,
   unreadCount = 0,
   onMarkActivityRead,
   onDismissActivity,
@@ -196,10 +206,19 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
     deserializeKinds,
   );
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const workspaceMemberAvatarLookup = useMemo(
+    () =>
+      buildMentionUserAvatarLookup(
+        workspaceMembers.map((member) => ({
+          label: member.name,
+          avatarUrl: member.avatarUrl,
+        })),
+      ),
+    [workspaceMembers],
+  );
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const isLoadingMoreRef = useRef(false);
-
   useEffect(() => {
     if (!isOpen) {
       setIsFilterOpen(false);
@@ -216,9 +235,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
     () => deferredSearchQuery.trim().toLowerCase(),
     [deferredSearchQuery],
   );
-
   const selectedKindsSet = useMemo(() => new Set(selectedKinds), [selectedKinds]);
-
   const filteredActivities = useMemo(() => {
     return activities.filter((activity) => {
       if (
@@ -258,6 +275,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
           onDismissActivity,
           onActivityClick,
           onClose,
+          workspaceMemberAvatarLookup,
         }),
       ),
     [
@@ -266,6 +284,7 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
       onDismissActivity,
       onActivityClick,
       onClose,
+      workspaceMemberAvatarLookup,
     ],
   );
 
@@ -323,16 +342,16 @@ export const InboxSidebarPanel = React.memo(function InboxSidebarPanel({
                   {filteredActivities.length}
                 </span>
                 {unreadCount > 0 ? (
-                  <span className="inline-flex rounded-full bg-accent-soft-bg px-2 py-0.5 txt-role-kbd txt-tone-accent">
+                  <SidebarTag tone="inboxUnread">
                     {unreadCount > 99 ? "99+" : unreadCount} unread
-                  </span>
+                  </SidebarTag>
                 ) : null}
               </div>
               {unreadCount > 0 && onMarkAllRead ? (
                 <button
                   type="button"
                   onClick={onMarkAllRead}
-                  className="ml-auto mr-12 rounded-md border border-border-soft px-2.5 py-1 txt-role-body-sm txt-tone-subtle transition-colors hover:bg-control-surface-muted hover:txt-tone-primary"
+                  className="ml-auto mr-8 rounded-md border border-border-soft px-2.5 py-1 txt-role-body-sm txt-tone-subtle transition-colors hover:bg-control-surface-muted hover:txt-tone-primary"
                 >
                   Mark all as read
                 </button>

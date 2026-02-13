@@ -178,6 +178,7 @@ export function ChatSidebar({
       id: member.userId,
       label: member.name,
       meta: formatRoleLabel(member.role),
+      avatar: member.avatarUrl ?? undefined,
     }));
     return { taskItems, fileItems, userItems };
   }, [activeProjectTasks, allFiles, workspaceMembers]);

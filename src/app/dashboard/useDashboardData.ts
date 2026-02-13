@@ -85,7 +85,7 @@ export const useDashboardData = ({
     : currentView.startsWith("archive-project:")
       ? currentView.slice("archive-project:".length)
       : null;
-  const activeProjectPublicId = routeProjectPublicId ?? completedProjectDetailId;
+  const activeProjectPublicId = completedProjectDetailId ?? routeProjectPublicId;
   const shouldLoadWorkspaceTasks = Boolean(isAuthenticated && resolvedWorkspaceSlug);
   const shouldLoadProjectTasks = activeProjectPublicId != null;
   const shouldLoadProjectFiles = activeProjectPublicId != null;

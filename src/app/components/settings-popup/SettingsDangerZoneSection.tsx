@@ -13,6 +13,7 @@ const WORKSPACE_DELETE_CONFIRMATION_TEXT = "DELETE";
 
 type SettingsDangerZoneSectionProps = {
   company: CompanySettingsData | null;
+  viewerRole?: CompanySettingsData["viewerRole"] | null;
   onSoftDeleteWorkspace: () => Promise<void>;
   showTitle?: boolean;
   layout?: "panel" | "button";
@@ -20,6 +21,7 @@ type SettingsDangerZoneSectionProps = {
 
 export function SettingsDangerZoneSection({
   company,
+  viewerRole = null,
   onSoftDeleteWorkspace,
   showTitle = true,
   layout = "panel",
@@ -32,9 +34,11 @@ export function SettingsDangerZoneSection({
   const deleteWorkspaceInputRef = useRef<HTMLInputElement | null>(null);
   const cancelDeleteWorkspaceButtonRef = useRef<HTMLButtonElement | null>(null);
   const confirmDeleteWorkspaceButtonRef = useRef<HTMLButtonElement | null>(null);
-  const canDeleteWorkspace = company?.capability.canDeleteWorkspace ?? false;
+  const effectiveViewerRole = company?.viewerRole ?? viewerRole;
+  const canDeleteWorkspace =
+    company?.capability.canDeleteWorkspace ?? effectiveViewerRole === "owner";
   const workspaceDeleteDeniedReason = getWorkspaceDeleteDeniedReason(
-    company?.viewerRole,
+    effectiveViewerRole,
   );
   const isDeleteConfirmationMatched =
     deleteWorkspaceConfirmation.trim() === WORKSPACE_DELETE_CONFIRMATION_TEXT;
@@ -125,7 +129,7 @@ export function SettingsDangerZoneSection({
     };
   }, [closeDeleteWorkspaceDialog, showDeleteWorkspaceDialog]);
 
-  if (!company) {
+  if (!company && layout !== "button") {
     return null;
   }
 

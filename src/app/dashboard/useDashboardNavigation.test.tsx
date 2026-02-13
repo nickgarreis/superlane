@@ -151,6 +151,41 @@ describe("useDashboardNavigation", () => {
     expect(result.current.draftPendingProjectDetailKind).toBe("pending");
   });
 
+  test("derives completed list state and keeps background current view from query", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed?from=/archive"),
+    });
+
+    expect(result.current.isCompletedProjectsOpen).toBe(true);
+    expect(result.current.completedProjectDetailId).toBeNull();
+    expect(result.current.currentView).toBe("archive");
+  });
+
+  test("derives completed detail state and keeps project background from query", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed/completed-1?from=/project/active-1"),
+    });
+
+    expect(result.current.isCompletedProjectsOpen).toBe(true);
+    expect(result.current.completedProjectDetailId).toBe("completed-1");
+    expect(result.current.currentView).toBe("project:active-1");
+  });
+
+  test("falls back to tasks as background for invalid completed from query", () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed/completed-1?from=/completed"),
+    });
+
+    expect(result.current.currentView).toBe("tasks");
+    expect(result.current.isCompletedProjectsOpen).toBe(true);
+  });
+
   test("opens search and create dialogs while preloading modules", () => {
     const args = baseArgs();
 
@@ -233,6 +268,89 @@ describe("useDashboardNavigation", () => {
       expect(result.current.location.pathname).toBe("/drafts");
       expect(result.current.searchParams.get("from")).toBe("/project/active-1");
       expect(result.current.currentView).toBe("drafts");
+    });
+  });
+
+  test("opens completed list route with preserved from path", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/project/active-1"),
+    });
+
+    act(() => {
+      result.current.openCompletedProjectsPopup();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/completed");
+      expect(result.current.searchParams.get("from")).toBe("/project/active-1");
+      expect(result.current.isCompletedProjectsOpen).toBe(true);
+      expect(result.current.currentView).toBe("project:active-1");
+    });
+  });
+
+  test("opens completed detail route with preserved from path", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/archive"),
+    });
+
+    act(() => {
+      result.current.openCompletedProjectDetail("completed-1");
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/completed/completed-1");
+      expect(result.current.searchParams.get("from")).toBe("/archive");
+      expect(result.current.completedProjectDetailId).toBe("completed-1");
+      expect(result.current.currentView).toBe("archive");
+    });
+  });
+
+  test("backs from completed detail to completed list while preserving from query", async () => {
+    const args = baseArgs();
+
+    const { result } = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed/release-1?from=/archive"),
+    });
+
+    act(() => {
+      result.current.backToCompletedProjectsList();
+    });
+
+    await waitFor(() => {
+      expect(result.current.location.pathname).toBe("/completed");
+      expect(result.current.searchParams.get("from")).toBe("/archive");
+      expect(result.current.completedProjectDetailId).toBeNull();
+      expect(result.current.currentView).toBe("archive");
+    });
+  });
+
+  test("closes completed routes back to from path and falls back to /tasks for invalid from", async () => {
+    const args = baseArgs();
+
+    const completedHook = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed?from=/archive"),
+    });
+    act(() => {
+      completedHook.result.current.closeCompletedProjectsPopup();
+    });
+    await waitFor(() => {
+      expect(completedHook.result.current.location.pathname).toBe("/archive");
+      expect(completedHook.result.current.currentView).toBe("archive");
+    });
+
+    const invalidHook = renderHook(() => useDashboardNavigation(args), {
+      wrapper: buildWrapper("/completed?from=/completed/release-1"),
+    });
+    act(() => {
+      invalidHook.result.current.closeCompletedProjectsPopup();
+    });
+    await waitFor(() => {
+      expect(invalidHook.result.current.location.pathname).toBe("/tasks");
+      expect(invalidHook.result.current.currentView).toBe("tasks");
     });
   });
 
