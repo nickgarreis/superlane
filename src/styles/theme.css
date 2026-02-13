@@ -723,6 +723,113 @@
   }
 }
 
+/* ── Shared scrollbar system ── */
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  ) {
+  --app-scrollbar-size: 6px;
+  --app-scrollbar-thumb-active: rgba(232, 232, 232, 0.32);
+  --app-scrollbar-thumb-hover: rgba(232, 232, 232, 0.46);
+  --app-scrollbar-track: transparent;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  )::-webkit-scrollbar {
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  )::-webkit-scrollbar-track {
+  background: var(--app-scrollbar-track);
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  )::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  ).scrollbar-page {
+  --app-scrollbar-size: 10px;
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  ).scrollbar-active {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb-active) var(--app-scrollbar-track);
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  ).scrollbar-active::-webkit-scrollbar-thumb {
+  background-color: var(--app-scrollbar-thumb-active);
+}
+
+:where(
+    html,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-x-auto,
+    .custom-scrollbar,
+    .scrollbar-hide,
+    .app-scrollbar
+  ).scrollbar-active::-webkit-scrollbar-thumb:hover {
+  background-color: var(--app-scrollbar-thumb-hover);
+}
+
 /* ── Task row flash animation (mention click highlight) ── */
 @keyframes taskRowFlash {
   0% {

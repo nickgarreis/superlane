@@ -86,13 +86,13 @@ const buildFileActions = (): MainContentFileActions => ({
   download: vi.fn(),
 });
 
-const PROJECT_ACTIONS: MainContentProjectActions = {
+const buildProjectActions = (): MainContentProjectActions => ({
   archive: vi.fn(),
   unarchive: vi.fn(),
   remove: vi.fn(),
   updateStatus: vi.fn(),
   updateProject: vi.fn(),
-};
+});
 
 const renderMainContent = (args?: {
   project?: ProjectData;
@@ -100,9 +100,11 @@ const renderMainContent = (args?: {
   pendingHighlight?: PendingHighlight | null;
   onClearPendingHighlight?: () => void;
   fileActions?: MainContentFileActions;
+  projectActions?: MainContentProjectActions;
   navigationActions?: MainContentNavigationActions;
 }) => {
   const fileActions = args?.fileActions ?? buildFileActions();
+  const projectActions = args?.projectActions ?? buildProjectActions();
 
   const view = render(
     <MainContent
@@ -113,14 +115,14 @@ const renderMainContent = (args?: {
       workspaceMembers={MEMBERS}
       viewerIdentity={VIEWER}
       fileActions={fileActions}
-      projectActions={PROJECT_ACTIONS}
+      projectActions={projectActions}
       navigationActions={args?.navigationActions}
       pendingHighlight={args?.pendingHighlight}
       onClearPendingHighlight={args?.onClearPendingHighlight}
     />,
   );
 
-  return { ...view, fileActions };
+  return { ...view, fileActions, projectActions };
 };
 
 describe("MainContent", () => {
@@ -380,5 +382,94 @@ describe("MainContent", () => {
 
     expect(scrollContainer.scrollTop).toBe(420);
     rafSpy.mockRestore();
+  });
+
+  test("supports inline project name/description edits for active projects with hard limits", () => {
+    const projectActions = buildProjectActions();
+    renderMainContent({ projectActions });
+
+    const nameField = screen.getByRole("textbox", {
+      name: "Project name",
+    });
+    const descriptionField = screen.getByRole("textbox", {
+      name: "Project description",
+    });
+
+    const overlongName = "A".repeat(48);
+    nameField.textContent = overlongName;
+    fireEvent.input(nameField);
+    expect(nameField.textContent).toBe("A".repeat(36));
+    expect(projectActions.updateProject).toHaveBeenNthCalledWith(1, {
+      name: "A".repeat(36),
+    });
+
+    const overlongDescription = "B".repeat(420);
+    descriptionField.textContent = overlongDescription;
+    fireEvent.input(descriptionField);
+    expect(descriptionField.textContent).toBe("B".repeat(400));
+    expect(projectActions.updateProject).toHaveBeenNthCalledWith(2, {
+      description: "B".repeat(400),
+    });
+  });
+
+  test("keeps inline text stable on blur while backend state catches up", () => {
+    const projectActions = buildProjectActions();
+    renderMainContent({ projectActions });
+
+    const nameField = screen.getByRole("textbox", {
+      name: "Project name",
+    });
+
+    nameField.textContent = "Instant Update";
+    fireEvent.input(nameField);
+    expect(projectActions.updateProject).toHaveBeenCalledWith({
+      name: "Instant Update",
+    });
+
+    fireEvent.blur(nameField);
+    expect(nameField.textContent).toBe("Instant Update");
+  });
+
+  test("allows inline edits in archive project detail pages", () => {
+    const projectActions = buildProjectActions();
+    renderMainContent({
+      projectActions,
+      project: {
+        ...BASE_PROJECT,
+        archived: true,
+      },
+    });
+
+    const nameField = screen.getByRole("textbox", {
+      name: "Project name",
+    });
+    expect(nameField).toHaveAttribute("contenteditable", "true");
+  });
+
+  test("keeps completed project detail text non-editable", () => {
+    const projectActions = buildProjectActions();
+    renderMainContent({
+      projectActions,
+      project: {
+        ...BASE_PROJECT,
+        status: {
+          ...BASE_PROJECT.status,
+          label: "Completed",
+        },
+        completedAt: 1700000000000,
+      },
+    });
+
+    const heading = screen.getByText(BASE_PROJECT.name);
+    const description = screen.getByText(BASE_PROJECT.description);
+
+    expect(heading).toHaveAttribute("contenteditable", "false");
+    expect(description).toHaveAttribute("contenteditable", "false");
+
+    heading.textContent = "Should not save";
+    fireEvent.input(heading);
+    fireEvent.blur(heading);
+
+    expect(projectActions.updateProject).not.toHaveBeenCalled();
   });
 });

@@ -265,7 +265,7 @@ export function MainContent({
         <div
           ref={contentScrollRef}
           className={`flex-1 overflow-y-auto py-[40px] ${
-            layoutMode === "popup" ? "px-[56px]" : "px-[80px]"
+            layoutMode === "popup" ? "px-[56px]" : "scrollbar-page px-[80px]"
           }`}
           onScroll={handleMainContentScroll}
         >

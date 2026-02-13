@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { RootPage } from "./components/RootPage";
 import { getPageTitle } from "./lib/seo";
+import { useSharedScrollbarVisibility } from "./lib/useSharedScrollbarVisibility";
 
 const DashboardApp = React.lazy(() => import("./DashboardApp"));
 
@@ -29,6 +30,7 @@ function useRouteTitle() {
 export default function App() {
   const { isAuthenticated } = useConvexAuth();
   useRouteTitle();
+  useSharedScrollbarVisibility();
 
   return (
     <Routes>

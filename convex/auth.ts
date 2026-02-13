@@ -150,14 +150,14 @@ type SyncLinkedIdentityProvidersCtx = {
     getUserIdentity: () => Promise<{ subject?: string | null } | null>;
   };
   runQuery: (
-    query: typeof getUserByWorkosUserId,
+    query: typeof internal.auth.getUserByWorkosUserId,
     args: { workosUserId: string },
   ) => Promise<{
     _id: Id<"users">;
     linkedIdentityProviders?: string[];
   } | null>;
   runMutation: (
-    mutation: typeof internalSetLinkedIdentityProviders,
+    mutation: typeof internal.auth.internalSetLinkedIdentityProviders,
     args: {
       userId: Id<"users">;
       linkedIdentityProviders: string[];
@@ -574,6 +574,14 @@ const syncCurrentUserLinkedIdentityProvidersImpl = async (
   const identity = await ctx.auth.getUserIdentity();
   const workosUserId = identity?.subject;
   if (!workosUserId) {
+    logInfo(
+      "auth.syncCurrentUserLinkedIdentityProviders",
+      "Skipped linked identity sync due to missing authenticated WorkOS user",
+      {
+        reason: "unauthorized",
+        sessionAuthenticationMethod: sessionAuthenticationMethod ?? null,
+      },
+    );
     return {
       synced: false,
       reason: "unauthorized",
@@ -581,10 +589,19 @@ const syncCurrentUserLinkedIdentityProvidersImpl = async (
     } as const;
   }
 
-  const user = await ctx.runQuery(getUserByWorkosUserId, {
+  const user = await ctx.runQuery(internal.auth.getUserByWorkosUserId, {
     workosUserId,
   });
   if (!user) {
+    logInfo(
+      "auth.syncCurrentUserLinkedIdentityProviders",
+      "Skipped linked identity sync because app user is not provisioned yet",
+      {
+        reason: "not_provisioned",
+        workosUserId,
+        sessionAuthenticationMethod: sessionAuthenticationMethod ?? null,
+      },
+    );
     return {
       synced: false,
       reason: "not_provisioned",
@@ -592,20 +609,34 @@ const syncCurrentUserLinkedIdentityProvidersImpl = async (
     } as const;
   }
 
+  const baselineProviders = toSortedUniqueProviderKeys([
+    ...(user.linkedIdentityProviders ?? []),
+    sessionAuthenticationMethod,
+  ]);
+  const baselineUpdateResult = await ctx.runMutation(
+    internal.auth.internalSetLinkedIdentityProviders,
+    {
+      userId: user._id,
+      linkedIdentityProviders: baselineProviders,
+    },
+  );
+
   try {
     const identities = await authKit.workos.userManagement.getUserIdentities(
       workosUserId,
     );
     const linkedIdentityProviders = toSortedUniqueProviderKeys([
-      ...(user.linkedIdentityProviders ?? []),
+      ...baselineUpdateResult.linkedIdentityProviders,
       ...identities.map((workosIdentity) => workosIdentity.provider),
-      sessionAuthenticationMethod,
     ]);
 
-    const updateResult = await ctx.runMutation(internalSetLinkedIdentityProviders, {
-      userId: user._id,
-      linkedIdentityProviders,
-    });
+    const updateResult = await ctx.runMutation(
+      internal.auth.internalSetLinkedIdentityProviders,
+      {
+        userId: user._id,
+        linkedIdentityProviders,
+      },
+    );
 
     return {
       synced: true,
@@ -617,7 +648,10 @@ const syncCurrentUserLinkedIdentityProvidersImpl = async (
       "auth.syncCurrentUserLinkedIdentityProviders",
       "Failed to sync linked identity providers from WorkOS",
       {
+        reason: "sync_failed",
         workosUserId,
+        sessionAuthenticationMethod: sessionAuthenticationMethod ?? null,
+        baselineProviders: baselineUpdateResult.linkedIdentityProviders,
         error,
       },
     );
@@ -625,9 +659,7 @@ const syncCurrentUserLinkedIdentityProvidersImpl = async (
     return {
       synced: false,
       reason: "sync_failed",
-      linkedIdentityProviders: toSortedUniqueProviderKeys(
-        user.linkedIdentityProviders ?? [],
-      ),
+      linkedIdentityProviders: baselineUpdateResult.linkedIdentityProviders,
     } as const;
   }
 };

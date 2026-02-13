@@ -83,7 +83,7 @@ export function TasksView({
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-[80px] py-[40px]"
+          className="scrollbar-page flex-1 overflow-y-auto px-[80px] py-[40px]"
           onScroll={onScroll}
         >
           <div className="mb-10 flex items-center gap-6">

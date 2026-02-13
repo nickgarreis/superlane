@@ -117,7 +117,7 @@ export function ArchivePage({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-[80px] py-[40px]">
+        <div className="scrollbar-page flex-1 overflow-y-auto px-[80px] py-[40px]">
           {/* Header Section */}
           <div className="flex gap-6 mb-10 items-center">
             <div className="flex-1">

@@ -24,6 +24,18 @@ import {
   omitUndefined,
   uploadFileToConvexStorage,
 } from "../lib/uploadHelpers";
+
+const LINKED_IDENTITY_SYNC_RETRY_DELAYS_MS = [0, 300, 1000, 2500] as const;
+const LINKED_IDENTITY_SYNC_RETRYABLE_REASONS = new Set<
+  "unauthorized" | "not_provisioned" | "sync_failed"
+>(["unauthorized", "not_provisioned", "sync_failed"]);
+
+type LinkedIdentitySyncActionResult = {
+  synced: boolean;
+  linkedIdentityProviders: string[];
+  reason?: "unauthorized" | "not_provisioned" | "sync_failed";
+};
+
 export function useDashboardDataLayer() {
   const { user, signOut, authenticationMethod } = useAuth();
   const { isAuthenticated } = useConvexAuth();
@@ -237,26 +249,111 @@ export function useDashboardDataLayer() {
       linkedIdentitySyncSignatureRef.current = null;
       return;
     }
-    const signature = `${user?.email ?? "authenticated-user"}:${authenticationMethod ?? "unknown"}`;
+    const signature = `${user?.id ?? "authenticated-user"}:${authenticationMethod ?? "unknown"}`;
     if (linkedIdentitySyncSignatureRef.current === signature) {
       return;
     }
     linkedIdentitySyncSignatureRef.current = signature;
-    void Promise.resolve(
-      syncCurrentUserLinkedIdentityProvidersAction({
-        sessionAuthenticationMethod: authenticationMethod ?? undefined,
-      }),
-    ).catch((error) => {
-      linkedIdentitySyncSignatureRef.current = null;
-      reportUiError("dashboard.syncLinkedIdentityProviders", error, {
-        showToast: false,
-      });
-    });
+
+    let isCancelled = false;
+    let pendingRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const runSyncWithRetries = async () => {
+      for (
+        let attemptIndex = 0;
+        attemptIndex < LINKED_IDENTITY_SYNC_RETRY_DELAYS_MS.length;
+        attemptIndex += 1
+      ) {
+        const retryDelayMs = LINKED_IDENTITY_SYNC_RETRY_DELAYS_MS[attemptIndex];
+        if (retryDelayMs > 0) {
+          await new Promise<void>((resolve) => {
+            pendingRetryTimeout = setTimeout(() => {
+              pendingRetryTimeout = null;
+              resolve();
+            }, retryDelayMs);
+          });
+          if (isCancelled) {
+            return;
+          }
+        }
+
+        let result: LinkedIdentitySyncActionResult;
+        try {
+          result = (await syncCurrentUserLinkedIdentityProvidersAction({
+            sessionAuthenticationMethod: authenticationMethod ?? undefined,
+          })) as LinkedIdentitySyncActionResult;
+        } catch (error) {
+          const isFinalAttempt =
+            attemptIndex === LINKED_IDENTITY_SYNC_RETRY_DELAYS_MS.length - 1;
+          if (!isFinalAttempt) {
+            continue;
+          }
+          linkedIdentitySyncSignatureRef.current = null;
+          if (isCancelled) {
+            return;
+          }
+          reportUiError("dashboard.syncLinkedIdentityProviders", error, {
+            showToast: false,
+            details: {
+              signature,
+              attempts: attemptIndex + 1,
+              reason: "thrown_error",
+            },
+          });
+          return;
+        }
+
+        if (result.synced) {
+          return;
+        }
+
+        const reason = result.reason ?? "sync_failed";
+        const isRetryable =
+          result.reason !== undefined &&
+          LINKED_IDENTITY_SYNC_RETRYABLE_REASONS.has(result.reason);
+        const isFinalAttempt =
+          attemptIndex === LINKED_IDENTITY_SYNC_RETRY_DELAYS_MS.length - 1;
+        if (isRetryable && !isFinalAttempt) {
+          continue;
+        }
+
+        linkedIdentitySyncSignatureRef.current = null;
+        if (isCancelled) {
+          return;
+        }
+        reportUiError(
+          "dashboard.syncLinkedIdentityProviders",
+          new Error(
+            `Linked identity sync did not complete (reason: ${reason}) after ${attemptIndex + 1} attempt(s)`,
+          ),
+          {
+            showToast: false,
+            details: {
+              signature,
+              attempts: attemptIndex + 1,
+              reason,
+              linkedIdentityProviderCount: result.linkedIdentityProviders.length,
+            },
+          },
+        );
+        return;
+      }
+
+    };
+
+    void runSyncWithRetries();
+
+    return () => {
+      isCancelled = true;
+      if (pendingRetryTimeout !== null) {
+        clearTimeout(pendingRetryTimeout);
+      }
+    };
   }, [
     authenticationMethod,
     isAuthenticated,
     syncCurrentUserLinkedIdentityProvidersAction,
-    user?.email,
+    user?.id,
   ]);
   useDashboardLifecycleEffects({
     snapshot: data.snapshot,

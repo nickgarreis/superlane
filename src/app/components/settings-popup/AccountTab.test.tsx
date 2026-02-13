@@ -286,7 +286,7 @@ describe("AccountTab", () => {
     expect(screen.getByText("Signed in with Email")).toBeInTheDocument();
     expect(screen.getByText("Signed in with Google")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit email & password" })).toBeInTheDocument();
-    expect(screen.getByText("OAuth")).toBeInTheDocument();
+    expect(screen.queryByText("OAuth")).not.toBeInTheDocument();
   });
 
   test("shows linked email row for social sessions when email credentials are linked", () => {
@@ -335,7 +335,7 @@ describe("AccountTab", () => {
     );
 
     expect(screen.getByText("Signed in with Google")).toBeInTheDocument();
-    expect(screen.getByText("OAuth")).toBeInTheDocument();
+    expect(screen.queryByText("OAuth")).not.toBeInTheDocument();
     expect(screen.getByText("alex@example.com")).toBeInTheDocument();
     expect(screen.queryByText("GoogleOAuth")).not.toBeInTheDocument();
     expect(screen.queryByText("Signed in with Email")).not.toBeInTheDocument();
@@ -343,5 +343,30 @@ describe("AccountTab", () => {
       screen.queryByRole("button", { name: "Edit email & password" }),
     ).not.toBeInTheDocument();
     expect(onRequestPasswordReset).not.toHaveBeenCalled();
+  });
+
+  test("does not render sync failure messaging when linked providers are missing", () => {
+    render(
+      <AccountTab
+        data={{
+          firstName: "Alex",
+          lastName: "Owner",
+          email: "alex@example.com",
+          avatarUrl: null,
+          linkedIdentityProviders: [],
+          authenticationMethod: "GoogleOAuth",
+          isPasswordAuthSession: false,
+          socialLoginLabel: "Google",
+        }}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onRequestPasswordReset={vi.fn().mockResolvedValue(undefined)}
+        onUploadAvatar={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.getByText("Signed in with Google")).toBeInTheDocument();
+    expect(screen.queryByText(/sync/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
   });
 });

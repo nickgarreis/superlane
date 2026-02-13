@@ -1,9 +1,4 @@
 import React, { Suspense } from "react";
-const isDashboardRewriteEnabled =
-  import.meta.env.VITE_DASHBOARD_REWRITE !== "false";
-const LazyDashboardLegacyShell = React.lazy(
-  () => import("./dashboard/DashboardLegacyShell"),
-);
 const LazyDashboardShell = React.lazy(
   () => import("./dashboard/DashboardShell"),
 );
@@ -17,11 +12,7 @@ function DashboardShellFallback() {
 export default function DashboardApp() {
   return (
     <Suspense fallback={<DashboardShellFallback />}>
-      {isDashboardRewriteEnabled ? (
-        <LazyDashboardShell />
-      ) : (
-        <LazyDashboardLegacyShell />
-      )}
+      <LazyDashboardShell />
     </Suspense>
   );
 }

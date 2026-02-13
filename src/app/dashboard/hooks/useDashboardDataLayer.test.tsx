@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { useDashboardDataLayer } from "./useDashboardDataLayer";
 
 const {
@@ -18,6 +18,7 @@ const {
   loadCreateProjectPopupModuleMock,
   loadCreateWorkspacePopupModuleMock,
   loadSettingsPopupModuleMock,
+  reportUiErrorMock,
 } = vi.hoisted(() => ({
   useAuthMock: vi.fn(),
   useConvexMock: vi.fn(),
@@ -34,6 +35,7 @@ const {
   loadCreateProjectPopupModuleMock: vi.fn().mockResolvedValue(undefined),
   loadCreateWorkspacePopupModuleMock: vi.fn().mockResolvedValue(undefined),
   loadSettingsPopupModuleMock: vi.fn().mockResolvedValue(undefined),
+  reportUiErrorMock: vi.fn(),
 }));
 
 vi.mock("@workos-inc/authkit-react", () => ({
@@ -47,6 +49,10 @@ vi.mock("convex/react", () => ({
 
 vi.mock("sonner", () => ({
   toast: toastMock,
+}));
+
+vi.mock("../../lib/errors", () => ({
+  reportUiError: (...args: unknown[]) => reportUiErrorMock(...args),
 }));
 
 vi.mock("../useDashboardNavigation", () => ({
@@ -142,7 +148,10 @@ const createApiHandlers = () => ({
   removeBrandAssetMutation: vi.fn(),
   softDeleteWorkspaceMutation: vi.fn(),
   requestPasswordResetAction: vi.fn(),
-  syncCurrentUserLinkedIdentityProvidersAction: vi.fn(),
+  syncCurrentUserLinkedIdentityProvidersAction: vi.fn().mockResolvedValue({
+    synced: true,
+    linkedIdentityProviders: [],
+  }),
   updateAccountProfileAction: vi.fn(),
   inviteWorkspaceMemberAction: vi.fn(),
   resendWorkspaceInvitationAction: vi.fn(),
@@ -155,16 +164,22 @@ const createApiHandlers = () => ({
 });
 
 describe("useDashboardDataLayer", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthMock.mockReturnValue({
       user: {
+        id: "user_123",
         firstName: "Nick",
         lastName: "User",
         email: "nick@example.com",
         profilePictureUrl: "https://cdn.test/avatar.png",
       },
       signOut: vi.fn(),
+      authenticationMethod: "GoogleOAuth",
     });
     useConvexAuthMock.mockReturnValue({ isAuthenticated: true });
     useConvexMock.mockReturnValue({ query: vi.fn() });
@@ -268,5 +283,73 @@ describe("useDashboardDataLayer", () => {
     expect(result.current.handleCreateWorkspace).toBe(
       initialHandleCreateWorkspace,
     );
+  });
+
+  test("retries linked identity sync after soft failure and does not show UI errors", async () => {
+    vi.useFakeTimers();
+    const handlers = createApiHandlers();
+    handlers.syncCurrentUserLinkedIdentityProvidersAction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        synced: false,
+        reason: "not_provisioned",
+        linkedIdentityProviders: [],
+      })
+      .mockResolvedValueOnce({
+        synced: true,
+        linkedIdentityProviders: ["google"],
+      });
+    useDashboardApiHandlersMock.mockReturnValueOnce(handlers);
+
+    renderHook(() => useDashboardDataLayer());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(handlers.syncCurrentUserLinkedIdentityProvidersAction).toHaveBeenCalledTimes(
+      1,
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+    expect(handlers.syncCurrentUserLinkedIdentityProvidersAction).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(reportUiErrorMock).not.toHaveBeenCalled();
+    expect(toastMock.error).not.toHaveBeenCalled();
+  });
+
+  test("logs terminal soft-failure without surfacing frontend error UI", async () => {
+    vi.useFakeTimers();
+    const handlers = createApiHandlers();
+    handlers.syncCurrentUserLinkedIdentityProvidersAction = vi
+      .fn()
+      .mockResolvedValue({
+        synced: false,
+        reason: "sync_failed",
+        linkedIdentityProviders: [],
+      });
+    useDashboardApiHandlersMock.mockReturnValueOnce(handlers);
+
+    renderHook(() => useDashboardDataLayer());
+
+    await act(async () => {
+      await Promise.resolve();
+      await vi.runAllTimersAsync();
+      await Promise.resolve();
+    });
+
+    expect(handlers.syncCurrentUserLinkedIdentityProvidersAction).toHaveBeenCalledTimes(
+      4,
+    );
+    expect(reportUiErrorMock).toHaveBeenCalledTimes(1);
+    expect(reportUiErrorMock).toHaveBeenCalledWith(
+      "dashboard.syncLinkedIdentityProviders",
+      expect.any(Error),
+      expect.objectContaining({ showToast: false }),
+    );
+    expect(toastMock.error).not.toHaveBeenCalled();
   });
 });

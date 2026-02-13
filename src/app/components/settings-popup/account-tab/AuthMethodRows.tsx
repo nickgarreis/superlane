@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import type { AccountSettingsData } from "../types";
 import {
   buildProviderKeysToDisplay,
@@ -6,7 +7,7 @@ import {
   resolveProviderKeyFromAuthMethod,
   resolveProviderRowMeta,
 } from "./authProviders";
-import { SECONDARY_ACTION_BUTTON_CLASS } from "../../ui/controlChrome";
+import { TABLE_ACTION_ICON_BUTTON_CLASS } from "../../ui/controlChrome";
 
 const AUTH_MODE_ROW_CLASS = "flex flex-wrap items-start gap-3";
 
@@ -38,7 +39,7 @@ export function AuthMethodRows({
 
   return (
     <div className="pt-3">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {providerKeysToDisplay.map((providerKey, index) => {
           const providerMeta = resolveProviderRowMeta(providerKey);
           const isEmailProvider = providerKey === "email_password";
@@ -61,6 +62,8 @@ export function AuthMethodRows({
             : isSessionProvider
               ? formatAuthMethodLabel(data.authenticationMethod)
               : providerMeta.methodLabel ?? "External auth";
+          const shouldShowMethodLabel =
+            methodLabel !== null && methodLabel !== "OAuth";
           const ProviderIcon = providerMeta.Icon;
 
           return (
@@ -84,16 +87,18 @@ export function AuthMethodRows({
               {isEmailProvider ? (
                 <button
                   type="button"
+                  aria-label="Edit email & password"
+                  title="Edit email & password"
                   onClick={onOpenCredentialsModal}
-                  className={`inline-flex h-7 items-center rounded-full px-3 txt-role-body-sm cursor-pointer ${SECONDARY_ACTION_BUTTON_CLASS}`}
+                  className={`${TABLE_ACTION_ICON_BUTTON_CLASS} hover:bg-surface-hover-subtle hover:txt-tone-faint`}
                 >
-                  Edit email & password
+                  <Pencil size={14} strokeWidth={2} aria-hidden="true" />
                 </button>
-              ) : (
+              ) : shouldShowMethodLabel ? (
                 <span className="inline-flex h-7 items-center txt-role-body-sm txt-tone-secondary">
                   {methodLabel}
                 </span>
-              )}
+              ) : null}
             </div>
           );
         })}
