@@ -41,6 +41,8 @@ describe("SidebarProfileMenu", () => {
       />,
     );
 
+    expect(screen.getByText("⌘,")).toBeInTheDocument();
+
     fireEvent.click(screen.getByText("Settings"));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
 

@@ -40,12 +40,14 @@ export function SidebarPrimaryActions({
           currentView === "archive" ||
           currentView?.startsWith("archive-project:")
         }
+        shortcut="⌘A"
       />
       <SidebarItem
         icon={<Inbox size={16} />}
         label="Inbox"
         onClick={onOpenInbox}
         badge={inboxBadge}
+        shortcut="⌘I"
       />
       <SidebarItem
         icon={<Plus size={16} />}
@@ -53,6 +55,7 @@ export function SidebarPrimaryActions({
         onClick={onOpenCreateProject}
         onIntent={onOpenCreateProjectIntent}
         className="txt-tone-accent hover:txt-tone-accent mt-1"
+        shortcut="⌘P"
       />
     </div>
   );

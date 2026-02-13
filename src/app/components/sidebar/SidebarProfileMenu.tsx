@@ -71,6 +71,7 @@ export function SidebarProfileMenu({
           label="Settings"
           onClick={() => onOpenSettings()}
           onIntent={onOpenSettingsIntent}
+          shortcut="⌘,"
         />
         <SidebarItem
           icon={<HelpCircle size={16} />}

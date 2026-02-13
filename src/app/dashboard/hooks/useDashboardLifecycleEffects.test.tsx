@@ -56,6 +56,9 @@ const createBaseArgs = () => ({
   setActiveWorkspaceSlug: vi.fn(),
   preloadSearchPopupModule: vi.fn().mockResolvedValue(undefined),
   openSearch: vi.fn(),
+  openInbox: vi.fn(),
+  openCreateProject: vi.fn(),
+  openSettings: vi.fn(),
   locationPathname: "/tasks",
   locationSearch: "",
   projects: {} as Record<string, ProjectData>,
@@ -115,7 +118,7 @@ describe("useDashboardLifecycleEffects", () => {
     });
   });
 
-  test("opens search via keyboard shortcut and preloads popup on idle", async () => {
+  test("opens keyboard shortcut targets and preloads popup on idle", async () => {
     const args = createBaseArgs();
     renderHook(() => useDashboardLifecycleEffects(args));
 
@@ -125,7 +128,42 @@ describe("useDashboardLifecycleEffects", () => {
     document.dispatchEvent(
       new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
     );
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "i", ctrlKey: true }),
+    );
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "p", ctrlKey: true }),
+    );
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: ",", ctrlKey: true }),
+    );
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "a", ctrlKey: true }),
+    );
+
     expect(args.openSearch).toHaveBeenCalledTimes(1);
+    expect(args.openInbox).toHaveBeenCalledTimes(1);
+    expect(args.openCreateProject).toHaveBeenCalledTimes(1);
+    expect(args.openSettings).toHaveBeenCalledTimes(1);
+    expect(args.navigateToPath).toHaveBeenCalledWith("/archive");
+  });
+
+  test("preserves select-all in text inputs", () => {
+    const args = createBaseArgs();
+    renderHook(() => useDashboardLifecycleEffects(args));
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "a",
+        ctrlKey: true,
+        bubbles: true,
+      }),
+    );
+    document.body.removeChild(input);
+
+    expect(args.navigateToPath).not.toHaveBeenCalledWith("/archive");
   });
 
   test("registers and cleans up global keydown listener", () => {

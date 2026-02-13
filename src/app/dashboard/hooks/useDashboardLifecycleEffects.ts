@@ -27,6 +27,9 @@ type UseDashboardLifecycleEffectsArgs = {
   setActiveWorkspaceSlug: (slug: string) => void;
   preloadSearchPopupModule: () => Promise<unknown>;
   openSearch: () => void;
+  openInbox: () => void;
+  openCreateProject: () => void;
+  openSettings: () => void;
   locationPathname: string;
   locationSearch: string;
   projects: Record<string, ProjectData>;
@@ -45,6 +48,9 @@ export const useDashboardLifecycleEffects = ({
   setActiveWorkspaceSlug,
   preloadSearchPopupModule,
   openSearch,
+  openInbox,
+  openCreateProject,
+  openSettings,
   locationPathname,
   locationSearch,
   projects,
@@ -70,17 +76,50 @@ export const useDashboardLifecycleEffects = ({
     projectCacheRef.current[projectId] = project;
   }
 
-  const handleSearchShortcut = useCallback(
+  const handleGlobalShortcuts = useCallback(
     (event: Event) => {
       if (!(event instanceof KeyboardEvent)) {
         return;
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        openSearch();
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      const isTextInputShortcutTarget =
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target instanceof HTMLElement && event.target.isContentEditable);
+      switch (event.key.toLowerCase()) {
+        case "k":
+          event.preventDefault();
+          openSearch();
+          break;
+        case "i":
+          event.preventDefault();
+          openInbox();
+          break;
+        case "p":
+          event.preventDefault();
+          openCreateProject();
+          break;
+        case ",":
+          event.preventDefault();
+          openSettings();
+          break;
+        case "a":
+          if (isTextInputShortcutTarget) {
+            return;
+          }
+          event.preventDefault();
+          navigateToPath(viewToPath("archive"));
+          break;
+        default:
+          break;
       }
     },
-    [openSearch],
+    [navigateToPath, openCreateProject, openInbox, openSearch, openSettings],
   );
   useEffect(() => {
     if (!snapshot) {
@@ -111,7 +150,7 @@ export const useDashboardLifecycleEffects = ({
   useGlobalEventListener({
     target: document,
     type: "keydown",
-    listener: handleSearchShortcut,
+    listener: handleGlobalShortcuts,
   });
   const resolveDraftPendingFromPath = useCallback(() => {
     const fromParam = new URLSearchParams(locationSearch).get("from");

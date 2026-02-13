@@ -101,9 +101,12 @@ const createNavigation = () => ({
   closeCompletedProjectsPopup: vi.fn(),
   openCompletedProjectDetail: vi.fn(),
   backToCompletedProjectsList: vi.fn(),
+  openInbox: vi.fn(),
   openSearch: vi.fn(),
+  openCreateProject: vi.fn(),
+  handleOpenSettings: vi.fn(),
   navigate: vi.fn(),
-  location: { pathname: "/tasks" },
+  location: { pathname: "/tasks", search: "" },
 });
 
 const createApiHandlers = () => ({
