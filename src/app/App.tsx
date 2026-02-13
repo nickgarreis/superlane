@@ -9,6 +9,13 @@ import { RootPage } from "./components/RootPage";
 import { getPageTitle } from "./lib/seo";
 import { useSharedScrollbarVisibility } from "./lib/useSharedScrollbarVisibility";
 
+const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
+const LazyDemoBanner = isDemo
+  ? React.lazy(() =>
+      import("../demo/DemoBanner").then((m) => ({ default: m.DemoBanner })),
+    )
+  : null;
+
 const DashboardApp = React.lazy(() => import("./DashboardApp"));
 
 function DashboardFallback() {
@@ -33,24 +40,42 @@ export default function App() {
   useSharedScrollbarVisibility();
 
   return (
-    <Routes>
-      <Route path="/" element={<RootPage isAuthenticated={isAuthenticated} />} />
-      <Route path="/login" element={<AuthPage mode="signin" />} />
-      <Route path="/signup" element={<AuthPage mode="signup" />} />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/dashboard" element={<Navigate to="/tasks" replace />} />
-      <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<DashboardFallback />}>
-              <DashboardApp />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <>
+      {LazyDemoBanner && (
+        <Suspense fallback={null}>
+          <LazyDemoBanner />
+        </Suspense>
+      )}
+      <Routes>
+        {/* In demo mode, redirect root and auth routes straight to tasks */}
+        {isDemo ? (
+          <>
+            <Route path="/" element={<Navigate to="/tasks" replace />} />
+            <Route path="/login" element={<Navigate to="/tasks" replace />} />
+            <Route path="/signup" element={<Navigate to="/tasks" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<RootPage isAuthenticated={isAuthenticated} />} />
+            <Route path="/login" element={<AuthPage mode="signin" />} />
+            <Route path="/signup" element={<AuthPage mode="signup" />} />
+          </>
+        )}
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/dashboard" element={<Navigate to="/tasks" replace />} />
+        <Route path="/inbox" element={<Navigate to="/tasks" replace />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<DashboardFallback />}>
+                <DashboardApp />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
   );
 }

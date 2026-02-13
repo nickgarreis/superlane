@@ -1,13 +1,17 @@
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import { figmaAssetResolverPlugin } from "./config/figmaAssetResolver";
 
 const analyzeBuild = process.env.ANALYZE === "true";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  const isDemo = env.VITE_DEMO_MODE === "true";
+
+  return {
   plugins: [
     figmaAssetResolverPlugin(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -19,6 +23,16 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       "@": path.resolve(__dirname, "./src"),
+      // Demo mode: replace Convex + WorkOS with in-memory mocks
+      ...(isDemo
+        ? {
+            "convex/react": path.resolve(__dirname, "./src/demo/mockConvexReact.tsx"),
+            "@workos-inc/authkit-react": path.resolve(
+              __dirname,
+              "./src/demo/mockAuthKit.tsx",
+            ),
+          }
+        : {}),
     },
   },
   build: {
@@ -107,4 +121,5 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ["**/*.svg", "**/*.csv"],
+};
 });
