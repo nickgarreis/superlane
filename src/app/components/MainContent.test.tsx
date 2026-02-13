@@ -421,6 +421,24 @@ describe("MainContent", () => {
     });
   });
 
+  test("keeps project detail shells shrink-safe on mobile widths", () => {
+    const { container } = renderMainContent();
+
+    const outerShell = container.firstElementChild as HTMLDivElement | null;
+    expect(outerShell).not.toBeNull();
+    expect(outerShell).toHaveClass("flex-1", "min-w-0");
+
+    const innerShell = outerShell?.firstElementChild as HTMLDivElement | null;
+    expect(innerShell).not.toBeNull();
+    expect(innerShell).toHaveClass("flex-1", "min-w-0");
+
+    const scrollContainer = container.querySelector(
+      ".overflow-y-auto",
+    ) as HTMLDivElement | null;
+    expect(scrollContainer).not.toBeNull();
+    expect(scrollContainer).toHaveClass("flex-1", "min-w-0");
+  });
+
   test("uses wrapping classes to avoid clipping project headline and description", () => {
     renderMainContent({
       project: {

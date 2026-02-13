@@ -117,7 +117,10 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                   }}
                   layout={false}
                   exit={{ opacity: 0 }}
-                  className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+                  className={cn(
+                    "project-file-row group flex min-w-0 gap-4 p-3 rounded-xl border border-transparent transition-colors cursor-pointer hover:bg-white/5 hover:border-white/5 relative",
+                    isMobile ? "items-start" : "items-center",
+                  )}
                   style={fileRowStyle}
                 >
                   <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
@@ -132,10 +135,15 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">
+                    <h3 className="mb-0.5 break-words text-sm font-medium text-white transition-colors [overflow-wrap:anywhere] group-hover:text-white">
                       {file.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-xs text-white/40">
+                    <div
+                      className={cn(
+                        "flex items-center gap-2 text-xs text-white/40",
+                        isMobile && "flex-wrap",
+                      )}
+                    >
                       <span className="uppercase">{file.type}</span>
                       <span>•</span>
                       <span>
@@ -195,7 +203,10 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
               }}
               layout
               exit={{ opacity: 0 }}
-              className="project-file-row group flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5 relative"
+              className={cn(
+                "project-file-row group flex min-w-0 gap-4 p-3 rounded-xl border border-transparent transition-colors cursor-pointer hover:bg-white/5 hover:border-white/5 relative",
+                isMobile ? "items-start" : "items-center",
+              )}
               style={fileRowStyle}
             >
               <div className="w-10 h-12 shrink-0 bg-white rounded flex items-center justify-center overflow-hidden shadow-sm relative">
@@ -210,10 +221,15 @@ export const MainContentFileRows = React.memo(function MainContentFileRows({
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-white group-hover:text-white transition-colors mb-0.5">
+                <h3 className="mb-0.5 break-words text-sm font-medium text-white transition-colors [overflow-wrap:anywhere] group-hover:text-white">
                   {file.name}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-white/40">
+                <div
+                  className={cn(
+                    "flex items-center gap-2 text-xs text-white/40",
+                    isMobile && "flex-wrap",
+                  )}
+                >
                   <span className="uppercase">{file.type}</span> <span>•</span>
                   <span>{formatFileDisplayDate(file.displayDateEpochMs)}</span>
                 </div>

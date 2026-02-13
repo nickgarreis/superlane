@@ -260,12 +260,12 @@ export function MainContent({
   );
   return (
     <div
-      className={`flex-1 h-full txt-tone-primary overflow-hidden font-app flex flex-col relative ${
+      className={`flex-1 min-w-0 h-full txt-tone-primary overflow-hidden font-app flex flex-col relative ${
         layoutMode === "popup" ? "bg-transparent" : "bg-bg-base"
       }`}
     >
       <div
-        className={`relative rounded-none flex-1 overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${
+        className={`relative rounded-none flex-1 min-w-0 overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${
           layoutMode === "popup"
             ? "bg-bg-popup rounded-[28px]"
             : "bg-bg-surface"
@@ -281,7 +281,7 @@ export function MainContent({
         )}
         <div
           ref={contentScrollRef}
-          className={`flex-1 overflow-y-auto ${
+          className={`flex-1 min-w-0 overflow-y-auto ${
             layoutMode === "popup"
               ? useMobileLayout
                 ? "px-4 py-5"

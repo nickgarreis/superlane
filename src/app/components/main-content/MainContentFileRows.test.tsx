@@ -60,4 +60,31 @@ describe("MainContentFileRows", () => {
       });
     });
   });
+
+  test("wraps long file names on mobile to avoid right-edge overflow", () => {
+    const longNamedFile: ProjectFileData = {
+      ...createFile(1),
+      name: "VERY-LONG-FILENAME-WITHOUT-SPACES-THAT-NEEDS-WRAPPING-ON-MOBILE.PDF",
+    };
+
+    render(
+      <MainContentFileRows
+        isMobile
+        filteredFiles={[longNamedFile]}
+        fileRowRefs={{ current: {} }}
+        fileActions={{
+          create: vi.fn(),
+          remove: vi.fn(),
+          download: vi.fn(),
+        }}
+        canMutateProjectFiles
+        fileMutationDisabledMessage="Disabled"
+        onRemoveFile={vi.fn()}
+      />,
+    );
+
+    const fileName = document.querySelector("h3");
+    expect(fileName).not.toBeNull();
+    expect(fileName).toHaveClass("break-words");
+  });
 });

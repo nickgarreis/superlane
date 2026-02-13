@@ -104,6 +104,18 @@ const baseProps = () => ({
 });
 
 describe("DashboardContent", () => {
+  test("keeps the content shell shrink-safe to prevent mobile right-side clipping", async () => {
+    const props = baseProps();
+    const { container } = render(
+      <DashboardContent {...props} contentModel={{ kind: "tasks" }} />,
+    );
+    await screen.findByTestId("tasks-view");
+
+    const shell = container.firstElementChild as HTMLDivElement | null;
+    expect(shell).not.toBeNull();
+    expect(shell).toHaveClass("flex-1", "min-w-0");
+  });
+
   test("renders tasks content for tasks model", async () => {
     const props = baseProps();
 

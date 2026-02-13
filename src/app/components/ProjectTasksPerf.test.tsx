@@ -107,7 +107,9 @@ describe("ProjectTasks performance guards", () => {
       />,
     );
 
-    expect(container.querySelector(".overflow-x-auto")).not.toBeNull();
+    const scrollContainer = container.querySelector(".overflow-x-auto");
+    expect(scrollContainer).not.toBeNull();
+    expect(scrollContainer).toHaveClass("w-full", "max-w-full", "min-w-0");
     expect(projectTaskRowsIsMobileValues[0]).toBe(false);
   });
 });

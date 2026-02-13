@@ -35,7 +35,7 @@ const ContentLoadingFallback = (
   </div>
 );
 const paneClassName = (isActive: boolean): string =>
-  isActive ? "h-full w-full" : "hidden h-full w-full";
+  isActive ? "h-full w-full min-w-0" : "hidden h-full w-full min-w-0";
 type MainContentModel = Extract<DashboardContentModel, { kind: "main" }>;
 type DashboardContentProps = {
   isMobile: boolean;
@@ -181,7 +181,7 @@ export const DashboardContent = React.memo(function DashboardContent({
   }
 
   return (
-    <div className="flex-1 h-full bg-bg-base relative">
+    <div className="flex-1 min-w-0 h-full bg-bg-base relative">
       {(hasLoadedTasksPane || isTasksActive) && (
         <div className={paneClassName(isTasksActive)} aria-hidden={!isTasksActive}>
           <Suspense fallback={ContentLoadingFallback}>

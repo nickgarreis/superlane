@@ -302,9 +302,15 @@ export function ProjectTasks({
         sortBy={sortBy}
         onSortSelect={setSortBy}
       />{" "}
-      <div className={cn("flex flex-col", isMobile && "overflow-x-auto pb-1")}>
+      <div
+        className={cn(
+          "flex w-full max-w-full min-w-0 flex-col",
+          isMobile && "overflow-x-auto pb-1",
+        )}
+      >
         <div
           className={cn(
+            "w-full min-w-0",
             isMobile && (showProjectColumn ? "min-w-[760px]" : "min-w-[560px]"),
           )}
         >
