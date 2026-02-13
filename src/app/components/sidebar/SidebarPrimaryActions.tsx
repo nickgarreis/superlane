@@ -12,11 +12,6 @@ export function SidebarPrimaryActions({
   onOpenCreateProject,
   onOpenCreateProjectIntent,
 }: SidebarPrimaryActionsProps) {
-  const inboxBadge =
-    inboxUnreadCount > 0
-      ? (inboxUnreadCount > 99 ? "99+" : String(inboxUnreadCount))
-      : undefined;
-
   return (
     <div className="flex flex-col gap-0.5 mb-6">
       <SidebarItem
@@ -43,10 +38,20 @@ export function SidebarPrimaryActions({
         shortcut="⌘A"
       />
       <SidebarItem
-        icon={<Inbox size={16} />}
+        icon={(
+          <div className="relative flex size-4 items-center justify-center leading-none">
+            <Inbox size={16} />
+            {inboxUnreadCount > 0 ? (
+              <span
+                data-testid="inbox-unread-dot"
+                aria-hidden="true"
+                className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-sky-500"
+              />
+            ) : null}
+          </div>
+        )}
         label="Inbox"
         onClick={onOpenInbox}
-        badge={inboxBadge}
         shortcut="⌘I"
       />
       <SidebarItem

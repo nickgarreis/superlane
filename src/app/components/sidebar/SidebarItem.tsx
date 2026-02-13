@@ -19,7 +19,7 @@ export type SidebarItemProps = {
   onUncomplete?: () => void;
   className?: string;
   shortcut?: string;
-  badge?: number | string;
+  badge?: React.ReactNode;
   projectId?: string;
   projectStatus?: string;
   isDraft?: boolean;
@@ -63,6 +63,8 @@ export const SidebarItem = React.memo(function SidebarItem({
   if (projectId) {
     drag(ref);
   }
+  const hasNumericBadge = typeof badge === "number" || typeof badge === "string";
+
   return (
     <div
       ref={ref}
@@ -86,7 +88,7 @@ export const SidebarItem = React.memo(function SidebarItem({
       >
         {icon}
       </div>
-      <span className="txt-role-body-md font-medium truncate flex-1 leading-none pt-0.5">
+      <span className="txt-role-body-md font-medium truncate flex-1 leading-none">
         {label}
       </span>
       {shortcut && (
@@ -94,11 +96,14 @@ export const SidebarItem = React.memo(function SidebarItem({
           {shortcut}
         </span>
       )}
-      {badge != null && (
-        <SidebarTag tone="inboxUnread" className="ml-2">
-          {badge}
-        </SidebarTag>
-      )}
+      {badge != null &&
+        (hasNumericBadge ? (
+          <SidebarTag tone="inboxUnread" className="ml-2">
+            {badge}
+          </SidebarTag>
+        ) : (
+          badge
+        ))}
       {isDraft && (
         <span className="inline-flex h-[19px] items-center py-[2px] txt-role-kbd font-medium txt-tone-accent ml-2 shrink-0 whitespace-nowrap">
           Draft

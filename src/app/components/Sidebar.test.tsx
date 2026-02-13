@@ -104,7 +104,7 @@ describe("Sidebar workspace permissions", () => {
     expect(onSwitchWorkspace).toHaveBeenCalledWith("workspace-beta");
   });
 
-  test("shows unread inbox badge and caps at 99+", () => {
+  test("shows unread inbox dot when unread count is positive", () => {
     const { rerender } = render(
       <Sidebar
         onNavigate={vi.fn()}
@@ -131,10 +131,10 @@ describe("Sidebar workspace permissions", () => {
     );
 
     const inboxItem = screen.getByTitle("Inbox");
-    const unreadBadge = within(inboxItem).getByText("7");
-    expect(unreadBadge).toBeInTheDocument();
-    expect(unreadBadge).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
-    expect(unreadBadge).toHaveClass("txt-tone-accent");
+    const unreadDot = within(inboxItem).getByTestId("inbox-unread-dot");
+    expect(unreadDot).toBeInTheDocument();
+    expect(unreadDot).toHaveClass("rounded-full");
+    expect(unreadDot).toHaveClass("bg-sky-500");
 
     rerender(
       <Sidebar
@@ -161,10 +161,9 @@ describe("Sidebar workspace permissions", () => {
       />,
     );
 
-    const cappedBadge = within(screen.getByTitle("Inbox")).getByText("99+");
-    expect(cappedBadge).toBeInTheDocument();
-    expect(cappedBadge).toHaveAttribute("data-sidebar-tag-tone", "inboxUnread");
-    expect(cappedBadge).toHaveClass("txt-tone-accent");
+    const unreadDotAfterRerender =
+      within(screen.getByTitle("Inbox")).getByTestId("inbox-unread-dot");
+    expect(unreadDotAfterRerender).toBeInTheDocument();
   });
 
   test("hides inbox badge when unread count is zero", () => {
@@ -193,7 +192,6 @@ describe("Sidebar workspace permissions", () => {
       />,
     );
 
-    expect(within(screen.getByTitle("Inbox")).queryByText("99+")).toBeNull();
-    expect(within(screen.getByTitle("Inbox")).queryByText("7")).toBeNull();
+    expect(within(screen.getByTitle("Inbox")).queryByTestId("inbox-unread-dot")).toBeNull();
   });
 });
