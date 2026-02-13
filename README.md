@@ -1,4 +1,4 @@
-<video src="intro.mp4" controls playsinline></video>
+![demo](./intro.mp4)
 
 # Build Design
 
